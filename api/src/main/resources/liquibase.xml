@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+ 
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog/1.9"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog/1.9
+                  http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-1.9.xsd">
+    <changeSet id="add_issued_column_fhir_diagnostic_report_table_20220525" author="priyanka" dbms="mysql,mariadb,postgresql">
+        <preConditions onFail="MARK_RAN" onError="WARN">
+            <tableExists tableName="fhir_diagnostic_report"/>
+            <not>
+                <columnExists tableName="fhir_diagnostic_report" columnName="issued"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="fhir_diagnostic_report">
+            <column name="issued" type="datetime"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="drop_name_column_diagnostic_report_table_20220525" author="priyanka" dbms="mysql,mariadb,postgresql">
+        <preConditions onFail="MARK_RAN" onError="WARN">
+            <tableExists tableName="fhir_diagnostic_report"/>
+            <columnExists tableName="fhir_diagnostic_report" columnName="name"/>
+        </preConditions>
+        <dropColumn tableName="fhir_diagnostic_report" columnName="name"/>
+    </changeSet>
+
+    <changeSet id="add_requested_period_reference_join_table_20200311" author="r.kalai">
+        <preConditions onFail="MARK_RAN" onError="WARN">
+            <not>
+                <tableExists tableName="fhir_task_requested_period"/>
+            </not>
+            <tableExists tableName="fhir_task"/>
+            <tableExists tableName="fhir_reference"/>
+        </preConditions>
+        <createTable tableName="fhir_task_requested_period">
+            <column name="task_id" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="requested_start_time" type="datetime"/>
+            <column name="requested_end_time" type="datetime"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="fhir_task_requested_period" baseColumnNames="task_id"
+                                 constraintName="task_requested_period_fk"
+                                 referencedTableName="fhir_task"
+                                 referencedColumnNames="task_id"/>
+    </changeSet>
+ 
+</databaseChangeLog>
