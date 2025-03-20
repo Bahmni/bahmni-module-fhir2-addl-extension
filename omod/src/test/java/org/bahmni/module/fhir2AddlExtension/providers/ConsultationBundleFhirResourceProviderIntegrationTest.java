@@ -27,7 +27,7 @@ import static org.openmrs.module.fhir2.api.util.GeneralUtils.inputStreamToString
 @Ignore("Need to work with OMRS for the improvement on the BaseFHIRR4IntegrationTest class. Right now the code is copied and modified locally")
 public class ConsultationBundleFhirResourceProviderIntegrationTest extends BahmniBaseFhirR4IntegrationTest<ConsultationBundleFhirR4ResourceProvider, Bundle> {
 	
-	private static final String BUNDLE_JSON_CREATE_ENCOUNTER_PATH = "bundle_encounter_create.json";
+	private static final String BUNDLE_JSON_CREATE_ENCOUNTER_PATH = "consultation_bundle_create_encounter.json";
 	
 	@Autowired
 	@Getter(AccessLevel.PUBLIC)
