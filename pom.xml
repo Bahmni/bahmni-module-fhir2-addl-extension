@@ -298,12 +298,12 @@
 		<repository>
 			<id>github</id>
 			<name>GitHub Apache Maven Packages</name>
-			<url>https://maven.pkg.github.com/bahnew/bahmni-module-fhir2addlextension</url>
+			<url>https://maven.pkg.github.com/bahnew/bahmni-module-fhir2-addl-extension</url>
 		</repository>
 		<snapshotRepository>
 			<id>github</id>
 			<name>GitHub Apache Maven Packages</name>
-			<url>https://maven.pkg.github.com/bahnew/bahmni-module-fhir2addlextension</url>
+			<url>https://maven.pkg.github.com/bahnew/bahmni-module-fhir2-addl-extension</url>
 		</snapshotRepository>
 	</distributionManagement>
 
