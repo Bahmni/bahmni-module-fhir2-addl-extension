@@ -295,14 +295,16 @@
 	</build>
 
 	<distributionManagement>
-		<snapshotRepository>
-			<id>nexus-sonatype</id>
-			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
-		</snapshotRepository>
 		<repository>
-			<id>nexus-sonatype</id>
-			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
+			<id>github</id>
+			<name>GitHub Apache Maven Packages</name>
+			<url>https://maven.pkg.github.com/bahnew/bahmni-module-fhir2-addl-extension</url>
 		</repository>
+		<snapshotRepository>
+			<id>github</id>
+			<name>GitHub Apache Maven Packages</name>
+			<url>https://maven.pkg.github.com/bahnew/bahmni-module-fhir2-addl-extension</url>
+		</snapshotRepository>
 	</distributionManagement>
 
 	<profiles>
