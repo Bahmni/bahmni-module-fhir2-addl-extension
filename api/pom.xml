@@ -3,11 +3,11 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.bahmni.module</groupId>
-        <artifactId>fhir2AddlExtension</artifactId>
+        <artifactId>fhir2addlextension</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>fhir2AddlExtension-api</artifactId>
+    <artifactId>fhir2addlextension-api</artifactId>
     <packaging>jar</packaging>
     <name>FHIR2 module extensions API</name>
     <description>API project for FHIR2 Extensions module</description>
@@ -71,8 +71,8 @@
                         <include>**/*</include>
                     </includes>
                     <excludes>
-                        <exclude>**/Fhir2AddlExtensionModuleActivator.class</exclude>
-                        <exclude>**/Fhir2AddlExtensionModuleConfiguration.class</exclude>
+                        <exclude>**/fhir2addlextensionModuleActivator.class</exclude>
+                        <exclude>**/fhir2addlextensionModuleConfiguration.class</exclude>
                     </excludes>
                 </configuration>
                 <executions>

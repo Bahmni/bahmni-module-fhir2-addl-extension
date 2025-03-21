@@ -9,7 +9,7 @@
 	</parent>
 
 	<groupId>org.bahmni.module</groupId>
-	<artifactId>fhir2AddlExtension</artifactId>
+	<artifactId>fhir2addlextension</artifactId>
 	<version>1.0.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 	<name>FHIR2 module additional extensions</name>
@@ -298,12 +298,12 @@
 		<repository>
 			<id>github</id>
 			<name>GitHub Apache Maven Packages</name>
-			<url>https://maven.pkg.github.com/bahnew/bahmni-module-fhir2-addl-extension</url>
+			<url>https://maven.pkg.github.com/bahnew/bahmni-module-fhir2addlextension</url>
 		</repository>
 		<snapshotRepository>
 			<id>github</id>
 			<name>GitHub Apache Maven Packages</name>
-			<url>https://maven.pkg.github.com/bahnew/bahmni-module-fhir2-addl-extension</url>
+			<url>https://maven.pkg.github.com/bahnew/bahmni-module-fhir2addlextension</url>
 		</snapshotRepository>
 	</distributionManagement>
 

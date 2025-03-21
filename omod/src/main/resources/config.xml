@@ -12,7 +12,7 @@
 			${project.parent.description}
 	</description>
 
-	<activator>org.bahmni.module.fhir2AddlExtension.Fhir2AddlExtensionModuleActivator</activator>
+	<activator>org.bahmni.module.fhir2addlextension.Fhir2AddlExtensionModuleActivator</activator>
 
 	<!-- <updateURL>https://modules.openmrs.org/modules/download/@MODULE_ID@/update.rdf</updateURL> -->
 	<!-- /Base Module Properties -->

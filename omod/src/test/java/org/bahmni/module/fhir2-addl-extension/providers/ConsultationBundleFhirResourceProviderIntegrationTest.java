@@ -7,14 +7,14 @@
  * Copyright 2025 (C) Thoughtworks Inc.
  */
 
-package org.bahmni.module.fhir2AddlExtension.providers;
+package org.bahmni.module.fhir2addlextension.providers;
 
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.bahmni.module.fhir2AddlExtension.api.providers.ConsultationBundleFhirR4ResourceProvider;
+import org.bahmni.module.fhir2addlextension.api.providers.ConsultationBundleFhirR4ResourceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.InputStream;

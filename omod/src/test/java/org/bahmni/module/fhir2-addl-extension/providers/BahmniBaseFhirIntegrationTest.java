@@ -15,7 +15,7 @@
  *  - the signature of the class has been modified from (U extends DomainResource) to (U extends IAnyResource)
  */
 
-package org.bahmni.module.fhir2AddlExtension.providers;
+package org.bahmni.module.fhir2addlextension.providers;
 
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
