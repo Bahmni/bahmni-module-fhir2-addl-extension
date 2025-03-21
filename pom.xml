@@ -83,13 +83,6 @@
 				<updatePolicy>interval:10080</updatePolicy>
 			</snapshots>
 		</repository>
-		<repository>
-          <id>github</id>
-          <url>https://maven.pkg.github.com/bahnew/*</url>
-          <snapshots>
-            <enabled>true</enabled>
-          </snapshots>
-        </repository>
 	</repositories>
 	<pluginRepositories>
 		<pluginRepository>
