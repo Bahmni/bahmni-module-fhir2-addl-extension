@@ -5,6 +5,8 @@
 .classpath
 .DS_Store
 .idea
+.mvn
+.vscode
 
 target
 
