@@ -11,7 +11,7 @@
  *
  * Copyright (C) OpenMRS, LLC.  All Rights Reserved.
  */
-package org.bahmni.module.fhir2addlextension;
+package org.bahmni.module.fhir2AddlExtension;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

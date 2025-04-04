@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2addlextension;
+package org.bahmni.module.fhir2AddlExtension;
 
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.parser.IParser;

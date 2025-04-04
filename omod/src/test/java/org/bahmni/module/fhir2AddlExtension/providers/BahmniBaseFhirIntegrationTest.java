@@ -15,7 +15,7 @@
  *  - the signature of the class has been modified from (U extends DomainResource) to (U extends IAnyResource)
  */
 
-package org.bahmni.module.fhir2addlextension.providers;
+package org.bahmni.module.fhir2AddlExtension.providers;
 
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
@@ -49,6 +49,7 @@ import org.hl7.fhir.instance.model.api.IAnyResource;
 import org.hl7.fhir.instance.model.api.IBaseBundle;
 import org.hl7.fhir.instance.model.api.IBaseOperationOutcome;
 import org.junit.Before;
+import org.openmrs.Provider;
 import org.openmrs.module.fhir2.DelegatingWebApplicationContext;
 import org.openmrs.module.fhir2.FhirActivator;
 import org.openmrs.module.fhir2.IntegrationTestConfiguration;

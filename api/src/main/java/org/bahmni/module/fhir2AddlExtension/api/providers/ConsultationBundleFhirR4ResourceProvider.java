@@ -7,27 +7,31 @@
  * Copyright 2025 (C) Thoughtworks Inc.
  */
 
-package org.bahmni.module.fhir2addlextension.api.providers;
+package org.bahmni.module.fhir2AddlExtension.api.providers;
 
 import ca.uhn.fhir.rest.annotation.Create;
+import ca.uhn.fhir.rest.annotation.IdParam;
+import ca.uhn.fhir.rest.annotation.Read;
 import ca.uhn.fhir.rest.annotation.ResourceParam;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
-import org.bahmni.module.fhir2addlextension.api.domain.ConsultationBundle;
+import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
+import org.bahmni.module.fhir2AddlExtension.api.domain.ConsultationBundle;
+import org.bahmni.module.fhir2AddlExtension.api.service.ConsultationBundleService;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Encounter;
+import org.hl7.fhir.r4.model.IdType;
 import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.r4.model.ResourceType;
-import org.openmrs.module.fhir2.api.FhirConditionService;
 import org.openmrs.module.fhir2.api.FhirEncounterService;
 import org.openmrs.module.fhir2.api.annotations.R4Provider;
 import org.openmrs.module.fhir2.providers.util.FhirProviderUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,9 +41,13 @@ public class ConsultationBundleFhirR4ResourceProvider implements IResourceProvid
 	
 	private FhirEncounterService encounterService;
 	
+	private ConsultationBundleService consultationBundleService;
+	
 	@Autowired
-	public ConsultationBundleFhirR4ResourceProvider(FhirEncounterService encounterService) {
+	public ConsultationBundleFhirR4ResourceProvider(FhirEncounterService encounterService,
+	    ConsultationBundleService consultationBundleService) {
 		this.encounterService = encounterService;
+		this.consultationBundleService = consultationBundleService;
 	}
 	
 	@Override
@@ -48,7 +56,21 @@ public class ConsultationBundleFhirR4ResourceProvider implements IResourceProvid
 	}
 	
 	@Create
-    public MethodOutcome createBundle(@ResourceParam ConsultationBundle bundle) {
+	public MethodOutcome createConsultation(@ResourceParam ConsultationBundle bundle) {
+		Bundle responseBundle = consultationBundleService.create(bundle);
+		MethodOutcome methodOutcome = new MethodOutcome();
+		methodOutcome.setCreated(true);
+		methodOutcome.setResource(responseBundle);
+		return methodOutcome;
+	}
+
+	@Read
+	public ConsultationBundle getConsultationByUuid(@IdParam @Nonnull IdType encounterUuid) {
+		return null;
+	}
+	
+	//@Create
+	public MethodOutcome createBundle(@ResourceParam ConsultationBundle bundle) {
 		/**
 		 * We want to handle the whole request as a transaction.
 		 * - TODO: Define FHIR IG for the bundle.

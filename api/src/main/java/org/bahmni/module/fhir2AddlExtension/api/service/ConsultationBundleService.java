@@ -7,11 +7,11 @@
  * Copyright 2025 (C) Thoughtworks Inc.
  */
 
-package org.bahmni.module.fhir2addlextension.api.domain;
+package org.bahmni.module.fhir2AddlExtension.api.service;
 
-import ca.uhn.fhir.model.api.annotation.ResourceDef;
 import org.hl7.fhir.r4.model.Bundle;
 
-//TODO define IG
-@ResourceDef(name = "ConsultationBundle", profile = "http://fhir.bahmni.org/R4/StructureDefinition/BahmniConsultationBundle")
-public class ConsultationBundle extends Bundle {}
+public interface ConsultationBundleService {
+	
+	Bundle create(Bundle bundle);
+}
