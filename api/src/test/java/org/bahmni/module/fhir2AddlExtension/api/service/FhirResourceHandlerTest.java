@@ -45,6 +45,23 @@ public class FhirResourceHandlerTest {
 		}
 	}
 	
+	@Test
+	public void shouldUpdateEncounter() {
+		Encounter encounter = new Encounter();
+		encounter.setId("tempEncounterId");
+		encounter.setSubject(new Reference("Patient/123"));
+		EncounterFhirResourceProvider resourceProvider = createEncounterResourceProvider(mockFhirEncounterService(encounter));
+		FhirResourceHandler resourceHandler = new FhirResourceHandler(FhirContext.forR4());
+		Optional<MethodOutcome> methodOutcome = resourceHandler.invokeResourceProvider(Bundle.HTTPVerb.PUT, encounter,
+		    resourceProvider);
+		if (methodOutcome.isPresent()) {
+			IBaseResource resource = methodOutcome.get().getResource();
+			Assert.assertTrue(resource instanceof Encounter);
+		} else {
+			Assert.fail("No result was returned as outcome. Expected MethodOutcome with resource as Encounter");
+		}
+	}
+	
 	private EncounterFhirResourceProvider createEncounterResourceProvider(FhirEncounterService fhirEncounterService) {
 		EncounterFhirResourceProvider encounterProvider = new EncounterFhirResourceProvider();
 		Field encounterServiceField = ReflectionUtils.findField(EncounterFhirResourceProvider.class, "encounterService");

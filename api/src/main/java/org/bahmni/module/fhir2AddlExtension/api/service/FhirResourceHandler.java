@@ -7,9 +7,9 @@
  * Copyright 2025 (C) Thoughtworks Inc.
  */
 
-/**
- *  Notice:
- *  - Partial content of this file, specifically related to identification of resourceBindings have been copied from HAPI FhirServlet class
+/*
+   Notice:
+   - Partial content of this file, specifically related to identification of resourceBindings have been copied from HAPI FhirServlet class
  */
 
 package org.bahmni.module.fhir2AddlExtension.api.service;
@@ -23,6 +23,7 @@ import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.RequestTypeEnum;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.ResourceBinding;
+import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.method.BaseMethodBinding;
 import ca.uhn.fhir.rest.server.method.ConformanceMethodBinding;
 import ca.uhn.fhir.rest.server.servlet.ServletRequestDetails;
@@ -44,6 +45,8 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Parameter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -59,6 +62,8 @@ public class FhirResourceHandler {
     private final FhirContext fhirContext;
 
     private Map<Bundle.HTTPVerb, RequestTypeEnum> httpVerbToRequestTypeEnum = new HashMap<>();
+    private Map<Class, IResourceProvider> resourceProviderMap = new HashMap<>();
+    private Map<Class, Map<String, ResourceBinding>> resourceBindingMap = new HashMap<>();
 
     @Autowired
     public FhirResourceHandler(@Qualifier("fhirR4") FhirContext fhirContext) {
@@ -67,6 +72,10 @@ public class FhirResourceHandler {
     }
 
     public Optional<IResourceProvider> getResourceProvider(Class clazz) {
+        IResourceProvider aProvider = resourceProviderMap.get(clazz);
+        if (aProvider != null) {
+            return Optional.of(aProvider);
+        }
         ConfigurableApplicationContext context = FhirActivator.getApplicationContext();
         Set<String> validBeanNames = Arrays.stream(context.getBeanNamesForAnnotation(R4Provider.class))
                 .collect(Collectors.toSet());
@@ -74,6 +83,7 @@ public class FhirResourceHandler {
                 .filter(entry -> validBeanNames.contains(entry.getKey())).map(Map.Entry::getValue)
                 .collect(Collectors.toList());
         Optional<IResourceProvider> resourceProvider = resourceProviders.stream().filter(provider -> provider.getResourceType().equals(clazz)).findFirst();
+        resourceProvider.ifPresent(provider -> resourceProviderMap.put(clazz, provider));
         return resourceProvider;
     }
 
@@ -84,10 +94,11 @@ public class FhirResourceHandler {
         }
         Optional<IResourceProvider> resourceProvider = this.getResourceProvider(resource.getClass());
         if (!resourceProvider.isPresent()) {
-            throw new RuntimeException(String.format("There are no resource provider for resource [%s]",resource.getClass().getSimpleName()));
+            String errMsg = String.format("There are no resource provider for resource [%s]", resource.getClass().getSimpleName());
+            log.error(errMsg);
+            throw new RuntimeException(errMsg);
         }
         return invokeResourceProviderInternal(httpVerb, resource, resourceProvider.get());
-
     }
 
     @SneakyThrows
@@ -104,6 +115,11 @@ public class FhirResourceHandler {
     }
 
     private Map<String, ResourceBinding> getResourceBindingMap(final IResourceProvider resourceProvider) {
+        Map<String, ResourceBinding> bindingMap = resourceBindingMap.get(resourceProvider.getClass());
+        if (bindingMap != null) {
+            return bindingMap;
+        }
+
         Map<String, ResourceBinding> myResourceNameToBinding = new HashMap<>();
         ResourceBinding myGlobalBinding = new ResourceBinding();
         ResourceBinding myServerBinding = new ResourceBinding();
@@ -159,6 +175,7 @@ public class FhirResourceHandler {
             resourceBinding.addMethod(foundMethodBinding);
             log.debug(" * Method: {}#{} is a handler", resourceProvider.getClass(), m.getName());
         }
+        resourceBindingMap.put(resourceProvider.getClass(), myResourceNameToBinding);
         return myResourceNameToBinding;
     }
 
@@ -183,9 +200,28 @@ public class FhirResourceHandler {
         if (!methodBinding.isPresent()) {
             return Optional.empty();
         }
-
         MethodOutcome response;
-        Object invocationResult = methodBinding.get().getMethod().invoke(resourceProvider, new Object[] {resource});
+        BaseMethodBinding<?> binding = methodBinding.get();
+        List<Object> methodParams = new ArrayList<>();
+        /*
+          method binding to handle - CreateMethodParam, UpdateMethodParam, DeleteMethodParam
+          one way to check (binding instanceof UpdateMethodBinding || binding instanceof DeleteMethodBinding)
+          However they don't provide public accessors to the params index to the method.
+         */
+        Parameter[] parameters = binding.getMethod().getParameters();
+        for (Parameter parameter : parameters) {
+            if (parameter.getType().getName().equalsIgnoreCase("org.hl7.fhir.r4.model.IdType")) {
+                methodParams.add(resource.getIdElement());
+                continue;
+            }
+            if (parameter.getType().getName().equalsIgnoreCase(resource.getClass().getName())) {
+                methodParams.add(resource);
+            }
+        }
+        if (methodParams.isEmpty()) {
+            throw new InvalidRequestException("Can not identify resource operations. No parameter identified");
+        }
+        Object invocationResult = binding.getMethod().invoke(resourceProvider, methodParams.toArray());
         if (invocationResult instanceof IBaseOperationOutcome) {
             response = new MethodOutcome();
             response.setOperationOutcome((IBaseOperationOutcome) invocationResult);

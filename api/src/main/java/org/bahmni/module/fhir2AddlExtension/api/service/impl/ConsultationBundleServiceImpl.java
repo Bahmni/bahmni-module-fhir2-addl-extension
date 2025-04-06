@@ -12,7 +12,6 @@ package org.bahmni.module.fhir2AddlExtension.api.service.impl;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2AddlExtension.api.domain.ConsultationBundle;
 import org.bahmni.module.fhir2AddlExtension.api.service.ConsultationBundleService;
@@ -24,7 +23,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -40,17 +38,18 @@ public class ConsultationBundleServiceImpl implements ConsultationBundleService 
 	public ConsultationBundleServiceImpl(FhirResourceHandler resourceHandler) {
 		this.resourceHandler = resourceHandler;
 	}
-
 	
 	@Override
 	public Bundle create(Bundle bundle) {
-        /**
-         * We want to handle the whole request as a transaction.
-         * - TODO: Define FHIR IG for the bundle.
-         * - TODO: validate bundle type = transaction
-         * - ensure all entries contain resources and request element
-         * - resource references: can have server side references e.g. Patient/ABC12345
+        /*
+          We want to handle the whole request as a transaction.
+          - TODO: Define FHIR IG for the bundle.
+          - ensure all entries contain resources and request element
+          - resource references: can have server side references e.g. Patient/ABC12345
          */
+		if (bundle.getType() != Bundle.BundleType.TRANSACTION) {
+			throw new InvalidRequestException("Bundle type must be transaction");
+		}
 
         //For all entries must have resources and request elements
         List<Bundle.BundleEntryComponent> invalidResourceEntries = bundle.getEntry()
@@ -73,11 +72,18 @@ public class ConsultationBundleServiceImpl implements ConsultationBundleService 
 
 		//run through the rest of the entries in the bundle. process them in the order of dependencies. e.g obs can be part of another obs or other resources
         //delegate processing to resource specific OpenMRS Fhir Services such as observationFhirResourceProcessor, conditionFhirResourceProcessor etc
-		Optional<Bundle.BundleEntryComponent> bundleEntryComponent = createOrUpdateResource(encounterEntries.get(0));
-		if (bundleEntryComponent.isPresent()) {
-			responseBundle.addEntry(bundleEntryComponent.get());
-		} else {
-			//TODO
+		Bundle.BundleEntryComponent requestedEntryComponent = encounterEntries.get(0);
+		try {
+			Optional<Bundle.BundleEntryComponent> bundleEntryComponent = createOrUpdateResource(requestedEntryComponent);
+			if (bundleEntryComponent.isPresent()) {
+				responseBundle.addEntry(bundleEntryComponent.get());
+			} else {
+				throw new InvalidRequestException(String.format("Could not process resource [%s]", requestedEntryComponent.getFullUrl()));
+			}
+		} catch (Exception e) {
+			String errorMessage = String.format("Error occurred while processing bundle entry [%s]", requestedEntryComponent.getFullUrl());
+			log.error(errorMessage, e);
+			throw new InvalidRequestException(String.format("%s. %s", errorMessage, e.getMessage()));
 		}
 
 		return responseBundle;
@@ -93,9 +99,8 @@ public class ConsultationBundleServiceImpl implements ConsultationBundleService 
 	 * binding.getMethod().invoke(binding.getProvider(), theMethodParams) this approach will save us
 	 * a lot of boilerplate code
 	 * 
-	 * @return
+	 * @return Optional<Bundle.BundleEntryComponent>
 	 */
-	@SneakyThrows
 	private Optional<Bundle.BundleEntryComponent> createOrUpdateResource(Bundle.BundleEntryComponent bundleEntryComponent) {
 		Bundle.HTTPVerb httpVerb = bundleEntryComponent.getRequest().getMethod();
 		Resource resource = bundleEntryComponent.getResource();

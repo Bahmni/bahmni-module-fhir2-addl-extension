@@ -49,7 +49,6 @@ import org.hl7.fhir.instance.model.api.IAnyResource;
 import org.hl7.fhir.instance.model.api.IBaseBundle;
 import org.hl7.fhir.instance.model.api.IBaseOperationOutcome;
 import org.junit.Before;
-import org.openmrs.Provider;
 import org.openmrs.module.fhir2.DelegatingWebApplicationContext;
 import org.openmrs.module.fhir2.FhirActivator;
 import org.openmrs.module.fhir2.IntegrationTestConfiguration;

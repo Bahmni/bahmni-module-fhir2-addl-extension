@@ -63,7 +63,7 @@ public class ConsultationBundleFhirR4ResourceProvider implements IResourceProvid
 		methodOutcome.setResource(responseBundle);
 		return methodOutcome;
 	}
-
+	
 	@Read
 	public ConsultationBundle getConsultationByUuid(@IdParam @Nonnull IdType encounterUuid) {
 		return null;
