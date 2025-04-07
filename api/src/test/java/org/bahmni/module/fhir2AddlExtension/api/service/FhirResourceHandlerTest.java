@@ -6,6 +6,7 @@ import ca.uhn.fhir.rest.api.PatchTypeEnum;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.api.server.RequestDetails;
 import ca.uhn.fhir.rest.param.TokenParam;
+import org.bahmni.module.fhir2AddlExtension.api.service.impl.FhirResourceHandlerImpl;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Encounter;
@@ -33,7 +34,7 @@ public class FhirResourceHandlerTest {
 		encounter.setId("tempEncounterId");
 		encounter.setSubject(new Reference("Patient/123"));
 		EncounterFhirResourceProvider resourceProvider = createEncounterResourceProvider(mockFhirEncounterService(encounter));
-		FhirResourceHandler resourceHandler = new FhirResourceHandler(FhirContext.forR4());
+		FhirResourceHandler resourceHandler = new FhirResourceHandlerImpl(FhirContext.forR4());
 		
 		Optional<MethodOutcome> methodOutcome = resourceHandler.invokeResourceProvider(Bundle.HTTPVerb.POST, encounter,
 		    resourceProvider);
@@ -51,7 +52,7 @@ public class FhirResourceHandlerTest {
 		encounter.setId("tempEncounterId");
 		encounter.setSubject(new Reference("Patient/123"));
 		EncounterFhirResourceProvider resourceProvider = createEncounterResourceProvider(mockFhirEncounterService(encounter));
-		FhirResourceHandler resourceHandler = new FhirResourceHandler(FhirContext.forR4());
+		FhirResourceHandler resourceHandler = new FhirResourceHandlerImpl(FhirContext.forR4());
 		Optional<MethodOutcome> methodOutcome = resourceHandler.invokeResourceProvider(Bundle.HTTPVerb.PUT, encounter,
 		    resourceProvider);
 		if (methodOutcome.isPresent()) {
