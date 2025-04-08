@@ -15,6 +15,7 @@ import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2AddlExtension.api.domain.ConsultationBundle;
 import org.bahmni.module.fhir2AddlExtension.api.service.ConsultationBundleService;
+import org.bahmni.module.fhir2AddlExtension.api.service.FhirResourceHandler;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.r4.model.ResourceType;
@@ -31,10 +32,10 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ConsultationBundleServiceImpl implements ConsultationBundleService {
 	
-	final private FhirResourceHandlerImpl resourceHandler;
+	final private FhirResourceHandler resourceHandler;
 	
 	@Autowired
-	public ConsultationBundleServiceImpl(FhirResourceHandlerImpl resourceHandler) {
+	public ConsultationBundleServiceImpl(FhirResourceHandler resourceHandler) {
 		this.resourceHandler = resourceHandler;
 	}
 	
