@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.lang.reflect.UndeclaredThrowableException;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -80,6 +81,11 @@ public class ConsultationBundleServiceImpl implements ConsultationBundleService 
 			} else {
 				throw new InvalidRequestException(String.format("Could not process resource [%s]", requestedEntryComponent.getFullUrl()));
 			}
+		} catch (UndeclaredThrowableException e) {
+			String errorMessage = String.format("Error occurred while processing bundle entry [%s]", requestedEntryComponent.getFullUrl());
+			log.error(errorMessage, e);
+			throw new InvalidRequestException(String.format("%s. %s", errorMessage, e.getUndeclaredThrowable().getCause().getMessage()));
+
 		} catch (Exception e) {
 			String errorMessage = String.format("Error occurred while processing bundle entry [%s]", requestedEntryComponent.getFullUrl());
 			log.error(errorMessage, e);
