@@ -17,41 +17,41 @@ import org.springframework.stereotype.Component;
 @Component
 @Setter(value = AccessLevel.PACKAGE)
 public class BahmniEncounterValidatorImpl implements BahmniEncounterValidator {
-
-    @Autowired
-    private EncounterLocationTranslator encounterLocationTranslator;
-
-    @Autowired
-    private PatientReferenceTranslator patientReferenceTranslator;
-
-    @Autowired
-    private EncounterReferenceTranslator<Visit> visitReferenceTranslator;
-
-    @Override
-    public void validate(Encounter existingEncounter, org.hl7.fhir.r4.model.Encounter encounter) {
-        validatePatientReference(existingEncounter, encounter);
-        validateVisitReference(encounter);
-        validateLocationReference(encounter);
-    }
-
-    private void validatePatientReference(Encounter existingEncounter, org.hl7.fhir.r4.model.Encounter encounter) {
-        Patient patient = patientReferenceTranslator.toOpenmrsType(encounter.getSubject());
-        if (patient != null && existingEncounter.getPatient() != null && !existingEncounter.getPatient().equals(patient))
-            throw new ValidationException(
-                    "Patient reference in the encounter does not match the existing patient. Please check the patient reference.");
-    }
-
-    private void validateVisitReference(org.hl7.fhir.r4.model.Encounter encounter) {
-        Visit visit = visitReferenceTranslator.toOpenmrsType(encounter.getPartOf());
-        if (visit == null) {
-            throw new ValidationException("Invalid Visit reference.");
-        }
-    }
-
-    private void validateLocationReference(org.hl7.fhir.r4.model.Encounter encounter) {
-        Location location = encounterLocationTranslator.toOpenmrsType(encounter.getLocationFirstRep());
-        if (location == null) {
-            throw new ValidationException("Invalid Location reference.");
-        }
-    }
+	
+	@Autowired
+	private EncounterLocationTranslator encounterLocationTranslator;
+	
+	@Autowired
+	private PatientReferenceTranslator patientReferenceTranslator;
+	
+	@Autowired
+	private EncounterReferenceTranslator<Visit> visitReferenceTranslator;
+	
+	@Override
+	public void validate(Encounter existingEncounter, org.hl7.fhir.r4.model.Encounter encounter) {
+		validatePatientReference(existingEncounter, encounter);
+		validateVisitReference(encounter);
+		validateLocationReference(encounter);
+	}
+	
+	private void validatePatientReference(Encounter existingEncounter, org.hl7.fhir.r4.model.Encounter encounter) {
+		Patient patient = patientReferenceTranslator.toOpenmrsType(encounter.getSubject());
+		if (patient != null && existingEncounter.getPatient() != null && !existingEncounter.getPatient().equals(patient))
+			throw new ValidationException(
+			        "Patient reference in the encounter does not match the existing patient. Please check the patient reference.");
+	}
+	
+	private void validateVisitReference(org.hl7.fhir.r4.model.Encounter encounter) {
+		Visit visit = visitReferenceTranslator.toOpenmrsType(encounter.getPartOf());
+		if (visit == null) {
+			throw new ValidationException("Invalid Visit reference.");
+		}
+	}
+	
+	private void validateLocationReference(org.hl7.fhir.r4.model.Encounter encounter) {
+		Location location = encounterLocationTranslator.toOpenmrsType(encounter.getLocationFirstRep());
+		if (location == null) {
+			throw new ValidationException("Invalid Location reference.");
+		}
+	}
 }
