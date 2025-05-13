@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator;
+package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
 
 import org.bahmni.module.fhir2AddlExtension.api.validators.BahmniEncounterValidator;
 import org.hl7.fhir.r4.model.Encounter;
@@ -21,97 +21,97 @@ import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BahmniEncounterTranslatorImplTest {
-
-    @Mock
-    private EncounterParticipantTranslator participantTranslator;
-
-    @Mock
-    private EncounterLocationTranslator encounterLocationTranslator;
-
-    @Mock
-    private PatientReferenceTranslator patientReferenceTranslator;
-
-    @Mock
-    private EncounterReferenceTranslator<Visit> visitReferenceTranslator;
-
-    @Mock
-    private EncounterTypeTranslator<EncounterType> encounterTypeTranslator;
-
-    @Mock
-    private EncounterPeriodTranslator<org.openmrs.Encounter> encounterPeriodTranslator;
-
-    @Mock
-    private BahmniEncounterValidator bahmniEncounterValidator;
-
-    private BahmniEncounterTranslatorImpl translator;
-
-    private org.openmrs.Encounter existingEncounter;
-
-    private Encounter fhirEncounter;
-
-    private Provider existingProvider;
-
-    private Provider newProvider;
-
-    private EncounterProvider existingEncounterProvider;
-
-    private EncounterProvider newEncounterProvider;
-
-    private EncounterRole encounterRole;
-
-    @Before
-    public void setup() {
-        translator = new BahmniEncounterTranslatorImpl();
-        translator.setParticipantTranslator(participantTranslator);
-        translator.setEncounterLocationTranslator(encounterLocationTranslator);
-        translator.setPatientReferenceTranslator(patientReferenceTranslator);
-        translator.setVisitReferenceTranlator(visitReferenceTranslator);
-        translator.setEncounterTypeTranslator(encounterTypeTranslator);
-        translator.setEncounterPeriodTranslator(encounterPeriodTranslator);
-        translator.setBahmniEncounterValidator(bahmniEncounterValidator);
-        existingEncounter = new org.openmrs.Encounter();
-        existingEncounter.setUuid("existing-encounter-uuid");
-
-        fhirEncounter = new Encounter();
-        fhirEncounter.setId("fhir-encounter-id");
-        fhirEncounter.setPeriod(new Period());
-
-        fhirEncounter.setSubject(new Reference("Patient/123"));
-
-        existingProvider = new Provider();
-        existingProvider.setUuid("existing-provider-uuid");
-        existingProvider.setName("Existing Provider");
-
-        newProvider = new Provider();
-        newProvider.setUuid("new-provider-uuid");
-        newProvider.setName("New Provider");
-
-        encounterRole = new EncounterRole();
-        encounterRole.setUuid("encounter-role-uuid");
-        encounterRole.setName("Clinician");
-
-        existingEncounterProvider = new EncounterProvider();
-        existingEncounterProvider.setUuid("existing-encounter-provider-uuid");
-        existingEncounterProvider.setProvider(existingProvider);
-        existingEncounterProvider.setEncounterRole(encounterRole);
-        existingEncounterProvider.setEncounter(existingEncounter);
-
-        newEncounterProvider = new EncounterProvider();
-        newEncounterProvider.setUuid("new-encounter-provider-uuid");
-        newEncounterProvider.setProvider(newProvider);
-        newEncounterProvider.setEncounterRole(encounterRole);
-        newEncounterProvider.setEncounter(existingEncounter);
-
-        when(patientReferenceTranslator.toOpenmrsType(any())).thenReturn(new Patient());
-        when(encounterLocationTranslator.toOpenmrsType(any())).thenReturn(new Location());
-        when(visitReferenceTranslator.toOpenmrsType(any())).thenReturn(new Visit());
-        when(encounterTypeTranslator.toOpenmrsType(any())).thenReturn(new EncounterType());
-        when(encounterPeriodTranslator.toOpenmrsType(existingEncounter, fhirEncounter.getPeriod())).thenReturn(
-                existingEncounter);
-        doNothing().when(bahmniEncounterValidator).validate(any(), any());
-    }
-
-    @Test
+	
+	@Mock
+	private EncounterParticipantTranslator participantTranslator;
+	
+	@Mock
+	private EncounterLocationTranslator encounterLocationTranslator;
+	
+	@Mock
+	private PatientReferenceTranslator patientReferenceTranslator;
+	
+	@Mock
+	private EncounterReferenceTranslator<Visit> visitReferenceTranslator;
+	
+	@Mock
+	private EncounterTypeTranslator<EncounterType> encounterTypeTranslator;
+	
+	@Mock
+	private EncounterPeriodTranslator<org.openmrs.Encounter> encounterPeriodTranslator;
+	
+	@Mock
+	private BahmniEncounterValidator bahmniEncounterValidator;
+	
+	private BahmniEncounterTranslatorImpl translator;
+	
+	private org.openmrs.Encounter existingEncounter;
+	
+	private Encounter fhirEncounter;
+	
+	private Provider existingProvider;
+	
+	private Provider newProvider;
+	
+	private EncounterProvider existingEncounterProvider;
+	
+	private EncounterProvider newEncounterProvider;
+	
+	private EncounterRole encounterRole;
+	
+	@Before
+	public void setup() {
+		translator = new BahmniEncounterTranslatorImpl();
+		translator.setParticipantTranslator(participantTranslator);
+		translator.setEncounterLocationTranslator(encounterLocationTranslator);
+		translator.setPatientReferenceTranslator(patientReferenceTranslator);
+		translator.setVisitReferenceTranlator(visitReferenceTranslator);
+		translator.setEncounterTypeTranslator(encounterTypeTranslator);
+		translator.setEncounterPeriodTranslator(encounterPeriodTranslator);
+		translator.setBahmniEncounterValidator(bahmniEncounterValidator);
+		existingEncounter = new org.openmrs.Encounter();
+		existingEncounter.setUuid("existing-encounter-uuid");
+		
+		fhirEncounter = new Encounter();
+		fhirEncounter.setId("fhir-encounter-id");
+		fhirEncounter.setPeriod(new Period());
+		
+		fhirEncounter.setSubject(new Reference("Patient/123"));
+		
+		existingProvider = new Provider();
+		existingProvider.setUuid("existing-provider-uuid");
+		existingProvider.setName("Existing Provider");
+		
+		newProvider = new Provider();
+		newProvider.setUuid("new-provider-uuid");
+		newProvider.setName("New Provider");
+		
+		encounterRole = new EncounterRole();
+		encounterRole.setUuid("encounter-role-uuid");
+		encounterRole.setName("Clinician");
+		
+		existingEncounterProvider = new EncounterProvider();
+		existingEncounterProvider.setUuid("existing-encounter-provider-uuid");
+		existingEncounterProvider.setProvider(existingProvider);
+		existingEncounterProvider.setEncounterRole(encounterRole);
+		existingEncounterProvider.setEncounter(existingEncounter);
+		
+		newEncounterProvider = new EncounterProvider();
+		newEncounterProvider.setUuid("new-encounter-provider-uuid");
+		newEncounterProvider.setProvider(newProvider);
+		newEncounterProvider.setEncounterRole(encounterRole);
+		newEncounterProvider.setEncounter(existingEncounter);
+		
+		when(patientReferenceTranslator.toOpenmrsType(any())).thenReturn(new Patient());
+		when(encounterLocationTranslator.toOpenmrsType(any())).thenReturn(new Location());
+		when(visitReferenceTranslator.toOpenmrsType(any())).thenReturn(new Visit());
+		when(encounterTypeTranslator.toOpenmrsType(any())).thenReturn(new EncounterType());
+		when(encounterPeriodTranslator.toOpenmrsType(existingEncounter, fhirEncounter.getPeriod())).thenReturn(
+		    existingEncounter);
+		doNothing().when(bahmniEncounterValidator).validate(any(), any());
+	}
+	
+	@Test
     public void shouldPreserveExistingProviderWhenProviderExistsInBothEncounters() {
         Set<EncounterProvider> existingProviders = new LinkedHashSet<>();
         existingProviders.add(existingEncounterProvider);
@@ -138,8 +138,8 @@ public class BahmniEncounterTranslatorImplTest {
         // Verify the provider reference is the same
         assertSame(existingProvider, resultProvider.getProvider());
     }
-
-    @Test
+	
+	@Test
     public void shouldAddNewProviderWhenProviderDoesNotExistInExistingEncounter() {
         // Arrange
         Set<EncounterProvider> existingProviders = new LinkedHashSet<>();
@@ -172,8 +172,8 @@ public class BahmniEncounterTranslatorImplTest {
         assertTrue("Existing provider should be preserved", foundExisting);
         assertTrue("New provider should be added", foundNew);
     }
-
-    @Test
+	
+	@Test
     public void shouldAddAllProvidersWhenNoExistingProviders() {
         // Arrange
         existingEncounter.setEncounterProviders(new LinkedHashSet<>());
@@ -207,8 +207,8 @@ public class BahmniEncounterTranslatorImplTest {
         assertTrue("First provider should be added", foundExisting);
         assertTrue("Second provider should be added", foundNew);
     }
-
-    @Test
+	
+	@Test
     public void shouldHandleEmptyProvidersInFhirEncounter() {
         Set<EncounterProvider> existingProviders = new LinkedHashSet<>();
         existingProviders.add(existingEncounterProvider);
