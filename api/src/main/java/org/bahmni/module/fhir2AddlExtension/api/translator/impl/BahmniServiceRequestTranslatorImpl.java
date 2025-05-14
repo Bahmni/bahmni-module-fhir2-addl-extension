@@ -2,6 +2,7 @@ package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
 
 import lombok.AccessLevel;
 import lombok.Setter;
+import org.bahmni.module.fhir2AddlExtension.api.translator.OrderTypeTranslator;
 import org.hl7.fhir.r4.model.Period;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.ServiceRequest;
@@ -42,6 +43,9 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 	@Autowired
 	private OrderIdentifierTranslator orderIdentifierTranslator;
 	
+	@Autowired
+	private OrderTypeTranslator orderTypeTranslator;
+	
 	@Override
 	public ServiceRequest toFhirResource(@Nonnull Order order) {
 		notNull(order, "The TestOrder object should not be null");
@@ -76,6 +80,8 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 		
 		serviceRequest.getMeta().setLastUpdated(getLastUpdated(order));
 		serviceRequest.getMeta().setVersionId(getVersionId(order));
+		
+		serviceRequest.setCategory(Collections.singletonList(orderTypeTranslator.toFhirResource(order.getOrderType())));
 		
 		return serviceRequest;
 	}

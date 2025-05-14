@@ -1,5 +1,6 @@
 package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
 
+import org.bahmni.module.fhir2AddlExtension.api.translator.OrderTypeTranslator;
 import org.hl7.fhir.r4.model.*;
 import org.junit.Before;
 import org.junit.Test;
@@ -20,6 +21,7 @@ import org.openmrs.order.OrderUtilTest;
 import java.lang.reflect.Field;
 import java.util.*;
 
+import static org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants.ORDER_TYPE_SYSTEM_URI;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.notNullValue;
@@ -29,6 +31,8 @@ import static org.mockito.Mockito.when;
 public class BahmniServiceRequestTranslatorImplTest {
 	
 	public static final String ORDER_TYPE_UUID = "52a447d3-a64a-11e3-9aeb-50e549534c5e";
+	
+	public static final String ORDER_TYPE_NAME = "Lab Order";
 	
 	private static final String SERVICE_REQUEST_UUID = "4e4851c3-c265-400e-acc9-1f1b0ac7f9c4";
 	
@@ -50,12 +54,6 @@ public class BahmniServiceRequestTranslatorImplTest {
 	
 	private static final String PRACTITIONER_UUID = "b156e76e-b87a-4458-964c-a48e64a20fbb";
 	
-	private static final String ORGANIZATION_UUID = "44f7a79e-1de6-4b0b-9daf-bbcb7ed18b7e";
-	
-	private static final int PREFERRED_PAGE_SIZE = 10;
-	
-	private static final int COUNT = 1;
-	
 	private BahmniServiceRequestTranslatorImpl translator;
 	
 	@Mock
@@ -70,6 +68,9 @@ public class BahmniServiceRequestTranslatorImplTest {
 	@Mock
 	private PractitionerReferenceTranslator<Provider> practitionerReferenceTranslator;
 	
+	@Mock
+	private OrderTypeTranslator orderTypeTranslator;
+	
 	private Order discontinuedOrder;
 	
 	@Before
@@ -80,6 +81,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 		translator.setEncounterReferenceTranslator(encounterReferenceTranslator);
 		translator.setProviderReferenceTranslator(practitionerReferenceTranslator);
 		translator.setOrderIdentifierTranslator(new OrderIdentifierTranslatorImpl());
+		translator.setOrderTypeTranslator(orderTypeTranslator);
 		
 		Order order = new Order();
 		order.setUuid(SERVICE_REQUEST_UUID);
@@ -450,6 +452,31 @@ public class BahmniServiceRequestTranslatorImplTest {
 		
 		assertThat(result, notNullValue());
 		assertThat(result.getMeta().getVersionId(), notNullValue());
+	}
+	
+	@Test
+	public void shouldTranslateOpenMrsOrderTypeToCategory() {
+		OrderType ordertype = new OrderType();
+		ordertype.setUuid(ORDER_TYPE_UUID);
+		ordertype.setName(ORDER_TYPE_NAME);
+		Order order = new Order();
+		order.setOrderType(ordertype);
+		order.setOrderType(ordertype);
+		
+		CodeableConcept codeableConcept = new CodeableConcept();
+		Coding coding = new Coding();
+		coding.setSystem(ORDER_TYPE_SYSTEM_URI);
+		coding.setCode(ORDER_TYPE_UUID);
+		coding.setDisplay(ORDER_TYPE_NAME);
+		codeableConcept.addCoding(coding);
+		
+		when(orderTypeTranslator.toFhirResource(ordertype)).thenReturn(codeableConcept);
+		
+		org.hl7.fhir.r4.model.ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getCategory(), notNullValue());
+		assertThat(result.getCategory(), equalTo(Collections.singletonList(codeableConcept)));
 	}
 	
 	private void setOrderNumberByReflection(Order order, String orderNumber) throws Exception {
