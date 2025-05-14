@@ -1,23 +1,30 @@
 package org.bahmni.module.fhir2AddlExtension.api.dao.impl;
 
-import static org.hibernate.criterion.Restrictions.and;
-import static org.hibernate.criterion.Restrictions.or;
-
-import java.util.Optional;
-import java.util.stream.Stream;
-
 import ca.uhn.fhir.rest.param.DateRangeParam;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.TokenAndListParam;
+import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.hibernate.Criteria;
 import org.hibernate.criterion.Criterion;
+import org.hibernate.criterion.Restrictions;
 import org.openmrs.Order;
+import org.openmrs.OrderType;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.dao.FhirServiceRequestDao;
 import org.openmrs.module.fhir2.api.dao.impl.BaseFhirDao;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
+
+import javax.annotation.Nonnull;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static org.hibernate.criterion.Restrictions.*;
 
 @Component
 @Primary
@@ -29,7 +36,36 @@ public class BahmniFhirServiceRequestDaoImpl extends BaseFhirDao<Order> implemen
 	}
 	
 	@Override
+	public Order get(@Nonnull String uuid) {
+		Criteria criteria = super.getSessionFactory().getCurrentSession().createCriteria(Order.class);
+		criteria.add(eq("uuid", uuid));
+		addCriteriaForDrugOrderFilter(criteria);
+		Order result = (Order) criteria.uniqueResult();
+		return result == null ? null : deproxyResult(result);
+	}
+	
+	@Override
+    public List<Order> get(@Nonnull Collection<String> uuids) {
+        Criteria criteria = super.getSessionFactory().getCurrentSession().createCriteria(this.typeToken.getRawType());
+        criteria.add(Restrictions.in("uuid", uuids));
+        addCriteriaForDrugOrderFilter(criteria);
+        handleVoidable(criteria);
+        
+        List<Order> results = criteria.list();
+
+        return results.stream().filter(Objects::nonNull).map(this::deproxyResult).collect(Collectors.toList());
+    }
+	
+	@Override
+	public Order createOrUpdate(@Nonnull Order newEntry) {
+		if (newEntry.getOrderType().getUuid().equals(OrderType.DRUG_ORDER_TYPE_UUID))
+			throw new InvalidRequestException("Drug Orders cannot be submitted through ServiceRequest ");
+		return super.createOrUpdate(newEntry);
+	}
+	
+	@Override
     protected void setupSearchParams(Criteria criteria, SearchParameterMap theParams) {
+        addCriteriaForDrugOrderFilter(criteria);
         theParams.getParameters().forEach(entry -> {
             switch (entry.getKey()) {
                 case FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER:
@@ -78,6 +114,13 @@ public class BahmniFhirServiceRequestDaoImpl extends BaseFhirDao<Order> implemen
 		    handleDate("dateActivated", dateRangeParam.getLowerBound()))))), Optional.of(or(toCriteriaArray(Stream.of(
 		    handleDate("dateStopped", dateRangeParam.getUpperBound()),
 		    handleDate("autoExpireDate", dateRangeParam.getUpperBound())))))))));
+	}
+	
+	private void addCriteriaForDrugOrderFilter(Criteria criteria) {
+		if (lacksAlias(criteria, "ot")) {
+			criteria.createAlias("orderType", "ot");
+		}
+		criteria.add(ne("ot.uuid", OrderType.DRUG_ORDER_TYPE_UUID));
 	}
 	
 }
