@@ -60,6 +60,8 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 		
 		serviceRequest.setIntent(ServiceRequest.ServiceRequestIntent.ORDER);
 		
+		serviceRequest.setPriority(determineServiceRequestPriority(order));
+		
 		serviceRequest.setSubject(patientReferenceTranslator.toFhirResource(order.getPatient()));
 		
 		serviceRequest.setEncounter(encounterReferenceTranslator.toFhirResource(order.getEncounter()));
@@ -117,5 +119,20 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 			reference = new Reference().setReference("ServiceRequest/" + order.getUuid()).setType("ServiceRequest");
 		}
 		return reference;
+	}
+	
+	private ServiceRequest.ServiceRequestPriority determineServiceRequestPriority(Order order) {
+		if (order.getUrgency() == null) {
+			return ServiceRequest.ServiceRequestPriority.ROUTINE;
+		}
+		
+		switch (order.getUrgency()) {
+			case STAT:
+				return ServiceRequest.ServiceRequestPriority.STAT;
+			case ON_SCHEDULED_DATE:
+			case ROUTINE:
+			default:
+				return ServiceRequest.ServiceRequestPriority.ROUTINE;
+		}
 	}
 }

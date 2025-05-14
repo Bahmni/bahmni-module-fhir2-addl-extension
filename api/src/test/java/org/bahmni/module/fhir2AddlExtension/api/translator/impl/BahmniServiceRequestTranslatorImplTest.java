@@ -479,6 +479,50 @@ public class BahmniServiceRequestTranslatorImplTest {
 		assertThat(result.getCategory(), equalTo(Collections.singletonList(codeableConcept)));
 	}
 	
+	@Test
+	public void toFhirResource_shouldTranslateRoutineUrgencyToRoutinePriority() {
+		Order testOrder = new Order();
+		testOrder.setUrgency(Order.Urgency.ROUTINE);
+		
+		ServiceRequest result = translator.toFhirResource(testOrder);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getPriority(), equalTo(ServiceRequest.ServiceRequestPriority.ROUTINE));
+	}
+	
+	@Test
+	public void toFhirResource_shouldTranslateStatUrgencyToStatPriority() {
+		Order testOrder = new Order();
+		testOrder.setUrgency(Order.Urgency.STAT);
+		
+		ServiceRequest result = translator.toFhirResource(testOrder);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getPriority(), equalTo(ServiceRequest.ServiceRequestPriority.STAT));
+	}
+	
+	@Test
+	public void toFhirResource_shouldTranslateOnScheduledDateUrgencyToRoutinePriority() {
+		Order testOrder = new Order();
+		testOrder.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
+		
+		ServiceRequest result = translator.toFhirResource(testOrder);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getPriority(), equalTo(ServiceRequest.ServiceRequestPriority.ROUTINE));
+	}
+	
+	@Test
+	public void toFhirResource_shouldTranslateNullUrgencyToRoutinePriority() {
+		Order testOrder = new Order();
+		testOrder.setUrgency(null);
+		
+		ServiceRequest result = translator.toFhirResource(testOrder);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getPriority(), equalTo(ServiceRequest.ServiceRequestPriority.ROUTINE));
+	}
+	
 	private void setOrderNumberByReflection(Order order, String orderNumber) throws Exception {
 		Class<? extends Order> clazz = order.getClass();
 		Field orderNumberField = clazz.getDeclaredField("orderNumber");
