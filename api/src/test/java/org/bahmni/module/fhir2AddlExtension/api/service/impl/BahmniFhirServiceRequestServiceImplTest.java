@@ -10,6 +10,7 @@ import org.hl7.fhir.r4.model.ServiceRequest;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Order;
@@ -19,6 +20,7 @@ import org.openmrs.module.fhir2.api.dao.FhirServiceRequestDao;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
 import org.openmrs.module.fhir2.api.search.SearchQueryBundleProvider;
 import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
+import org.openmrs.module.fhir2.api.search.param.PropParam;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.openmrs.module.fhir2.api.translators.ServiceRequestTranslator;
 
@@ -32,10 +34,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.hl7.fhir.r4.model.Patient.SP_GIVEN;
 import static org.hl7.fhir.r4.model.Practitioner.SP_IDENTIFIER;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.openmrs.module.fhir2.FhirConstants.*;
+import static org.openmrs.module.fhir2.FhirConstants.CATEGORY_SEARCH_HANDLER;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BahmniFhirServiceRequestServiceImplTest {
@@ -362,4 +367,109 @@ public class BahmniFhirServiceRequestServiceImplTest {
         assertThat(resultList, not(empty()));
         assertThat(resultList.size(), equalTo(1));
     }
+	
+	/**
+	 * Helper method to create a ReferenceAndListParam with a given value and chain
+	 */
+	private ReferenceAndListParam createReferenceParam(String value, String chain) {
+		return new ReferenceAndListParam().addAnd(new ReferenceOrListParam().add(new ReferenceParam().setValue(value)
+		        .setChain(chain)));
+	}
+	
+	/**
+	 * Helper method to create a TokenAndListParam with a given system and code
+	 */
+	private TokenAndListParam createTokenParam(String system, String code) {
+		return new TokenAndListParam().addAnd(new TokenParam(system, code));
+	}
+	
+	/**
+	 * Helper method to create a DateRangeParam with given bounds
+	 */
+	private DateRangeParam createDateRangeParam(String lowerBound, String upperBound) {
+		return new DateRangeParam().setLowerBound(lowerBound).setUpperBound(upperBound);
+	}
+	
+	@Test
+    public void searchForServiceRequests_shouldInvokeDaoWithProperSearchParamMap() {
+        // Create test parameters for all search parameters
+        ReferenceAndListParam patientReference = createReferenceParam(PATIENT_GIVEN_NAME, SP_GIVEN);
+        TokenAndListParam code = createTokenParam("CIEL", "1234567898");
+        ReferenceAndListParam encounterReference = createReferenceParam(ENCOUNTER_UUID, null);
+        ReferenceAndListParam participantReference = createReferenceParam(PARTICIPANT_IDENTIFIER, SP_IDENTIFIER);
+        DateRangeParam occurrence = createDateRangeParam(OCCURRENCE, OCCURRENCE);
+        TokenAndListParam uuid = createTokenParam(null, SERVICE_REQUEST_UUID);
+        DateRangeParam lastUpdated = createDateRangeParam(LAST_UPDATED_DATE, LAST_UPDATED_DATE);
+        HashSet<Include> includes = new HashSet<>();
+        includes.add(new Include("ServiceRequest:patient"));
+
+        // Call the service method with all parameters
+        IBundleProvider results = serviceRequestService.searchForServiceRequests(
+                patientReference, code, encounterReference, participantReference,
+                occurrence, uuid, lastUpdated, includes);
+
+        // Capture the actual SearchParameterMap passed to searchQuery.getQueryResults
+        ArgumentCaptor<SearchParameterMap> mapCaptor = ArgumentCaptor.forClass(SearchParameterMap.class);
+        verify(searchQuery).getQueryResults(mapCaptor.capture(), eq(dao), eq(translator), eq(searchQueryInclude));
+
+        // Get the captured parameter map
+        SearchParameterMap actualMap = mapCaptor.getValue();
+
+        // Verify the map contains all expected parameters
+        assertBasicSearchParams(patientReference, actualMap, code, encounterReference, participantReference, occurrence, uuid, lastUpdated, includes);
+    }
+	
+	@Test
+    public void searchForServiceRequestsWithCategory_shouldInvokeDaoWithProperSearchParamMap() {
+        // Create test parameters for all search parameters
+        ReferenceAndListParam patientReference = createReferenceParam(PATIENT_GIVEN_NAME, SP_GIVEN);
+        TokenAndListParam code = createTokenParam("CIEL", "1234567898");
+        ReferenceAndListParam encounterReference = createReferenceParam(ENCOUNTER_UUID, null);
+        ReferenceAndListParam participantReference = createReferenceParam(PARTICIPANT_IDENTIFIER, SP_IDENTIFIER);
+        ReferenceAndListParam category = createReferenceParam("lab", null);
+        DateRangeParam occurrence = createDateRangeParam(OCCURRENCE, OCCURRENCE);
+        TokenAndListParam uuid = createTokenParam(null, SERVICE_REQUEST_UUID);
+        DateRangeParam lastUpdated = createDateRangeParam(LAST_UPDATED_DATE, LAST_UPDATED_DATE);
+        HashSet<Include> includes = new HashSet<>();
+        includes.add(new Include("ServiceRequest:patient"));
+
+        // Call the service method with all parameters including category
+        IBundleProvider results = serviceRequestService.searchForServiceRequestsWithCategory(
+                patientReference, code, encounterReference, participantReference,
+                category, occurrence, uuid, lastUpdated, includes);
+
+        // Capture the actual SearchParameterMap passed to searchQuery.getQueryResults
+        ArgumentCaptor<SearchParameterMap> mapCaptor = ArgumentCaptor.forClass(SearchParameterMap.class);
+        verify(searchQuery).getQueryResults(mapCaptor.capture(), eq(dao), eq(translator), eq(searchQueryInclude));
+
+        // Get the captured parameter map
+        SearchParameterMap actualMap = mapCaptor.getValue();
+
+        assertBasicSearchParams(patientReference, actualMap, code, encounterReference, participantReference, occurrence, uuid, lastUpdated, includes);
+        assertEquals(category, actualMap.getParameters(CATEGORY_SEARCH_HANDLER).get(0).getParam());
+    }
+	
+	private void assertBasicSearchParams(ReferenceAndListParam patientReference, SearchParameterMap actualMap,
+	        TokenAndListParam code, ReferenceAndListParam encounterReference, ReferenceAndListParam participantReference,
+	        DateRangeParam occurrence, TokenAndListParam uuid, DateRangeParam lastUpdated, HashSet<Include> includes) {
+		assertEquals(patientReference, actualMap.getParameters(PATIENT_REFERENCE_SEARCH_HANDLER).get(0).getParam());
+		assertEquals(code, actualMap.getParameters(CODED_SEARCH_HANDLER).get(0).getParam());
+		assertEquals(encounterReference, actualMap.getParameters(ENCOUNTER_REFERENCE_SEARCH_HANDLER).get(0).getParam());
+		assertEquals(participantReference, actualMap.getParameters(PARTICIPANT_REFERENCE_SEARCH_HANDLER).get(0).getParam());
+		assertEquals(occurrence, actualMap.getParameters(DATE_RANGE_SEARCH_HANDLER).get(0).getParam());
+		
+		// For common search handler parameters, we need to check both the property and value
+		List<PropParam<?>> commonParams = actualMap.getParameters(COMMON_SEARCH_HANDLER);
+		
+		for (PropParam entry : commonParams) {
+			if (entry.getPropertyName().equals(ID_PROPERTY)) {
+				assertEquals(uuid, entry.getParam());
+			} else if (entry.getPropertyName().equals(LAST_UPDATED_PROPERTY)) {
+				assertEquals(lastUpdated, entry.getParam());
+			}
+		}
+		
+		// Verify includes parameter
+		assertEquals(includes, actualMap.getParameters(INCLUDE_SEARCH_HANDLER).get(0).getParam());
+	}
 }

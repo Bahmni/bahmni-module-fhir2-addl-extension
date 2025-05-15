@@ -8,10 +8,10 @@ import ca.uhn.fhir.rest.param.TokenAndListParam;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
+import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirServiceRequestService;
 import org.hl7.fhir.r4.model.ServiceRequest;
 import org.openmrs.Order;
 import org.openmrs.module.fhir2.FhirConstants;
-import org.openmrs.module.fhir2.api.FhirServiceRequestService;
 import org.openmrs.module.fhir2.api.dao.FhirServiceRequestDao;
 import org.openmrs.module.fhir2.api.impl.BaseFhirService;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
@@ -26,7 +26,7 @@ import java.util.HashSet;
 
 @Component
 @Primary
-public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<ServiceRequest, Order> implements FhirServiceRequestService {
+public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<ServiceRequest, Order> implements BahmniFhirServiceRequestService {
 	
 	@Getter(value = AccessLevel.PROTECTED)
 	@Setter(value = AccessLevel.PACKAGE, onMethod_ = @Autowired)
@@ -47,8 +47,27 @@ public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<Service
 	        ReferenceAndListParam encounterReference, ReferenceAndListParam participantReference, DateRangeParam occurrence,
 	        TokenAndListParam uuid, DateRangeParam lastUpdated, HashSet<Include> includes) {
 		
-		SearchParameterMap theParams = new SearchParameterMap()
-		        .addParameter(FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER, patientReference)
+		SearchParameterMap theParams = getSearchParameterMap(patientReference, code, encounterReference,
+		    participantReference, occurrence, uuid, lastUpdated, includes);
+		
+		return searchQuery.getQueryResults(theParams, dao, translator, searchQueryInclude);
+	}
+	
+	@Override
+	public IBundleProvider searchForServiceRequestsWithCategory(ReferenceAndListParam patientReference,
+	        TokenAndListParam code, ReferenceAndListParam encounterReference, ReferenceAndListParam participantReference,
+	        ReferenceAndListParam category, DateRangeParam occurrence, TokenAndListParam uuid, DateRangeParam lastUpdated,
+	        HashSet<Include> includes) {
+		SearchParameterMap theParams = getSearchParameterMap(patientReference, code, encounterReference,
+		    participantReference, occurrence, uuid, lastUpdated, includes);
+		theParams.addParameter(FhirConstants.CATEGORY_SEARCH_HANDLER, category);
+		return searchQuery.getQueryResults(theParams, dao, translator, searchQueryInclude);
+	}
+	
+	private SearchParameterMap getSearchParameterMap(ReferenceAndListParam patientReference, TokenAndListParam code,
+	        ReferenceAndListParam encounterReference, ReferenceAndListParam participantReference, DateRangeParam occurrence,
+	        TokenAndListParam uuid, DateRangeParam lastUpdated, HashSet<Include> includes) {
+		return new SearchParameterMap().addParameter(FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER, patientReference)
 		        .addParameter(FhirConstants.CODED_SEARCH_HANDLER, code)
 		        .addParameter(FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER, encounterReference)
 		        .addParameter(FhirConstants.PARTICIPANT_REFERENCE_SEARCH_HANDLER, participantReference)
@@ -56,7 +75,5 @@ public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<Service
 		        .addParameter(FhirConstants.COMMON_SEARCH_HANDLER, FhirConstants.ID_PROPERTY, uuid)
 		        .addParameter(FhirConstants.COMMON_SEARCH_HANDLER, FhirConstants.LAST_UPDATED_PROPERTY, lastUpdated)
 		        .addParameter(FhirConstants.INCLUDE_SEARCH_HANDLER, includes);
-		
-		return searchQuery.getQueryResults(theParams, dao, translator, searchQueryInclude);
 	}
 }

@@ -2,6 +2,7 @@ package org.bahmni.module.fhir2AddlExtension.api.dao.impl;
 
 import ca.uhn.fhir.rest.param.DateRangeParam;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
+import ca.uhn.fhir.rest.param.StringParam;
 import ca.uhn.fhir.rest.param.TokenAndListParam;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.hibernate.Criteria;
@@ -50,7 +51,7 @@ public class BahmniFhirServiceRequestDaoImpl extends BaseFhirDao<Order> implemen
         criteria.add(Restrictions.in("uuid", uuids));
         addCriteriaForDrugOrderFilter(criteria);
         handleVoidable(criteria);
-        
+
         List<Order> results = criteria.list();
 
         return results.stream().filter(Objects::nonNull).map(this::deproxyResult).collect(Collectors.toList());
@@ -87,6 +88,9 @@ public class BahmniFhirServiceRequestDaoImpl extends BaseFhirDao<Order> implemen
                     entry.getValue().forEach(dateRangeParam -> handleDateRange((DateRangeParam) dateRangeParam.getParam())
                             .ifPresent(criteria::add));
                     break;
+                case FhirConstants.CATEGORY_SEARCH_HANDLER:
+                    entry.getValue().forEach(categoryReference -> handleCategoryReference(criteria, (ReferenceAndListParam) categoryReference.getParam()));
+                    break;
                 case FhirConstants.COMMON_SEARCH_HANDLER:
                     handleCommonSearchParameters(entry.getValue()).ifPresent(criteria::add);
                     break;
@@ -115,6 +119,16 @@ public class BahmniFhirServiceRequestDaoImpl extends BaseFhirDao<Order> implemen
 		    handleDate("dateStopped", dateRangeParam.getUpperBound()),
 		    handleDate("autoExpireDate", dateRangeParam.getUpperBound())))))))));
 	}
+	
+	private void handleCategoryReference(Criteria criteria, ReferenceAndListParam categoryReference) {
+        if (categoryReference == null)
+            return;
+        if (lacksAlias(criteria, "ot"))
+            criteria.createAlias("orderType", "ot");
+
+        handleAndListParam(categoryReference, token -> propertyLike("ot.uuid", new StringParam(token.getValue(), true))).ifPresent(criteria::add);
+
+    }
 	
 	private void addCriteriaForDrugOrderFilter(Criteria criteria) {
 		if (lacksAlias(criteria, "ot")) {
