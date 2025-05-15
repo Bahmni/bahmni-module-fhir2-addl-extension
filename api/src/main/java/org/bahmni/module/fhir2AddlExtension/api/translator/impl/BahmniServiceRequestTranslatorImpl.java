@@ -2,10 +2,10 @@ package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
 
 import lombok.AccessLevel;
 import lombok.Setter;
+import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
 import org.bahmni.module.fhir2AddlExtension.api.translator.OrderTypeTranslator;
-import org.hl7.fhir.r4.model.Period;
-import org.hl7.fhir.r4.model.Reference;
-import org.hl7.fhir.r4.model.ServiceRequest;
+import org.hl7.fhir.r4.model.*;
+import org.openmrs.Concept;
 import org.openmrs.Encounter;
 import org.openmrs.Order;
 import org.openmrs.Provider;
@@ -85,6 +85,11 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 		
 		serviceRequest.setCategory(Collections.singletonList(orderTypeTranslator.toFhirResource(order.getOrderType())));
 		
+		Extension extension = determineLabOrderConceptTypeExtension(order);
+		if (extension != null) {
+			serviceRequest.addExtension(extension);
+		}
+		
 		return serviceRequest;
 	}
 	
@@ -134,5 +139,21 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 			default:
 				return ServiceRequest.ServiceRequestPriority.ROUTINE;
 		}
+	}
+	
+	private Extension determineLabOrderConceptTypeExtension(Order order) {
+		Extension labOrderConceptTypeExtension = new Extension();
+		labOrderConceptTypeExtension.setUrl(BahmniFhirConstants.LAB_ORDER_CONCEPT_TYPE_EXTENSION_URL);
+		Concept concept = order.getConcept();
+		String orderConceptClassName = concept.getConceptClass().getName();
+		if (orderConceptClassName.equals(BahmniFhirConstants.LAB_TEST_CONCEPT_CLASS)
+		        || orderConceptClassName.equals(BahmniFhirConstants.TEST_CONCEPT_CLASS)) {
+			labOrderConceptTypeExtension.setValue(new StringType("Test"));
+			return labOrderConceptTypeExtension;
+		} else if (orderConceptClassName.equals(BahmniFhirConstants.LABSET_CONCEPT_CLASS)) {
+			labOrderConceptTypeExtension.setValue(new StringType("Panel"));
+			return labOrderConceptTypeExtension;
+		} else
+			return null;
 	}
 }
