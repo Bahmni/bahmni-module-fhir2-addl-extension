@@ -1,18 +1,14 @@
 package org.bahmni.module.fhir2AddlExtension.api.dao.impl;
 
-import ca.uhn.fhir.rest.param.DateRangeParam;
-import ca.uhn.fhir.rest.param.ReferenceAndListParam;
-import ca.uhn.fhir.rest.param.StringParam;
-import ca.uhn.fhir.rest.param.TokenAndListParam;
+import ca.uhn.fhir.rest.param.*;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
+import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
 import org.hibernate.Criteria;
 import org.hibernate.criterion.Criterion;
 import org.hibernate.criterion.Restrictions;
 import org.openmrs.Order;
 import org.openmrs.OrderType;
 import org.openmrs.module.fhir2.FhirConstants;
-import org.openmrs.module.fhir2.api.dao.FhirServiceRequestDao;
-import org.openmrs.module.fhir2.api.dao.impl.BaseFhirDao;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
@@ -29,7 +25,7 @@ import static org.hibernate.criterion.Restrictions.*;
 
 @Component
 @Primary
-public class BahmniFhirServiceRequestDaoImpl extends BaseFhirDao<Order> implements FhirServiceRequestDao<Order> {
+public class BahmniFhirServiceRequestDaoImpl extends BahmniBaseFhirDao<Order> implements BahmniFhirServiceRequestDao<Order> {
 	
 	@Override
 	public boolean hasDistinctResults() {
@@ -65,10 +61,10 @@ public class BahmniFhirServiceRequestDaoImpl extends BaseFhirDao<Order> implemen
 	}
 	
 	@Override
-    protected void setupSearchParams(Criteria criteria, SearchParameterMap theParams) {
-        addCriteriaForDrugOrderFilter(criteria);
-        theParams.getParameters().forEach(entry -> {
-            switch (entry.getKey()) {
+	   protected void setupSearchParams(Criteria criteria, SearchParameterMap theParams) {
+	       addCriteriaForDrugOrderFilter(criteria);
+	       theParams.getParameters().forEach(entry -> {
+	           switch (entry.getKey()) {
                 case FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER:
                     entry.getValue().forEach(
                             param -> handleEncounterReference(criteria, (ReferenceAndListParam) param.getParam(), "e"));

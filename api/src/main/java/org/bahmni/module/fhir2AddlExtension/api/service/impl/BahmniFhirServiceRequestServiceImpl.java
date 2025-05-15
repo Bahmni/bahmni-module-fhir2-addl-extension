@@ -2,12 +2,12 @@ package org.bahmni.module.fhir2AddlExtension.api.service.impl;
 
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
-import ca.uhn.fhir.rest.param.DateRangeParam;
-import ca.uhn.fhir.rest.param.ReferenceAndListParam;
-import ca.uhn.fhir.rest.param.TokenAndListParam;
+import ca.uhn.fhir.rest.param.*;
+import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
+import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
 import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirServiceRequestService;
 import org.hl7.fhir.r4.model.ServiceRequest;
 import org.openmrs.Order;
@@ -30,7 +30,7 @@ public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<Service
 	
 	@Getter(value = AccessLevel.PROTECTED)
 	@Setter(value = AccessLevel.PACKAGE, onMethod_ = @Autowired)
-	private FhirServiceRequestDao<Order> dao;
+	private BahmniFhirServiceRequestDao<Order> dao;
 	
 	@Getter(value = AccessLevel.PROTECTED)
 	@Setter(value = AccessLevel.PACKAGE, onMethod_ = @Autowired)
@@ -61,6 +61,29 @@ public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<Service
 		SearchParameterMap theParams = getSearchParameterMap(patientReference, code, encounterReference,
 		    participantReference, occurrence, uuid, lastUpdated, includes);
 		theParams.addParameter(FhirConstants.CATEGORY_SEARCH_HANDLER, category);
+		return searchQuery.getQueryResults(theParams, dao, translator, searchQueryInclude);
+	}
+	
+	@Override
+	public IBundleProvider searchForServiceRequestsByNumberOfVisits(ReferenceParam patientReference,
+	        NumberParam numberOfVisits, ReferenceAndListParam category, HashSet<Include> includes) {
+		if (patientReference == null) {
+			throw new InvalidRequestException("Patient reference is required for searching by number of visits");
+		}
+		
+		if (numberOfVisits == null) {
+			throw new InvalidRequestException("Number of visits parameter is required");
+		}
+		
+		ReferenceAndListParam encounterReferencesByNumberOfVisit = dao.createEncounterReferencesByNumberOfVisit(
+		    numberOfVisits, patientReference);
+		if (encounterReferencesByNumberOfVisit == null) {
+			return null;
+		}
+		SearchParameterMap theParams = new SearchParameterMap()
+		        .addParameter(FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER, encounterReferencesByNumberOfVisit)
+		        .addParameter(FhirConstants.CATEGORY_SEARCH_HANDLER, category)
+		        .addParameter(FhirConstants.INCLUDE_SEARCH_HANDLER, includes);
 		return searchQuery.getQueryResults(theParams, dao, translator, searchQueryInclude);
 	}
 	

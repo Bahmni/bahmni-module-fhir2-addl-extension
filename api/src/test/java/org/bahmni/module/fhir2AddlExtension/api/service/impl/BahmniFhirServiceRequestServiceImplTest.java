@@ -3,6 +3,8 @@ package org.bahmni.module.fhir2AddlExtension.api.service.impl;
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.*;
+import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
+import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
 import org.hamcrest.Matchers;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Patient;
@@ -35,12 +37,10 @@ import static org.hamcrest.Matchers.*;
 import static org.hl7.fhir.r4.model.Patient.SP_GIVEN;
 import static org.hl7.fhir.r4.model.Practitioner.SP_IDENTIFIER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 import static org.openmrs.module.fhir2.FhirConstants.*;
-import static org.openmrs.module.fhir2.FhirConstants.CATEGORY_SEARCH_HANDLER;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BahmniFhirServiceRequestServiceImplTest {
@@ -69,7 +69,7 @@ public class BahmniFhirServiceRequestServiceImplTest {
 	private ServiceRequestTranslator<Order> translator;
 	
 	@Mock
-	private FhirServiceRequestDao<Order> dao;
+	private BahmniFhirServiceRequestDao<Order> dao;
 	
 	@Mock
 	private FhirGlobalPropertyService globalPropertyService;
@@ -471,5 +471,83 @@ public class BahmniFhirServiceRequestServiceImplTest {
 		
 		// Verify includes parameter
 		assertEquals(includes, actualMap.getParameters(INCLUDE_SEARCH_HANDLER).get(0).getParam());
+	}
+	
+	@Test
+	public void searchForServiceRequestsByNumberOfVisits_shouldReturnServiceRequestsForGivenNumberOfVisits() {
+		// Setup test parameters
+		ReferenceParam patientReference = new ReferenceParam().setValue(PATIENT_GIVEN_NAME);
+		NumberParam numberOfVisits = new NumberParam(3);
+		ReferenceAndListParam category = createReferenceParam("lab", null);
+		HashSet<Include> includes = new HashSet<>();
+		includes.add(new Include("ServiceRequest:patient"));
+		
+		// Setup mock DAO response for encounter references
+		ReferenceAndListParam encounterReferences = new ReferenceAndListParam()
+				.addAnd(new ReferenceOrListParam().add(new ReferenceParam().setValue(ENCOUNTER_UUID)));
+		when(dao.createEncounterReferencesByNumberOfVisit(eq(numberOfVisits), eq(patientReference)))
+				.thenReturn(encounterReferences);
+		
+		// Create expected search parameter map
+		SearchParameterMap expectedParams = new SearchParameterMap()
+				.addParameter(ENCOUNTER_REFERENCE_SEARCH_HANDLER, encounterReferences)
+				.addParameter(CATEGORY_SEARCH_HANDLER, category)
+				.addParameter(INCLUDE_SEARCH_HANDLER, includes);
+				
+
+		when(searchQuery.getQueryResults(any(), any(), any(), any())).thenReturn(
+				new SearchQueryBundleProvider<>(expectedParams, dao, translator, globalPropertyService, searchQueryInclude));
+		
+		// Call the method under test
+		IBundleProvider results = serviceRequestService.searchForServiceRequestsByNumberOfVisits(
+				patientReference, numberOfVisits, category, includes);
+		
+		// Verify results
+		assertThat(results, notNullValue());
+		
+		// Capture and verify the search parameter map
+		ArgumentCaptor<SearchParameterMap> mapCaptor = ArgumentCaptor.forClass(SearchParameterMap.class);
+		verify(searchQuery).getQueryResults(mapCaptor.capture(), eq(dao), eq(translator), eq(searchQueryInclude));
+		
+		SearchParameterMap actualMap = mapCaptor.getValue();
+		assertEquals(encounterReferences, actualMap.getParameters(ENCOUNTER_REFERENCE_SEARCH_HANDLER).get(0).getParam());
+		assertEquals(category, actualMap.getParameters(CATEGORY_SEARCH_HANDLER).get(0).getParam());
+		assertEquals(includes, actualMap.getParameters(INCLUDE_SEARCH_HANDLER).get(0).getParam());
+	}
+	
+	@Test(expected = InvalidRequestException.class)
+	public void searchForServiceRequestsByNumberOfVisits_shouldThrowExceptionWhenPatientReferenceIsNull() {
+		// Call the method with null patient reference
+		serviceRequestService.searchForServiceRequestsByNumberOfVisits(null, new NumberParam(3), null, null);
+	}
+	
+	@Test(expected = InvalidRequestException.class)
+	public void searchForServiceRequestsByNumberOfVisits_shouldThrowExceptionWhenNumberOfVisitsIsNull() {
+		// Call the method with null number of visits
+		serviceRequestService.searchForServiceRequestsByNumberOfVisits(new ReferenceParam().setValue(PATIENT_GIVEN_NAME),
+		    null, null, null);
+	}
+	
+	@Test
+	public void searchForServiceRequestsByNumberOfVisits_shouldReturnNullWhenNoEncountersFound() {
+		// Setup test parameters
+		ReferenceParam patientReference = new ReferenceParam().setValue(PATIENT_GIVEN_NAME);
+		NumberParam numberOfVisits = new NumberParam(3);
+		
+		// Mock DAO to return null for encounter references
+		when(dao.createEncounterReferencesByNumberOfVisit(eq(numberOfVisits), eq(patientReference))).thenReturn(null);
+		
+		// Call the method under test
+		IBundleProvider results = serviceRequestService.searchForServiceRequestsByNumberOfVisits(patientReference,
+		    numberOfVisits, null, null);
+		
+		// Verify results
+		assertThat(results, nullValue());
+		
+		// Verify DAO was called with correct parameters
+		verify(dao).createEncounterReferencesByNumberOfVisit(eq(numberOfVisits), eq(patientReference));
+		
+		// Verify searchQuery was not called
+		verify(searchQuery, times(0)).getQueryResults(any(), any(), any(), any());
 	}
 }
