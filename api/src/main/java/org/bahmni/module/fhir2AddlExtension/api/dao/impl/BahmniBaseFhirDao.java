@@ -27,7 +27,6 @@ public abstract class BahmniBaseFhirDao<T extends OpenmrsObject & Auditable> ext
 		ReferenceAndListParam referenceAndListParam = new ReferenceAndListParam();
 		referenceAndListParam.addAnd(new ReferenceOrListParam().add(patientReferenceParam));
 		handlePatientReference(visitCriteria, referenceAndListParam);
-		visitCriteria.addOrder(Order.asc("v.stopDatetime"));
 		visitCriteria.addOrder(Order.desc("v.startDatetime"));
 		visitCriteria.setMaxResults(numberOfVisitsParam.getValue().intValue());
 		visitCriteria.setProjection(Projections.property("v.visitId"));
