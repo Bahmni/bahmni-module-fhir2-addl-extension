@@ -11,7 +11,7 @@ import org.openmrs.module.fhir2.api.dao.FhirServiceRequestDao;
 public interface BahmniFhirServiceRequestDao<T extends OpenmrsObject & Auditable> extends FhirServiceRequestDao<T> {
 
 	@Authorized({"Get Orders"})
-	ReferenceAndListParam createEncounterReferencesByNumberOfVisit(NumberParam numberOfVisitsParam,
-	        ReferenceParam patientReferenceParam);
+	ReferenceAndListParam getEncounterReferencesByNumberOfVisit(NumberParam numberOfVisitsParam,
+																ReferenceParam patientReferenceParam);
 	
 }

@@ -75,7 +75,7 @@ public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<Service
 			throw new InvalidRequestException("Number of visits parameter is required");
 		}
 		
-		ReferenceAndListParam encounterReferencesByNumberOfVisit = dao.createEncounterReferencesByNumberOfVisit(
+		ReferenceAndListParam encounterReferencesByNumberOfVisit = dao.getEncounterReferencesByNumberOfVisit(
 		    numberOfVisits, patientReference);
 		if (encounterReferencesByNumberOfVisit == null) {
 			return null;

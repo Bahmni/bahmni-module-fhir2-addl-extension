@@ -485,7 +485,7 @@ public class BahmniFhirServiceRequestServiceImplTest {
 		// Setup mock DAO response for encounter references
 		ReferenceAndListParam encounterReferences = new ReferenceAndListParam()
 				.addAnd(new ReferenceOrListParam().add(new ReferenceParam().setValue(ENCOUNTER_UUID)));
-		when(dao.createEncounterReferencesByNumberOfVisit(eq(numberOfVisits), eq(patientReference)))
+		when(dao.getEncounterReferencesByNumberOfVisit(eq(numberOfVisits), eq(patientReference)))
 				.thenReturn(encounterReferences);
 		
 		// Create expected search parameter map
@@ -535,7 +535,7 @@ public class BahmniFhirServiceRequestServiceImplTest {
 		NumberParam numberOfVisits = new NumberParam(3);
 		
 		// Mock DAO to return null for encounter references
-		when(dao.createEncounterReferencesByNumberOfVisit(eq(numberOfVisits), eq(patientReference))).thenReturn(null);
+		when(dao.getEncounterReferencesByNumberOfVisit(eq(numberOfVisits), eq(patientReference))).thenReturn(null);
 		
 		// Call the method under test
 		IBundleProvider results = serviceRequestService.searchForServiceRequestsByNumberOfVisits(patientReference,
@@ -545,7 +545,7 @@ public class BahmniFhirServiceRequestServiceImplTest {
 		assertThat(results, nullValue());
 		
 		// Verify DAO was called with correct parameters
-		verify(dao).createEncounterReferencesByNumberOfVisit(eq(numberOfVisits), eq(patientReference));
+		verify(dao).getEncounterReferencesByNumberOfVisit(eq(numberOfVisits), eq(patientReference));
 		
 		// Verify searchQuery was not called
 		verify(searchQuery, times(0)).getQueryResults(any(), any(), any(), any());
