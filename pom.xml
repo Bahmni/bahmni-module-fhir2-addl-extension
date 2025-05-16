@@ -30,7 +30,7 @@
 
     <properties>
 			<openmrsPlatformVersion>2.5.12</openmrsPlatformVersion>
-			<openmrs.fhir2.version>2.3.0</openmrs.fhir2.version>
+			<openmrs.fhir2.version>2.4.0-SNAPSHOT</openmrs.fhir2.version>
 			<web.services.version>2.44.0</web.services.version>
 			<junitVersion>4.13.1</junitVersion>
 			<lombokVersion>1.18.16</lombokVersion>
@@ -167,6 +167,12 @@
 				<groupId>org.powermock</groupId>
 				<artifactId>powermock-api-mockito2</artifactId>
 				<version>${powerMockVersion}</version>
+				<scope>test</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.exparity</groupId>
+				<artifactId>hamcrest-date</artifactId>
+				<version>2.0.7</version>
 				<scope>test</scope>
 			</dependency>
 		</dependencies>

@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator;
+package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
 
 import lombok.AccessLevel;
 import lombok.Setter;
@@ -21,33 +21,33 @@ import static org.apache.commons.lang3.Validate.notNull;
 @Primary
 @Setter(AccessLevel.PACKAGE)
 public class BahmniEncounterTranslatorImpl extends EncounterTranslatorImpl {
-
+	
 	@Autowired
 	private EncounterParticipantTranslator participantTranslator;
-
+	
 	@Autowired
 	private EncounterLocationTranslator encounterLocationTranslator;
-
+	
 	@Autowired
 	private PatientReferenceTranslator patientReferenceTranslator;
-
+	
 	@Autowired
 	private EncounterReferenceTranslator<Visit> visitReferenceTranlator;
-
+	
 	@Autowired
 	private EncounterTypeTranslator<EncounterType> encounterTypeTranslator;
-
+	
 	@Autowired
 	private EncounterPeriodTranslator<Encounter> encounterPeriodTranslator;
-
+	
 	@Autowired
 	private BahmniEncounterValidator bahmniEncounterValidator;
-
+	
 	@Override
 	public Encounter toOpenmrsType(@Nonnull Encounter existingEncounter, @Nonnull org.hl7.fhir.r4.model.Encounter encounter) {
-
+		
 		bahmniEncounterValidator.validate(existingEncounter, encounter);
-
+		
 		/* TODO
 		 * The following lines has been copied over from OpenMRS EncounterTranslatorImpl to fix issues with
 		 * EncounterProviderDuplication. This can be removed once the https://openmrs.atlassian.net/browse/FM2-660
@@ -55,25 +55,25 @@ public class BahmniEncounterTranslatorImpl extends EncounterTranslatorImpl {
 		 */
 		notNull(existingEncounter, "The existing Openmrs Encounter object should not be null");
 		notNull(encounter, "The Encounter object should not be null");
-
+		
 		if (encounter.hasId()) {
 			existingEncounter.setUuid(encounter.getIdElement().getIdPart());
 		}
-
+		
 		EncounterType encounterType = encounterTypeTranslator.toOpenmrsType(encounter.getType());
 		if (encounterType != null) {
 			existingEncounter.setEncounterType(encounterType);
 		}
-
+		
 		existingEncounter.setPatient(patientReferenceTranslator.toOpenmrsType(encounter.getSubject()));
 		existingEncounter.setLocation(encounterLocationTranslator.toOpenmrsType(encounter.getLocationFirstRep()));
 		existingEncounter.setVisit(visitReferenceTranlator.toOpenmrsType(encounter.getPartOf()));
 		setEncounterProviders(existingEncounter, encounter);
 		encounterPeriodTranslator.toOpenmrsType(existingEncounter, encounter.getPeriod());
-
+		
 		return existingEncounter;
 	}
-
+	
 	private void setEncounterProviders(Encounter existingEncounter, org.hl7.fhir.r4.model.Encounter encounter) {
 		Set<EncounterProvider> existingProviders = existingEncounter.getEncounterProviders();
 		if (existingProviders == null) {
