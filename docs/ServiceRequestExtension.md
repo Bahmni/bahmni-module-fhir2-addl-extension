@@ -176,7 +176,7 @@ The Bahmni FHIR2 Additional Extension module extends the base OpenMRS FHIR2 modu
 
 3. Maintaining compatibility with the base module's API while adding extensions
 
-## API Examples for QA Testing
+## API Request Examples
 
 ### 1. Retrieve a specific ServiceRequest by ID
 
