@@ -1,5 +1,12 @@
 package org.bahmni.module.fhir2AddlExtension.api;
 
+import org.hl7.fhir.r4.model.ResourceType;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
 public final class BahmniFhirConstants {
 	
 	private BahmniFhirConstants() {
@@ -20,4 +27,13 @@ public final class BahmniFhirConstants {
 	public static final String LABSET_CONCEPT_CLASS = "LabSet";
 	
 	public static final String LAB_ORDER_CONCEPT_TYPE_EXTENSION_URL = FHIR_NAMESPACE + "/lab-order-concept-type-extension";
+
+	public static final Set<ResourceType> CONSULTATION_BUNDLE_SUPPORTED_RESOURCES = Collections.unmodifiableSet(
+			new HashSet<>(Arrays.asList(
+					ResourceType.Encounter,
+					ResourceType.AllergyIntolerance,
+					ResourceType.Condition,
+					ResourceType.MedicationRequest
+			))
+	);
 }

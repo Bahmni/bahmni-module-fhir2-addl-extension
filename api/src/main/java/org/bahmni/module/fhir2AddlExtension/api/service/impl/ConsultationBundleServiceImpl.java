@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2AddlExtension.api.domain.ConsultationBundle;
 import org.bahmni.module.fhir2AddlExtension.api.service.ConsultationBundleService;
 import org.bahmni.module.fhir2AddlExtension.api.service.FhirResourceHandler;
+import org.bahmni.module.fhir2AddlExtension.api.validators.ConsultationBundleValidator;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.r4.model.ResourceType;
@@ -36,21 +37,23 @@ public class ConsultationBundleServiceImpl implements ConsultationBundleService 
 	final private FhirResourceHandler resourceHandler;
 	
 	@Autowired
+	private ConsultationBundleValidator consultationBundleValidator;
+	
+	@Autowired
 	public ConsultationBundleServiceImpl(FhirResourceHandler resourceHandler) {
 		this.resourceHandler = resourceHandler;
 	}
 	
 	@Override
 	public Bundle create(Bundle bundle) {
-        /*
-          We want to handle the whole request as a transaction.
-          - TODO: Define FHIR IG for the bundle.
-          - ensure all entries contain resources and request element
-          - resource references: can have server side references e.g. Patient/ABC12345
-         */
-		if (bundle.getType() != Bundle.BundleType.TRANSACTION) {
-			throw new InvalidRequestException("Bundle type must be transaction");
-		}
+		/*
+		  We want to handle the whole request as a transaction.
+		  - TODO: Define FHIR IG for the bundle.
+		  - ensure all entries contain resources and request element
+		  - resource references: can have server side references e.g. Patient/ABC12345
+		 */
+		consultationBundleValidator.validateBundleType(bundle);
+		consultationBundleValidator.validateBundleEntries(bundle);
 
         //For all entries must have resources and request elements
         List<Bundle.BundleEntryComponent> invalidResourceEntries = bundle.getEntry()
