@@ -116,15 +116,6 @@ public class ConsultationBundleEntriesHelper {
 					entry.setResource(allergyIntolerance);
 				}
 				break;
-			case MedicationRequest:
-				org.hl7.fhir.r4.model.MedicationRequest medicationRequest = (org.hl7.fhir.r4.model.MedicationRequest) resource;
-				if (medicationRequest.hasEncounter()) {
-					String placeholderReferenceUrl = medicationRequest.getEncounter().getReference();
-					medicationRequest.setEncounter(createEncounterReference(getIdForPlaceHolderReference(
-					    placeholderReferenceUrl, processedEntries)));
-					entry.setResource(medicationRequest);
-				}
-				break;
 			default:
 				break;
 		}
@@ -152,13 +143,6 @@ public class ConsultationBundleEntriesHelper {
                 org.hl7.fhir.r4.model.AllergyIntolerance allergyIntolerance = (org.hl7.fhir.r4.model.AllergyIntolerance) resource;
                 if (allergyIntolerance.hasEncounter()) {
                     references.add(allergyIntolerance.getEncounter());
-                }
-                break;
-
-            case MedicationRequest:
-                org.hl7.fhir.r4.model.MedicationRequest medicationRequest = (org.hl7.fhir.r4.model.MedicationRequest) resource;
-                if (medicationRequest.hasEncounter()) {
-                    references.add(medicationRequest.getEncounter());
                 }
                 break;
             default:

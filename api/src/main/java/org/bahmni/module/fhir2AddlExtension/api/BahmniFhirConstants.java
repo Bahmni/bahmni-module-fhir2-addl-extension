@@ -32,8 +32,7 @@ public final class BahmniFhirConstants {
 			new HashSet<>(Arrays.asList(
 					ResourceType.Encounter,
 					ResourceType.AllergyIntolerance,
-					ResourceType.Condition,
-					ResourceType.MedicationRequest
+					ResourceType.Condition
 			))
 	);
 }

@@ -75,14 +75,14 @@ public class ConsultationBundleEntriesHelperTest {
 		condition.setEncounter(new Reference("urn:uuid:encounter"));
 		Bundle.BundleEntryComponent conditionEntry = createBundleEntry(condition, "urn:uuid:condition");
 		
-		// Create a medication request that references the encounter
-		MedicationRequest medicationRequest = createMedicationRequest();
-		medicationRequest.setEncounter(new Reference("urn:uuid:encounter"));
-		Bundle.BundleEntryComponent medicationRequestEntry = createBundleEntry(medicationRequest, "urn:uuid:medication");
+		// Create an allergy intolerance that references the encounter
+		AllergyIntolerance allergyIntolerance = createAllergyIntolerance();
+		allergyIntolerance.setEncounter(new Reference("urn:uuid:encounter"));
+		Bundle.BundleEntryComponent allergyEntry = createBundleEntry(allergyIntolerance, "urn:uuid:allergy");
 		
 		// Add entries in an order where dependencies are not respected
 		entries.add(conditionEntry);
-		entries.add(medicationRequestEntry);
+		entries.add(allergyEntry);
 		entries.add(encounterEntry);
 		
 		// When
@@ -94,7 +94,7 @@ public class ConsultationBundleEntriesHelperTest {
 		assertEquals(encounterEntry, result.get(0));
 		// The other two can be in any order since they both depend only on the encounter
 		assertTrue(result.contains(conditionEntry));
-		assertTrue(result.contains(medicationRequestEntry));
+		assertTrue(result.contains(allergyEntry));
 	}
 	
 	@Test
@@ -169,29 +169,6 @@ public class ConsultationBundleEntriesHelperTest {
 		AllergyIntolerance resultAllergy = (AllergyIntolerance) result.getResource();
 		assertEquals(FhirConstants.ENCOUNTER, resultAllergy.getEncounter().getType());
 		assertEquals(FhirConstants.ENCOUNTER + "/encounter-uuid", resultAllergy.getEncounter().getReference());
-	}
-	
-	@Test
-	public void shouldResolveMedicationRequestEncounterReference() {
-		// Given
-		MedicationRequest medicationRequest = createMedicationRequest();
-		medicationRequest.setEncounter(new Reference("urn:uuid:placeholder"));
-		Bundle.BundleEntryComponent medicationEntry = createBundleEntry(medicationRequest, "urn:uuid:medication");
-		
-		// Create a processed encounter entry
-		Encounter encounter = createEncounter();
-		encounter.setId("encounter-uuid");
-		Bundle.BundleEntryComponent encounterEntry = createBundleEntry(encounter, "urn:uuid:placeholder");
-		processedEntries.put("urn:uuid:placeholder", encounterEntry);
-		
-		// When
-		Bundle.BundleEntryComponent result = ConsultationBundleEntriesHelper.resolveReferences(medicationEntry,
-		    processedEntries);
-		
-		// Then
-		MedicationRequest resultMedication = (MedicationRequest) result.getResource();
-		assertEquals(FhirConstants.ENCOUNTER, resultMedication.getEncounter().getType());
-		assertEquals(FhirConstants.ENCOUNTER + "/encounter-uuid", resultMedication.getEncounter().getReference());
 	}
 	
 	@Test
@@ -275,15 +252,6 @@ public class ConsultationBundleEntriesHelperTest {
 		allergyIntolerance.setPatient(new Reference("Patient/123"));
 		return allergyIntolerance;
 	}
-	
-	private MedicationRequest createMedicationRequest() {
-		MedicationRequest medicationRequest = new MedicationRequest();
-		medicationRequest.setSubject(new Reference("Patient/123"));
-		medicationRequest.setStatus(MedicationRequest.MedicationRequestStatus.ACTIVE);
-		medicationRequest.setIntent(MedicationRequest.MedicationRequestIntent.ORDER);
-		return medicationRequest;
-	}
-	
 	private Observation createObservation() {
 		Observation observation = new Observation();
 		observation.setStatus(Observation.ObservationStatus.PRELIMINARY);
