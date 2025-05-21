@@ -127,7 +127,7 @@ public class FhirResourceHandlerImpl implements FhirResourceHandler {
         Map<String, ResourceBinding> myResourceNameToBinding = new HashMap<>();
         ResourceBinding myGlobalBinding = new ResourceBinding();
         ResourceBinding myServerBinding = new ResourceBinding();
-        for (Method m : ReflectionUtil.getDeclaredMethods(resourceProvider.getClass())) {
+        for (Method m : ReflectionUtil.getDeclaredMethods(resourceProvider.getClass(),true)) {
             BaseMethodBinding<?> foundMethodBinding = BaseMethodBinding.bindMethod(m, fhirContext, resourceProvider);
             if (foundMethodBinding == null || foundMethodBinding instanceof ConformanceMethodBinding) {
                 log.debug("There are no methods on optionalResProvider to bind. Or methods are for conformance binding.");
