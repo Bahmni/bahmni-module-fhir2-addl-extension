@@ -252,6 +252,7 @@ public class ConsultationBundleEntriesHelperTest {
 		allergyIntolerance.setPatient(new Reference("Patient/123"));
 		return allergyIntolerance;
 	}
+	
 	private Observation createObservation() {
 		Observation observation = new Observation();
 		observation.setStatus(Observation.ObservationStatus.PRELIMINARY);
