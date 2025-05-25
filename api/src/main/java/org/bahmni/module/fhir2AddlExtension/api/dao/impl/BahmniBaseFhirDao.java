@@ -20,7 +20,7 @@ import java.util.List;
 public abstract class BahmniBaseFhirDao<T extends OpenmrsObject & Auditable> extends BaseFhirDao<T> {
 	
 	public ReferenceAndListParam getEncounterReferencesByNumberOfVisit(NumberParam numberOfVisitsParam,
-																	   ReferenceParam patientReferenceParam) {
+	        ReferenceParam patientReferenceParam) {
 		Session currentSession = super.getSessionFactory().getCurrentSession();
 		
 		Criteria visitCriteria = currentSession.createCriteria(Visit.class, "v");

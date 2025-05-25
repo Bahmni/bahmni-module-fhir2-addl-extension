@@ -14,19 +14,21 @@ import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2AddlExtension.api.domain.ConsultationBundle;
+import org.bahmni.module.fhir2AddlExtension.api.helper.ConsultationBundleEntriesHelper;
 import org.bahmni.module.fhir2AddlExtension.api.service.ConsultationBundleService;
 import org.bahmni.module.fhir2AddlExtension.api.service.FhirResourceHandler;
+import org.bahmni.module.fhir2AddlExtension.api.validators.ConsultationBundleValidator;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Resource;
-import org.hl7.fhir.r4.model.ResourceType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.reflect.UndeclaredThrowableException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Component
 @Transactional
@@ -36,64 +38,63 @@ public class ConsultationBundleServiceImpl implements ConsultationBundleService 
 	final private FhirResourceHandler resourceHandler;
 	
 	@Autowired
+	private ConsultationBundleValidator consultationBundleValidator;
+	
+	@Autowired
 	public ConsultationBundleServiceImpl(FhirResourceHandler resourceHandler) {
 		this.resourceHandler = resourceHandler;
 	}
 	
 	@Override
 	public Bundle create(Bundle bundle) {
-        /*
-          We want to handle the whole request as a transaction.
-          - TODO: Define FHIR IG for the bundle.
-          - ensure all entries contain resources and request element
-          - resource references: can have server side references e.g. Patient/ABC12345
-         */
-		if (bundle.getType() != Bundle.BundleType.TRANSACTION) {
-			throw new InvalidRequestException("Bundle type must be transaction");
+		/*
+		  We want to handle the whole request as a transaction.
+		  - TODO: Define FHIR IG for the bundle.
+		  - ensure all entries contain resources and request element
+		  - resource references: can have server side references e.g. Patient/ABC12345
+		 */
+		consultationBundleValidator.validateBundleType(bundle);
+		consultationBundleValidator.validateBundleEntries(bundle);
+
+		List<Bundle.BundleEntryComponent> bundleEntryComponents = bundle.getEntry();
+		
+		List<Bundle.BundleEntryComponent> orderedEntries = ConsultationBundleEntriesHelper.orderEntriesByReference(bundleEntryComponents);
+
+		Map<String, Bundle.BundleEntryComponent> processedResourceEntryMap = new HashMap<>();
+		for (Bundle.BundleEntryComponent orderedEntry : orderedEntries) {
+			try {
+				Bundle.BundleEntryComponent referenceResolvedEntry = ConsultationBundleEntriesHelper.resolveReferences(orderedEntry, processedResourceEntryMap);
+				Optional<Bundle.BundleEntryComponent> bundleEntryComponent = createOrUpdateResource(referenceResolvedEntry);
+				if (bundleEntryComponent.isPresent()) {
+					processedResourceEntryMap.put(orderedEntry.getFullUrl(), bundleEntryComponent.get());
+				} else {
+					throw new InvalidRequestException(String.format("Could not process resource [%s]",
+					    referenceResolvedEntry.getFullUrl()));
+				}
+			}
+			catch (UndeclaredThrowableException e) {
+				String errorMessage = String.format("Error occurred while processing bundle entry [%s]",
+				    orderedEntry.getFullUrl());
+				log.error(errorMessage, e);
+				throw new InvalidRequestException(String.format("%s. %s", errorMessage, e.getUndeclaredThrowable()
+				        .getCause().getMessage()));
+				
+			}
+			catch (Exception e) {
+				String errorMessage = String.format("Error occurred while processing bundle entry [%s]",
+				    orderedEntry.getFullUrl());
+				log.error(errorMessage, e);
+				throw new InvalidRequestException(String.format("%s. %s", errorMessage, e.getMessage()));
+			}
 		}
 
-        //For all entries must have resources and request elements
-        List<Bundle.BundleEntryComponent> invalidResourceEntries = bundle.getEntry()
-                .stream().filter(entry -> !(entry.hasResource() && entry.hasRequest()))
-                .collect(Collectors.toList());
-        if (!invalidResourceEntries.isEmpty()) {
-            throw new InvalidRequestException("Bundle entries must have resource & request defined");
-        }
-
-        List<Bundle.BundleEntryComponent> encounterEntries = bundle.getEntry()
-                .stream().filter(entry -> entry.hasResource() && entry.getResource().getResourceType().equals(ResourceType.Encounter))
-                .collect(Collectors.toList());
-        if (encounterEntries.isEmpty()) {
-            throw new InvalidRequestException("Bundle must have an encounter resource");
-        }
 
 		Bundle responseBundle = new ConsultationBundle();
-        //we expect additional visit resource (new visit to be created) to come in as well
-        //therefore we must process the FHIR Encounters in order - to OMRS visit first, then OMRS encounter
-
-		//run through the rest of the entries in the bundle. process them in the order of dependencies. e.g obs can be part of another obs or other resources
-        //delegate processing to resource specific OpenMRS Fhir Services such as observationFhirResourceProcessor, conditionFhirResourceProcessor etc
-		Bundle.BundleEntryComponent requestedEntryComponent = encounterEntries.get(0);
-		try {
-			Optional<Bundle.BundleEntryComponent> bundleEntryComponent = createOrUpdateResource(requestedEntryComponent);
-			if (bundleEntryComponent.isPresent()) {
-				responseBundle.addEntry(bundleEntryComponent.get());
-			} else {
-				throw new InvalidRequestException(String.format("Could not process resource [%s]", requestedEntryComponent.getFullUrl()));
-			}
-		} catch (UndeclaredThrowableException e) {
-			String errorMessage = String.format("Error occurred while processing bundle entry [%s]", requestedEntryComponent.getFullUrl());
-			log.error(errorMessage, e);
-			throw new InvalidRequestException(String.format("%s. %s", errorMessage, e.getUndeclaredThrowable().getCause().getMessage()));
-
-		} catch (Exception e) {
-			String errorMessage = String.format("Error occurred while processing bundle entry [%s]", requestedEntryComponent.getFullUrl());
-			log.error(errorMessage, e);
-			throw new InvalidRequestException(String.format("%s. %s", errorMessage, e.getMessage()));
+		for(Bundle.BundleEntryComponent entry: bundleEntryComponents) {
+			responseBundle.addEntry(processedResourceEntryMap.get(entry.getFullUrl()));
 		}
-
 		return responseBundle;
-    }
+	}
 	
 	/**
 	 * Consideration: 1. We can restrict adding any resource def or operations on the patient
