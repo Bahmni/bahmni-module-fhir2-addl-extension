@@ -1,6 +1,7 @@
 package org.bahmni.module.fhir2AddlExtension.api;
 
 import org.hl7.fhir.r4.model.ResourceType;
+import org.openmrs.module.fhir2.FhirConstants;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -35,4 +36,9 @@ public final class BahmniFhirConstants {
 					ResourceType.Condition
 			))
 	);
+	public static final String HL7_CONDITION_CATEGORY_CODE_SYSTEM = FhirConstants.HL7_FHIR_CODE_SYSTEM_PREFIX + "/condition-category";
+	public static final String HL7_CONDITION_CATEGORY_CONDITION_CODE = "problem-list-item";
+	public static final String HL7_CONDITION_CATEGORY_DIAGNOSIS_CODE = "encounter-diagnosis";
+
+	public static final String CONDITION_VERIFICATION_STATUS_SEARCH_HANDLER = "condition.verification.status.handler";
 }
