@@ -5,6 +5,8 @@ import ca.uhn.fhir.rest.annotation.IncludeParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
 import ca.uhn.fhir.rest.annotation.RequiredParam;
 import ca.uhn.fhir.rest.annotation.Search;
+import ca.uhn.fhir.rest.annotation.Sort;
+import ca.uhn.fhir.rest.api.SortSpec;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.*;
 import org.apache.commons.collections.CollectionUtils;
@@ -62,6 +64,7 @@ public class BahmniServiceRequestFhirR4ResourceProvider extends ServiceRequestFh
 	                Patient.SP_FAMILY, Patient.SP_NAME }, targetTypes = Patient.class) ReferenceParam patientReference,
 	        @RequiredParam(name = BahmniFhirConstants.SP_NUMBER_OF_VISITS) NumberParam numberOfVisits,
 	        @OptionalParam(name = ServiceRequest.SP_CATEGORY) ReferenceAndListParam categoryReference,
+	        @Sort SortSpec sort,
 	        @IncludeParam(allow = { "ServiceRequest:" + ServiceRequest.SP_PATIENT,
 	                "ServiceRequest:" + ServiceRequest.SP_REQUESTER, "ServiceRequest:" + ServiceRequest.SP_ENCOUNTER }) HashSet<Include> includes) {
 		
@@ -70,6 +73,6 @@ public class BahmniServiceRequestFhirR4ResourceProvider extends ServiceRequestFh
 		}
 		
 		return serviceRequestService.searchForServiceRequestsByNumberOfVisits(patientReference, numberOfVisits,
-		    categoryReference, includes);
+		    categoryReference, sort, includes);
 	}
 }
