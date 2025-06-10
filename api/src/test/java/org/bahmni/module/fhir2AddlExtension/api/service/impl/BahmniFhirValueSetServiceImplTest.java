@@ -389,7 +389,6 @@ public class BahmniFhirValueSetServiceImplTest {
 		when(retiredConcept.getUuid()).thenReturn("retired-concept-uuid");
 		when(retiredConcept.getDisplayString()).thenReturn("Retired Concept");
 		when(retiredConcept.isRetired()).thenReturn(true); // Retired concept
-		when(retiredConcept.getConceptClass()).thenReturn(conceptClass);
 		when(retiredConcept.getSetMembers()).thenReturn(Collections.emptyList());
 		
 		when(parentConcept.getSetMembers()).thenReturn(Arrays.asList(retiredConcept));
