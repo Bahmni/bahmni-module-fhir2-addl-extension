@@ -4,7 +4,7 @@ This document explains how to use the hierarchical ValueSet $expand operation im
 
 ## Overview
 
-The ValueSet $expand operation allows you to expand OpenMRS concepts into FHIR ValueSet resources with support for hierarchical relationships. The implementation uses OpenMRS concept `setMembers` to build parent-child concept hierarchies and provides both hierarchical and flat expansion modes.
+The ValueSet $expand operation allows you to expand OpenMRS concepts into FHIR ValueSet resources with hierarchical relationships. The implementation uses OpenMRS concept `setMembers` to build parent-child concept hierarchies and always returns results in hierarchical structure with all concepts included.
 
 ## Endpoints
 
@@ -18,13 +18,9 @@ GET /openmrs/ws/fhir2/R4/ValueSet/{id}/$expand
 
 ## Parameters
 
-| Parameter          | Type    | Required | Default | Limits | Description                                                                             |
-| ------------------ | ------- | -------- | ------- | ------ | --------------------------------------------------------------------------------------- |
-| `id`               | string  | Yes      | -       | -      | The UUID of the ValueSet/Concept to expand                                              |
-| `includeHierarchy` | boolean | No       | false   | -      | If true, returns hierarchical structure with parent-child relationships via nested `contains` |
-| `filter`           | string  | No       | null    | -      | Text filter to apply to concept codes and displays (case-insensitive partial match)     |
-| `count`            | integer | No       | 100     | 1-1000 | Maximum number of concepts to return (applied after filtering)                           |
-| `offset`           | integer | No       | 0       | ≥0     | Number of concepts to skip for pagination (applied after filtering)                      |
+| Parameter | Type   | Required | Description                                |
+| --------- | ------ | -------- | ------------------------------------------ |
+| `id`      | string | Yes      | The UUID of the ValueSet/Concept to expand |
 
 ## Technical Implementation
 
@@ -34,6 +30,13 @@ GET /openmrs/ws/fhir2/R4/ValueSet/{id}/$expand
 - **Concept setMembers** → **Hierarchical parent-child relationships**
 - **Concept UUID** → **FHIR code**
 - **Concept displayString** → **FHIR display**
+
+### Behavior
+
+- **Always Hierarchical**: Returns concepts in hierarchical structure preserving parent-child relationships
+- **Excludes Parent Concept**: Only returns the setMembers of the requested concept, not the concept itself
+- **All Concepts**: Returns all setMembers without pagination or filtering
+- **Complete Expansion**: No limits on the number of concepts returned
 
 ### Inactive Concept Detection
 
@@ -49,12 +52,12 @@ The service includes built-in protection against infinite loops through concept 
 
 ## Usage Examples
 
-### Example 1: Basic Hierarchical Expansion
+### Basic Hierarchical Expansion
 
 **Request:**
 
 ```http
-GET /openmrs/ws/fhir2/R4/ValueSet/12345678-1234-1234-1234-123456789012/$expand?includeHierarchy=true
+GET /openmrs/ws/fhir2/R4/ValueSet/12345678-1234-1234-1234-123456789012/$expand
 ```
 
 **Response:**
@@ -67,116 +70,16 @@ GET /openmrs/ws/fhir2/R4/ValueSet/12345678-1234-1234-1234-123456789012/$expand?i
   "name": "DiagnosisValueSet",
   "expansion": {
     "timestamp": "2025-06-09T17:41:00.000Z",
-    "total": 1,
+    "total": 2,
     "contains": [
-      {
-        "code": "parent-concept-uuid",
-        "display": "Cardiovascular Diseases",
-        "contains": [
-          {
-            "code": "child-concept-uuid",
-            "display": "Hypertension"
-          },
-          {
-            "code": "retired-concept-uuid", 
-            "display": "Obsolete Heart Condition",
-            "inactive": true
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-### Example 2: Flat Expansion
-
-**Request:**
-
-```http
-GET /openmrs/ws/fhir2/R4/ValueSet/12345678-1234-1234-1234-123456789012/$expand?includeHierarchy=false
-```
-
-**Response:**
-
-```json
-{
-  "resourceType": "ValueSet",
-  "id": "12345678-1234-1234-1234-123456789012",
-  "expansion": {
-    "timestamp": "2025-06-09T17:41:00.000Z",
-    "total": 3,
-    "contains": [
-      {
-        "code": "parent-concept-uuid",
-        "display": "Cardiovascular Diseases"
-      },
       {
         "code": "child-concept-uuid",
         "display": "Hypertension"
       },
       {
         "code": "retired-concept-uuid",
-        "display": "Obsolete Heart Condition", 
+        "display": "Obsolete Heart Condition",
         "inactive": true
-      }
-    ]
-  }
-}
-```
-
-### Example 3: Expansion with Filter
-
-**Request:**
-
-```http
-GET /openmrs/ws/fhir2/R4/ValueSet/12345678-1234-1234-1234-123456789012/$expand?filter=hyper&includeHierarchy=false
-```
-
-**Response:**
-
-```json
-{
-  "resourceType": "ValueSet",
-  "id": "12345678-1234-1234-1234-123456789012",
-  "expansion": {
-    "timestamp": "2025-06-09T17:41:00.000Z",
-    "total": 1,
-    "contains": [
-      {
-        "code": "child-concept-uuid",
-        "display": "Hypertension"
-      }
-    ]
-  }
-}
-```
-
-### Example 4: Paginated Expansion
-
-**Request:**
-
-```http
-GET /openmrs/ws/fhir2/R4/ValueSet/12345678-1234-1234-1234-123456789012/$expand?count=10&offset=5&includeHierarchy=false
-```
-
-**Response:**
-
-```json
-{
-  "resourceType": "ValueSet",
-  "id": "12345678-1234-1234-1234-123456789012",
-  "expansion": {
-    "timestamp": "2025-06-09T17:41:00.000Z",
-    "total": 10,
-    "contains": [
-      {
-        "code": "concept-6-uuid",
-        "display": "Sixth Concept"
-      },
-      {
-        "code": "concept-7-uuid", 
-        "display": "Seventh Concept"
       }
     ]
   }
@@ -189,25 +92,7 @@ GET /openmrs/ws/fhir2/R4/ValueSet/12345678-1234-1234-1234-123456789012/$expand?c
 
 ```bash
 curl -X GET \
-  "http://localhost:8080/openmrs/ws/fhir2/R4/ValueSet/12345678-1234-1234-1234-123456789012/\$expand?includeHierarchy=true" \
-  -H "Authorization: Basic YWRtaW46QWRtaW4xMjM=" \
-  -H "Accept: application/fhir+json"
-```
-
-### Expansion with filter and count limit
-
-```bash
-curl -X GET \
-  "http://localhost:8080/openmrs/ws/fhir2/R4/ValueSet/12345678-1234-1234-1234-123456789012/\$expand?filter=diabetes&includeHierarchy=false&count=20" \
-  -H "Authorization: Basic YWRtaW46QWRtaW4xMjM=" \
-  -H "Accept: application/fhir+json"
-```
-
-### Paginated expansion
-
-```bash
-curl -X GET \
-  "http://localhost:8080/openmrs/ws/fhir2/R4/ValueSet/12345678-1234-1234-1234-123456789012/\$expand?count=50&offset=100" \
+  "http://localhost:8080/openmrs/ws/fhir2/R4/ValueSet/12345678-1234-1234-1234-123456789012/\$expand" \
   -H "Authorization: Basic YWRtaW46QWRtaW4xMjM=" \
   -H "Accept: application/fhir+json"
 ```
@@ -223,7 +108,7 @@ curl -X GET \
 For hierarchical expansion to work properly:
 
 - Parent concepts must have child concepts configured as **setMembers**
-- The concept relationship is built using `concept.getSetMembers()` 
+- The concept relationship is built using `concept.getSetMembers()`
 - ConceptAnswers are NOT used for hierarchical relationships
 - Ensure concepts have proper ConceptClass assignments to avoid inactive flagging
 
@@ -232,16 +117,18 @@ For hierarchical expansion to work properly:
 The response follows the FHIR R4 ValueSet resource format with an `expansion` element containing:
 
 - `timestamp`: When the expansion was performed (ISO 8601 format)
-- `total`: Total number of concepts in the expansion (after filtering and pagination)
-- `contains`: Array of concept definitions
+- `total`: Total number of concepts in the expansion
+- `contains`: Array of concept definitions in hierarchical structure
 
-### Hierarchical Structure (`includeHierarchy=true`)
+### Hierarchical Structure
 
-Parent concepts include a nested `contains` array with their child concepts. The nesting preserves the OpenMRS concept setMember relationships.
+The expansion directly contains the setMembers of the requested concept (the parent concept itself is excluded). If any of these setMembers have their own setMembers, they will include a nested `contains` array with their child concepts. The nesting preserves the OpenMRS concept setMember relationships.
 
-### Flat Structure (`includeHierarchy=false`)
+**Example structure:**
 
-All concepts are returned at the same level without nesting. Parent and child concepts appear as siblings in the contains array.
+- Request: Expand concept "Medical Specialties"
+- Response contains: "Cardiology", "Neurology", "Pediatrics" (not "Medical Specialties" itself)
+- If "Cardiology" has setMembers like "Interventional Cardiology", they appear in Cardiology's `contains` array
 
 ### Concept Code Mapping
 
@@ -256,6 +143,7 @@ The operation provides comprehensive error handling with specific HTTP status co
 ### Client Errors (4XX)
 
 #### 400 Bad Request - InvalidRequestException
+
 ```json
 {
   "resourceType": "OperationOutcome",
@@ -274,13 +162,13 @@ The operation provides comprehensive error handling with specific HTTP status co
 **Common causes:**
 
 - Empty or null ValueSet ID
-- Invalid parameter values (e.g., negative offset, count > 1000)
 - Malformed request parameters
 
 #### 404 Not Found - ResourceNotFoundException
+
 ```json
 {
-  "resourceType": "OperationOutcome", 
+  "resourceType": "OperationOutcome",
   "issue": [
     {
       "severity": "error",
@@ -301,12 +189,13 @@ The operation provides comprehensive error handling with specific HTTP status co
 ### Server Errors (5XX)
 
 #### 500 Internal Server Error - InternalErrorException
+
 ```json
 {
   "resourceType": "OperationOutcome",
   "issue": [
     {
-      "severity": "error", 
+      "severity": "error",
       "code": "exception",
       "details": {
         "text": "Internal server error occurred while expanding ValueSet"
@@ -326,31 +215,16 @@ The operation provides comprehensive error handling with specific HTTP status co
 
 ### Optimization Strategies
 
-1. **Use Pagination**: Always use `count` parameter for large ValueSets to avoid memory issues
-2. **Server-side Filtering**: Use the `filter` parameter instead of client-side filtering for better performance
-3. **Hierarchical vs Flat**: Flat expansion (`includeHierarchy=false`) is generally faster for large concept sets
-4. **Caching**: Consider implementing caching for frequently accessed ValueSets
-
-### Resource Limits
-
-- **Maximum Count**: 1000 concepts per request
-- **Default Count**: 100 concepts if not specified
-- **Filtering**: Applied before pagination for optimal performance
-- **Memory Usage**: Hierarchical expansion uses more memory due to nested structures
+1. **Caching**: Consider implementing caching for frequently accessed ValueSets
+2. **Memory Usage**: Large concept hierarchies may use significant memory due to nested structures
 
 ### Best Practices
 
 ```bash
-# Good: Paginated request for large ValueSets
-curl ".../$expand?count=50&offset=0"
+# Basic expansion request
+curl ".../$expand"
 
-# Good: Filtered request to reduce data transfer
-curl ".../$expand?filter=diabetes&count=20"
-
-# Avoid: Requesting all concepts without pagination
-curl ".../$expand?count=1000"
-
-# Avoid: Client-side filtering of large datasets
+# Client-side processing if needed
 curl ".../$expand" | jq '.expansion.contains[] | select(.display | contains("diabetes"))'
 ```
 
@@ -359,51 +233,26 @@ curl ".../$expand" | jq '.expansion.contains[] | select(.display | contains("dia
 ### JavaScript/TypeScript
 
 ```typescript
-interface ValueSetExpansionOptions {
-  includeHierarchy?: boolean;
-  filter?: string;
-  count?: number;
-  offset?: number;
-}
-
-async function expandValueSet(
-  valueSetId: string, 
-  options: ValueSetExpansionOptions = {}
-): Promise<ValueSet> {
-  const params = new URLSearchParams();
-  
-  if (options.includeHierarchy) params.set('includeHierarchy', 'true');
-  if (options.filter) params.set('filter', options.filter);
-  if (options.count) params.set('count', options.count.toString());
-  if (options.offset) params.set('offset', options.offset.toString());
-  
+async function expandValueSet(valueSetId: string): Promise<ValueSet> {
   const response = await fetch(
-    `/openmrs/ws/fhir2/R4/ValueSet/${valueSetId}/$expand?${params}`,
+    `/openmrs/ws/fhir2/R4/ValueSet/${valueSetId}/$expand`,
     {
       headers: {
-        'Authorization': 'Basic ' + btoa('admin:Admin123'),
-        'Accept': 'application/fhir+json'
-      }
-    }
+        Authorization: "Basic " + btoa("admin:Admin123"),
+        Accept: "application/fhir+json",
+      },
+    },
   );
-  
+
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }
-  
+
   return response.json();
 }
 
-// Usage examples
-const hierarchicalExpansion = await expandValueSet('concept-uuid', { 
-  includeHierarchy: true 
-});
-
-const filteredExpansion = await expandValueSet('concept-uuid', {
-  filter: 'diabetes',
-  count: 20,
-  offset: 0
-});
+// Usage example
+const expansion = await expandValueSet("concept-uuid");
 ```
 
 ### Java Client
@@ -412,28 +261,11 @@ const filteredExpansion = await expandValueSet('concept-uuid', {
 // Using HAPI FHIR Client
 IGenericClient client = ctx.newRestfulGenericClient(serverBase);
 
-// Hierarchical expansion
-Parameters params = new Parameters()
-    .addParameter("includeHierarchy", new BooleanType(true));
-    
+// Basic expansion
 ValueSet expanded = client
     .operation()
     .onInstance(new IdType("ValueSet", "concept-uuid"))
     .named("$expand")
-    .withParameters(params)
-    .returnResourceType(ValueSet.class)
-    .execute();
-
-// Filtered expansion  
-Parameters filteredParams = new Parameters()
-    .addParameter("filter", new StringType("diabetes"))
-    .addParameter("count", new IntegerType(50));
-    
-ValueSet filtered = client
-    .operation()
-    .onInstance(new IdType("ValueSet", "concept-uuid")) 
-    .named("$expand")
-    .withParameters(filteredParams)
     .returnResourceType(ValueSet.class)
     .execute();
 ```
@@ -443,19 +275,20 @@ ValueSet filtered = client
 ### Common Issues
 
 1. **Empty Expansion Results**
+
    - Verify the concept has setMembers configured
    - Check if the concept exists and is not retired
    - Ensure proper authentication and permissions
 
-2. **Hierarchical Structure Not Showing**
-   - Confirm `includeHierarchy=true` parameter is set
+2. **Missing Child Concepts in Hierarchy**
+
    - Verify parent concepts have child concepts as setMembers (not ConceptAnswers)
    - Check for circular references that might be preventing expansion
 
 3. **Performance Issues**
-   - Reduce `count` parameter for large expansions
-   - Use filtering to narrow down results
-   - Consider flat expansion for better performance
+
+   - Large concept hierarchies may consume significant memory
+   - Consider client-side filtering if needed
 
 4. **Authentication Errors**
    - Verify OpenMRS credentials are correct
