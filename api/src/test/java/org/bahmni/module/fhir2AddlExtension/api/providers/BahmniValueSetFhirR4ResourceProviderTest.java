@@ -129,20 +129,16 @@ public class BahmniValueSetFhirR4ResourceProviderTest {
 	// ===============================
 	
 	/**
-	 * Creates a ValueSet with hierarchical expansion structure
+	 * Creates a ValueSet with hierarchical expansion structure (children directly in expansion)
 	 */
 	private ValueSet createHierarchicalValueSet() {
 		ValueSet valueSet = createBaseValueSet();
 		ValueSet.ValueSetExpansionComponent expansion = new ValueSet.ValueSetExpansionComponent();
-		expansion.setTotal(EXPECTED_FLAT_SIZE);
+		expansion.setTotal(EXPECTED_HIERARCHICAL_SIZE);
 		
-		// Create parent concept with nested child
-		ValueSet.ValueSetExpansionContainsComponent parentConcept = createConcept(PARENT_CONCEPT_CODE,
-		    PARENT_CONCEPT_DISPLAY);
+		// Create child concept directly in expansion (no parent wrapper)
 		ValueSet.ValueSetExpansionContainsComponent childConcept = createConcept(CHILD_CONCEPT_CODE, CHILD_CONCEPT_DISPLAY);
-		
-		parentConcept.getContains().add(childConcept);
-		expansion.getContains().add(parentConcept);
+		expansion.getContains().add(childConcept);
 		
 		valueSet.setExpansion(expansion);
 		return valueSet;
@@ -229,19 +225,16 @@ public class BahmniValueSetFhirR4ResourceProviderTest {
 	}
 	
 	/**
-	 * Asserts expansion has hierarchical structure (parent with nested child)
+	 * Asserts expansion has hierarchical structure (children directly in expansion, no parent
+	 * wrapper)
 	 */
 	private void assertHierarchicalStructure(ValueSet.ValueSetExpansionComponent expansion) {
 		assertThat(expansion.getContains(), hasSize(EXPECTED_HIERARCHICAL_SIZE));
 		
-		ValueSet.ValueSetExpansionContainsComponent parentConcept = expansion.getContains().get(0);
-		assertThat(parentConcept.getCode(), equalTo(PARENT_CONCEPT_CODE));
-		assertThat(parentConcept.getDisplay(), equalTo(PARENT_CONCEPT_DISPLAY));
-		assertThat(parentConcept.getContains(), hasSize(1));
-		
-		ValueSet.ValueSetExpansionContainsComponent childConcept = parentConcept.getContains().get(0);
+		ValueSet.ValueSetExpansionContainsComponent childConcept = expansion.getContains().get(0);
 		assertThat(childConcept.getCode(), equalTo(CHILD_CONCEPT_CODE));
 		assertThat(childConcept.getDisplay(), equalTo(CHILD_CONCEPT_DISPLAY));
+		assertThat(childConcept.getContains(), hasSize(0)); // No nested children
 	}
 	
 	/**

@@ -2,7 +2,6 @@ package org.bahmni.module.fhir2AddlExtension.api.service.impl;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -37,34 +36,12 @@ public class BahmniFhirValueSetServiceImplTest {
 	
 	private BahmniFhirValueSetServiceImpl valueSetService;
 	
-	private Concept parentConcept;
-	
-	private Concept childConcept;
-	
 	private ValueSet baseValueSet;
 	
 	@Before
 	public void setup() {
 		valueSetService = new BahmniFhirValueSetServiceImpl();
 		valueSetService.setConceptService(conceptService);
-		
-		// Setup mock concepts using Mockito to avoid OpenMRS validation issues
-		parentConcept = org.mockito.Mockito.mock(Concept.class);
-		when(parentConcept.getUuid()).thenReturn(PARENT_CONCEPT_UUID);
-		when(parentConcept.getDisplayString()).thenReturn(PARENT_CONCEPT_NAME);
-		when(parentConcept.isRetired()).thenReturn(false);
-		when(parentConcept.getConceptClass()).thenReturn(conceptClass);
-		when(conceptClass.isRetired()).thenReturn(false);
-		
-		childConcept = org.mockito.Mockito.mock(Concept.class);
-		when(childConcept.getUuid()).thenReturn(CHILD_CONCEPT_UUID);
-		when(childConcept.getDisplayString()).thenReturn(CHILD_CONCEPT_NAME);
-		when(childConcept.isRetired()).thenReturn(false);
-		when(childConcept.getConceptClass()).thenReturn(conceptClass);
-		when(childConcept.getSetMembers()).thenReturn(Collections.emptyList());
-		
-		// Setup parent-child relationship using setMembers (not answers)
-		when(parentConcept.getSetMembers()).thenReturn(Arrays.asList(childConcept));
 		
 		// Setup base ValueSet
 		baseValueSet = new ValueSet();
@@ -76,6 +53,20 @@ public class BahmniFhirValueSetServiceImplTest {
 	@Test
 	public void shouldCreateHierarchicalExpansion() {
 		// Given
+		Concept parentConcept = org.mockito.Mockito.mock(Concept.class);
+		Concept childConcept = org.mockito.Mockito.mock(Concept.class);
+		
+		// Setup only the methods that will actually be called
+		when(parentConcept.getUuid()).thenReturn(PARENT_CONCEPT_UUID);
+		when(parentConcept.getSetMembers()).thenReturn(Arrays.asList(childConcept));
+		
+		when(childConcept.getUuid()).thenReturn(CHILD_CONCEPT_UUID);
+		when(childConcept.getDisplayString()).thenReturn(CHILD_CONCEPT_NAME);
+		when(childConcept.isRetired()).thenReturn(false);
+		when(childConcept.getConceptClass()).thenReturn(conceptClass);
+		when(childConcept.getSetMembers()).thenReturn(Collections.emptyList());
+		
+		when(conceptClass.isRetired()).thenReturn(false);
 		when(conceptService.getConceptByUuid(PARENT_CONCEPT_UUID)).thenReturn(parentConcept);
 		
 		// Mock the inherited get method from base service
@@ -98,21 +89,16 @@ public class BahmniFhirValueSetServiceImplTest {
 		ValueSet.ValueSetExpansionComponent expansion = result.getExpansion();
 		assertThat(expansion.getContains(), hasSize(1));
 		
-		// Verify hierarchical structure
-		ValueSet.ValueSetExpansionContainsComponent parentComponent = expansion.getContains().get(0);
-		assertThat(parentComponent.getCode(), equalTo(PARENT_CONCEPT_UUID));
-		assertThat(parentComponent.getDisplay(), equalTo(PARENT_CONCEPT_NAME));
-		assertThat(parentComponent.getContains(), hasSize(1));
-		
-		ValueSet.ValueSetExpansionContainsComponent childComponent = parentComponent.getContains().get(0);
+		// Verify only child concept is in expansion (parent concept excluded)
+		ValueSet.ValueSetExpansionContainsComponent childComponent = expansion.getContains().get(0);
 		assertThat(childComponent.getCode(), equalTo(CHILD_CONCEPT_UUID));
 		assertThat(childComponent.getDisplay(), equalTo(CHILD_CONCEPT_NAME));
+		assertThat(childComponent.getContains(), hasSize(0));
 	}
 	
 	@Test(expected = RuntimeException.class)
 	public void shouldThrowExceptionWhenValueSetNotFound() {
-		// Given
-		// Mock the inherited get method to return null
+		// Given - Mock service that returns null for get() method
 		BahmniFhirValueSetServiceImpl spyService = new BahmniFhirValueSetServiceImpl() {
 			
 			@Override
@@ -122,16 +108,15 @@ public class BahmniFhirValueSetServiceImplTest {
 		};
 		spyService.setConceptService(conceptService);
 		
-		// When/Then
+		// When/Then - Should throw RuntimeException
 		spyService.expandedValueSet(PARENT_CONCEPT_UUID);
 	}
 	
 	@Test(expected = RuntimeException.class)
 	public void shouldThrowExceptionWhenConceptNotFound() {
-		// Given
+		// Given - ConceptService returns null for the concept
 		when(conceptService.getConceptByUuid(PARENT_CONCEPT_UUID)).thenReturn(null);
 		
-		// Mock the inherited get method
 		BahmniFhirValueSetServiceImpl spyService = new BahmniFhirValueSetServiceImpl() {
 			
 			@Override
@@ -141,13 +126,9 @@ public class BahmniFhirValueSetServiceImplTest {
 		};
 		spyService.setConceptService(conceptService);
 		
-		// When/Then
+		// When/Then - Should throw RuntimeException
 		spyService.expandedValueSet(PARENT_CONCEPT_UUID);
 	}
-	
-	// ===============================
-	// SET MEMBERS TESTS (Updated for setMembers-only implementation)
-	// ===============================
 	
 	@Test
 	public void shouldIncludeSetMembersInHierarchicalExpansion() {
@@ -155,15 +136,19 @@ public class BahmniFhirValueSetServiceImplTest {
 		String setMemberUuid = "set-member-uuid";
 		String setMemberName = "Set Member Concept";
 		
+		Concept parentConcept = org.mockito.Mockito.mock(Concept.class);
 		Concept setMemberConcept = org.mockito.Mockito.mock(Concept.class);
+		
+		when(parentConcept.getUuid()).thenReturn(PARENT_CONCEPT_UUID);
+		when(parentConcept.getSetMembers()).thenReturn(Arrays.asList(setMemberConcept));
+		
 		when(setMemberConcept.getUuid()).thenReturn(setMemberUuid);
 		when(setMemberConcept.getDisplayString()).thenReturn(setMemberName);
-		when(setMemberConcept.getSetMembers()).thenReturn(Collections.emptyList()); // No nested members
+		when(setMemberConcept.getSetMembers()).thenReturn(Collections.emptyList());
 		when(setMemberConcept.isRetired()).thenReturn(false);
 		when(setMemberConcept.getConceptClass()).thenReturn(conceptClass);
 		
-		// Setup parent concept with setMembers (replace the child from @Before setup)
-		when(parentConcept.getSetMembers()).thenReturn(Arrays.asList(setMemberConcept));
+		when(conceptClass.isRetired()).thenReturn(false);
 		when(conceptService.getConceptByUuid(PARENT_CONCEPT_UUID)).thenReturn(parentConcept);
 		
 		BahmniFhirValueSetServiceImpl spyService = new BahmniFhirValueSetServiceImpl() {
@@ -185,17 +170,10 @@ public class BahmniFhirValueSetServiceImplTest {
 		ValueSet.ValueSetExpansionComponent expansion = result.getExpansion();
 		assertThat(expansion.getContains(), hasSize(1));
 		
-		// Verify hierarchical structure includes setMembers
-		ValueSet.ValueSetExpansionContainsComponent parentComponent = expansion.getContains().get(0);
-		assertThat(parentComponent.getCode(), equalTo(PARENT_CONCEPT_UUID));
-		
-		// Should have only setMember (implementation only processes setMembers, not answers)
-		assertThat(parentComponent.getContains(), hasSize(1)); // Only setMember
-		
-		// Find the setMember in the contains list
-		ValueSet.ValueSetExpansionContainsComponent setMemberComponent = parentComponent.getContains().get(0);
+		ValueSet.ValueSetExpansionContainsComponent setMemberComponent = expansion.getContains().get(0);
 		assertThat(setMemberComponent.getCode(), equalTo(setMemberUuid));
 		assertThat(setMemberComponent.getDisplay(), equalTo(setMemberName));
+		assertThat(setMemberComponent.getContains(), hasSize(0));
 	}
 	
 	@Test
@@ -204,15 +182,19 @@ public class BahmniFhirValueSetServiceImplTest {
 		String setMemberUuid = "set-member-uuid";
 		String setMemberName = "Set Member Concept";
 		
+		Concept parentConcept = org.mockito.Mockito.mock(Concept.class);
 		Concept setMemberConcept = org.mockito.Mockito.mock(Concept.class);
+		
+		when(parentConcept.getUuid()).thenReturn(PARENT_CONCEPT_UUID);
+		when(parentConcept.getSetMembers()).thenReturn(Arrays.asList(setMemberConcept));
+		
 		when(setMemberConcept.getUuid()).thenReturn(setMemberUuid);
 		when(setMemberConcept.getDisplayString()).thenReturn(setMemberName);
 		when(setMemberConcept.getSetMembers()).thenReturn(Collections.emptyList());
 		when(setMemberConcept.isRetired()).thenReturn(false);
 		when(setMemberConcept.getConceptClass()).thenReturn(conceptClass);
 		
-		// Parent concept with only setMembers
-		when(parentConcept.getSetMembers()).thenReturn(Arrays.asList(setMemberConcept));
+		when(conceptClass.isRetired()).thenReturn(false);
 		when(conceptService.getConceptByUuid(PARENT_CONCEPT_UUID)).thenReturn(parentConcept);
 		
 		BahmniFhirValueSetServiceImpl spyService = new BahmniFhirValueSetServiceImpl() {
@@ -234,29 +216,26 @@ public class BahmniFhirValueSetServiceImplTest {
 		ValueSet.ValueSetExpansionComponent expansion = result.getExpansion();
 		assertThat(expansion.getContains(), hasSize(1));
 		
-		// Verify parent has only setMember
-		ValueSet.ValueSetExpansionContainsComponent parentComponent = expansion.getContains().get(0);
-		assertThat(parentComponent.getContains(), hasSize(1)); // Only setMember
-		
-		ValueSet.ValueSetExpansionContainsComponent setMemberComponent = parentComponent.getContains().get(0);
+		ValueSet.ValueSetExpansionContainsComponent setMemberComponent = expansion.getContains().get(0);
 		assertThat(setMemberComponent.getCode(), equalTo(setMemberUuid));
 		assertThat(setMemberComponent.getDisplay(), equalTo(setMemberName));
+		assertThat(setMemberComponent.getContains(), hasSize(0));
 	}
-	
-	// ===============================
-	// INACTIVE FIELD TESTS (New functionality)
-	// ===============================
 	
 	@Test
 	public void shouldSetInactiveForRetiredConcepts() {
 		// Given - retired concept
+		Concept parentConcept = org.mockito.Mockito.mock(Concept.class);
 		Concept retiredConcept = org.mockito.Mockito.mock(Concept.class);
+		
+		when(parentConcept.getUuid()).thenReturn(PARENT_CONCEPT_UUID);
+		when(parentConcept.getSetMembers()).thenReturn(Arrays.asList(retiredConcept));
+		
 		when(retiredConcept.getUuid()).thenReturn("retired-concept-uuid");
 		when(retiredConcept.getDisplayString()).thenReturn("Retired Concept");
-		when(retiredConcept.isRetired()).thenReturn(true); // Retired concept
+		when(retiredConcept.isRetired()).thenReturn(true);
 		when(retiredConcept.getSetMembers()).thenReturn(Collections.emptyList());
 		
-		when(parentConcept.getSetMembers()).thenReturn(Arrays.asList(retiredConcept));
 		when(conceptService.getConceptByUuid(PARENT_CONCEPT_UUID)).thenReturn(parentConcept);
 		
 		BahmniFhirValueSetServiceImpl spyService = new BahmniFhirValueSetServiceImpl() {
@@ -273,9 +252,7 @@ public class BahmniFhirValueSetServiceImplTest {
 		// Then
 		ValueSet.ValueSetExpansionComponent expansion = result.getExpansion();
 		
-		// In hierarchical expansion, find the retired concept within the parent's contains
-		ValueSet.ValueSetExpansionContainsComponent parentComponent = expansion.getContains().get(0);
-		ValueSet.ValueSetExpansionContainsComponent retiredComponent = parentComponent.getContains().stream()
+		ValueSet.ValueSetExpansionContainsComponent retiredComponent = expansion.getContains().stream()
 		    .filter(c -> c.getCode().equals("retired-concept-uuid"))
 		    .findFirst()
 		    .orElse(null);
@@ -290,14 +267,18 @@ public class BahmniFhirValueSetServiceImplTest {
 		ConceptClass retiredConceptClass = org.mockito.Mockito.mock(ConceptClass.class);
 		when(retiredConceptClass.isRetired()).thenReturn(true);
 		
+		Concept parentConcept = org.mockito.Mockito.mock(Concept.class);
 		Concept conceptWithRetiredClass = org.mockito.Mockito.mock(Concept.class);
+		
+		when(parentConcept.getUuid()).thenReturn(PARENT_CONCEPT_UUID);
+		when(parentConcept.getSetMembers()).thenReturn(Arrays.asList(conceptWithRetiredClass));
+		
 		when(conceptWithRetiredClass.getUuid()).thenReturn("concept-retired-class-uuid");
 		when(conceptWithRetiredClass.getDisplayString()).thenReturn("Concept with Retired Class");
-		when(conceptWithRetiredClass.isRetired()).thenReturn(false); // Concept itself not retired
-		when(conceptWithRetiredClass.getConceptClass()).thenReturn(retiredConceptClass); // But class is retired
+		when(conceptWithRetiredClass.isRetired()).thenReturn(false);
+		when(conceptWithRetiredClass.getConceptClass()).thenReturn(retiredConceptClass);
 		when(conceptWithRetiredClass.getSetMembers()).thenReturn(Collections.emptyList());
 		
-		when(parentConcept.getSetMembers()).thenReturn(Arrays.asList(conceptWithRetiredClass));
 		when(conceptService.getConceptByUuid(PARENT_CONCEPT_UUID)).thenReturn(parentConcept);
 		
 		BahmniFhirValueSetServiceImpl spyService = new BahmniFhirValueSetServiceImpl() {
@@ -314,9 +295,7 @@ public class BahmniFhirValueSetServiceImplTest {
 		// Then
 		ValueSet.ValueSetExpansionComponent expansion = result.getExpansion();
 		
-		// In hierarchical expansion, find the concept within the parent's contains
-		ValueSet.ValueSetExpansionContainsComponent parentComponent = expansion.getContains().get(0);
-		ValueSet.ValueSetExpansionContainsComponent conceptComponent = parentComponent.getContains().stream()
+		ValueSet.ValueSetExpansionContainsComponent conceptComponent = expansion.getContains().stream()
 		    .filter(c -> c.getCode().equals("concept-retired-class-uuid"))
 		    .findFirst()
 		    .orElse(null);
@@ -328,14 +307,18 @@ public class BahmniFhirValueSetServiceImplTest {
 	@Test
 	public void shouldSetInactiveForConceptsWithNullConceptClass() {
 		// Given - concept with null ConceptClass
+		Concept parentConcept = org.mockito.Mockito.mock(Concept.class);
 		Concept conceptWithNullClass = org.mockito.Mockito.mock(Concept.class);
+		
+		when(parentConcept.getUuid()).thenReturn(PARENT_CONCEPT_UUID);
+		when(parentConcept.getSetMembers()).thenReturn(Arrays.asList(conceptWithNullClass));
+		
 		when(conceptWithNullClass.getUuid()).thenReturn("concept-null-class-uuid");
 		when(conceptWithNullClass.getDisplayString()).thenReturn("Concept with Null Class");
-		when(conceptWithNullClass.isRetired()).thenReturn(false); // Concept itself not retired
-		when(conceptWithNullClass.getConceptClass()).thenReturn(null); // Null class
+		when(conceptWithNullClass.isRetired()).thenReturn(false);
+		when(conceptWithNullClass.getConceptClass()).thenReturn(null);
 		when(conceptWithNullClass.getSetMembers()).thenReturn(Collections.emptyList());
 		
-		when(parentConcept.getSetMembers()).thenReturn(Arrays.asList(conceptWithNullClass));
 		when(conceptService.getConceptByUuid(PARENT_CONCEPT_UUID)).thenReturn(parentConcept);
 		
 		BahmniFhirValueSetServiceImpl spyService = new BahmniFhirValueSetServiceImpl() {
@@ -352,9 +335,7 @@ public class BahmniFhirValueSetServiceImplTest {
 		// Then
 		ValueSet.ValueSetExpansionComponent expansion = result.getExpansion();
 		
-		// In hierarchical expansion, find the concept within the parent's contains
-		ValueSet.ValueSetExpansionContainsComponent parentComponent = expansion.getContains().get(0);
-		ValueSet.ValueSetExpansionContainsComponent conceptComponent = parentComponent.getContains().stream()
+		ValueSet.ValueSetExpansionContainsComponent conceptComponent = expansion.getContains().stream()
 		    .filter(c -> c.getCode().equals("concept-null-class-uuid"))
 		    .findFirst()
 		    .orElse(null);
@@ -365,7 +346,20 @@ public class BahmniFhirValueSetServiceImplTest {
 	
 	@Test
 	public void shouldNotSetInactiveForActiveConcepts() {
-		// Given - active concept (this is the default setup in @Before)
+		// Given - active concept setup
+		Concept parentConcept = org.mockito.Mockito.mock(Concept.class);
+		Concept childConcept = org.mockito.Mockito.mock(Concept.class);
+		
+		when(parentConcept.getUuid()).thenReturn(PARENT_CONCEPT_UUID);
+		when(parentConcept.getSetMembers()).thenReturn(Arrays.asList(childConcept));
+		
+		when(childConcept.getUuid()).thenReturn(CHILD_CONCEPT_UUID);
+		when(childConcept.getDisplayString()).thenReturn(CHILD_CONCEPT_NAME);
+		when(childConcept.isRetired()).thenReturn(false);
+		when(childConcept.getConceptClass()).thenReturn(conceptClass);
+		when(childConcept.getSetMembers()).thenReturn(Collections.emptyList());
+		
+		when(conceptClass.isRetired()).thenReturn(false);
 		when(conceptService.getConceptByUuid(PARENT_CONCEPT_UUID)).thenReturn(parentConcept);
 		
 		BahmniFhirValueSetServiceImpl spyService = new BahmniFhirValueSetServiceImpl() {
@@ -382,16 +376,13 @@ public class BahmniFhirValueSetServiceImplTest {
 		// Then
 		ValueSet.ValueSetExpansionComponent expansion = result.getExpansion();
 		
-		// Find the parent concept in the expansion
-		ValueSet.ValueSetExpansionContainsComponent parentComponent = expansion.getContains().stream()
-		    .filter(c -> c.getCode().equals(PARENT_CONCEPT_UUID))
+		ValueSet.ValueSetExpansionContainsComponent childComponent = expansion.getContains().stream()
+		    .filter(c -> c.getCode().equals(CHILD_CONCEPT_UUID))
 		    .findFirst()
 		    .orElse(null);
 		
-		assertThat(parentComponent, notNullValue());
-		// Active concepts should either not have the inactive field set (null) or have it set to false
-		// HAPI FHIR may initialize boolean fields to false by default
-		Boolean inactiveValue = parentComponent.getInactive();
+		assertThat(childComponent, notNullValue());
+		Boolean inactiveValue = childComponent.getInactive();
 		assertThat("Active concept should not have inactive=true", inactiveValue == null || inactiveValue == false, is(true));
 	}
 }

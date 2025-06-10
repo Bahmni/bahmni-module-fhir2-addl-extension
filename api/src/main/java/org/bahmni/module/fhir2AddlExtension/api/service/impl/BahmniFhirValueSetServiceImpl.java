@@ -48,15 +48,27 @@ public class BahmniFhirValueSetServiceImpl extends FhirValueSetServiceImpl imple
 	}
 	
 	/**
-	 * Creates the expansion component for a concept with hierarchical structure
+	 * Creates the expansion component for a concept with hierarchical structure Only includes
+	 * setMembers of the root concept, not the root concept itself
 	 */
 	private ValueSet.ValueSetExpansionComponent createExpansion(Concept concept) {
 		
 		ValueSet.ValueSetExpansionComponent expansion = new ValueSet.ValueSetExpansionComponent();
 		List<ValueSet.ValueSetExpansionContainsComponent> contains = new ArrayList<>();
+		Set<String> processed = new HashSet<>();
 		
-		// Build hierarchical structure
-		addConceptHierarchically(concept, contains, new HashSet<>());
+		// Add the root concept to processed to avoid including it again
+		processed.add(concept.getUuid());
+		
+		// Add only the setMembers of the root concept, not the root concept itself
+		Collection<Concept> setMembers = concept.getSetMembers();
+		if (setMembers != null && !setMembers.isEmpty()) {
+			for (Concept memberConcept : setMembers) {
+				if (memberConcept != null) {
+					addConceptHierarchically(memberConcept, contains, processed);
+				}
+			}
+		}
 		
 		expansion.setContains(contains);
 		expansion.setTotal(contains.size());
