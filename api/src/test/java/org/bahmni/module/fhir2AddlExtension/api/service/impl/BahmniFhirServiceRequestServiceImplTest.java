@@ -1,6 +1,7 @@
 package org.bahmni.module.fhir2AddlExtension.api.service.impl;
 
 import ca.uhn.fhir.model.api.Include;
+import ca.uhn.fhir.rest.api.SortSpec;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.*;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
@@ -479,6 +480,7 @@ public class BahmniFhirServiceRequestServiceImplTest {
 		ReferenceParam patientReference = new ReferenceParam().setValue(PATIENT_GIVEN_NAME);
 		NumberParam numberOfVisits = new NumberParam(3);
 		ReferenceAndListParam category = createReferenceParam("lab", null);
+		SortSpec sort = new SortSpec("_lastUpdated");
 		HashSet<Include> includes = new HashSet<>();
 		includes.add(new Include("ServiceRequest:patient"));
 		
@@ -493,6 +495,9 @@ public class BahmniFhirServiceRequestServiceImplTest {
 				.addParameter(ENCOUNTER_REFERENCE_SEARCH_HANDLER, encounterReferences)
 				.addParameter(CATEGORY_SEARCH_HANDLER, category)
 				.addParameter(INCLUDE_SEARCH_HANDLER, includes);
+		if (sort != null) {
+			expectedParams.setSortSpec(sort);
+		}
 				
 
 		when(searchQuery.getQueryResults(any(), any(), any(), any())).thenReturn(
@@ -500,7 +505,7 @@ public class BahmniFhirServiceRequestServiceImplTest {
 		
 		// Call the method under test
 		IBundleProvider results = serviceRequestService.searchForServiceRequestsByNumberOfVisits(
-				patientReference, numberOfVisits, category, includes);
+				patientReference, numberOfVisits, category, sort, includes);
 		
 		// Verify results
 		assertThat(results, notNullValue());
@@ -512,20 +517,21 @@ public class BahmniFhirServiceRequestServiceImplTest {
 		SearchParameterMap actualMap = mapCaptor.getValue();
 		assertEquals(encounterReferences, actualMap.getParameters(ENCOUNTER_REFERENCE_SEARCH_HANDLER).get(0).getParam());
 		assertEquals(category, actualMap.getParameters(CATEGORY_SEARCH_HANDLER).get(0).getParam());
+		assertEquals(sort, actualMap.getSortSpec());
 		assertEquals(includes, actualMap.getParameters(INCLUDE_SEARCH_HANDLER).get(0).getParam());
 	}
 	
 	@Test(expected = InvalidRequestException.class)
 	public void searchForServiceRequestsByNumberOfVisits_shouldThrowExceptionWhenPatientReferenceIsNull() {
 		// Call the method with null patient reference
-		serviceRequestService.searchForServiceRequestsByNumberOfVisits(null, new NumberParam(3), null, null);
+		serviceRequestService.searchForServiceRequestsByNumberOfVisits(null, new NumberParam(3), null, null, null);
 	}
 	
 	@Test(expected = InvalidRequestException.class)
 	public void searchForServiceRequestsByNumberOfVisits_shouldThrowExceptionWhenNumberOfVisitsIsNull() {
 		// Call the method with null number of visits
 		serviceRequestService.searchForServiceRequestsByNumberOfVisits(new ReferenceParam().setValue(PATIENT_GIVEN_NAME),
-		    null, null, null);
+		    null, null, null, null);
 	}
 	
 	@Test
@@ -539,7 +545,7 @@ public class BahmniFhirServiceRequestServiceImplTest {
 		
 		// Call the method under test
 		IBundleProvider results = serviceRequestService.searchForServiceRequestsByNumberOfVisits(patientReference,
-		    numberOfVisits, null, null);
+		    numberOfVisits, null, null, null);
 		
 		// Verify results
 		assertThat(results, nullValue());

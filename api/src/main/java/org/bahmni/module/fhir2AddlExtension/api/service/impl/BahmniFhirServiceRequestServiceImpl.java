@@ -1,6 +1,7 @@
 package org.bahmni.module.fhir2AddlExtension.api.service.impl;
 
 import ca.uhn.fhir.model.api.Include;
+import ca.uhn.fhir.rest.api.SortSpec;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.*;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
@@ -66,7 +67,7 @@ public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<Service
 	
 	@Override
 	public IBundleProvider searchForServiceRequestsByNumberOfVisits(ReferenceParam patientReference,
-	        NumberParam numberOfVisits, ReferenceAndListParam category, HashSet<Include> includes) {
+	        NumberParam numberOfVisits, ReferenceAndListParam category, SortSpec sort, HashSet<Include> includes) {
 		if (patientReference == null) {
 			throw new InvalidRequestException("Patient reference is required for searching by number of visits");
 		}
@@ -84,6 +85,10 @@ public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<Service
 		        .addParameter(FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER, encounterReferencesByNumberOfVisit)
 		        .addParameter(FhirConstants.CATEGORY_SEARCH_HANDLER, category)
 		        .addParameter(FhirConstants.INCLUDE_SEARCH_HANDLER, includes);
+		
+		if (sort != null) {
+			theParams.setSortSpec(sort);
+		}
 		return searchQuery.getQueryResults(theParams, dao, translator, searchQueryInclude);
 	}
 	
