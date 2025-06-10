@@ -74,7 +74,7 @@ public class BahmniFhirValueSetServiceImplTest {
 	}
 	
 	@Test
-	public void shouldCreateHierarchicalExpansionWhenRequested() {
+	public void shouldCreateHierarchicalExpansion() {
 		// Given
 		when(conceptService.getConceptByUuid(PARENT_CONCEPT_UUID)).thenReturn(parentConcept);
 		
@@ -89,7 +89,7 @@ public class BahmniFhirValueSetServiceImplTest {
 		spyService.setConceptService(conceptService);
 		
 		// When
-		ValueSet result = spyService.expandedValueSet(PARENT_CONCEPT_UUID, true, null, null, null);
+		ValueSet result = spyService.expandedValueSet(PARENT_CONCEPT_UUID);
 		
 		// Then
 		assertThat(result, notNullValue());
@@ -109,94 +109,6 @@ public class BahmniFhirValueSetServiceImplTest {
 		assertThat(childComponent.getDisplay(), equalTo(CHILD_CONCEPT_NAME));
 	}
 	
-	@Test
-	public void shouldCreateFlatExpansionWhenNotHierarchical() {
-		// Given
-		when(conceptService.getConceptByUuid(PARENT_CONCEPT_UUID)).thenReturn(parentConcept);
-		
-		// Mock the inherited get method from base service
-		BahmniFhirValueSetServiceImpl spyService = new BahmniFhirValueSetServiceImpl() {
-			
-			@Override
-			public ValueSet get(String uuid) {
-				return baseValueSet;
-			}
-		};
-		spyService.setConceptService(conceptService);
-		
-		// When
-		ValueSet result = spyService.expandedValueSet(PARENT_CONCEPT_UUID, false, null, null, null);
-		
-		// Then
-		assertThat(result, notNullValue());
-		assertThat(result.hasExpansion(), is(true));
-		
-		ValueSet.ValueSetExpansionComponent expansion = result.getExpansion();
-		assertThat(expansion.getContains(), hasSize(2)); // Parent + child in flat structure
-		
-		// Verify flat structure (no nested contains)
-		for (ValueSet.ValueSetExpansionContainsComponent component : expansion.getContains()) {
-			assertThat(component.getContains(), hasSize(0));
-		}
-		
-		// Verify both concepts are present
-		assertThat(expansion.getContains().get(0).getCode(), equalTo(PARENT_CONCEPT_UUID));
-		assertThat(expansion.getContains().get(1).getCode(), equalTo(CHILD_CONCEPT_UUID));
-	}
-	
-	@Test
-	public void shouldApplyFilterCorrectly() {
-		// Given
-		when(conceptService.getConceptByUuid(PARENT_CONCEPT_UUID)).thenReturn(parentConcept);
-		
-		// Mock the inherited get method from base service
-		BahmniFhirValueSetServiceImpl spyService = new BahmniFhirValueSetServiceImpl() {
-			
-			@Override
-			public ValueSet get(String uuid) {
-				return baseValueSet;
-			}
-		};
-		spyService.setConceptService(conceptService);
-		
-		// When - filter for "Child" which should match only the child concept
-		ValueSet result = spyService.expandedValueSet(PARENT_CONCEPT_UUID, false, "Child", null, null);
-		
-		// Then
-		assertThat(result, notNullValue());
-		assertThat(result.hasExpansion(), is(true));
-		
-		ValueSet.ValueSetExpansionComponent expansion = result.getExpansion();
-		assertThat(expansion.getContains(), hasSize(1));
-		assertThat(expansion.getContains().get(0).getCode(), equalTo(CHILD_CONCEPT_UUID));
-	}
-	
-	@Test
-	public void shouldApplyCountLimitCorrectly() {
-		// Given
-		when(conceptService.getConceptByUuid(PARENT_CONCEPT_UUID)).thenReturn(parentConcept);
-		
-		// Mock the inherited get method from base service
-		BahmniFhirValueSetServiceImpl spyService = new BahmniFhirValueSetServiceImpl() {
-			
-			@Override
-			public ValueSet get(String uuid) {
-				return baseValueSet;
-			}
-		};
-		spyService.setConceptService(conceptService);
-		
-		// When - limit to 1 concept
-		ValueSet result = spyService.expandedValueSet(PARENT_CONCEPT_UUID, false, null, 1, null);
-		
-		// Then
-		assertThat(result, notNullValue());
-		assertThat(result.hasExpansion(), is(true));
-		
-		ValueSet.ValueSetExpansionComponent expansion = result.getExpansion();
-		assertThat(expansion.getContains(), hasSize(1));
-	}
-	
 	@Test(expected = RuntimeException.class)
 	public void shouldThrowExceptionWhenValueSetNotFound() {
 		// Given
@@ -211,7 +123,7 @@ public class BahmniFhirValueSetServiceImplTest {
 		spyService.setConceptService(conceptService);
 		
 		// When/Then
-		spyService.expandedValueSet(PARENT_CONCEPT_UUID, true, null, null, null);
+		spyService.expandedValueSet(PARENT_CONCEPT_UUID);
 	}
 	
 	@Test(expected = RuntimeException.class)
@@ -230,7 +142,7 @@ public class BahmniFhirValueSetServiceImplTest {
 		spyService.setConceptService(conceptService);
 		
 		// When/Then
-		spyService.expandedValueSet(PARENT_CONCEPT_UUID, true, null, null, null);
+		spyService.expandedValueSet(PARENT_CONCEPT_UUID);
 	}
 	
 	// ===============================
@@ -264,7 +176,7 @@ public class BahmniFhirValueSetServiceImplTest {
 		spyService.setConceptService(conceptService);
 		
 		// When
-		ValueSet result = spyService.expandedValueSet(PARENT_CONCEPT_UUID, true, null, null, null);
+		ValueSet result = spyService.expandedValueSet(PARENT_CONCEPT_UUID);
 		
 		// Then
 		assertThat(result, notNullValue());
@@ -284,53 +196,6 @@ public class BahmniFhirValueSetServiceImplTest {
 		ValueSet.ValueSetExpansionContainsComponent setMemberComponent = parentComponent.getContains().get(0);
 		assertThat(setMemberComponent.getCode(), equalTo(setMemberUuid));
 		assertThat(setMemberComponent.getDisplay(), equalTo(setMemberName));
-	}
-	
-	@Test
-	public void shouldIncludeSetMembersInFlatExpansion() {
-		// Given
-		String setMemberUuid = "set-member-uuid";
-		String setMemberName = "Set Member Concept";
-		
-		Concept setMemberConcept = org.mockito.Mockito.mock(Concept.class);
-		when(setMemberConcept.getUuid()).thenReturn(setMemberUuid);
-		when(setMemberConcept.getDisplayString()).thenReturn(setMemberName);
-		when(setMemberConcept.getSetMembers()).thenReturn(Collections.emptyList()); // No nested members
-		when(setMemberConcept.isRetired()).thenReturn(false);
-		when(setMemberConcept.getConceptClass()).thenReturn(conceptClass);
-		
-		// Setup parent concept with setMembers (replace the child from @Before setup)
-		when(parentConcept.getSetMembers()).thenReturn(Arrays.asList(setMemberConcept));
-		when(conceptService.getConceptByUuid(PARENT_CONCEPT_UUID)).thenReturn(parentConcept);
-		
-		BahmniFhirValueSetServiceImpl spyService = new BahmniFhirValueSetServiceImpl() {
-			@Override
-			public ValueSet get(String uuid) {
-				return baseValueSet;
-			}
-		};
-		spyService.setConceptService(conceptService);
-		
-		// When
-		ValueSet result = spyService.expandedValueSet(PARENT_CONCEPT_UUID, false, null, null, null);
-		
-		// Then
-		assertThat(result, notNullValue());
-		assertThat(result.hasExpansion(), is(true));
-		
-		ValueSet.ValueSetExpansionComponent expansion = result.getExpansion();
-		// Should have parent + setMember = 2 total (implementation only processes setMembers)
-		assertThat(expansion.getContains(), hasSize(2));
-		
-		// Verify all concepts are at flat level (no nesting)
-		for (ValueSet.ValueSetExpansionContainsComponent component : expansion.getContains()) {
-			assertThat(component.getContains(), hasSize(0));
-		}
-		
-		// Find the setMember in the flat list
-		boolean setMemberFound = expansion.getContains().stream()
-		    .anyMatch(c -> c.getCode().equals(setMemberUuid) && c.getDisplay().equals(setMemberName));
-		assertThat("SetMember should be included in flat expansion", setMemberFound, is(true));
 	}
 	
 	@Test
@@ -360,7 +225,7 @@ public class BahmniFhirValueSetServiceImplTest {
 		spyService.setConceptService(conceptService);
 		
 		// When
-		ValueSet result = spyService.expandedValueSet(PARENT_CONCEPT_UUID, true, null, null, null);
+		ValueSet result = spyService.expandedValueSet(PARENT_CONCEPT_UUID);
 		
 		// Then
 		assertThat(result, notNullValue());
@@ -403,13 +268,14 @@ public class BahmniFhirValueSetServiceImplTest {
 		spyService.setConceptService(conceptService);
 		
 		// When
-		ValueSet result = spyService.expandedValueSet(PARENT_CONCEPT_UUID, false, null, null, null);
+		ValueSet result = spyService.expandedValueSet(PARENT_CONCEPT_UUID);
 		
 		// Then
 		ValueSet.ValueSetExpansionComponent expansion = result.getExpansion();
 		
-		// Find the retired concept in the expansion
-		ValueSet.ValueSetExpansionContainsComponent retiredComponent = expansion.getContains().stream()
+		// In hierarchical expansion, find the retired concept within the parent's contains
+		ValueSet.ValueSetExpansionContainsComponent parentComponent = expansion.getContains().get(0);
+		ValueSet.ValueSetExpansionContainsComponent retiredComponent = parentComponent.getContains().stream()
 		    .filter(c -> c.getCode().equals("retired-concept-uuid"))
 		    .findFirst()
 		    .orElse(null);
@@ -443,13 +309,14 @@ public class BahmniFhirValueSetServiceImplTest {
 		spyService.setConceptService(conceptService);
 		
 		// When
-		ValueSet result = spyService.expandedValueSet(PARENT_CONCEPT_UUID, false, null, null, null);
+		ValueSet result = spyService.expandedValueSet(PARENT_CONCEPT_UUID);
 		
 		// Then
 		ValueSet.ValueSetExpansionComponent expansion = result.getExpansion();
 		
-		// Find the concept with retired class in the expansion
-		ValueSet.ValueSetExpansionContainsComponent conceptComponent = expansion.getContains().stream()
+		// In hierarchical expansion, find the concept within the parent's contains
+		ValueSet.ValueSetExpansionContainsComponent parentComponent = expansion.getContains().get(0);
+		ValueSet.ValueSetExpansionContainsComponent conceptComponent = parentComponent.getContains().stream()
 		    .filter(c -> c.getCode().equals("concept-retired-class-uuid"))
 		    .findFirst()
 		    .orElse(null);
@@ -480,13 +347,14 @@ public class BahmniFhirValueSetServiceImplTest {
 		spyService.setConceptService(conceptService);
 		
 		// When
-		ValueSet result = spyService.expandedValueSet(PARENT_CONCEPT_UUID, false, null, null, null);
+		ValueSet result = spyService.expandedValueSet(PARENT_CONCEPT_UUID);
 		
 		// Then
 		ValueSet.ValueSetExpansionComponent expansion = result.getExpansion();
 		
-		// Find the concept with null class in the expansion
-		ValueSet.ValueSetExpansionContainsComponent conceptComponent = expansion.getContains().stream()
+		// In hierarchical expansion, find the concept within the parent's contains
+		ValueSet.ValueSetExpansionContainsComponent parentComponent = expansion.getContains().get(0);
+		ValueSet.ValueSetExpansionContainsComponent conceptComponent = parentComponent.getContains().stream()
 		    .filter(c -> c.getCode().equals("concept-null-class-uuid"))
 		    .findFirst()
 		    .orElse(null);
@@ -509,7 +377,7 @@ public class BahmniFhirValueSetServiceImplTest {
 		spyService.setConceptService(conceptService);
 		
 		// When
-		ValueSet result = spyService.expandedValueSet(PARENT_CONCEPT_UUID, false, null, null, null);
+		ValueSet result = spyService.expandedValueSet(PARENT_CONCEPT_UUID);
 		
 		// Then
 		ValueSet.ValueSetExpansionComponent expansion = result.getExpansion();

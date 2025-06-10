@@ -13,16 +13,11 @@ import org.openmrs.module.fhir2.api.FhirValueSetService;
 public interface BahmniFhirValueSetService extends FhirValueSetService {
 	
 	/**
-	 * Expands a ValueSet by ID with support for hierarchical output
+	 * Expands a ValueSet by ID with hierarchical output
 	 * 
 	 * @param valueSetId the ID of the ValueSet to expand
-	 * @param includeHierarchy whether to include hierarchical relationships in the expansion
-	 * @param filter optional filter to apply to the expansion
-	 * @param count optional limit on the number of concepts to return
-	 * @param offset optional offset for pagination
-	 * @return expanded ValueSet with concepts and optionally hierarchical structure
+	 * @return expanded ValueSet with concepts in hierarchical structure
 	 */
-	ValueSet expandedValueSet(@Nonnull String valueSetId, @Nullable Boolean includeHierarchy, @Nullable String filter,
-	        @Nullable Integer count, @Nullable Integer offset);
+	ValueSet expandedValueSet(@Nonnull String valueSetId);
 	
 }

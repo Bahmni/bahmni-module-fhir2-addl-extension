@@ -70,73 +70,16 @@ public class BahmniValueSetFhirR4ResourceProviderTest {
 	public void shouldReturnHierarchicalExpansion() {
 		// Given
 		IdType id = new IdType(VALUESET_UUID);
-		BooleanType includeHierarchy = new BooleanType(true);
 		ValueSet expectedResult = createHierarchicalValueSet();
 		
-		when(bahmniFhirValueSetService.expandedValueSet(eq(VALUESET_UUID), eq(true), any(), any(), any())).thenReturn(
-		    expectedResult);
+		when(bahmniFhirValueSetService.expandedValueSet(eq(VALUESET_UUID))).thenReturn(expectedResult);
 		
 		// When
-		ValueSet result = provider.expandedValueSet(id, includeHierarchy, null, null, null);
+		ValueSet result = provider.expandedValueSet(id);
 		
 		// Then
 		assertValidValueSetResponse(result);
 		assertHierarchicalStructure(result.getExpansion());
-	}
-	
-	@Test
-	public void shouldReturnFlatExpansion() {
-		// Given
-		IdType id = new IdType(VALUESET_UUID);
-		BooleanType includeHierarchy = new BooleanType(false);
-		ValueSet expectedResult = createFlatValueSet();
-		
-		when(bahmniFhirValueSetService.expandedValueSet(eq(VALUESET_UUID), eq(false), any(), any(), any())).thenReturn(
-		    expectedResult);
-		
-		// When
-		ValueSet result = provider.expandedValueSet(id, includeHierarchy, null, null, null);
-		
-		// Then
-		assertValidValueSetResponse(result);
-		assertFlatStructure(result.getExpansion());
-	}
-	
-	@Test
-	public void shouldApplyFilter() {
-		// Given
-		IdType id = new IdType(VALUESET_UUID);
-		StringParam filter = new StringParam(FILTER_VALUE);
-		ValueSet expectedResult = createFilteredValueSet();
-		
-		when(bahmniFhirValueSetService.expandedValueSet(eq(VALUESET_UUID), any(), eq(FILTER_VALUE), any(), any()))
-		        .thenReturn(expectedResult);
-		
-		// When
-		ValueSet result = provider.expandedValueSet(id, null, filter, null, null);
-		
-		// Then
-		assertValidValueSetResponse(result);
-		assertThat(result.getExpansion().getContains(), hasSize(1));
-		assertThat(result.getExpansion().getContains().get(0).getDisplay(), equalTo(PARENT_CONCEPT_DISPLAY));
-	}
-	
-	@Test
-	public void shouldApplyCountLimit() {
-		// Given
-		IdType id = new IdType(VALUESET_UUID);
-		IntegerType count = new IntegerType(COUNT_LIMIT);
-		ValueSet expectedResult = createLimitedValueSet();
-		
-		when(bahmniFhirValueSetService.expandedValueSet(eq(VALUESET_UUID), any(), any(), eq(COUNT_LIMIT), any()))
-		        .thenReturn(expectedResult);
-		
-		// When
-		ValueSet result = provider.expandedValueSet(id, null, null, count, null);
-		
-		// Then
-		assertValidValueSetResponse(result);
-		assertThat(result.getExpansion().getContains(), hasSize(COUNT_LIMIT));
 	}
 	
 	// ===============================
@@ -145,40 +88,40 @@ public class BahmniValueSetFhirR4ResourceProviderTest {
 	@Test(expected = InvalidRequestException.class)
 	public void shouldThrowInvalidRequestExceptionForEmptyId() {
 		IdType emptyId = new IdType("");
-		provider.expandedValueSet(emptyId, null, null, null, null);
+		provider.expandedValueSet(emptyId);
 	}
 	
 	@Test(expected = ResourceNotFoundException.class)
 	public void shouldPropagateResourceNotFoundException() {
 		// Given
 		IdType id = new IdType(VALUESET_UUID);
-		when(bahmniFhirValueSetService.expandedValueSet(eq(VALUESET_UUID), any(), any(), any(), any())).thenThrow(
+		when(bahmniFhirValueSetService.expandedValueSet(eq(VALUESET_UUID))).thenThrow(
 		    new ResourceNotFoundException("ValueSet not found"));
 		
 		// When/Then
-		provider.expandedValueSet(id, null, null, null, null);
+		provider.expandedValueSet(id);
 	}
 	
 	@Test(expected = InternalErrorException.class)
 	public void shouldWrapUnexpectedExceptionsAsInternalError() {
 		// Given
 		IdType id = new IdType(VALUESET_UUID);
-		when(bahmniFhirValueSetService.expandedValueSet(eq(VALUESET_UUID), any(), any(), any(), any())).thenThrow(
+		when(bahmniFhirValueSetService.expandedValueSet(eq(VALUESET_UUID))).thenThrow(
 		    new RuntimeException("Unexpected error"));
 		
 		// When/Then
-		provider.expandedValueSet(id, null, null, null, null);
+		provider.expandedValueSet(id);
 	}
 	
 	@Test(expected = InvalidRequestException.class)
 	public void shouldConvertIllegalArgumentExceptionToInvalidRequest() {
 		// Given
 		IdType id = new IdType(VALUESET_UUID);
-		when(bahmniFhirValueSetService.expandedValueSet(eq(VALUESET_UUID), any(), any(), any(), any())).thenThrow(
+		when(bahmniFhirValueSetService.expandedValueSet(eq(VALUESET_UUID))).thenThrow(
 		    new IllegalArgumentException("Invalid parameter"));
 		
 		// When/Then
-		provider.expandedValueSet(id, null, null, null, null);
+		provider.expandedValueSet(id);
 	}
 	
 	// ===============================

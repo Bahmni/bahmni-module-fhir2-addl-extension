@@ -1,18 +1,14 @@
 package org.bahmni.module.fhir2AddlExtension.api.service.impl;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import lombok.AccessLevel;
 import lombok.Setter;
-import org.apache.commons.lang3.StringUtils;
 import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirValueSetService;
 import org.hl7.fhir.r4.model.ValueSet;
 import org.openmrs.Concept;
-import org.openmrs.ConceptAnswer;
 import org.openmrs.api.ConceptService;
 import org.openmrs.module.fhir2.api.impl.FhirValueSetServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,8 +26,7 @@ public class BahmniFhirValueSetServiceImpl extends FhirValueSetServiceImpl imple
 	private ConceptService conceptService;
 	
 	@Override
-	public ValueSet expandedValueSet(@Nonnull String valueSetId, @Nullable Boolean includeHierarchy,
-	        @Nullable String filter, @Nullable Integer count, @Nullable Integer offset) {
+	public ValueSet expandedValueSet(@Nonnull String valueSetId) {
 		
 		// Get the base ValueSet
 		ValueSet valueSet = this.get(valueSetId);
@@ -45,49 +40,23 @@ public class BahmniFhirValueSetServiceImpl extends FhirValueSetServiceImpl imple
 			throw new RuntimeException("Concept not found with UUID: " + valueSetId);
 		}
 		
-		// Create expansion
-		ValueSet.ValueSetExpansionComponent expansion = createExpansion(concept, includeHierarchy, filter, count, offset);
+		// Create hierarchical expansion
+		ValueSet.ValueSetExpansionComponent expansion = createExpansion(concept);
 		valueSet.setExpansion(expansion);
 		
 		return valueSet;
 	}
 	
 	/**
-	 * Creates the expansion component for a concept
+	 * Creates the expansion component for a concept with hierarchical structure
 	 */
-	private ValueSet.ValueSetExpansionComponent createExpansion(Concept concept, Boolean includeHierarchy,
-			String filter, Integer count, Integer offset) {
+	private ValueSet.ValueSetExpansionComponent createExpansion(Concept concept) {
 		
 		ValueSet.ValueSetExpansionComponent expansion = new ValueSet.ValueSetExpansionComponent();
 		List<ValueSet.ValueSetExpansionContainsComponent> contains = new ArrayList<>();
 		
-		boolean hierarchical = Boolean.TRUE.equals(includeHierarchy);
-		
-		if (hierarchical) {
-			// Build hierarchical structure
-			addConceptHierarchically(concept, contains, filter, new HashSet<>());
-		} else {
-			// Build flat structure
-			addConceptFlat(concept, contains, filter, new HashSet<>());
-		}
-		
-		// Apply filtering
-		if (StringUtils.isNotBlank(filter)) {
-			contains = contains.stream()
-				.filter(c -> StringUtils.containsIgnoreCase(c.getDisplay(), filter) || 
-							StringUtils.containsIgnoreCase(c.getCode(), filter))
-				.collect(Collectors.toList());
-		}
-		
-		// Apply pagination
-		int startIndex = offset != null ? offset : 0;
-		int endIndex = count != null ? Math.min(startIndex + count, contains.size()) : contains.size();
-		
-		if (startIndex < contains.size()) {
-			contains = contains.subList(startIndex, endIndex);
-		} else {
-			contains = Collections.emptyList();
-		}
+		// Build hierarchical structure
+		addConceptHierarchically(concept, contains, new HashSet<>());
 		
 		expansion.setContains(contains);
 		expansion.setTotal(contains.size());
@@ -100,7 +69,7 @@ public class BahmniFhirValueSetServiceImpl extends FhirValueSetServiceImpl imple
 	 * Adds concepts hierarchically (parent-child relationships preserved)
 	 */
 	private void addConceptHierarchically(Concept concept, List<ValueSet.ValueSetExpansionContainsComponent> contains,
-			String filter, Set<String> processed) {
+			Set<String> processed) {
 		
 		if (processed.contains(concept.getUuid())) {
 			return; // Avoid infinite loops
@@ -115,39 +84,13 @@ public class BahmniFhirValueSetServiceImpl extends FhirValueSetServiceImpl imple
 		if (setMembers != null && !setMembers.isEmpty()) {
 			for (Concept memberConcept : setMembers) {
 				if (memberConcept != null) {
-					addConceptHierarchically(memberConcept, childContains, filter, processed);
+					addConceptHierarchically(memberConcept, childContains, processed);
 				}
 			}
 		}
 		
 		parentComponent.setContains(childContains);
 		contains.add(parentComponent);
-	}
-	
-	/**
-	 * Adds concepts in a flat structure (no hierarchical nesting)
-	 */
-	private void addConceptFlat(Concept concept, List<ValueSet.ValueSetExpansionContainsComponent> contains, String filter,
-	        Set<String> processed) {
-		
-		if (processed.contains(concept.getUuid())) {
-			return; // Avoid infinite loops
-		}
-		processed.add(concept.getUuid());
-		
-		// Add the current concept
-		ValueSet.ValueSetExpansionContainsComponent component = createContainsComponent(concept);
-		contains.add(component);
-		
-		// Add child concepts from setMembers (flattened)
-		Collection<Concept> setMembers = concept.getSetMembers();
-		if (setMembers != null) {
-			for (Concept memberConcept : setMembers) {
-				if (memberConcept != null) {
-					addConceptFlat(memberConcept, contains, filter, processed);
-				}
-			}
-		}
 	}
 	
 	/**
