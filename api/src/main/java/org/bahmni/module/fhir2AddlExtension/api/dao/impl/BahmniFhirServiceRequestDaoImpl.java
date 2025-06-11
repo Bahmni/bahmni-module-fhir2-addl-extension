@@ -12,6 +12,7 @@ import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
+import ca.uhn.fhir.rest.api.SortSpec;
 
 import javax.annotation.Nonnull;
 import java.util.Collection;
@@ -92,6 +93,34 @@ public class BahmniFhirServiceRequestDaoImpl extends BahmniBaseFhirDao<Order> im
                     break;
             }
         });
+        // Add sorting support
+        SortSpec sortSpec = theParams.getSortSpec();
+        if (sortSpec != null) {
+            String sortField = sortSpec.getParamName();
+
+            boolean ascending = sortSpec.getOrder() != ca.uhn.fhir.rest.api.SortOrderEnum.DESC;
+            String property = null;
+
+            // Map FHIR sort fields to DB properties
+            switch (sortField) {
+                case "_lastUpdated":
+                    property = "date_activated"; // Assuming 'date_activated' is the last updated field in the DB
+                    break;
+                case "priority":
+                    property = "urgency";
+                    break;
+                default:
+                    property = sortField; 
+            }
+
+            if (property != null) {
+                if (ascending) {
+                    criteria.addOrder(org.hibernate.criterion.Order.asc(property));
+                } else {
+                    criteria.addOrder(org.hibernate.criterion.Order.desc(property));
+                }
+            }
+        }
     }
 	
 	private void handleCodedConcept(Criteria criteria, TokenAndListParam code) {
