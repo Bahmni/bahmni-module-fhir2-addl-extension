@@ -2,6 +2,7 @@ package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
 
 import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
 import org.bahmni.module.fhir2AddlExtension.api.translator.OrderTypeTranslator;
+import org.bahmni.module.fhir2AddlExtension.api.translator.ServiceRequestPriorityTranslator;
 import org.hl7.fhir.r4.model.*;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,6 +28,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BahmniServiceRequestTranslatorImplTest {
@@ -72,6 +74,9 @@ public class BahmniServiceRequestTranslatorImplTest {
 	@Mock
 	private OrderTypeTranslator orderTypeTranslator;
 	
+	@Mock
+	private ServiceRequestPriorityTranslator serviceRequestPriorityTranslator;
+	
 	private Order discontinuedOrder;
 	
 	private Order order;
@@ -87,6 +92,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 		translator.setProviderReferenceTranslator(practitionerReferenceTranslator);
 		translator.setOrderIdentifierTranslator(new OrderIdentifierTranslatorImpl());
 		translator.setOrderTypeTranslator(orderTypeTranslator);
+		translator.setServiceRequestPriorityTranslator(serviceRequestPriorityTranslator);
 		
 		orderConcept = new Concept();
 		ConceptClass cc = new ConceptClass();
@@ -475,43 +481,17 @@ public class BahmniServiceRequestTranslatorImplTest {
 	}
 	
 	@Test
-	public void toFhirResource_shouldTranslateRoutineUrgencyToRoutinePriority() {
-		order.setUrgency(Order.Urgency.ROUTINE);
-		
-		ServiceRequest result = translator.toFhirResource(order);
-		
-		assertThat(result, notNullValue());
-		assertThat(result.getPriority(), equalTo(ServiceRequest.ServiceRequestPriority.ROUTINE));
-	}
-	
-	@Test
-	public void toFhirResource_shouldTranslateStatUrgencyToStatPriority() {
+	public void toFhirResource_shouldSetPriorityUsingPriorityTranslator() {
 		order.setUrgency(Order.Urgency.STAT);
+		
+		when(serviceRequestPriorityTranslator.toFhirResource(Order.Urgency.STAT)).thenReturn(
+		    ServiceRequest.ServiceRequestPriority.STAT);
 		
 		ServiceRequest result = translator.toFhirResource(order);
 		
 		assertThat(result, notNullValue());
 		assertThat(result.getPriority(), equalTo(ServiceRequest.ServiceRequestPriority.STAT));
-	}
-	
-	@Test
-	public void toFhirResource_shouldTranslateOnScheduledDateUrgencyToRoutinePriority() {
-		order.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
-		
-		ServiceRequest result = translator.toFhirResource(order);
-		
-		assertThat(result, notNullValue());
-		assertThat(result.getPriority(), equalTo(ServiceRequest.ServiceRequestPriority.ROUTINE));
-	}
-	
-	@Test
-	public void toFhirResource_shouldTranslateNullUrgencyToRoutinePriority() {
-		order.setUrgency(null);
-		
-		ServiceRequest result = translator.toFhirResource(order);
-		
-		assertThat(result, notNullValue());
-		assertThat(result.getPriority(), equalTo(ServiceRequest.ServiceRequestPriority.ROUTINE));
+		verify(serviceRequestPriorityTranslator).toFhirResource(Order.Urgency.STAT);
 	}
 	
 	@Test

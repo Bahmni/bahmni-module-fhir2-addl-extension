@@ -4,6 +4,7 @@ import lombok.AccessLevel;
 import lombok.Setter;
 import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
 import org.bahmni.module.fhir2AddlExtension.api.translator.OrderTypeTranslator;
+import org.bahmni.module.fhir2AddlExtension.api.translator.ServiceRequestPriorityTranslator;
 import org.hl7.fhir.r4.model.*;
 import org.openmrs.Concept;
 import org.openmrs.Encounter;
@@ -46,6 +47,9 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 	@Autowired
 	private OrderTypeTranslator orderTypeTranslator;
 	
+	@Autowired
+	private ServiceRequestPriorityTranslator serviceRequestPriorityTranslator;
+	
 	@Override
 	public ServiceRequest toFhirResource(@Nonnull Order order) {
 		notNull(order, "The TestOrder object should not be null");
@@ -60,7 +64,7 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 		
 		serviceRequest.setIntent(ServiceRequest.ServiceRequestIntent.ORDER);
 		
-		serviceRequest.setPriority(determineServiceRequestPriority(order));
+		serviceRequest.setPriority(serviceRequestPriorityTranslator.toFhirResource(order.getUrgency()));
 		
 		serviceRequest.setSubject(patientReferenceTranslator.toFhirResource(order.getPatient()));
 		
@@ -124,21 +128,6 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 			reference = new Reference().setReference("ServiceRequest/" + order.getUuid()).setType("ServiceRequest");
 		}
 		return reference;
-	}
-	
-	private ServiceRequest.ServiceRequestPriority determineServiceRequestPriority(Order order) {
-		if (order.getUrgency() == null) {
-			return ServiceRequest.ServiceRequestPriority.ROUTINE;
-		}
-		
-		switch (order.getUrgency()) {
-			case STAT:
-				return ServiceRequest.ServiceRequestPriority.STAT;
-			case ON_SCHEDULED_DATE:
-			case ROUTINE:
-			default:
-				return ServiceRequest.ServiceRequestPriority.ROUTINE;
-		}
 	}
 	
 	private Extension determineLabOrderConceptTypeExtension(Order order) {
