@@ -1,15 +1,19 @@
 package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
 
+import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.AccessLevel;
 import lombok.Setter;
 import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
 import org.bahmni.module.fhir2AddlExtension.api.translator.OrderTypeTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.ServiceRequestPriorityTranslator;
+import org.bahmni.module.fhir2AddlExtension.api.validators.ServiceRequestValidator;
 import org.hl7.fhir.r4.model.*;
 import org.openmrs.Concept;
 import org.openmrs.Encounter;
 import org.openmrs.Order;
 import org.openmrs.Provider;
+import org.openmrs.CareSetting;
+import org.openmrs.api.OrderService;
 import org.openmrs.module.fhir2.api.translators.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
@@ -49,6 +53,12 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 	
 	@Autowired
 	private ServiceRequestPriorityTranslator serviceRequestPriorityTranslator;
+	
+	@Autowired
+	private OrderService orderService;
+	
+	@Autowired
+	private ServiceRequestValidator serviceRequestValidator;
 	
 	@Override
 	public ServiceRequest toFhirResource(@Nonnull Order order) {
@@ -99,7 +109,21 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 	
 	@Override
 	public Order toOpenmrsType(@Nonnull ServiceRequest resource) {
-		throw new UnsupportedOperationException();
+		serviceRequestValidator.validate(resource);
+		
+		Concept conceptBeingOrdered = conceptTranslator.toOpenmrsType(resource.getCode());
+		Order order = new Order();
+		//Set Constants
+		order.setAction(Order.Action.NEW);
+		order.setCareSetting(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString()));
+		order.setOrderType(orderService.getOrderTypeByConcept(conceptBeingOrdered));
+		
+		order.setConcept(conceptBeingOrdered);
+		order.setPatient(patientReferenceTranslator.toOpenmrsType(resource.getSubject()));
+		order.setEncounter(encounterReferenceTranslator.toOpenmrsType(resource.getEncounter()));
+		order.setOrderer(providerReferenceTranslator.toOpenmrsType(resource.getRequester()));
+		order.setUrgency(serviceRequestPriorityTranslator.toOpenmrsType(resource.getPriority()));
+		return order;
 	}
 	
 	private ServiceRequest.ServiceRequestStatus determineServiceRequestStatus(Order order) {

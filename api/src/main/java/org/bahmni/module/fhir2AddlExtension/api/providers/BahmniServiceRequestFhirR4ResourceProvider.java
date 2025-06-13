@@ -4,8 +4,11 @@ import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.rest.annotation.IncludeParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
 import ca.uhn.fhir.rest.annotation.RequiredParam;
+import ca.uhn.fhir.rest.annotation.ResourceParam;
 import ca.uhn.fhir.rest.annotation.Search;
+import ca.uhn.fhir.rest.annotation.Create;
 import ca.uhn.fhir.rest.annotation.Sort;
+import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.SortSpec;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.*;
@@ -18,6 +21,7 @@ import org.hl7.fhir.r4.model.Practitioner;
 import org.hl7.fhir.r4.model.ServiceRequest;
 import org.openmrs.module.fhir2.api.annotations.R4Provider;
 import org.openmrs.module.fhir2.providers.r4.ServiceRequestFhirResourceProvider;
+import org.openmrs.module.fhir2.providers.util.FhirProviderUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -29,6 +33,11 @@ public class BahmniServiceRequestFhirR4ResourceProvider extends ServiceRequestFh
 	
 	@Autowired
 	private BahmniFhirServiceRequestService serviceRequestService;
+	
+	@Create
+	public MethodOutcome create(@ResourceParam ServiceRequest serviceRequest) {
+		return FhirProviderUtils.buildCreate(serviceRequestService.create(serviceRequest));
+	}
 	
 	@Search
 	public IBundleProvider searchForServiceRequests(

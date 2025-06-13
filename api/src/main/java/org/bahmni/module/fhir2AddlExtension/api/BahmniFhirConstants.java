@@ -33,7 +33,8 @@ public final class BahmniFhirConstants {
 			new HashSet<>(Arrays.asList(
 					ResourceType.Encounter,
 					ResourceType.AllergyIntolerance,
-					ResourceType.Condition
+					ResourceType.Condition,
+					ResourceType.ServiceRequest
 			))
 	);
 	public static final String HL7_CONDITION_CATEGORY_CODE_SYSTEM = FhirConstants.HL7_FHIR_CODE_SYSTEM_PREFIX + "/condition-category";
