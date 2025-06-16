@@ -172,6 +172,29 @@ public class ConsultationBundleEntriesHelperTest {
 	}
 	
 	@Test
+	public void shouldResolveServiceRequestEncounterReference() {
+		// Given
+		ServiceRequest serviceRequest = createServiceRequest();
+		serviceRequest.setEncounter(new Reference("urn:uuid:placeholder"));
+		Bundle.BundleEntryComponent serviceRequestEntry = createBundleEntry(serviceRequest, "urn:uuid:allergy");
+		
+		// Create a processed encounter entry
+		Encounter encounter = createEncounter();
+		encounter.setId("encounter-uuid");
+		Bundle.BundleEntryComponent encounterEntry = createBundleEntry(encounter, "urn:uuid:placeholder");
+		processedEntries.put("urn:uuid:placeholder", encounterEntry);
+		
+		// When
+		Bundle.BundleEntryComponent result = ConsultationBundleEntriesHelper.resolveReferences(serviceRequestEntry,
+		    processedEntries);
+		
+		// Then
+		ServiceRequest resultAllergy = (ServiceRequest) result.getResource();
+		assertEquals(FhirConstants.ENCOUNTER, resultAllergy.getEncounter().getType());
+		assertEquals(FhirConstants.ENCOUNTER + "/encounter-uuid", resultAllergy.getEncounter().getReference());
+	}
+	
+	@Test
 	public void shouldNotModifyEntryWhenResourceTypeIsNotSupported() {
 		// Given
 		Observation observation = createObservation();
@@ -251,6 +274,12 @@ public class ConsultationBundleEntriesHelperTest {
 		AllergyIntolerance allergyIntolerance = new AllergyIntolerance();
 		allergyIntolerance.setPatient(new Reference("Patient/123"));
 		return allergyIntolerance;
+	}
+	
+	private ServiceRequest createServiceRequest() {
+		ServiceRequest serviceRequest = new ServiceRequest();
+		serviceRequest.setSubject(new Reference("Patient/123"));
+		return serviceRequest;
 	}
 	
 	private Observation createObservation() {

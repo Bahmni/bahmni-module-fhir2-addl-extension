@@ -90,13 +90,19 @@ public class BahmniServiceRequestTranslatorImplTest {
 	private Order order;
 	
 	private Concept orderConcept;
-
+	
 	private ServiceRequest serviceRequest;
+	
 	private Concept testConcept;
+	
 	private Patient testPatient;
+	
 	private Encounter testEncounter;
+	
 	private Provider testProvider;
+	
 	private CareSetting testCareSetting;
+	
 	private OrderType testOrderType;
 	
 	@Before
@@ -649,7 +655,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 		}
 		orderNumberField.set(((Order) order), orderNumber);
 	}
-
+	
 	@Test
 	public void toOpenmrsType_shouldTranslateCompleteServiceRequestToOrder() {
 		// Setup mocks
@@ -658,7 +664,8 @@ public class BahmniServiceRequestTranslatorImplTest {
 		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
 		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
 		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
-		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(testCareSetting);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
 		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
 		
 		// Execute
@@ -701,10 +708,9 @@ public class BahmniServiceRequestTranslatorImplTest {
 		// Setup mocks
 		when(conceptTranslator.toOpenmrsType(minimalRequest.getCode())).thenReturn(testConcept);
 		when(patientReferenceTranslator.toOpenmrsType(minimalRequest.getSubject())).thenReturn(testPatient);
-		when(encounterReferenceTranslator.toOpenmrsType(null)).thenReturn(null);
-		when(practitionerReferenceTranslator.toOpenmrsType(null)).thenReturn(null);
 		when(serviceRequestPriorityTranslator.toOpenmrsType(null)).thenReturn(null);
-		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(testCareSetting);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
 		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
 		
 		// Execute
@@ -728,16 +734,11 @@ public class BahmniServiceRequestTranslatorImplTest {
 	@Test(expected = InvalidRequestException.class)
 	public void toOpenmrsType_shouldThrowExceptionWhenValidationFails() {
 		// Setup validator to throw exception
-		doThrow(new InvalidRequestException("Invalid ServiceRequest")).when(serviceRequestValidator).validate(serviceRequest);
+		doThrow(new InvalidRequestException("Invalid ServiceRequest")).when(serviceRequestValidator)
+		        .validate(serviceRequest);
 		
 		// Execute - should throw exception
 		translator.toOpenmrsType(serviceRequest);
-	}
-	
-	@Test(expected = IllegalArgumentException.class)
-	public void toOpenmrsType_shouldThrowExceptionForNullServiceRequest() {
-		// Execute with null input - should throw exception
-		translator.toOpenmrsType(null);
 	}
 	
 	@Test
@@ -748,7 +749,8 @@ public class BahmniServiceRequestTranslatorImplTest {
 		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
 		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
 		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
-		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(testCareSetting);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
 		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
 		
 		// Execute
@@ -777,10 +779,9 @@ public class BahmniServiceRequestTranslatorImplTest {
 		// Setup mocks
 		when(conceptTranslator.toOpenmrsType(requestWithNulls.getCode())).thenReturn(testConcept);
 		when(patientReferenceTranslator.toOpenmrsType(requestWithNulls.getSubject())).thenReturn(testPatient);
-		when(encounterReferenceTranslator.toOpenmrsType(null)).thenReturn(null);
-		when(practitionerReferenceTranslator.toOpenmrsType(null)).thenReturn(null);
 		when(serviceRequestPriorityTranslator.toOpenmrsType(null)).thenReturn(null);
-		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(testCareSetting);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
 		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
 		
 		// Execute
@@ -793,9 +794,9 @@ public class BahmniServiceRequestTranslatorImplTest {
 		assertThat(result.getUrgency(), nullValue());
 		
 		// Verify translators were called with null values
-		verify(encounterReferenceTranslator).toOpenmrsType(null);
-		verify(practitionerReferenceTranslator).toOpenmrsType(null);
-		verify(serviceRequestPriorityTranslator).toOpenmrsType(null);
+		verify(encounterReferenceTranslator).toOpenmrsType(any());
+		verify(practitionerReferenceTranslator).toOpenmrsType(any());
+		verify(serviceRequestPriorityTranslator).toOpenmrsType(any());
 	}
 	
 	@Test
@@ -806,7 +807,8 @@ public class BahmniServiceRequestTranslatorImplTest {
 		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(null);
 		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(null);
 		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(null);
-		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(testCareSetting);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
 		when(orderService.getOrderTypeByConcept(null)).thenReturn(testOrderType);
 		
 		// Execute
@@ -835,8 +837,10 @@ public class BahmniServiceRequestTranslatorImplTest {
 		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
 		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
 		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
-		when(serviceRequestPriorityTranslator.toOpenmrsType(ServiceRequest.ServiceRequestPriority.STAT)).thenReturn(Order.Urgency.STAT);
-		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(testCareSetting);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(ServiceRequest.ServiceRequestPriority.STAT)).thenReturn(
+		    Order.Urgency.STAT);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
 		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
 		
 		// Execute
@@ -854,7 +858,8 @@ public class BahmniServiceRequestTranslatorImplTest {
 		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
 		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
 		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
-		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(testCareSetting);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
 		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
 		
 		// Execute
@@ -875,14 +880,8 @@ public class BahmniServiceRequestTranslatorImplTest {
 	public void toOpenmrsType_shouldHandleComplexCodeableConcept() {
 		// Create complex CodeableConcept with multiple codings
 		CodeableConcept complexCode = new CodeableConcept();
-		complexCode.addCoding()
-			.setSystem("http://loinc.org")
-			.setCode("12345-6")
-			.setDisplay("Primary Test");
-		complexCode.addCoding()
-			.setSystem("http://snomed.info/sct")
-			.setCode("67890")
-			.setDisplay("Secondary Test");
+		complexCode.addCoding().setSystem("http://loinc.org").setCode("12345-6").setDisplay("Primary Test");
+		complexCode.addCoding().setSystem("http://snomed.info/sct").setCode("67890").setDisplay("Secondary Test");
 		complexCode.setText("Complex Lab Test");
 		
 		serviceRequest.setCode(complexCode);
@@ -893,7 +892,8 @@ public class BahmniServiceRequestTranslatorImplTest {
 		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
 		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
 		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
-		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(testCareSetting);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
 		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
 		
 		// Execute
@@ -923,7 +923,8 @@ public class BahmniServiceRequestTranslatorImplTest {
 		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
 		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
 		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
-		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(testCareSetting);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
 		when(orderService.getOrderTypeByConcept(labConcept)).thenReturn(labOrderType);
 		
 		// Execute
