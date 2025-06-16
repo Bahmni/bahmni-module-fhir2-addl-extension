@@ -1,0 +1,64 @@
+{
+  "resourceType": "ConsultationBundle",
+  "id": "temp-id-consultation",
+  "type": "transaction",
+  "timestamp": "2025-06-16T23:25:26.605+05:30",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:6aa5b86e-e346-43be-805c-e57a487c325c",
+      "resource": {
+        "resourceType": "ServiceRequest",
+        "status": "unknown",
+        "intent": "order",
+        "code": {
+          "coding": [
+            {
+              "code": "1310AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/a0b641b7-9e73-49e0-b846-eb270cb18be2"
+        },
+        "encounter": {
+          "reference": "urn:uuid:b0ba31f3-a181-4e0e-951e-33d62e013ccf"
+        },
+        "requester": {
+          "reference": "Practitioner/d7a67c17-5e07-11ef-8f7c-0242ac120002"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "url": "ServiceRequest"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:2adfd50f-125b-45bd-936c-0354d9170808",
+      "resource": {
+        "resourceType": "ServiceRequest",
+        "status": "unknown",
+        "intent": "order",
+        "code": {
+          "coding": [
+            {
+              "code": "161295AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/a0b641b7-9e73-49e0-b846-eb270cb18be2"
+        },
+        "encounter": {
+          "reference": "urn:uuid:b0ba31f3-a181-4e0e-951e-33d62e013ccf"
+        },
+        "requester": {
+          "reference": "Practitioner/d7a67c17-5e07-11ef-8f7c-0242ac120002"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "url": "ServiceRequest"
+      }
+    }
+  ]
+}
