@@ -124,6 +124,58 @@ public class BahmniValueSetFhirR4ResourceProviderTest {
 		provider.expandedValueSet(id);
 	}
 	
+	@Test
+	public void filterAndExpandValueSet_shouldReturnExpandedValueSetForValidFilter() {
+		// Given
+		String filter = "Hypertension";
+		ValueSet expectedResult = createFilteredValueSet();
+		
+		when(bahmniFhirValueSetService.filterAndExpandValueSet(eq(filter))).thenReturn(expectedResult);
+		
+		// When
+		ValueSet result = provider.filterAndExpandValueSet(filter);
+		
+		// Then
+		assertThat(result, notNullValue());
+		assertThat(result.hasExpansion(), is(true));
+		assertThat(result.getExpansion().getContains(), hasSize(1));
+		assertThat(result.getExpansion().getContains().get(0).getCode(), equalTo(PARENT_CONCEPT_CODE));
+	}
+	
+	@Test(expected = InvalidRequestException.class)
+	public void filterAndExpandValueSet_shouldThrowExceptionForNullFilter() {
+		// When/Then
+		provider.filterAndExpandValueSet(null);
+	}
+	
+	@Test(expected = InvalidRequestException.class)
+	public void filterAndExpandValueSet_shouldThrowExceptionForEmptyFilter() {
+		// When/Then
+		provider.filterAndExpandValueSet("");
+	}
+	
+	@Test(expected = InvalidRequestException.class)
+	public void filterAndExpandValueSet_shouldThrowExceptionForBlankFilter() {
+		// When/Then
+		provider.filterAndExpandValueSet("   ");
+	}
+	
+	@Test
+	public void filterAndExpandValueSet_shouldPropagateServiceExceptions() {
+		// Given
+		String filter = "Test Concept";
+		when(bahmniFhirValueSetService.filterAndExpandValueSet(eq(filter))).thenThrow(
+		    new InvalidRequestException("Multiple concepts found"));
+		
+		// When/Then
+		try {
+			provider.filterAndExpandValueSet(filter);
+		}
+		catch (InvalidRequestException e) {
+			assertThat(e.getMessage(), containsString("Multiple concepts found"));
+		}
+	}
+	
 	// ===============================
 	// TEST DATA BUILDERS
 	// ===============================

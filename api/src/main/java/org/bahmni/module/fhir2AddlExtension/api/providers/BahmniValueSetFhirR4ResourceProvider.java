@@ -5,6 +5,7 @@ import javax.annotation.Nonnull;
 
 import ca.uhn.fhir.rest.annotation.IdParam;
 import ca.uhn.fhir.rest.annotation.Operation;
+import ca.uhn.fhir.rest.annotation.OperationParam;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import ca.uhn.fhir.rest.server.exceptions.InternalErrorException;
@@ -89,6 +90,14 @@ public class BahmniValueSetFhirR4ResourceProvider extends ValueSetFhirResourcePr
 			log.error("Unexpected error expanding ValueSet with ID: {}", id.getIdPart(), e);
 			throw new InternalErrorException("Internal server error occurred while expanding ValueSet", e);
 		}
+	}
+	
+	@Operation(name = "$expand", idempotent = true)
+	public ValueSet filterAndExpandValueSet(@OperationParam(name = "filter") String filter) {
+		if (StringUtils.isBlank(filter)) {
+			throw new InvalidRequestException("Filter parameter cannot be empty");
+		}
+		return bahmniFhirValueSetService.filterAndExpandValueSet(filter);
 	}
 	
 	/**
