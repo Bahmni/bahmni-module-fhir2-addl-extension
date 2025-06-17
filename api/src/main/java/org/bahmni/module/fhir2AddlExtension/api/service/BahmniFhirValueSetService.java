@@ -20,4 +20,6 @@ public interface BahmniFhirValueSetService extends FhirValueSetService {
 	 */
 	ValueSet expandedValueSet(@Nonnull String valueSetId);
 	
+	ValueSet filterAndExpandValueSet(@Nonnull String filter);
+	
 }

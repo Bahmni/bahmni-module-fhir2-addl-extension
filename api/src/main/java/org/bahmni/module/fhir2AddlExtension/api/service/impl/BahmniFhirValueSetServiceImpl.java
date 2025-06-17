@@ -4,6 +4,7 @@ import java.util.*;
 
 import javax.annotation.Nonnull;
 
+import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.AccessLevel;
 import lombok.Setter;
 import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirValueSetService;
@@ -42,6 +43,23 @@ public class BahmniFhirValueSetServiceImpl extends FhirValueSetServiceImpl imple
 		
 		// Create hierarchical expansion
 		ValueSet.ValueSetExpansionComponent expansion = createExpansion(concept);
+		valueSet.setExpansion(expansion);
+		
+		return valueSet;
+	}
+	
+	@Override
+	public ValueSet filterAndExpandValueSet(@Nonnull String filter) {
+		List<Concept> conceptsByName = conceptService.getConceptsByName(filter);
+		if (conceptsByName.isEmpty()) {
+			throw new InvalidRequestException("No concept found with name: " + filter);
+		} else if (conceptsByName.size() > 1) {
+			throw new InvalidRequestException("Multiple concepts found with name: " + filter);
+		}
+		
+		Concept filteredConcept = conceptsByName.get(0);
+		ValueSet valueSet = getTranslator().toFhirResource(filteredConcept);
+		ValueSet.ValueSetExpansionComponent expansion = createExpansion(filteredConcept);
 		valueSet.setExpansion(expansion);
 		
 		return valueSet;

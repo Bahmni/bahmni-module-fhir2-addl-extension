@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.Collections;
 
+import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.hl7.fhir.r4.model.ValueSet;
 import org.junit.Before;
 import org.junit.Test;
@@ -16,6 +17,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Concept;
 import org.openmrs.ConceptClass;
 import org.openmrs.api.ConceptService;
+import org.openmrs.module.fhir2.api.translators.ValueSetTranslator;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BahmniFhirValueSetServiceImplTest {
@@ -24,8 +26,6 @@ public class BahmniFhirValueSetServiceImplTest {
 	
 	private static final String CHILD_CONCEPT_UUID = "child-concept-uuid";
 	
-	private static final String PARENT_CONCEPT_NAME = "Parent Concept";
-	
 	private static final String CHILD_CONCEPT_NAME = "Child Concept";
 	
 	@Mock
@@ -33,6 +33,9 @@ public class BahmniFhirValueSetServiceImplTest {
 	
 	@Mock
 	private ConceptClass conceptClass;
+	
+	@Mock
+	private ValueSetTranslator valueSetTranslator;
 	
 	private BahmniFhirValueSetServiceImpl valueSetService;
 	
@@ -384,5 +387,232 @@ public class BahmniFhirValueSetServiceImplTest {
 		assertThat(childComponent, notNullValue());
 		Boolean inactiveValue = childComponent.getInactive();
 		assertThat("Active concept should not have inactive=true", inactiveValue == null || inactiveValue == false, is(true));
+	}
+	
+	@Test
+	public void filterAndExpandValueSet_shouldReturnExpandedValueSetForSingleConcept() {
+		// Given
+		String conceptName = "Test Concept";
+		Concept filteredConcept = org.mockito.Mockito.mock(Concept.class);
+		Concept childConcept = org.mockito.Mockito.mock(Concept.class);
+		
+		when(conceptService.getConceptsByName(conceptName)).thenReturn(Arrays.asList(filteredConcept));
+		
+		when(filteredConcept.getUuid()).thenReturn("filtered-concept-uuid");
+		when(filteredConcept.getSetMembers()).thenReturn(Arrays.asList(childConcept));
+		
+		when(childConcept.getUuid()).thenReturn("child-concept-uuid");
+		when(childConcept.getDisplayString()).thenReturn("Child Concept");
+		when(childConcept.isRetired()).thenReturn(false);
+		when(childConcept.getConceptClass()).thenReturn(conceptClass);
+		when(childConcept.getSetMembers()).thenReturn(Collections.emptyList());
+		
+		when(conceptClass.isRetired()).thenReturn(false);
+		
+		ValueSet translatedValueSet = new ValueSet();
+		translatedValueSet.setId("filtered-concept-uuid");
+		translatedValueSet.setName(conceptName);
+		
+		// Create a spy service with mocked translator
+		BahmniFhirValueSetServiceImpl spyService = new BahmniFhirValueSetServiceImpl() {
+			
+			@Override
+			protected ValueSetTranslator getTranslator() {
+				return valueSetTranslator;
+			}
+		};
+		spyService.setConceptService(conceptService);
+		
+		when(valueSetTranslator.toFhirResource(filteredConcept)).thenReturn(translatedValueSet);
+		
+		// When
+		ValueSet result = spyService.filterAndExpandValueSet(conceptName);
+		
+		// Then
+		assertThat(result, notNullValue());
+		assertThat(result.hasExpansion(), is(true));
+		
+		ValueSet.ValueSetExpansionComponent expansion = result.getExpansion();
+		assertThat(expansion.getContains(), hasSize(1));
+		
+		// Verify only child concept is in expansion (filtered concept excluded)
+		ValueSet.ValueSetExpansionContainsComponent childComponent = expansion.getContains().get(0);
+		assertThat(childComponent.getCode(), equalTo("child-concept-uuid"));
+		assertThat(childComponent.getDisplay(), equalTo("Child Concept"));
+		assertThat(childComponent.getContains(), hasSize(0));
+	}
+	
+	@Test(expected = InvalidRequestException.class)
+	public void filterAndExpandValueSet_shouldThrowExceptionWhenNoConceptFound() {
+		// Given
+		String conceptName = "Non-existent Concept";
+		when(conceptService.getConceptsByName(conceptName)).thenReturn(Collections.emptyList());
+		
+		// When/Then - Should throw InvalidRequestException
+		valueSetService.filterAndExpandValueSet(conceptName);
+	}
+	
+	@Test(expected = InvalidRequestException.class)
+	public void filterAndExpandValueSet_shouldThrowExceptionWhenMultipleConceptsFound() {
+		// Given
+		String conceptName = "Ambiguous Concept";
+		Concept concept1 = org.mockito.Mockito.mock(Concept.class);
+		Concept concept2 = org.mockito.Mockito.mock(Concept.class);
+		
+		when(conceptService.getConceptsByName(conceptName)).thenReturn(Arrays.asList(concept1, concept2));
+		
+		// When/Then - Should throw InvalidRequestException
+		valueSetService.filterAndExpandValueSet(conceptName);
+	}
+	
+	@Test
+	public void filterAndExpandValueSet_shouldHandleConceptWithNoSetMembers() {
+		// Given
+		String conceptName = "Leaf Concept";
+		Concept leafConcept = org.mockito.Mockito.mock(Concept.class);
+		
+		when(conceptService.getConceptsByName(conceptName)).thenReturn(Arrays.asList(leafConcept));
+		
+		when(leafConcept.getUuid()).thenReturn("leaf-concept-uuid");
+		
+		ValueSet translatedValueSet = new ValueSet();
+		translatedValueSet.setId("leaf-concept-uuid");
+		translatedValueSet.setName(conceptName);
+		
+		// Create a spy service with mocked translator
+		BahmniFhirValueSetServiceImpl spyService = new BahmniFhirValueSetServiceImpl() {
+			
+			@Override
+			protected ValueSetTranslator getTranslator() {
+				return valueSetTranslator;
+			}
+		};
+		spyService.setConceptService(conceptService);
+		
+		when(valueSetTranslator.toFhirResource(leafConcept)).thenReturn(translatedValueSet);
+		
+		// When
+		ValueSet result = spyService.filterAndExpandValueSet(conceptName);
+		
+		// Then
+		assertThat(result, notNullValue());
+		assertThat(result.hasExpansion(), is(true));
+		
+		ValueSet.ValueSetExpansionComponent expansion = result.getExpansion();
+		assertThat(expansion.getContains(), hasSize(0)); // No children
+		assertThat(expansion.getTotal(), equalTo(0));
+	}
+	
+	@Test
+	public void filterAndExpandValueSet_shouldHandleNestedHierarchy() {
+		// Given
+		String conceptName = "Root Concept";
+		Concept rootConcept = org.mockito.Mockito.mock(Concept.class);
+		Concept level1Concept = org.mockito.Mockito.mock(Concept.class);
+		Concept level2Concept = org.mockito.Mockito.mock(Concept.class);
+		
+		when(conceptService.getConceptsByName(conceptName)).thenReturn(Arrays.asList(rootConcept));
+		
+		// Setup root concept
+		when(rootConcept.getUuid()).thenReturn("root-uuid");
+		when(rootConcept.getSetMembers()).thenReturn(Arrays.asList(level1Concept));
+		
+		// Setup level 1 concept
+		when(level1Concept.getUuid()).thenReturn("level1-uuid");
+		when(level1Concept.getDisplayString()).thenReturn("Level 1 Concept");
+		when(level1Concept.isRetired()).thenReturn(false);
+		when(level1Concept.getConceptClass()).thenReturn(conceptClass);
+		when(level1Concept.getSetMembers()).thenReturn(Arrays.asList(level2Concept));
+		
+		// Setup level 2 concept
+		when(level2Concept.getUuid()).thenReturn("level2-uuid");
+		when(level2Concept.getDisplayString()).thenReturn("Level 2 Concept");
+		when(level2Concept.isRetired()).thenReturn(false);
+		when(level2Concept.getConceptClass()).thenReturn(conceptClass);
+		when(level2Concept.getSetMembers()).thenReturn(Collections.emptyList());
+		
+		when(conceptClass.isRetired()).thenReturn(false);
+		
+		ValueSet translatedValueSet = new ValueSet();
+		translatedValueSet.setId("root-uuid");
+		translatedValueSet.setName(conceptName);
+		
+		// Create a spy service with mocked translator
+		BahmniFhirValueSetServiceImpl spyService = new BahmniFhirValueSetServiceImpl() {
+			
+			@Override
+			protected ValueSetTranslator getTranslator() {
+				return valueSetTranslator;
+			}
+		};
+		spyService.setConceptService(conceptService);
+		
+		when(valueSetTranslator.toFhirResource(rootConcept)).thenReturn(translatedValueSet);
+		
+		// When
+		ValueSet result = spyService.filterAndExpandValueSet(conceptName);
+		
+		// Then
+		assertThat(result, notNullValue());
+		assertThat(result.hasExpansion(), is(true));
+		
+		ValueSet.ValueSetExpansionComponent expansion = result.getExpansion();
+		assertThat(expansion.getContains(), hasSize(1));
+		
+		// Check level 1
+		ValueSet.ValueSetExpansionContainsComponent level1Component = expansion.getContains().get(0);
+		assertThat(level1Component.getCode(), equalTo("level1-uuid"));
+		assertThat(level1Component.getDisplay(), equalTo("Level 1 Concept"));
+		assertThat(level1Component.getContains(), hasSize(1));
+		
+		// Check level 2
+		ValueSet.ValueSetExpansionContainsComponent level2Component = level1Component.getContains().get(0);
+		assertThat(level2Component.getCode(), equalTo("level2-uuid"));
+		assertThat(level2Component.getDisplay(), equalTo("Level 2 Concept"));
+		assertThat(level2Component.getContains(), hasSize(0));
+	}
+	
+	@Test
+	public void filterAndExpandValueSet_shouldHandleRetiredConceptsInFilteredResult() {
+		// Given
+		String conceptName = "Parent Concept";
+		Concept parentConcept = org.mockito.Mockito.mock(Concept.class);
+		Concept retiredChildConcept = org.mockito.Mockito.mock(Concept.class);
+		
+		when(conceptService.getConceptsByName(conceptName)).thenReturn(Arrays.asList(parentConcept));
+		
+		when(parentConcept.getUuid()).thenReturn("parent-uuid");
+		when(parentConcept.getSetMembers()).thenReturn(Arrays.asList(retiredChildConcept));
+		
+		when(retiredChildConcept.getUuid()).thenReturn("retired-child-uuid");
+		when(retiredChildConcept.getDisplayString()).thenReturn("Retired Child");
+		when(retiredChildConcept.isRetired()).thenReturn(true);
+		when(retiredChildConcept.getSetMembers()).thenReturn(Collections.emptyList());
+		
+		ValueSet translatedValueSet = new ValueSet();
+		translatedValueSet.setId("parent-uuid");
+		translatedValueSet.setName(conceptName);
+		
+		// Create a spy service with mocked translator
+		BahmniFhirValueSetServiceImpl spyService = new BahmniFhirValueSetServiceImpl() {
+			
+			@Override
+			protected ValueSetTranslator getTranslator() {
+				return valueSetTranslator;
+			}
+		};
+		spyService.setConceptService(conceptService);
+		
+		when(valueSetTranslator.toFhirResource(parentConcept)).thenReturn(translatedValueSet);
+		
+		// When
+		ValueSet result = spyService.filterAndExpandValueSet(conceptName);
+		
+		// Then
+		ValueSet.ValueSetExpansionComponent expansion = result.getExpansion();
+		ValueSet.ValueSetExpansionContainsComponent retiredComponent = expansion.getContains().get(0);
+		
+		assertThat(retiredComponent.getCode(), equalTo("retired-child-uuid"));
+		assertThat(retiredComponent.getInactive(), equalTo(true));
 	}
 }
