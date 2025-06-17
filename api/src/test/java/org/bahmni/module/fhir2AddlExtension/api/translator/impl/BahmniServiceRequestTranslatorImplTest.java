@@ -1,7 +1,10 @@
 package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
 
+import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
 import org.bahmni.module.fhir2AddlExtension.api.translator.OrderTypeTranslator;
+import org.bahmni.module.fhir2AddlExtension.api.translator.ServiceRequestPriorityTranslator;
+import org.bahmni.module.fhir2AddlExtension.api.validators.ServiceRequestValidator;
 import org.hl7.fhir.r4.model.*;
 import org.junit.Before;
 import org.junit.Test;
@@ -11,6 +14,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.*;
 import org.openmrs.Encounter;
 import org.openmrs.Patient;
+import org.openmrs.api.OrderService;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
 import org.openmrs.module.fhir2.api.translators.EncounterReferenceTranslator;
@@ -26,7 +30,7 @@ import static org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants.ORDER
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BahmniServiceRequestTranslatorImplTest {
@@ -72,11 +76,34 @@ public class BahmniServiceRequestTranslatorImplTest {
 	@Mock
 	private OrderTypeTranslator orderTypeTranslator;
 	
+	@Mock
+	private ServiceRequestPriorityTranslator serviceRequestPriorityTranslator;
+	
+	@Mock
+	private ServiceRequestValidator serviceRequestValidator;
+	
+	@Mock
+	private OrderService orderService;
+	
 	private Order discontinuedOrder;
 	
 	private Order order;
 	
 	private Concept orderConcept;
+	
+	private ServiceRequest serviceRequest;
+	
+	private Concept testConcept;
+	
+	private Patient testPatient;
+	
+	private Encounter testEncounter;
+	
+	private Provider testProvider;
+	
+	private CareSetting testCareSetting;
+	
+	private OrderType testOrderType;
 	
 	@Before
 	public void setup() throws Exception {
@@ -87,6 +114,9 @@ public class BahmniServiceRequestTranslatorImplTest {
 		translator.setProviderReferenceTranslator(practitionerReferenceTranslator);
 		translator.setOrderIdentifierTranslator(new OrderIdentifierTranslatorImpl());
 		translator.setOrderTypeTranslator(orderTypeTranslator);
+		translator.setServiceRequestPriorityTranslator(serviceRequestPriorityTranslator);
+		translator.setServiceRequestValidator(serviceRequestValidator);
+		translator.setOrderService(orderService);
 		
 		orderConcept = new Concept();
 		ConceptClass cc = new ConceptClass();
@@ -107,6 +137,66 @@ public class BahmniServiceRequestTranslatorImplTest {
 		discontinuedOrder.setConcept(orderConcept);
 		setOrderNumberByReflection(discontinuedOrder, DISCONTINUED_ORDER_NUMBER);
 		discontinuedOrder.setPreviousOrder(order);
+		
+		// Setup test data for toOpenmrsType tests
+		setupToOpenmrsTypeTestData();
+	}
+	
+	private void setupToOpenmrsTypeTestData() {
+		// Create test ServiceRequest
+		serviceRequest = new ServiceRequest();
+		serviceRequest.setId("test-service-request-id");
+		serviceRequest.setStatus(ServiceRequest.ServiceRequestStatus.ACTIVE);
+		serviceRequest.setIntent(ServiceRequest.ServiceRequestIntent.ORDER);
+		serviceRequest.setPriority(ServiceRequest.ServiceRequestPriority.ROUTINE);
+		
+		// Create test code
+		CodeableConcept code = new CodeableConcept();
+		Coding coding = new Coding();
+		coding.setSystem("http://loinc.org");
+		coding.setCode("12345-6");
+		coding.setDisplay("Test Lab Order");
+		code.addCoding(coding);
+		serviceRequest.setCode(code);
+		
+		// Create test subject reference
+		Reference subjectRef = new Reference();
+		subjectRef.setReference("Patient/test-patient-uuid");
+		serviceRequest.setSubject(subjectRef);
+		
+		// Create test encounter reference
+		Reference encounterRef = new Reference();
+		encounterRef.setReference("Encounter/test-encounter-uuid");
+		serviceRequest.setEncounter(encounterRef);
+		
+		// Create test requester reference
+		Reference requesterRef = new Reference();
+		requesterRef.setReference("Practitioner/test-provider-uuid");
+		serviceRequest.setRequester(requesterRef);
+		
+		// Create test OpenMRS objects
+		testConcept = new Concept();
+		testConcept.setUuid("test-concept-uuid");
+		ConceptClass conceptClass = new ConceptClass();
+		conceptClass.setName("Test");
+		testConcept.setConceptClass(conceptClass);
+		
+		testPatient = new Patient();
+		testPatient.setUuid("test-patient-uuid");
+		
+		testEncounter = new Encounter();
+		testEncounter.setUuid("test-encounter-uuid");
+		
+		testProvider = new Provider();
+		testProvider.setUuid("test-provider-uuid");
+		
+		testCareSetting = new CareSetting();
+		testCareSetting.setUuid("test-care-setting-uuid");
+		testCareSetting.setCareSettingType(CareSetting.CareSettingType.OUTPATIENT);
+		
+		testOrderType = new OrderType();
+		testOrderType.setUuid("test-order-type-uuid");
+		testOrderType.setName("Lab Order");
 	}
 	
 	@Test
@@ -475,43 +565,17 @@ public class BahmniServiceRequestTranslatorImplTest {
 	}
 	
 	@Test
-	public void toFhirResource_shouldTranslateRoutineUrgencyToRoutinePriority() {
-		order.setUrgency(Order.Urgency.ROUTINE);
-		
-		ServiceRequest result = translator.toFhirResource(order);
-		
-		assertThat(result, notNullValue());
-		assertThat(result.getPriority(), equalTo(ServiceRequest.ServiceRequestPriority.ROUTINE));
-	}
-	
-	@Test
-	public void toFhirResource_shouldTranslateStatUrgencyToStatPriority() {
+	public void toFhirResource_shouldSetPriorityUsingPriorityTranslator() {
 		order.setUrgency(Order.Urgency.STAT);
+		
+		when(serviceRequestPriorityTranslator.toFhirResource(Order.Urgency.STAT)).thenReturn(
+		    ServiceRequest.ServiceRequestPriority.STAT);
 		
 		ServiceRequest result = translator.toFhirResource(order);
 		
 		assertThat(result, notNullValue());
 		assertThat(result.getPriority(), equalTo(ServiceRequest.ServiceRequestPriority.STAT));
-	}
-	
-	@Test
-	public void toFhirResource_shouldTranslateOnScheduledDateUrgencyToRoutinePriority() {
-		order.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
-		
-		ServiceRequest result = translator.toFhirResource(order);
-		
-		assertThat(result, notNullValue());
-		assertThat(result.getPriority(), equalTo(ServiceRequest.ServiceRequestPriority.ROUTINE));
-	}
-	
-	@Test
-	public void toFhirResource_shouldTranslateNullUrgencyToRoutinePriority() {
-		order.setUrgency(null);
-		
-		ServiceRequest result = translator.toFhirResource(order);
-		
-		assertThat(result, notNullValue());
-		assertThat(result.getPriority(), equalTo(ServiceRequest.ServiceRequestPriority.ROUTINE));
+		verify(serviceRequestPriorityTranslator).toFhirResource(Order.Urgency.STAT);
 	}
 	
 	@Test
@@ -590,5 +654,284 @@ public class BahmniServiceRequestTranslatorImplTest {
 			orderNumberField.setAccessible(true);
 		}
 		orderNumberField.set(((Order) order), orderNumber);
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldTranslateCompleteServiceRequestToOrder() {
+		// Setup mocks
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		
+		// Execute
+		Order result = translator.toOpenmrsType(serviceRequest);
+		
+		// Verify result
+		assertThat(result, notNullValue());
+		assertThat(result.getAction(), equalTo(Order.Action.NEW));
+		assertThat(result.getCareSetting(), equalTo(testCareSetting));
+		assertThat(result.getOrderType(), equalTo(testOrderType));
+		assertThat(result.getConcept(), equalTo(testConcept));
+		assertThat(result.getPatient(), equalTo(testPatient));
+		assertThat(result.getEncounter(), equalTo(testEncounter));
+		assertThat(result.getOrderer(), equalTo(testProvider));
+		assertThat(result.getUrgency(), equalTo(Order.Urgency.ROUTINE));
+		
+		// Verify mock interactions
+		verify(serviceRequestValidator).validate(serviceRequest);
+		verify(conceptTranslator).toOpenmrsType(serviceRequest.getCode());
+		verify(patientReferenceTranslator).toOpenmrsType(serviceRequest.getSubject());
+		verify(encounterReferenceTranslator).toOpenmrsType(serviceRequest.getEncounter());
+		verify(practitionerReferenceTranslator).toOpenmrsType(serviceRequest.getRequester());
+		verify(serviceRequestPriorityTranslator).toOpenmrsType(serviceRequest.getPriority());
+		verify(orderService).getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString());
+		verify(orderService).getOrderTypeByConcept(testConcept);
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldTranslateMinimalServiceRequestToOrder() {
+		// Create minimal ServiceRequest with only required fields
+		ServiceRequest minimalRequest = new ServiceRequest();
+		CodeableConcept code = new CodeableConcept();
+		code.addCoding().setCode("minimal-test");
+		minimalRequest.setCode(code);
+		
+		Reference subjectRef = new Reference();
+		subjectRef.setReference("Patient/minimal-patient");
+		minimalRequest.setSubject(subjectRef);
+		
+		// Setup mocks
+		when(conceptTranslator.toOpenmrsType(minimalRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(minimalRequest.getSubject())).thenReturn(testPatient);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(null)).thenReturn(null);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		
+		// Execute
+		Order result = translator.toOpenmrsType(minimalRequest);
+		
+		// Verify result
+		assertThat(result, notNullValue());
+		assertThat(result.getAction(), equalTo(Order.Action.NEW));
+		assertThat(result.getCareSetting(), equalTo(testCareSetting));
+		assertThat(result.getOrderType(), equalTo(testOrderType));
+		assertThat(result.getConcept(), equalTo(testConcept));
+		assertThat(result.getPatient(), equalTo(testPatient));
+		assertThat(result.getEncounter(), nullValue());
+		assertThat(result.getOrderer(), nullValue());
+		assertThat(result.getUrgency(), nullValue());
+		
+		// Verify validator was called
+		verify(serviceRequestValidator).validate(minimalRequest);
+	}
+	
+	@Test(expected = InvalidRequestException.class)
+	public void toOpenmrsType_shouldThrowExceptionWhenValidationFails() {
+		// Setup validator to throw exception
+		doThrow(new InvalidRequestException("Invalid ServiceRequest")).when(serviceRequestValidator)
+		        .validate(serviceRequest);
+		
+		// Execute - should throw exception
+		translator.toOpenmrsType(serviceRequest);
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldSetConstantsCorrectly() {
+		// Setup mocks
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		
+		// Execute
+		Order result = translator.toOpenmrsType(serviceRequest);
+		
+		// Verify constants are set correctly
+		assertThat(result.getAction(), equalTo(Order.Action.NEW));
+		assertThat(result.getCareSetting(), equalTo(testCareSetting));
+		assertThat(result.getOrderType(), equalTo(testOrderType));
+		
+		// Verify OrderService was called with correct parameters
+		verify(orderService).getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString());
+		verify(orderService).getOrderTypeByConcept(testConcept);
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldHandleNullOptionalFields() {
+		// Create ServiceRequest with null optional fields
+		ServiceRequest requestWithNulls = new ServiceRequest();
+		requestWithNulls.setCode(serviceRequest.getCode());
+		requestWithNulls.setSubject(serviceRequest.getSubject());
+		requestWithNulls.setEncounter(null);
+		requestWithNulls.setRequester(null);
+		requestWithNulls.setPriority(null);
+		
+		// Setup mocks
+		when(conceptTranslator.toOpenmrsType(requestWithNulls.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(requestWithNulls.getSubject())).thenReturn(testPatient);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(null)).thenReturn(null);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		
+		// Execute
+		Order result = translator.toOpenmrsType(requestWithNulls);
+		
+		// Verify null fields are handled gracefully
+		assertThat(result, notNullValue());
+		assertThat(result.getEncounter(), nullValue());
+		assertThat(result.getOrderer(), nullValue());
+		assertThat(result.getUrgency(), nullValue());
+		
+		// Verify translators were called with null values
+		verify(encounterReferenceTranslator).toOpenmrsType(any());
+		verify(practitionerReferenceTranslator).toOpenmrsType(any());
+		verify(serviceRequestPriorityTranslator).toOpenmrsType(any());
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldHandleTranslatorsReturningNull() {
+		// Setup translators to return null
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(null);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(null);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(null);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(null);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(null);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(null)).thenReturn(testOrderType);
+		
+		// Execute
+		Order result = translator.toOpenmrsType(serviceRequest);
+		
+		// Verify order is still created with null values
+		assertThat(result, notNullValue());
+		assertThat(result.getConcept(), nullValue());
+		assertThat(result.getPatient(), nullValue());
+		assertThat(result.getEncounter(), nullValue());
+		assertThat(result.getOrderer(), nullValue());
+		assertThat(result.getUrgency(), nullValue());
+		
+		// Verify constants are still set
+		assertThat(result.getAction(), equalTo(Order.Action.NEW));
+		assertThat(result.getCareSetting(), equalTo(testCareSetting));
+		assertThat(result.getOrderType(), equalTo(testOrderType));
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldCallPriorityTranslatorWithCorrectParameter() {
+		serviceRequest.setPriority(ServiceRequest.ServiceRequestPriority.STAT);
+		
+		// Setup mocks
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(ServiceRequest.ServiceRequestPriority.STAT)).thenReturn(
+		    Order.Urgency.STAT);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		
+		// Execute
+		translator.toOpenmrsType(serviceRequest);
+		
+		// Verify priority translator is called with correct parameter
+		verify(serviceRequestPriorityTranslator).toOpenmrsType(ServiceRequest.ServiceRequestPriority.STAT);
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldVerifyAllTranslatorsAreCalled() {
+		// Setup mocks
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		
+		// Execute
+		translator.toOpenmrsType(serviceRequest);
+		
+		// Verify all translators and services are called exactly once
+		verify(serviceRequestValidator, times(1)).validate(serviceRequest);
+		verify(conceptTranslator, times(1)).toOpenmrsType(serviceRequest.getCode());
+		verify(patientReferenceTranslator, times(1)).toOpenmrsType(serviceRequest.getSubject());
+		verify(encounterReferenceTranslator, times(1)).toOpenmrsType(serviceRequest.getEncounter());
+		verify(practitionerReferenceTranslator, times(1)).toOpenmrsType(serviceRequest.getRequester());
+		verify(serviceRequestPriorityTranslator, times(1)).toOpenmrsType(serviceRequest.getPriority());
+		verify(orderService, times(1)).getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString());
+		verify(orderService, times(1)).getOrderTypeByConcept(testConcept);
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldHandleComplexCodeableConcept() {
+		// Create complex CodeableConcept with multiple codings
+		CodeableConcept complexCode = new CodeableConcept();
+		complexCode.addCoding().setSystem("http://loinc.org").setCode("12345-6").setDisplay("Primary Test");
+		complexCode.addCoding().setSystem("http://snomed.info/sct").setCode("67890").setDisplay("Secondary Test");
+		complexCode.setText("Complex Lab Test");
+		
+		serviceRequest.setCode(complexCode);
+		
+		// Setup mocks
+		when(conceptTranslator.toOpenmrsType(complexCode)).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		
+		// Execute
+		Order result = translator.toOpenmrsType(serviceRequest);
+		
+		// Verify concept is properly translated
+		assertThat(result.getConcept(), equalTo(testConcept));
+		verify(conceptTranslator).toOpenmrsType(complexCode);
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldSetOrderTypeBasedOnConcept() {
+		// Create different concept for different order type
+		Concept labConcept = new Concept();
+		labConcept.setUuid("lab-concept-uuid");
+		ConceptClass labConceptClass = new ConceptClass();
+		labConceptClass.setName("LabTest");
+		labConcept.setConceptClass(labConceptClass);
+		
+		OrderType labOrderType = new OrderType();
+		labOrderType.setUuid("lab-order-type-uuid");
+		labOrderType.setName("Lab Order Type");
+		
+		// Setup mocks
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(labConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(labConcept)).thenReturn(labOrderType);
+		
+		// Execute
+		Order result = translator.toOpenmrsType(serviceRequest);
+		
+		// Verify order type is set based on concept
+		assertThat(result.getOrderType(), equalTo(labOrderType));
+		verify(orderService).getOrderTypeByConcept(labConcept);
 	}
 }

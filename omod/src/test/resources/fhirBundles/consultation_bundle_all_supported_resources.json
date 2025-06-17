@@ -1,0 +1,258 @@
+{
+  "resourceType": "ConsultationBundle",
+  "id": "temp-id-consultation",
+  "type": "transaction",
+  "timestamp": "2025-06-16T23:25:26.605+05:30",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:b0ba31f3-a181-4e0e-951e-33d62e013ccf",
+      "resource": {
+        "resourceType": "Encounter",
+        "status": "unknown",
+        "class": {
+          "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+          "code": "AMB",
+          "display": "ambulatory"
+        },
+        "meta": {
+          "tag": [
+            {
+              "system": "http://fhir.openmrs.org/ext/encounter-tag",
+              "code": "encounter",
+              "display": "Encounter"
+            }
+          ]
+        },
+        "type": [
+          {
+            "coding": [
+              {
+                "system": "http://fhir.openmrs.org/code-system/encounter-type",
+                "code": "d34fe3ab-5e07-11ef-8f7c-0242ac120002",
+                "display": "Consultation"
+              }
+            ]
+          }
+        ],
+        "subject": {
+          "reference": "Patient/a0b641b7-9e73-49e0-b846-eb270cb18be2"
+        },
+        "participant": [
+          {
+            "individual": {
+              "reference": "Practitioner/d7a67c17-5e07-11ef-8f7c-0242ac120002",
+              "type": "Practitioner"
+            }
+          }
+        ],
+        "partOf": {
+          "reference": "Encounter/c4cfddcf-9518-4e24-8276-30bd86834c7f"
+        },
+        "location": [
+          {
+            "location": {
+              "reference": "Location/5e232c47-8ff5-4c5c-8057-7e39a64fefa5"
+            }
+          }
+        ],
+        "period": {
+          "start": "2025-06-16T07:10:26.605+05:30"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "url": "Encounter"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:cbbaafaa-7a3e-465c-bf07-490b3554f964",
+      "resource": {
+        "resourceType": "Condition",
+        "verificationStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+              "code": "provisional"
+            }
+          ]
+        },
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+                "code": "encounter-diagnosis"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "code": "143951AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/a0b641b7-9e73-49e0-b846-eb270cb18be2"
+        },
+        "encounter": {
+          "reference": "urn:uuid:b0ba31f3-a181-4e0e-951e-33d62e013ccf"
+        },
+        "recorder": {
+          "reference": "Practitioner/d7a669e7-5e07-11ef-8f7c-0242ac120002",
+          "type": "Practitioner"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "url": "Condition"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:96ffd034-6fa5-45af-bf03-d8e21c121edb",
+      "resource": {
+        "resourceType": "AllergyIntolerance",
+        "category": [
+          "food"
+        ],
+        "code": {
+          "coding": [
+            {
+              "code": "162544AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+            }
+          ]
+        },
+        "patient": {
+          "reference": "Patient/a0b641b7-9e73-49e0-b846-eb270cb18be2"
+        },
+        "recorder": {
+          "reference": "Practitioner/d7a669e7-5e07-11ef-8f7c-0242ac120002",
+          "type": "Practitioner"
+        },
+        "encounter": {
+          "reference": "urn:uuid:b0ba31f3-a181-4e0e-951e-33d62e013ccf"
+        },
+        "reaction": [
+          {
+            "manifestation": [
+              {
+                "coding": [
+                  {
+                    "code": "121629AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                  }
+                ]
+              }
+            ],
+            "severity": "mild"
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "AllergyIntolerance"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:6aa5b86e-e346-43be-805c-e57a487c325c",
+      "resource": {
+        "resourceType": "ServiceRequest",
+        "status": "unknown",
+        "intent": "order",
+        "code": {
+          "coding": [
+            {
+              "code": "1310AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/a0b641b7-9e73-49e0-b846-eb270cb18be2"
+        },
+        "encounter": {
+          "reference": "urn:uuid:b0ba31f3-a181-4e0e-951e-33d62e013ccf"
+        },
+        "requester": {
+          "reference": "Practitioner/d7a67c17-5e07-11ef-8f7c-0242ac120002"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "url": "ServiceRequest"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:2adfd50f-125b-45bd-936c-0354d9170808",
+      "resource": {
+        "resourceType": "ServiceRequest",
+        "status": "unknown",
+        "intent": "order",
+        "code": {
+          "coding": [
+            {
+              "code": "161295AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/a0b641b7-9e73-49e0-b846-eb270cb18be2"
+        },
+        "encounter": {
+          "reference": "urn:uuid:b0ba31f3-a181-4e0e-951e-33d62e013ccf"
+        },
+        "requester": {
+          "reference": "Practitioner/d7a67c17-5e07-11ef-8f7c-0242ac120002"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "url": "ServiceRequest"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:18e6bacf-9e85-4db2-a13a-30183a25ed88",
+      "resource": {
+        "resourceType": "Condition",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active"
+            }
+          ]
+        },
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+                "code": "problem-list-item"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "code": "52032502-677f-4caa-a1cd-08fa6ce788e2"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/a0b641b7-9e73-49e0-b846-eb270cb18be2"
+        },
+        "encounter": {
+          "reference": "urn:uuid:b0ba31f3-a181-4e0e-951e-33d62e013ccf"
+        },
+        "recorder": {
+          "reference": "Practitioner/d7a669e7-5e07-11ef-8f7c-0242ac120002",
+          "type": "Practitioner"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "url": "Condition"
+      }
+    }
+  ]
+}

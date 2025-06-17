@@ -116,6 +116,15 @@ public class ConsultationBundleEntriesHelper {
 					entry.setResource(allergyIntolerance);
 				}
 				break;
+			case ServiceRequest:
+				org.hl7.fhir.r4.model.ServiceRequest service = (org.hl7.fhir.r4.model.ServiceRequest) resource;
+				if (service.hasEncounter()) {
+					String placeholderReferenceUrl = service.getEncounter().getReference();
+					service.setEncounter(createEncounterReference(getIdForPlaceHolderReference(placeholderReferenceUrl,
+					    processedEntries)));
+					entry.setResource(service);
+				}
+				break;
 			default:
 				break;
 		}
