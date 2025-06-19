@@ -2,10 +2,15 @@ package org.bahmni.module.fhir2AddlExtension.api.service.impl;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
+import static org.powermock.api.mockito.PowerMockito.mockStatic;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Locale;
+import java.util.Set;
 
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.hl7.fhir.r4.model.ValueSet;
@@ -13,13 +18,19 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Concept;
 import org.openmrs.ConceptClass;
+import org.openmrs.ConceptSearchResult;
 import org.openmrs.api.ConceptService;
 import org.openmrs.module.fhir2.api.translators.ValueSetTranslator;
+import org.openmrs.util.LocaleUtility;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(PowerMockRunner.class)
+@PowerMockIgnore({"javax.*", "org.apache.*", "org.slf4j.*"})
+@PrepareForTest({LocaleUtility.class})
 public class BahmniFhirValueSetServiceImplTest {
 	
 	private static final String PARENT_CONCEPT_UUID = "parent-concept-uuid";
@@ -27,6 +38,8 @@ public class BahmniFhirValueSetServiceImplTest {
 	private static final String CHILD_CONCEPT_UUID = "child-concept-uuid";
 	
 	private static final String CHILD_CONCEPT_NAME = "Child Concept";
+	
+	private static final Set<Locale> MOCK_LOCALES = new LinkedHashSet<>(Arrays.asList(Locale.ENGLISH));
 	
 	@Mock
 	private ConceptService conceptService;
@@ -43,6 +56,10 @@ public class BahmniFhirValueSetServiceImplTest {
 	
 	@Before
 	public void setup() {
+		// Mock the static LocaleUtility method
+		mockStatic(LocaleUtility.class);
+		when(LocaleUtility.getLocalesInOrder()).thenReturn(MOCK_LOCALES);
+		
 		valueSetService = new BahmniFhirValueSetServiceImpl();
 		valueSetService.setConceptService(conceptService);
 		
@@ -395,8 +412,12 @@ public class BahmniFhirValueSetServiceImplTest {
 		String conceptName = "Test Concept";
 		Concept filteredConcept = org.mockito.Mockito.mock(Concept.class);
 		Concept childConcept = org.mockito.Mockito.mock(Concept.class);
+		ConceptSearchResult searchResult = org.mockito.Mockito.mock(ConceptSearchResult.class);
 		
-		when(conceptService.getConceptsByName(conceptName)).thenReturn(Arrays.asList(filteredConcept));
+		when(searchResult.getConcept()).thenReturn(filteredConcept);
+		when(
+		    conceptService.getConcepts(eq(conceptName), anyList(), eq(false), isNull(), isNull(), isNull(), isNull(),
+		        isNull(), eq(0), isNull())).thenReturn(Arrays.asList(searchResult));
 		
 		when(filteredConcept.getUuid()).thenReturn("filtered-concept-uuid");
 		when(filteredConcept.getSetMembers()).thenReturn(Arrays.asList(childConcept));
@@ -446,7 +467,9 @@ public class BahmniFhirValueSetServiceImplTest {
 	public void filterAndExpandValueSet_shouldThrowExceptionWhenNoConceptFound() {
 		// Given
 		String conceptName = "Non-existent Concept";
-		when(conceptService.getConceptsByName(conceptName)).thenReturn(Collections.emptyList());
+		when(
+		    conceptService.getConcepts(eq(conceptName), anyList(), eq(false), isNull(), isNull(), isNull(), isNull(),
+		        isNull(), eq(0), isNull())).thenReturn(Collections.emptyList());
 		
 		// When/Then - Should throw InvalidRequestException
 		valueSetService.filterAndExpandValueSet(conceptName);
@@ -458,8 +481,14 @@ public class BahmniFhirValueSetServiceImplTest {
 		String conceptName = "Ambiguous Concept";
 		Concept concept1 = org.mockito.Mockito.mock(Concept.class);
 		Concept concept2 = org.mockito.Mockito.mock(Concept.class);
+		ConceptSearchResult searchResult1 = org.mockito.Mockito.mock(ConceptSearchResult.class);
+		ConceptSearchResult searchResult2 = org.mockito.Mockito.mock(ConceptSearchResult.class);
 		
-		when(conceptService.getConceptsByName(conceptName)).thenReturn(Arrays.asList(concept1, concept2));
+		when(searchResult1.getConcept()).thenReturn(concept1);
+		when(searchResult2.getConcept()).thenReturn(concept2);
+		when(
+		    conceptService.getConcepts(eq(conceptName), anyList(), eq(false), isNull(), isNull(), isNull(), isNull(),
+		        isNull(), eq(0), isNull())).thenReturn(Arrays.asList(searchResult1, searchResult2));
 		
 		// When/Then - Should throw InvalidRequestException
 		valueSetService.filterAndExpandValueSet(conceptName);
@@ -470,8 +499,12 @@ public class BahmniFhirValueSetServiceImplTest {
 		// Given
 		String conceptName = "Leaf Concept";
 		Concept leafConcept = org.mockito.Mockito.mock(Concept.class);
+		ConceptSearchResult searchResult = org.mockito.Mockito.mock(ConceptSearchResult.class);
 		
-		when(conceptService.getConceptsByName(conceptName)).thenReturn(Arrays.asList(leafConcept));
+		when(searchResult.getConcept()).thenReturn(leafConcept);
+		when(
+		    conceptService.getConcepts(eq(conceptName), eq(Arrays.asList(Locale.ENGLISH)), eq(false), isNull(), isNull(), isNull(), isNull(),
+		        isNull(), eq(0), isNull())).thenReturn(Arrays.asList(searchResult));
 		
 		when(leafConcept.getUuid()).thenReturn("leaf-concept-uuid");
 		
@@ -510,8 +543,12 @@ public class BahmniFhirValueSetServiceImplTest {
 		Concept rootConcept = org.mockito.Mockito.mock(Concept.class);
 		Concept level1Concept = org.mockito.Mockito.mock(Concept.class);
 		Concept level2Concept = org.mockito.Mockito.mock(Concept.class);
+		ConceptSearchResult searchResult = org.mockito.Mockito.mock(ConceptSearchResult.class);
 		
-		when(conceptService.getConceptsByName(conceptName)).thenReturn(Arrays.asList(rootConcept));
+		when(searchResult.getConcept()).thenReturn(rootConcept);
+		when(
+		    conceptService.getConcepts(eq(conceptName), eq(Arrays.asList(Locale.ENGLISH)), eq(false), isNull(), isNull(), isNull(), isNull(),
+		        isNull(), eq(0), isNull())).thenReturn(Arrays.asList(searchResult));
 		
 		// Setup root concept
 		when(rootConcept.getUuid()).thenReturn("root-uuid");
@@ -578,8 +615,12 @@ public class BahmniFhirValueSetServiceImplTest {
 		String conceptName = "Parent Concept";
 		Concept parentConcept = org.mockito.Mockito.mock(Concept.class);
 		Concept retiredChildConcept = org.mockito.Mockito.mock(Concept.class);
+		ConceptSearchResult searchResult = org.mockito.Mockito.mock(ConceptSearchResult.class);
 		
-		when(conceptService.getConceptsByName(conceptName)).thenReturn(Arrays.asList(parentConcept));
+		when(searchResult.getConcept()).thenReturn(parentConcept);
+		when(
+		    conceptService.getConcepts(eq(conceptName), eq(Arrays.asList(Locale.ENGLISH)), eq(false), isNull(), isNull(), isNull(), isNull(),
+		        isNull(), eq(0), isNull())).thenReturn(Arrays.asList(searchResult));
 		
 		when(parentConcept.getUuid()).thenReturn("parent-uuid");
 		when(parentConcept.getSetMembers()).thenReturn(Arrays.asList(retiredChildConcept));
