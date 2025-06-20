@@ -76,57 +76,64 @@ public class BahmniFhirValueSetServiceImpl extends FhirValueSetServiceImpl imple
 	 */
 	private ValueSet.ValueSetExpansionComponent createExpansion(Concept concept) {
 
-        ValueSet.ValueSetExpansionComponent expansion = new ValueSet.ValueSetExpansionComponent();
-        List<ValueSet.ValueSetExpansionContainsComponent> contains = new ArrayList<>();
-        Set<String> processed = new HashSet<>();
+	       ValueSet.ValueSetExpansionComponent expansion = new ValueSet.ValueSetExpansionComponent();
+	       List<ValueSet.ValueSetExpansionContainsComponent> contains = new ArrayList<>();
 
-        // Add the root concept to processed to avoid including it again
-        processed.add(concept.getUuid());
+	       // Add only the setMembers of the root concept, not the root concept itself
+	       Collection<Concept> setMembers = concept.getSetMembers();
+	       if (setMembers != null && !setMembers.isEmpty()) {
+	           for (Concept memberConcept : setMembers) {
+	               if (memberConcept != null) {
+	                   // Create a new path set for each top-level branch to track ancestors
+	                   Set<String> currentPath = new HashSet<>();
+	                   currentPath.add(concept.getUuid()); // Add root to path
+	                   addConceptHierarchically(memberConcept, contains, currentPath);
+	               }
+	           }
+	       }
 
-        // Add only the setMembers of the root concept, not the root concept itself
-        Collection<Concept> setMembers = concept.getSetMembers();
-        if (setMembers != null && !setMembers.isEmpty()) {
-            for (Concept memberConcept : setMembers) {
-                if (memberConcept != null) {
-                    addConceptHierarchically(memberConcept, contains, processed);
-                }
-            }
-        }
+	       expansion.setContains(contains);
+	       expansion.setTotal(contains.size());
+	       expansion.setTimestamp(new Date());
 
-        expansion.setContains(contains);
-        expansion.setTotal(contains.size());
-        expansion.setTimestamp(new Date());
-
-        return expansion;
-    }
+	       return expansion;
+	   }
 	
 	/**
 	 * Adds concepts hierarchically (parent-child relationships preserved)
+	 * 
+	 * @param concept The concept to add
+	 * @param contains The list to add the concept to
+	 * @param currentPath Set of UUIDs in the current path to prevent cycles within a branch
 	 */
 	private void addConceptHierarchically(Concept concept, List<ValueSet.ValueSetExpansionContainsComponent> contains,
-                                          Set<String> processed) {
+	                                         Set<String> currentPath) {
 
-        if (processed.contains(concept.getUuid())) {
-            return; // Avoid infinite loops
-        }
-        processed.add(concept.getUuid());
+	       // Check if this concept is already in the current path (would create a cycle)
+	       if (currentPath.contains(concept.getUuid())) {
+	           return; // Avoid infinite loops within this branch
+	       }
 
-        ValueSet.ValueSetExpansionContainsComponent parentComponent = createContainsComponent(concept);
-        List<ValueSet.ValueSetExpansionContainsComponent> childContains = new ArrayList<>();
+	       ValueSet.ValueSetExpansionContainsComponent parentComponent = createContainsComponent(concept);
+	       List<ValueSet.ValueSetExpansionContainsComponent> childContains = new ArrayList<>();
 
-        // Add child concepts from setMembers
-        Collection<Concept> setMembers = concept.getSetMembers();
-        if (setMembers != null && !setMembers.isEmpty()) {
-            for (Concept memberConcept : setMembers) {
-                if (memberConcept != null) {
-                    addConceptHierarchically(memberConcept, childContains, processed);
-                }
-            }
-        }
+	       // Process child concepts from setMembers
+	       Collection<Concept> setMembers = concept.getSetMembers();
+	       if (setMembers != null && !setMembers.isEmpty()) {
+	           // Add current concept to path before processing children
+	           Set<String> childPath = new HashSet<>(currentPath);
+	           childPath.add(concept.getUuid());
+	           
+	           for (Concept memberConcept : setMembers) {
+	               if (memberConcept != null) {
+	                   addConceptHierarchically(memberConcept, childContains, childPath);
+	               }
+	           }
+	       }
 
-        parentComponent.setContains(childContains);
-        contains.add(parentComponent);
-    }
+	       parentComponent.setContains(childContains);
+	       contains.add(parentComponent);
+	   }
 	
 	/**
 	 * Creates a contains component for a concept
