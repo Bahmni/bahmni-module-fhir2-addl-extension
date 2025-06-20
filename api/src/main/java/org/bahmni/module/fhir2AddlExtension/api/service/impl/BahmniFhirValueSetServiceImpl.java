@@ -8,9 +8,12 @@ import javax.annotation.Nonnull;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.AccessLevel;
 import lombok.Setter;
+import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
 import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirValueSetService;
+import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.ValueSet;
 import org.openmrs.Concept;
+import org.openmrs.ConceptClass;
 import org.openmrs.ConceptSearchResult;
 import org.openmrs.api.ConceptService;
 import org.openmrs.module.fhir2.api.impl.FhirValueSetServiceImpl;
@@ -149,6 +152,12 @@ public class BahmniFhirValueSetServiceImpl extends FhirValueSetServiceImpl imple
 		
 		if (isInactive) {
 			component.setInactive(true);
+		}
+		
+		ConceptClass conceptClass = concept.getConceptClass();
+		if (conceptClass != null) {
+			component.addExtension(BahmniFhirConstants.VALUESET_CONCEPT_CLASS_EXTENSION_URL,
+			    new StringType(conceptClass.getName()));
 		}
 		
 		return component;

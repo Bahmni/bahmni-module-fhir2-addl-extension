@@ -14,7 +14,8 @@ public final class BahmniFhirConstants {
 	}
 	
 	public static final String FHIR_NAMESPACE = "http://fhir.bahmni.org";
-	
+	public static final String EXTENSION_PREFIX = FHIR_NAMESPACE + "/ext";
+
 	public static final String BAHMNI_CODE_SYSTEM_PREFIX = FHIR_NAMESPACE + "/code-system";
 	
 	public static final String ORDER_TYPE_SYSTEM_URI = BAHMNI_CODE_SYSTEM_PREFIX + "/order-type";
@@ -27,7 +28,8 @@ public final class BahmniFhirConstants {
 	
 	public static final String LABSET_CONCEPT_CLASS = "LabSet";
 	
-	public static final String LAB_ORDER_CONCEPT_TYPE_EXTENSION_URL = FHIR_NAMESPACE + "/lab-order-concept-type-extension";
+	public static final String LAB_ORDER_CONCEPT_TYPE_EXTENSION_URL = EXTENSION_PREFIX + "/lab-order-concept-type";
+	public static final String VALUESET_CONCEPT_CLASS_EXTENSION_URL = EXTENSION_PREFIX + "/ValueSet/concept-class";
 
 	public static final Set<ResourceType> CONSULTATION_BUNDLE_SUPPORTED_RESOURCES = Collections.unmodifiableSet(
 			new HashSet<>(Arrays.asList(
