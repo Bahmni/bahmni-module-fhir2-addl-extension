@@ -13,6 +13,7 @@ import java.util.Locale;
 import java.util.Set;
 
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
+import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
 import org.hl7.fhir.r4.model.ValueSet;
 import org.junit.Before;
 import org.junit.Test;
@@ -492,6 +493,145 @@ public class BahmniFhirValueSetServiceImplTest {
 		
 		// When/Then - Should throw InvalidRequestException
 		valueSetService.filterAndExpandValueSet(conceptName);
+	}
+	
+	@Test
+	public void shouldAddConceptClassExtensionToExpandedConcepts() {
+		// Given
+		String conceptClassName = "Diagnosis";
+		Concept parentConcept = org.mockito.Mockito.mock(Concept.class);
+		Concept childConcept = org.mockito.Mockito.mock(Concept.class);
+		ConceptClass childConceptClass = org.mockito.Mockito.mock(ConceptClass.class);
+		
+		when(parentConcept.getUuid()).thenReturn(PARENT_CONCEPT_UUID);
+		when(parentConcept.getSetMembers()).thenReturn(Arrays.asList(childConcept));
+		
+		when(childConcept.getUuid()).thenReturn(CHILD_CONCEPT_UUID);
+		when(childConcept.getDisplayString()).thenReturn(CHILD_CONCEPT_NAME);
+		when(childConcept.isRetired()).thenReturn(false);
+		when(childConcept.getConceptClass()).thenReturn(childConceptClass);
+		when(childConcept.getSetMembers()).thenReturn(Collections.emptyList());
+		
+		when(childConceptClass.isRetired()).thenReturn(false);
+		when(childConceptClass.getName()).thenReturn(conceptClassName);
+		
+		when(conceptService.getConceptByUuid(PARENT_CONCEPT_UUID)).thenReturn(parentConcept);
+		
+		BahmniFhirValueSetServiceImpl spyService = new BahmniFhirValueSetServiceImpl() {
+			@Override
+			public ValueSet get(String uuid) {
+				return baseValueSet;
+			}
+		};
+		spyService.setConceptService(conceptService);
+		
+		// When
+		ValueSet result = spyService.expandedValueSet(PARENT_CONCEPT_UUID);
+		
+		// Then
+		ValueSet.ValueSetExpansionComponent expansion = result.getExpansion();
+		ValueSet.ValueSetExpansionContainsComponent childComponent = expansion.getContains().get(0);
+		
+		assertThat(childComponent.hasExtension(), is(true));
+		assertThat(childComponent.getExtension(), hasSize(1));
+		
+		org.hl7.fhir.r4.model.Extension conceptClassExtension = childComponent.getExtension().get(0);
+		assertThat(conceptClassExtension.getUrl(),
+			equalTo(BahmniFhirConstants.VALUESET_CONCEPT_CLASS_EXTENSION_URL));
+		assertThat(conceptClassExtension.getValue().toString(), equalTo(conceptClassName));
+	}
+	
+	@Test
+	public void shouldNotAddConceptClassExtensionWhenConceptClassIsNull() {
+		// Given
+		Concept parentConcept = org.mockito.Mockito.mock(Concept.class);
+		Concept childConcept = org.mockito.Mockito.mock(Concept.class);
+		
+		when(parentConcept.getUuid()).thenReturn(PARENT_CONCEPT_UUID);
+		when(parentConcept.getSetMembers()).thenReturn(Arrays.asList(childConcept));
+		
+		when(childConcept.getUuid()).thenReturn(CHILD_CONCEPT_UUID);
+		when(childConcept.getDisplayString()).thenReturn(CHILD_CONCEPT_NAME);
+		when(childConcept.isRetired()).thenReturn(false);
+		when(childConcept.getConceptClass()).thenReturn(null);
+		when(childConcept.getSetMembers()).thenReturn(Collections.emptyList());
+		
+		when(conceptService.getConceptByUuid(PARENT_CONCEPT_UUID)).thenReturn(parentConcept);
+		
+		BahmniFhirValueSetServiceImpl spyService = new BahmniFhirValueSetServiceImpl() {
+			@Override
+			public ValueSet get(String uuid) {
+				return baseValueSet;
+			}
+		};
+		spyService.setConceptService(conceptService);
+		
+		// When
+		ValueSet result = spyService.expandedValueSet(PARENT_CONCEPT_UUID);
+		
+		// Then
+		ValueSet.ValueSetExpansionComponent expansion = result.getExpansion();
+		ValueSet.ValueSetExpansionContainsComponent childComponent = expansion.getContains().get(0);
+		
+		assertThat(childComponent.hasExtension(), is(false));
+		assertThat(childComponent.getExtension(), hasSize(0));
+	}
+	
+	@Test
+	public void shouldAddConceptClassExtensionInFilterAndExpandValueSet() {
+		// Given
+		String conceptName = "Test Concept";
+		String conceptClassName = "Test";
+		Concept filteredConcept = org.mockito.Mockito.mock(Concept.class);
+		Concept childConcept = org.mockito.Mockito.mock(Concept.class);
+		ConceptClass childConceptClass = org.mockito.Mockito.mock(ConceptClass.class);
+		ConceptSearchResult searchResult = org.mockito.Mockito.mock(ConceptSearchResult.class);
+		
+		when(searchResult.getConcept()).thenReturn(filteredConcept);
+		when(
+		    conceptService.getConcepts(eq(conceptName), anyList(), eq(false), isNull(), isNull(), isNull(), isNull(),
+		        isNull(), eq(0), isNull())).thenReturn(Arrays.asList(searchResult));
+		
+		when(filteredConcept.getUuid()).thenReturn("filtered-concept-uuid");
+		when(filteredConcept.getSetMembers()).thenReturn(Arrays.asList(childConcept));
+		
+		when(childConcept.getUuid()).thenReturn("child-concept-uuid");
+		when(childConcept.getDisplayString()).thenReturn("Child Concept");
+		when(childConcept.isRetired()).thenReturn(false);
+		when(childConcept.getConceptClass()).thenReturn(childConceptClass);
+		when(childConcept.getSetMembers()).thenReturn(Collections.emptyList());
+		
+		when(childConceptClass.isRetired()).thenReturn(false);
+		when(childConceptClass.getName()).thenReturn(conceptClassName);
+		
+		ValueSet translatedValueSet = new ValueSet();
+		translatedValueSet.setId("filtered-concept-uuid");
+		translatedValueSet.setName(conceptName);
+		
+		BahmniFhirValueSetServiceImpl spyService = new BahmniFhirValueSetServiceImpl() {
+			@Override
+			protected ValueSetTranslator getTranslator() {
+				return valueSetTranslator;
+			}
+		};
+		spyService.setConceptService(conceptService);
+		
+		when(valueSetTranslator.toFhirResource(filteredConcept)).thenReturn(translatedValueSet);
+		
+		// When
+		ValueSet result = spyService.filterAndExpandValueSet(conceptName);
+		
+		// Then
+		ValueSet.ValueSetExpansionComponent expansion = result.getExpansion();
+		ValueSet.ValueSetExpansionContainsComponent childComponent = expansion.getContains().get(0);
+		
+		assertThat(childComponent.hasExtension(), is(true));
+		assertThat(childComponent.getExtension(), hasSize(1));
+		
+		org.hl7.fhir.r4.model.Extension conceptClassExtension = childComponent.getExtension().get(0);
+		assertThat(conceptClassExtension.getUrl(),
+			equalTo(BahmniFhirConstants.VALUESET_CONCEPT_CLASS_EXTENSION_URL));
+		assertThat(conceptClassExtension.getValue().toString(), equalTo(conceptClassName));
 	}
 	
 	@Test
