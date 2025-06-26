@@ -13,6 +13,7 @@ import java.util.Date;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.bahmni.module.fhir2AddlExtension.api.translator.MedicationStatusCalculator;
 import org.hl7.fhir.r4.model.MedicationRequest;
 import org.openmrs.DrugOrder;
 import org.openmrs.Order;
@@ -23,17 +24,11 @@ import org.springframework.stereotype.Component;
  * using server timezone for date comparisons.
  */
 @Component
-public class BahmniMedicationStatusCalculator {
+public class BahmniMedicationStatusCalculator implements MedicationStatusCalculator {
 	
 	private static final Log log = LogFactory.getLog(BahmniMedicationStatusCalculator.class);
 	
-	/**
-	 * Calculate FHIR medication request status based on DrugOrder state. Uses server timezone for
-	 * all date comparisons. Ignores fulfiller status as per requirements.
-	 * 
-	 * @param drugOrder the OpenMRS DrugOrder to evaluate (can be null)
-	 * @return the appropriate FHIR MedicationRequestStatus, or null if drugOrder is null
-	 */
+	@Override
 	public MedicationRequest.MedicationRequestStatus calculateStatus(DrugOrder drugOrder) {
 		if (drugOrder == null) {
 			return null;

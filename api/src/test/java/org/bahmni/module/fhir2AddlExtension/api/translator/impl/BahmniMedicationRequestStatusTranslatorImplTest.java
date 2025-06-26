@@ -19,6 +19,7 @@ import java.util.Calendar;
 import java.util.Date;
 
 import org.hl7.fhir.r4.model.MedicationRequest;
+import org.bahmni.module.fhir2AddlExtension.api.translator.MedicationStatusCalculator;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -29,9 +30,8 @@ import org.openmrs.DrugOrder;
 import org.openmrs.Order;
 
 /**
- * Unit tests for BahmniMedicationRequestStatusTranslatorImpl Tests the integration between the
- * translator and the status calculator Following TDD approach - these tests will initially fail
- * until implementation is complete
+ * Unit tests for BahmniMedicationRequestStatusTranslatorImpl. Tests the integration between the
+ * translator and the status calculator interface.
  */
 @RunWith(MockitoJUnitRunner.class)
 public class BahmniMedicationRequestStatusTranslatorImplTest {
@@ -39,7 +39,7 @@ public class BahmniMedicationRequestStatusTranslatorImplTest {
 	private static final String DRUG_ORDER_UUID = "44fdc8ad-fe4d-499b-93a8-8a991c1d477e";
 	
 	@Mock
-	private BahmniMedicationStatusCalculator statusCalculator;
+	private MedicationStatusCalculator statusCalculator;
 	
 	@InjectMocks
 	private BahmniMedicationRequestStatusTranslatorImpl statusTranslator;

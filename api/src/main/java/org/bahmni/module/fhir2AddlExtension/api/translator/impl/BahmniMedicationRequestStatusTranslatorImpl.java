@@ -13,6 +13,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.bahmni.module.fhir2AddlExtension.api.translator.MedicationStatusCalculator;
 import org.hl7.fhir.r4.model.MedicationRequest;
 import org.openmrs.DrugOrder;
 import org.openmrs.module.fhir2.api.translators.MedicationRequestStatusTranslator;
@@ -22,7 +23,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Calculates FHIR medication request status based on DrugOrder state. Delegates to
- * BahmniMedicationStatusCalculator for status calculation logic.
+ * MedicationStatusCalculator implementation for status calculation logic.
  */
 @Component
 @Primary
@@ -31,7 +32,7 @@ public class BahmniMedicationRequestStatusTranslatorImpl implements MedicationRe
 	private static final Log log = LogFactory.getLog(BahmniMedicationRequestStatusTranslatorImpl.class);
 	
 	@Autowired
-	private BahmniMedicationStatusCalculator statusCalculator;
+	private MedicationStatusCalculator statusCalculator;
 	
 	@Override
 	public MedicationRequest.MedicationRequestStatus toFhirResource(@Nonnull DrugOrder drugOrder) {
