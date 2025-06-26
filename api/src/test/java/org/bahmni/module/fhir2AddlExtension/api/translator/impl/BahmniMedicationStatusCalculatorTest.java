@@ -91,18 +91,6 @@ public class BahmniMedicationStatusCalculatorTest {
 	// ========== CANCELLED STATUS TESTS ==========
 	
 	@Test
-	public void calculateStatus_shouldReturnCancelled_whenDrugOrderIsVoided() {
-		// Given: Voided drug order
-		drugOrder.setVoided(true);
-		
-		// When: Calculate status
-		MedicationRequest.MedicationRequestStatus status = statusCalculator.calculateStatus(drugOrder);
-		
-		// Then: Should return CANCELLED
-		assertThat(status, equalTo(MedicationRequest.MedicationRequestStatus.CANCELLED));
-	}
-	
-	@Test
 	public void calculateStatus_shouldReturnCancelled_whenActionIsDiscontinue() {
 		// Given: Drug order with DISCONTINUE action
 		drugOrder.setAction(Order.Action.DISCONTINUE);
@@ -113,19 +101,7 @@ public class BahmniMedicationStatusCalculatorTest {
 		// Then: Should return CANCELLED
 		assertThat(status, equalTo(MedicationRequest.MedicationRequestStatus.CANCELLED));
 	}
-	
-	@Test
-	public void calculateStatus_shouldReturnCancelled_whenBothVoidedAndDiscontinued() {
-		// Given: Drug order that is both voided and discontinued
-		drugOrder.setVoided(true);
-		drugOrder.setAction(Order.Action.DISCONTINUE);
-		
-		// When: Calculate status
-		MedicationRequest.MedicationRequestStatus status = statusCalculator.calculateStatus(drugOrder);
-		
-		// Then: Should return CANCELLED (voided takes precedence)
-		assertThat(status, equalTo(MedicationRequest.MedicationRequestStatus.CANCELLED));
-	}
+
 	
 	// ========== STOPPED STATUS TESTS ==========
 	
@@ -309,19 +285,6 @@ public class BahmniMedicationStatusCalculatorTest {
 		
 		// Then: Should return STOPPED (dateStopped takes precedence)
 		assertThat(status, equalTo(MedicationRequest.MedicationRequestStatus.STOPPED));
-	}
-	
-	@Test
-	public void calculateStatus_shouldReturnCancelled_whenVoidedAndStopped() throws Exception {
-		// Given: Drug order that is both voided and stopped (voided takes precedence)
-		drugOrder.setVoided(true);
-		setDateStopped(drugOrder, yesterday);
-		
-		// When: Calculate status
-		MedicationRequest.MedicationRequestStatus status = statusCalculator.calculateStatus(drugOrder);
-		
-		// Then: Should return CANCELLED (voided takes precedence)
-		assertThat(status, equalTo(MedicationRequest.MedicationRequestStatus.CANCELLED));
 	}
 	
 	@Test

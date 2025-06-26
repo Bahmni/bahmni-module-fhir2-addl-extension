@@ -36,10 +36,6 @@ public class BahmniMedicationStatusCalculator implements MedicationStatusCalcula
 		
 		Date now = new Date();
 		
-		if (drugOrder.getVoided()) {
-			return MedicationRequest.MedicationRequestStatus.CANCELLED;
-		}
-		
 		if (Order.Action.DISCONTINUE.equals(drugOrder.getAction())) {
 			return MedicationRequest.MedicationRequestStatus.CANCELLED;
 		}
