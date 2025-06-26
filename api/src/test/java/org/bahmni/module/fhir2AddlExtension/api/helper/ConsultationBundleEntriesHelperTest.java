@@ -123,6 +123,88 @@ public class ConsultationBundleEntriesHelperTest {
 		assertTrue(result.contains(entry2));
 	}
 	
+	@Test
+	public void shouldHandleEntriesWithoutFullUrl() {
+		// Given
+		Bundle.BundleEntryComponent entryWithoutFullUrl = new Bundle.BundleEntryComponent();
+		entryWithoutFullUrl.setResource(createEncounter());
+		// No fullUrl set
+		
+		Bundle.BundleEntryComponent normalEntry = createBundleEntry(createCondition(), "urn:uuid:condition");
+		
+		entries.add(entryWithoutFullUrl);
+		entries.add(normalEntry);
+		
+		// When
+		List<Bundle.BundleEntryComponent> result = ConsultationBundleEntriesHelper.orderEntriesByReference(entries);
+		
+		// Then
+		assertEquals(2, result.size());
+		// Entry without fullUrl should not cause issues
+		assertTrue(result.contains(normalEntry));
+	}
+	
+	@Test
+	public void shouldHandleEntriesWithoutResource() {
+		// Given
+		Bundle.BundleEntryComponent entryWithoutResource = new Bundle.BundleEntryComponent();
+		entryWithoutResource.setFullUrl("urn:uuid:empty");
+		// No resource set
+		
+		Bundle.BundleEntryComponent normalEntry = createBundleEntry(createEncounter(), "urn:uuid:encounter");
+		
+		entries.add(entryWithoutResource);
+		entries.add(normalEntry);
+		
+		// When
+		List<Bundle.BundleEntryComponent> result = ConsultationBundleEntriesHelper.orderEntriesByReference(entries);
+		
+		// Then
+		assertEquals(2, result.size());
+		// Entry without resource should not cause issues
+		assertTrue(result.contains(normalEntry));
+	}
+	
+	@Test
+	public void shouldOrderComplexDependencyChain() {
+		// Given
+		// Create an encounter entry
+		Bundle.BundleEntryComponent encounterEntry = createBundleEntry(createEncounter(), "urn:uuid:encounter");
+		
+		// Create a condition that references the encounter
+		Condition condition = createCondition();
+		condition.setEncounter(new Reference("urn:uuid:encounter"));
+		Bundle.BundleEntryComponent conditionEntry = createBundleEntry(condition, "urn:uuid:condition");
+		
+		// Create a service request that references the encounter
+		ServiceRequest serviceRequest = createServiceRequest();
+		serviceRequest.setEncounter(new Reference("urn:uuid:encounter"));
+		Bundle.BundleEntryComponent serviceRequestEntry = createBundleEntry(serviceRequest, "urn:uuid:service");
+		
+		// Create a medication request that references the encounter
+		MedicationRequest medicationRequest = createMedicationRequest();
+		medicationRequest.setEncounter(new Reference("urn:uuid:encounter"));
+		Bundle.BundleEntryComponent medicationRequestEntry = createBundleEntry(medicationRequest, "urn:uuid:medication");
+		
+		// Add entries in random order
+		entries.add(medicationRequestEntry);
+		entries.add(conditionEntry);
+		entries.add(serviceRequestEntry);
+		entries.add(encounterEntry);
+		
+		// When
+		List<Bundle.BundleEntryComponent> result = ConsultationBundleEntriesHelper.orderEntriesByReference(entries);
+		
+		// Then
+		assertEquals(4, result.size());
+		// Encounter should be first since it's referenced by all others
+		assertEquals(encounterEntry, result.get(0));
+		// The other three can be in any order after the encounter
+		assertTrue(result.indexOf(conditionEntry) > result.indexOf(encounterEntry));
+		assertTrue(result.indexOf(serviceRequestEntry) > result.indexOf(encounterEntry));
+		assertTrue(result.indexOf(medicationRequestEntry) > result.indexOf(encounterEntry));
+	}
+	
 	// Tests for resolveReferences method
 	
 	@Test
@@ -192,6 +274,29 @@ public class ConsultationBundleEntriesHelperTest {
 		ServiceRequest resultAllergy = (ServiceRequest) result.getResource();
 		assertEquals(FhirConstants.ENCOUNTER, resultAllergy.getEncounter().getType());
 		assertEquals(FhirConstants.ENCOUNTER + "/encounter-uuid", resultAllergy.getEncounter().getReference());
+	}
+	
+	@Test
+	public void shouldResolveMedicationRequestEncounterReference() {
+		// Given
+		MedicationRequest medicationRequest = createMedicationRequest();
+		medicationRequest.setEncounter(new Reference("urn:uuid:placeholder"));
+		Bundle.BundleEntryComponent medicationRequestEntry = createBundleEntry(medicationRequest, "urn:uuid:medication");
+		
+		// Create a processed encounter entry
+		Encounter encounter = createEncounter();
+		encounter.setId("encounter-uuid");
+		Bundle.BundleEntryComponent encounterEntry = createBundleEntry(encounter, "urn:uuid:placeholder");
+		processedEntries.put("urn:uuid:placeholder", encounterEntry);
+		
+		// When
+		Bundle.BundleEntryComponent result = ConsultationBundleEntriesHelper.resolveReferences(medicationRequestEntry,
+		    processedEntries);
+		
+		// Then
+		MedicationRequest resultMedicationRequest = (MedicationRequest) result.getResource();
+		assertEquals(FhirConstants.ENCOUNTER, resultMedicationRequest.getEncounter().getType());
+		assertEquals(FhirConstants.ENCOUNTER + "/encounter-uuid", resultMedicationRequest.getEncounter().getReference());
 	}
 	
 	@Test
@@ -280,6 +385,14 @@ public class ConsultationBundleEntriesHelperTest {
 		ServiceRequest serviceRequest = new ServiceRequest();
 		serviceRequest.setSubject(new Reference("Patient/123"));
 		return serviceRequest;
+	}
+	
+	private MedicationRequest createMedicationRequest() {
+		MedicationRequest medicationRequest = new MedicationRequest();
+		medicationRequest.setSubject(new Reference("Patient/123"));
+		medicationRequest.setStatus(MedicationRequest.MedicationRequestStatus.ACTIVE);
+		medicationRequest.setIntent(MedicationRequest.MedicationRequestIntent.ORDER);
+		return medicationRequest;
 	}
 	
 	private Observation createObservation() {
