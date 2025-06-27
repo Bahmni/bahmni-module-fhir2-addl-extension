@@ -187,6 +187,7 @@ public class ConsultationBundleValidatorImplTest {
 		bundleWithAllSupportedTypes.addEntry(createValidBundleEntry(createEncounter()));
 		bundleWithAllSupportedTypes.addEntry(createValidBundleEntry(createCondition()));
 		bundleWithAllSupportedTypes.addEntry(createValidBundleEntry(createAllergyIntolerance()));
+		bundleWithAllSupportedTypes.addEntry(createValidBundleEntry(createMedicationRequest()));
 		try {
 			validator.validateBundleEntries(bundleWithAllSupportedTypes);
 		}
@@ -233,5 +234,12 @@ public class ConsultationBundleValidatorImplTest {
 		observation.setSubject(new Reference("Patient/123"));
 		observation.setEncounter(new Reference("Encounter/456"));
 		return observation;
+	}
+	
+	private MedicationRequest createMedicationRequest() {
+		MedicationRequest medicationRequest = new MedicationRequest();
+		medicationRequest.setSubject(new Reference("Patient/123"));
+		medicationRequest.setEncounter(new Reference("Encounter/456"));
+		return medicationRequest;
 	}
 }
