@@ -29,7 +29,9 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 		//TODO: This should be translated based on an extension of MedicationRequest to set correct CareSetting
 		drugOrder.setCareSetting(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.name()));
 		
-		if (drugOrder.getScheduledDate() != null) {
+		if (drugOrder.getUrgency() != null && drugOrder.getUrgency().equals(Order.Urgency.STAT)) {
+			drugOrder.setScheduledDate(null);
+		} else if (drugOrder.getScheduledDate() != null) {
 			drugOrder.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
 		}
 		return drugOrder;
