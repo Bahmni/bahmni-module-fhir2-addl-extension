@@ -101,7 +101,6 @@ public class BahmniMedicationStatusCalculatorTest {
 		// Then: Should return CANCELLED
 		assertThat(status, equalTo(MedicationRequest.MedicationRequestStatus.CANCELLED));
 	}
-
 	
 	// ========== STOPPED STATUS TESTS ==========
 	
