@@ -26,9 +26,9 @@ jobs:
         server-password: NEXUS_PASSWORD
     - name: Build and deploy with Maven
       run: |
-        PROJECT_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)
+        PROJECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
         if [[ "$PROJECT_VERSION" == *"-SNAPSHOT" ]]; then
-          ./mvnw --no-transfer-progress clean -U deploy
+          mvn --no-transfer-progress clean -U deploy
         else
           echo "❌ The current push is for release. So skipping build."
         fi
