@@ -1,7 +1,11 @@
 package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
 
+import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
+import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniEpisodeOfCareTranslator;
+import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.EpisodeOfCare;
+import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Period;
 import org.openmrs.Concept;
 import org.openmrs.Provider;
@@ -16,9 +20,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -31,10 +38,10 @@ import static org.openmrs.module.fhir2.api.translators.impl.FhirTranslatorUtils.
 @Component
 public class BahmniBahmniEpisodeOfCareTranslatorImpl implements BahmniEpisodeOfCareTranslator {
 
-    private PatientReferenceTranslator patientReferenceTranslator;
-    private ConceptTranslator conceptTranslator;
-    private PractitionerReferenceTranslator<Provider> providerReferenceTranslator;
-    private Map<Episode.Status,EpisodeOfCare.EpisodeOfCareStatus> episodeStatusMap = new HashMap<>();
+    private final PatientReferenceTranslator patientReferenceTranslator;
+    private final ConceptTranslator conceptTranslator;
+    private final PractitionerReferenceTranslator<Provider> providerReferenceTranslator;
+    private final Map<Episode.Status,EpisodeOfCare.EpisodeOfCareStatus> episodeStatusMap = new HashMap<>();
 
     @Autowired
     public BahmniBahmniEpisodeOfCareTranslatorImpl(PatientReferenceTranslator patientReferenceTranslator, ConceptTranslator conceptTranslator, PractitionerReferenceTranslator<Provider> providerReferenceTranslator) {
@@ -64,12 +71,20 @@ public class BahmniBahmniEpisodeOfCareTranslatorImpl implements BahmniEpisodeOfC
         episodeOfCare.getMeta().setLastUpdated(getLastUpdated(episode));
         episodeOfCare.getMeta().setVersionId(getVersionId(episode));
         episodeOfCare.setStatus(toFhirEoCStatus(episode));
-        episodeOfCare.setType(episode.getEpisodeReason().stream()
-                .map(episodeReason -> conceptTranslator.toFhirResource(episodeReason.getReason()))
-                .collect(Collectors.toList()));
+        episodeOfCare.setType(Collections.singletonList(conceptTranslator.toFhirResource(episode.getConcept())));
+        addEpisodeOfCareReasonExtensions(episodeOfCare, episode);
         //TODO
         //episodeOfCare.setCareManager(providerReferenceTranslator.toFhirResource(episode.getCreator()));
         return episodeOfCare;
+    }
+    private void addEpisodeOfCareReasonExtensions(EpisodeOfCare episodeOfCare, Episode episode) {
+        episode.getEpisodeReason().stream()
+           .map(episodeReason -> conceptTranslator.toFhirResource(episodeReason.getReason()))
+           .forEach(codeableConcept -> {
+               Extension extension = episodeOfCare.addExtension();
+               extension.setUrl(BahmniFhirConstants.FHIR_EXT_EPISODE_OF_CARE_REASON);
+               extension.addExtension("value", codeableConcept);
+           });
     }
 
     private EpisodeOfCare.EpisodeOfCareStatus toFhirEoCStatus(Episode episode) {
@@ -101,6 +116,7 @@ public class BahmniBahmniEpisodeOfCareTranslatorImpl implements BahmniEpisodeOfC
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public Episode toOpenmrsType(@Nonnull Episode episode, @Nonnull EpisodeOfCare episodeOfCare) {
         notNull(episode, "The existing OpenMRS Episode object should not be null");
         notNull(episodeOfCare, "The EpisodeOfCare object should not be null");
@@ -136,29 +152,50 @@ public class BahmniBahmniEpisodeOfCareTranslatorImpl implements BahmniEpisodeOfC
         }
 
         if (episodeOfCare.hasType()) {
-            Set<Concept> specifiedReasons = episodeOfCare.getType().stream()
-                    .map(codeableConcept -> conceptTranslator.toOpenmrsType(codeableConcept))
+            Set<Concept> episodeType = episodeOfCare.getType().stream()
+                    .map(conceptTranslator::toOpenmrsType)
                     .collect(Collectors.toSet());
-            if (episode.getEpisodeReason().isEmpty()) {
-                Set<EpisodeReason> episodeReasons = specifiedReasons.stream()
-                        .map(concept -> constructEpisodeReason(episode, concept, authenticatedUser))
-                        .collect(Collectors.toSet());
-                episode.setEpisodeReason(episodeReasons);
-            } else {
-                //merge
-                Set<Concept> existingReasons = episode.getEpisodeReason().stream()
-                        .map(existingReason -> existingReason.getReason())
-                        .collect(Collectors.toSet());
-                Set<Concept> additionalReasons = specifiedReasons.stream()
-                        .filter(reason -> !existingReasons.stream().anyMatch(concept -> concept.getUuid().equals(reason.getUuid())))
-                        .collect(Collectors.toSet());
-                Set<EpisodeReason> addlEpisodeReasons = additionalReasons.stream()
-                        .map(reason -> constructEpisodeReason(episode, reason, authenticatedUser))
-                        .collect(Collectors.toSet());
-                episode.getEpisodeReason().addAll(addlEpisodeReasons);
+            if (episodeType.isEmpty()) {
+                throw new InvalidRequestException("Can not find reference to episode.type");
             }
+            //if there are more than 1 distinct, then taking the first one.
+            episode.setConcept(episodeType.stream().findFirst().get());
         }
+        toOpenmrsEpisodeReason(episode, episodeOfCare, authenticatedUser);
         return episode;
+    }
+
+    protected void toOpenmrsEpisodeReason(Episode episode, EpisodeOfCare episodeOfCare, User authenticatedUser) {
+        Set<Concept> specifiedReasons = episodeOfCare
+                .getExtensionsByUrl(BahmniFhirConstants.FHIR_EXT_EPISODE_OF_CARE_REASON)
+                .stream().map(extension -> extension.getExtensionsByUrl("value"))
+                .flatMap(List::stream)
+                .map(extension -> {
+                    if (extension.getValue() instanceof CodeableConcept) {
+                        return conceptTranslator.toOpenmrsType((CodeableConcept) extension.getValue());
+                    }
+                    return null;
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (episode.getEpisodeReason().isEmpty()) {
+            Set<EpisodeReason> episodeReasons = specifiedReasons.stream()
+                    .map(concept -> constructEpisodeReason(episode, concept, authenticatedUser))
+                    .collect(Collectors.toSet());
+            episode.setEpisodeReason(episodeReasons);
+        } else {
+            //merge
+            Set<Concept> existingReasons = episode.getEpisodeReason().stream()
+                    .map(EpisodeReason::getReason)
+                    .collect(Collectors.toSet());
+            Set<Concept> additionalReasons = specifiedReasons.stream()
+                    .filter(reason -> existingReasons.stream().noneMatch(concept -> concept.getUuid().equals(reason.getUuid())))
+                    .collect(Collectors.toSet());
+            Set<EpisodeReason> addlEpisodeReasons = additionalReasons.stream()
+                    .map(reason -> constructEpisodeReason(episode, reason, authenticatedUser))
+                    .collect(Collectors.toSet());
+            episode.getEpisodeReason().addAll(addlEpisodeReasons);
+        }
     }
 
     private EpisodeReason constructEpisodeReason(Episode episode, Concept reason, User authenticatedUser) {

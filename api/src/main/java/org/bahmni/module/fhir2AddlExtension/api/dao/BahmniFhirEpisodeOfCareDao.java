@@ -11,20 +11,20 @@ import java.util.List;
 
 public interface BahmniFhirEpisodeOfCareDao extends FhirDao<Episode> {
 	
-	@Authorized({"Get Episodes"})
+	@Authorized({ "Get Episodes" })
 	Episode get(@Nonnull String uuid);
 	
-	@Authorized({"Get Episodes"})
+	@Authorized({ "Get Episodes" })
 	List<Episode> get(@Nonnull Collection<String> uuids);
-
-	@Authorized({"Add Episodes"})
+	
+	@Authorized({ "Add Episodes" })
 	Episode createOrUpdate(@Nonnull Episode newEntry);
-
-	@Authorized({"Delete Episodes"})
+	
+	@Authorized({ "Delete Episodes" })
 	Episode delete(@Nonnull String uuid);
 	
 	int getSearchResultsCount(@Nonnull SearchParameterMap theParams);
-
-	@Authorized({"Get Episodes"})
+	
+	@Authorized({ "Get Episodes" })
 	List<Episode> getSearchResults(@Nonnull SearchParameterMap theParams);
 }

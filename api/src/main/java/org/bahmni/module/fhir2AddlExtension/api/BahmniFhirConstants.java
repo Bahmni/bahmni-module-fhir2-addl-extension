@@ -45,4 +45,5 @@ public final class BahmniFhirConstants {
 	public static final String HL7_CONDITION_CATEGORY_DIAGNOSIS_CODE = "encounter-diagnosis";
 
 	public static final String CONDITION_VERIFICATION_STATUS_SEARCH_HANDLER = "condition.verification.status.handler";
+	public static final String FHIR_EXT_EPISODE_OF_CARE_REASON = EXTENSION_PREFIX + "/episode-of-care/reason";
 }
