@@ -46,4 +46,5 @@ public final class BahmniFhirConstants {
 
 	public static final String CONDITION_VERIFICATION_STATUS_SEARCH_HANDLER = "condition.verification.status.handler";
 	public static final String FHIR_EXT_EPISODE_OF_CARE_REASON = EXTENSION_PREFIX + "/episode-of-care/reason";
+	public static final String FHIR_EXT_EPISODE_OF_CARE_LOCATION = EXTENSION_PREFIX + "/episode-of-care/location";
 }

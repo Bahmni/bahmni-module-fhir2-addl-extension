@@ -3,10 +3,9 @@ Copyright 2025 (C) Thoughtworks Inc.
 This product includes software developed at Thoughtworks Inc (https://www.thoughtworks.com/)
 
 
-The Initial Developer of the fhir2AddlExtension/providers/BahmniBaseFhirIntegrationTest,
-is OpenMRS Inc (http://www.openmrs.org/)
-Licensed under MPLv2
+The Initial Developer of the fhir2AddlExtension/providers/BahmniBaseFhirIntegrationTest, is OpenMRS Inc (http://www.openmrs.org/)
+and Licensed under MPLv2
 
-The Initial Developer of some parts of /fhir2AddlExtension/api/service/FhirResourceHandler, which are copied from, derived from, or
+The Initial Developer of some parts of /fhir2AddlExtension/api/service/FhirResourceHandlerImpl, which are copied from, derived from, or
 inspired by HAPI FHIR Base, is James Agnew (http://jamesagnew.github.io/hapi-fhir/), and licensed under Apache 2.0
 

@@ -7,6 +7,7 @@ import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.EpisodeOfCare;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Period;
+import org.hl7.fhir.r4.model.Reference;
 import org.openmrs.Concept;
 import org.openmrs.Provider;
 import org.openmrs.User;
@@ -14,6 +15,7 @@ import org.openmrs.api.context.Context;
 import org.openmrs.module.episodes.Episode;
 import org.openmrs.module.episodes.EpisodeReason;
 import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
+import org.openmrs.module.fhir2.api.translators.LocationReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,13 +43,15 @@ public class BahmniBahmniEpisodeOfCareTranslatorImpl implements BahmniEpisodeOfC
     private final PatientReferenceTranslator patientReferenceTranslator;
     private final ConceptTranslator conceptTranslator;
     private final PractitionerReferenceTranslator<Provider> providerReferenceTranslator;
+    private final LocationReferenceTranslator locationReferenceTranslator;
     private final Map<Episode.Status,EpisodeOfCare.EpisodeOfCareStatus> episodeStatusMap = new HashMap<>();
 
     @Autowired
-    public BahmniBahmniEpisodeOfCareTranslatorImpl(PatientReferenceTranslator patientReferenceTranslator, ConceptTranslator conceptTranslator, PractitionerReferenceTranslator<Provider> providerReferenceTranslator) {
+    public BahmniBahmniEpisodeOfCareTranslatorImpl(PatientReferenceTranslator patientReferenceTranslator, ConceptTranslator conceptTranslator, PractitionerReferenceTranslator<Provider> providerReferenceTranslator, LocationReferenceTranslator locationReferenceTranslator) {
         this.patientReferenceTranslator = patientReferenceTranslator;
         this.conceptTranslator = conceptTranslator;
         this.providerReferenceTranslator = providerReferenceTranslator;
+        this.locationReferenceTranslator = locationReferenceTranslator;
         initialize();
     }
 
@@ -73,10 +77,18 @@ public class BahmniBahmniEpisodeOfCareTranslatorImpl implements BahmniEpisodeOfC
         episodeOfCare.setStatus(toFhirEoCStatus(episode));
         episodeOfCare.setType(Collections.singletonList(conceptTranslator.toFhirResource(episode.getConcept())));
         addEpisodeOfCareReasonExtensions(episodeOfCare, episode);
+        if (episode.getLocation() != null) {
+            episodeOfCare.addExtension(
+                    new Extension()
+                        .setUrl(BahmniFhirConstants.FHIR_EXT_EPISODE_OF_CARE_LOCATION)
+                        .setValue(locationReferenceTranslator.toFhirResource(episode.getLocation())));
+        }
         //TODO
         //episodeOfCare.setCareManager(providerReferenceTranslator.toFhirResource(episode.getCreator()));
         return episodeOfCare;
     }
+
+
     private void addEpisodeOfCareReasonExtensions(EpisodeOfCare episodeOfCare, Episode episode) {
         episode.getEpisodeReason().stream()
            .map(episodeReason -> conceptTranslator.toFhirResource(episodeReason.getReason()))
@@ -162,7 +174,15 @@ public class BahmniBahmniEpisodeOfCareTranslatorImpl implements BahmniEpisodeOfC
             episode.setConcept(episodeType.stream().findFirst().get());
         }
         toOpenmrsEpisodeReason(episode, episodeOfCare, authenticatedUser);
+        toOpenmrsEpisodeLocation(episode, episodeOfCare);
         return episode;
+    }
+
+    private void toOpenmrsEpisodeLocation(Episode episode, EpisodeOfCare episodeOfCare) {
+        Extension extension = episodeOfCare.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_EPISODE_OF_CARE_LOCATION);
+        if (extension != null && extension.hasValue() && extension.getValue() instanceof Reference) {
+            episode.setLocation(locationReferenceTranslator.toOpenmrsType((Reference) extension.getValue()));
+        }
     }
 
     protected void toOpenmrsEpisodeReason(Episode episode, EpisodeOfCare episodeOfCare, User authenticatedUser) {
