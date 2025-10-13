@@ -7,7 +7,6 @@ import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.EpisodeOfCare;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Period;
-import org.hl7.fhir.r4.model.Reference;
 import org.openmrs.Concept;
 import org.openmrs.Provider;
 import org.openmrs.User;
@@ -77,12 +76,6 @@ public class BahmniBahmniEpisodeOfCareTranslatorImpl implements BahmniEpisodeOfC
         episodeOfCare.setStatus(toFhirEoCStatus(episode));
         episodeOfCare.setType(Collections.singletonList(conceptTranslator.toFhirResource(episode.getConcept())));
         addEpisodeOfCareReasonExtensions(episodeOfCare, episode);
-        if (episode.getLocation() != null) {
-            episodeOfCare.addExtension(
-                    new Extension()
-                        .setUrl(BahmniFhirConstants.FHIR_EXT_EPISODE_OF_CARE_LOCATION)
-                        .setValue(locationReferenceTranslator.toFhirResource(episode.getLocation())));
-        }
         //TODO
         //episodeOfCare.setCareManager(providerReferenceTranslator.toFhirResource(episode.getCreator()));
         return episodeOfCare;
@@ -168,21 +161,13 @@ public class BahmniBahmniEpisodeOfCareTranslatorImpl implements BahmniEpisodeOfC
                     .map(conceptTranslator::toOpenmrsType)
                     .collect(Collectors.toSet());
             if (episodeType.isEmpty()) {
-                throw new InvalidRequestException("Can not find reference to episode.type");
+                throw new InvalidRequestException("Can not find reference to episode type");
             }
             //if there are more than 1 distinct, then taking the first one.
             episode.setConcept(episodeType.stream().findFirst().get());
         }
         toOpenmrsEpisodeReason(episode, episodeOfCare, authenticatedUser);
-        toOpenmrsEpisodeLocation(episode, episodeOfCare);
         return episode;
-    }
-
-    private void toOpenmrsEpisodeLocation(Episode episode, EpisodeOfCare episodeOfCare) {
-        Extension extension = episodeOfCare.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_EPISODE_OF_CARE_LOCATION);
-        if (extension != null && extension.hasValue() && extension.getValue() instanceof Reference) {
-            episode.setLocation(locationReferenceTranslator.toOpenmrsType((Reference) extension.getValue()));
-        }
     }
 
     protected void toOpenmrsEpisodeReason(Episode episode, EpisodeOfCare episodeOfCare, User authenticatedUser) {
