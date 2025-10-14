@@ -41,7 +41,8 @@ public class ConsultationBundleServiceImpl implements ConsultationBundleService 
 	private ConsultationBundleValidator consultationBundleValidator;
 	
 	@Autowired
-	public ConsultationBundleServiceImpl(FhirResourceHandler resourceHandler, ConsultationBundleValidator consultationBundleValidator) {
+	public ConsultationBundleServiceImpl(FhirResourceHandler resourceHandler,
+	    ConsultationBundleValidator consultationBundleValidator) {
 		this.resourceHandler = resourceHandler;
 		this.consultationBundleValidator = consultationBundleValidator;
 	}

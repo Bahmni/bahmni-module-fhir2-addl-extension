@@ -14,7 +14,6 @@ import org.openmrs.api.context.Context;
 import org.openmrs.module.episodes.Episode;
 import org.openmrs.module.episodes.EpisodeReason;
 import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
-import org.openmrs.module.fhir2.api.translators.LocationReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,20 +36,20 @@ import static org.openmrs.module.fhir2.api.translators.impl.FhirTranslatorUtils.
 import static org.openmrs.module.fhir2.api.translators.impl.FhirTranslatorUtils.getVersionId;
 
 @Component
-public class BahmniBahmniEpisodeOfCareTranslatorImpl implements BahmniEpisodeOfCareTranslator {
+public class BahmniEpisodeOfCareTranslatorImpl implements BahmniEpisodeOfCareTranslator {
 
     private final PatientReferenceTranslator patientReferenceTranslator;
     private final ConceptTranslator conceptTranslator;
     private final PractitionerReferenceTranslator<Provider> providerReferenceTranslator;
-    private final LocationReferenceTranslator locationReferenceTranslator;
     private final Map<Episode.Status,EpisodeOfCare.EpisodeOfCareStatus> episodeStatusMap = new HashMap<>();
 
     @Autowired
-    public BahmniBahmniEpisodeOfCareTranslatorImpl(PatientReferenceTranslator patientReferenceTranslator, ConceptTranslator conceptTranslator, PractitionerReferenceTranslator<Provider> providerReferenceTranslator, LocationReferenceTranslator locationReferenceTranslator) {
+    public BahmniEpisodeOfCareTranslatorImpl(PatientReferenceTranslator patientReferenceTranslator,
+                                             ConceptTranslator conceptTranslator,
+                                             PractitionerReferenceTranslator<Provider> providerReferenceTranslator) {
         this.patientReferenceTranslator = patientReferenceTranslator;
         this.conceptTranslator = conceptTranslator;
         this.providerReferenceTranslator = providerReferenceTranslator;
-        this.locationReferenceTranslator = locationReferenceTranslator;
         initialize();
     }
 
@@ -82,7 +81,7 @@ public class BahmniBahmniEpisodeOfCareTranslatorImpl implements BahmniEpisodeOfC
     }
 
 
-    private void addEpisodeOfCareReasonExtensions(EpisodeOfCare episodeOfCare, Episode episode) {
+    protected void addEpisodeOfCareReasonExtensions(EpisodeOfCare episodeOfCare, Episode episode) {
         episode.getEpisodeReason().stream()
            .map(episodeReason -> conceptTranslator.toFhirResource(episodeReason.getReason()))
            .forEach(codeableConcept -> {
@@ -144,6 +143,9 @@ public class BahmniBahmniEpisodeOfCareTranslatorImpl implements BahmniEpisodeOfC
             episode.setCreator(authenticatedUser);
             episode.setDateCreated(new Date());
         } else {
+            if (episodeOfCare.hasId()) {
+                episode.setUuid(episodeOfCare.getIdElement().getIdPart());
+            }
             episode.setChangedBy(authenticatedUser);
             episode.setDateChanged(new Date());
         }

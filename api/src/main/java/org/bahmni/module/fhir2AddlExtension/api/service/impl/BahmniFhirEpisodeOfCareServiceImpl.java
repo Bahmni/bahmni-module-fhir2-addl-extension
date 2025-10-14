@@ -4,6 +4,7 @@ import ca.uhn.fhir.rest.api.PatchTypeEnum;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.api.server.RequestDetails;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
+import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirEpisodeOfCareDao;
 import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirEpisodeOfCareService;
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniEpisodeOfCareTranslator;
@@ -19,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import javax.annotation.Nonnull;
 import java.util.Collection;
@@ -29,7 +31,12 @@ import static org.openmrs.module.fhir2.FhirConstants.PATIENT_REFERENCE_SEARCH_HA
 @Component
 @Primary
 @Transactional
+@Slf4j
 public class BahmniFhirEpisodeOfCareServiceImpl extends BaseFhirService<EpisodeOfCare, Episode> implements BahmniFhirEpisodeOfCareService {
+	
+	public static final String PATIENT_IDENTIFIER_OR_REFERENCE_MUST_BE_SPECIFIED = "You must specify patient identifier or reference!";
+	
+	public static final String MISSING_PATIENT_IDENTIFIER_OR_ID = "Missing patient identifier or id";
 	
 	private BahmniFhirEpisodeOfCareDao fhirEpisodeOfCareDao;
 	
@@ -96,9 +103,25 @@ public class BahmniFhirEpisodeOfCareServiceImpl extends BaseFhirService<EpisodeO
 	@Override
 	public IBundleProvider episodesForPatient(ReferenceAndListParam patientReference) {
 		//TODO: check the reference is not empty. No need to make unncessary db query
-		//throw new UnsupportedOperationException("You must specify patient identifier or reference!");
+		if (patientReference.getValuesAsQueryTokens().isEmpty()) {
+			logAndThrowUnsupportedExceptionForMissingPatientReference();
+		}
+		patientReference.getValuesAsQueryTokens().forEach(referenceOrListParam -> {
+			if (referenceOrListParam.getValuesAsQueryTokens().isEmpty()) {
+				logAndThrowUnsupportedExceptionForMissingPatientReference();
+			}
+			boolean match = referenceOrListParam.getValuesAsQueryTokens().stream().anyMatch(referenceParam -> StringUtils.isEmpty(referenceParam.getValue()));
+			if (match) {
+				logAndThrowUnsupportedExceptionForMissingPatientReference();
+			}
+		});
 		SearchParameterMap params = new SearchParameterMap();
 		params.addParameter(PATIENT_REFERENCE_SEARCH_HANDLER, patientReference);
 		return searchQuery.getQueryResults(params, fhirEpisodeOfCareDao, episodeTranslator, searchQueryInclude);
+	}
+	
+	private void logAndThrowUnsupportedExceptionForMissingPatientReference() {
+		log.error(MISSING_PATIENT_IDENTIFIER_OR_ID);
+		throw new UnsupportedOperationException(PATIENT_IDENTIFIER_OR_REFERENCE_MUST_BE_SPECIFIED);
 	}
 }
