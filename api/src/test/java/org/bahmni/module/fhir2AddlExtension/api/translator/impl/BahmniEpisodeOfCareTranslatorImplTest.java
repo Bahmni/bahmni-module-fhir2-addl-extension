@@ -70,7 +70,7 @@ public class BahmniEpisodeOfCareTranslatorImplTest {
 	
 	@Mock
 	private User user;
-
+	
 	public static IParser r4ResourceParser = FhirContext.forR4().newJsonParser();
 	
 	@Before
@@ -348,6 +348,7 @@ public class BahmniEpisodeOfCareTranslatorImplTest {
 	}
 	
 	private static class ReasonValuePair {
+		
 		Concept concept;
 		
 		String valueReference;

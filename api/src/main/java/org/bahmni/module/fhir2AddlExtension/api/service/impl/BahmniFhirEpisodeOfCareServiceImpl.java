@@ -3,9 +3,9 @@ package org.bahmni.module.fhir2AddlExtension.api.service.impl;
 import ca.uhn.fhir.rest.api.PatchTypeEnum;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.api.server.RequestDetails;
-import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirEpisodeOfCareDao;
+import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniEpisodeOfCareSearchParams;
 import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirEpisodeOfCareService;
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniEpisodeOfCareTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.EpisodeOfCareStatusTranslator;
@@ -18,13 +18,11 @@ import org.openmrs.module.fhir2.api.dao.FhirDao;
 import org.openmrs.module.fhir2.api.impl.BaseFhirService;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
 import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
-import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.openmrs.module.fhir2.api.translators.OpenmrsFhirTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -33,8 +31,6 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import static org.openmrs.module.fhir2.FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER;
 
 @Component
 @Primary
@@ -113,23 +109,13 @@ public class BahmniFhirEpisodeOfCareServiceImpl extends BaseFhirService<EpisodeO
 	}
 	
 	@Override
-	public IBundleProvider episodesForPatient(ReferenceAndListParam patientReference) {
-		//TODO: check the reference is not empty. No need to make unncessary db query
-		if (patientReference.getValuesAsQueryTokens().isEmpty()) {
+	public IBundleProvider episodesForPatient(BahmniEpisodeOfCareSearchParams searchParams) {
+		//TODO: check the reference is not empty. No need to make unnecessary db query
+		if (!searchParams.hasPatientReference()) {
 			logAndThrowUnsupportedExceptionForMissingPatientReference();
 		}
-		patientReference.getValuesAsQueryTokens().forEach(referenceOrListParam -> {
-			if (referenceOrListParam.getValuesAsQueryTokens().isEmpty()) {
-				logAndThrowUnsupportedExceptionForMissingPatientReference();
-			}
-			boolean match = referenceOrListParam.getValuesAsQueryTokens().stream().anyMatch(referenceParam -> StringUtils.isEmpty(referenceParam.getValue()));
-			if (match) {
-				logAndThrowUnsupportedExceptionForMissingPatientReference();
-			}
-		});
-		SearchParameterMap params = new SearchParameterMap();
-		params.addParameter(PATIENT_REFERENCE_SEARCH_HANDLER, patientReference);
-		return searchQuery.getQueryResults(params, fhirEpisodeOfCareDao, episodeTranslator, searchQueryInclude);
+		return searchQuery.getQueryResults(searchParams.toSearchParameterMap(), fhirEpisodeOfCareDao, episodeTranslator,
+		    searchQueryInclude);
 	}
 	
 	private void logAndThrowUnsupportedExceptionForMissingPatientReference() {

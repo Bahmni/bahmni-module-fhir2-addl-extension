@@ -1,20 +1,29 @@
 package org.bahmni.module.fhir2AddlExtension.api.providers;
 
+import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.rest.annotation.Create;
 import ca.uhn.fhir.rest.annotation.IdParam;
+import ca.uhn.fhir.rest.annotation.IncludeParam;
+import ca.uhn.fhir.rest.annotation.OptionalParam;
 import ca.uhn.fhir.rest.annotation.Read;
 import ca.uhn.fhir.rest.annotation.RequiredParam;
 import ca.uhn.fhir.rest.annotation.ResourceParam;
 import ca.uhn.fhir.rest.annotation.Search;
+import ca.uhn.fhir.rest.annotation.Sort;
 import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
+import ca.uhn.fhir.rest.api.SortSpec;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
+import ca.uhn.fhir.rest.param.DateRangeParam;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
+import ca.uhn.fhir.rest.param.TokenAndListParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
+import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniEpisodeOfCareSearchParams;
 import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirEpisodeOfCareService;
 import org.hl7.fhir.instance.model.api.IBaseResource;
+import org.hl7.fhir.r4.model.Encounter;
 import org.hl7.fhir.r4.model.EpisodeOfCare;
 import org.hl7.fhir.r4.model.IdType;
 import org.hl7.fhir.r4.model.Patient;
@@ -23,6 +32,8 @@ import org.openmrs.module.fhir2.providers.util.FhirProviderUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
+
+import java.util.HashSet;
 
 @Component("bahmniEpisodeOfCareFhirR4ResourceProvider")
 @R4Provider
@@ -57,9 +68,15 @@ public class EpisodeOfCareFhirR4ResourceProvider implements IResourceProvider {
 	}
 	
 	@Search
-	public IBundleProvider searchEpisodesOfCare(@RequiredParam(name = EpisodeOfCare.SP_PATIENT, chainWhitelist = { "",
-	        Patient.SP_IDENTIFIER }, targetTypes = Patient.class) ReferenceAndListParam patientReference) {
-		return episodeOfCareService.episodesForPatient(patientReference);
+	public IBundleProvider searchEpisodesOfCare(
+	        @RequiredParam(name = EpisodeOfCare.SP_PATIENT, chainWhitelist = { "", Patient.SP_IDENTIFIER }, targetTypes = Patient.class) ReferenceAndListParam patientReference,
+	        @OptionalParam(name = EpisodeOfCare.SP_RES_ID) TokenAndListParam id,
+	        @OptionalParam(name = "_lastUpdated") DateRangeParam lastUpdated,
+	        @IncludeParam(reverse = true, allow = { "Encounter:" + Encounter.SP_EPISODE_OF_CARE }) HashSet<Include> revIncludes,
+	        @Sort SortSpec sort) {
+		BahmniEpisodeOfCareSearchParams bahmniEpisodeOfCareSearchParams = new BahmniEpisodeOfCareSearchParams(
+		        patientReference, id, lastUpdated, revIncludes, sort);
+		return episodeOfCareService.episodesForPatient(bahmniEpisodeOfCareSearchParams);
 	}
 	
 	@Update

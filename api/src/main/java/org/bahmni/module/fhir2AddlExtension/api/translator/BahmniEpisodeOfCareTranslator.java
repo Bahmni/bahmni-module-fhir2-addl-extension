@@ -9,5 +9,6 @@ import org.openmrs.module.fhir2.api.translators.OpenmrsFhirUpdatableTranslator;
 import java.util.Date;
 
 public interface BahmniEpisodeOfCareTranslator extends OpenmrsFhirTranslator<Episode, EpisodeOfCare>, OpenmrsFhirUpdatableTranslator<Episode, EpisodeOfCare> {
+	
 	EpisodeStatusHistory toOpenmrsEpisodeStatusHistory(EpisodeOfCare episodeOfCare, Date defaultStartDate);
 }

@@ -3,7 +3,9 @@ package org.bahmni.module.fhir2AddlExtension.api.service.impl;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.ReferenceOrListParam;
 import ca.uhn.fhir.rest.param.ReferenceParam;
+import ca.uhn.fhir.rest.param.TokenAndListParam;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirEpisodeOfCareDao;
+import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniEpisodeOfCareSearchParams;
 import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirEpisodeOfCareService;
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniEpisodeOfCareTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.EpisodeOfCareStatusTranslator;
@@ -34,6 +36,7 @@ import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -47,7 +50,7 @@ public class BahmniFhirEpisodeOfCareServiceImplTest {
 	
 	@Mock
 	private BahmniFhirEpisodeOfCareDao fhirEpisodeOfCareDao;
-
+	
 	@Mock
 	private SearchQueryInclude<EpisodeOfCare> searchQueryInclude;
 	
@@ -71,7 +74,7 @@ public class BahmniFhirEpisodeOfCareServiceImplTest {
 	
 	@Mock
 	PractitionerReferenceTranslator<User> providerReferenceTranslator;
-
+	
 	@Before
 	public void setup() {
 		when(userContext.getAuthenticatedUser()).thenReturn(user);
@@ -80,9 +83,9 @@ public class BahmniFhirEpisodeOfCareServiceImplTest {
 		Context.setUserContext(userContext);
 		BahmniEpisodeOfCareStatusTranslatorImpl statusTranslator = new BahmniEpisodeOfCareStatusTranslatorImpl();
 		statusTranslator.initialize();
-
-		BahmniEpisodeOfCareTranslator episodeTranslator = new BahmniEpisodeOfCareTranslatorImpl(patientReferenceTranslator, conceptTranslator,
-				providerReferenceTranslator, statusTranslator);
+		
+		BahmniEpisodeOfCareTranslator episodeTranslator = new BahmniEpisodeOfCareTranslatorImpl(patientReferenceTranslator,
+		        conceptTranslator, providerReferenceTranslator, statusTranslator);
 		
 		episodeOfCareService = new TestBahmniFhirEpisodeOfCareServiceImpl(fhirEpisodeOfCareDao, episodeTranslator,
 		        searchQueryInclude, statusTranslator, searchQuery);
@@ -90,14 +93,16 @@ public class BahmniFhirEpisodeOfCareServiceImplTest {
 	
 	@Test(expected = UnsupportedOperationException.class)
 	public void shouldThrowErrorIfPatientReferenceIsNotProvided() {
-		episodeOfCareService.episodesForPatient(new ReferenceAndListParam());
+		BahmniEpisodeOfCareSearchParams searchParams = new BahmniEpisodeOfCareSearchParams(new ReferenceAndListParam(), new TokenAndListParam(), null, new HashSet<>(), null);
+		episodeOfCareService.episodesForPatient(searchParams);
 	}
 	
 	@Test(expected = UnsupportedOperationException.class)
 	public void shouldThrowErrorIfPatientReferenceValueIsNotProvided() {
 		ReferenceAndListParam listParam = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
 		        .add(new ReferenceParam().setValue("").setChain(EpisodeOfCare.SP_PATIENT)));
-		episodeOfCareService.episodesForPatient(listParam);
+		BahmniEpisodeOfCareSearchParams searchParams = new BahmniEpisodeOfCareSearchParams(listParam, null, null, new HashSet<>(), null);
+		episodeOfCareService.episodesForPatient(searchParams);
 	}
 	
 	@Test
