@@ -7,6 +7,11 @@ import org.hl7.fhir.instance.model.api.IBaseResource;
 import javax.annotation.Nonnull;
 import java.util.List;
 
+/**
+ * OpenMRS Fhir2 SearchQueryIncludeImpl calls getResources(0, -1), which causes the hapi
+ * SimpleBundleProvider to throw error. To resolve that, here getResources() returns all resources
+ * when theToIndex is negative
+ */
 @Slf4j
 public class BahmniSimpleBundleProvider extends SimpleBundleProvider {
 	

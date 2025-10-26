@@ -6,7 +6,6 @@ import lombok.Setter;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniEpisodeOfCareEncounterDao;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
-import org.hibernate.query.Query;
 import org.openmrs.Encounter;
 import org.openmrs.module.episodes.Episode;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,20 +46,18 @@ public class BahmniEpisodeOfCareEncounterDaoImpl implements BahmniEpisodeOfCareE
 			)
 		);
 		ecq.where(eocRoot.get("uuid").in(episodeUuids));
-		Query<Object[]> query = currentSession.createQuery(ecq);
-		List<Object[]> encounterResults = query.getResultList();
+		List<Object[]> encounterResults = currentSession.createQuery(ecq).getResultList();
 
 		Map<String, List<Integer>> episodeUuidToEncounterIdMap = new HashMap<>();
 		for (Object[] row : encounterResults) {
-			String episodeUuid = (String) row[0];
-			Integer encounterId = (Integer) row[1];
-			List<Integer> episodeEncList = Optional.ofNullable(episodeUuidToEncounterIdMap.get(episodeUuid))
-					.orElseGet(() -> {
-						ArrayList<Integer> aList = new ArrayList<>();
-						episodeUuidToEncounterIdMap.put(episodeUuid, aList);
-						return aList;
-					});
-			episodeEncList.add(encounterId);
+			String rowEpisodeUuid = (String) row[0];
+			Integer rowEncounterId = (Integer) row[1];
+			Optional.ofNullable(episodeUuidToEncounterIdMap.get(rowEpisodeUuid))
+				.orElseGet(() -> {
+					ArrayList<Integer> aList = new ArrayList<>();
+					episodeUuidToEncounterIdMap.put(rowEpisodeUuid, aList);
+					return aList;
+				}).add(rowEncounterId);
 		}
 
 		List<Integer> encounterIds = episodeUuidToEncounterIdMap.values()
@@ -69,18 +66,18 @@ public class BahmniEpisodeOfCareEncounterDaoImpl implements BahmniEpisodeOfCareE
 				.collect(Collectors.toList());
 
 		List<Encounter> encounters = currentSession
-		        .createQuery("from Encounter e where e.encounterId in (:encounterIds)", Encounter.class)
-		        .setParameterList("encounterIds", encounterIds).list();
-
+		        .createQuery("FROM Encounter e WHERE e.encounterId IN (:encounterIds)", Encounter.class)
+		        .setParameterList("encounterIds", encounterIds)
+				.list();
 
 		Map<String, List<Encounter>> episodeUuidToEncountersMap = new HashMap<>();
-		episodeUuidToEncounterIdMap.forEach((episodeUuid, mappedEncounterIds) -> {
-			List<Encounter> encounterForEpisode = encounters.stream()
-					.filter(encounter -> mappedEncounterIds.contains(encounter.getEncounterId()))
-					.collect(Collectors.toList());
-			episodeUuidToEncountersMap.put(episodeUuid, encounterForEpisode);
-
-		});
+		episodeUuidToEncounterIdMap
+				.forEach((episodeUuid, mappedEncounterIds)
+					-> episodeUuidToEncountersMap
+						.put(episodeUuid,
+								encounters.stream()
+								.filter(encounter -> mappedEncounterIds.contains(encounter.getEncounterId()))
+								.collect(Collectors.toList())));
 
 		return episodeUuidToEncountersMap;
 	}
