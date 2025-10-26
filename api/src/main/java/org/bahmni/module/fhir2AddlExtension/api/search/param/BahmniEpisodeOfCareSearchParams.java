@@ -60,4 +60,11 @@ public class BahmniEpisodeOfCareSearchParams extends BaseResourceSearchParams {
         }
         return hasParam;
     }
+	
+	public boolean hasId() {
+		TokenAndListParam idParam = getId();
+		if (idParam == null)
+			return false;
+		return !idParam.getValuesAsQueryTokens().isEmpty();
+	}
 }

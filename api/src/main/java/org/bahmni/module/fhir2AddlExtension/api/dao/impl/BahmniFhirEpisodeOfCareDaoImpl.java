@@ -21,6 +21,9 @@ public class BahmniFhirEpisodeOfCareDaoImpl extends BaseFhirDao<Episode> impleme
                     param.getValue().forEach(patientReference -> handlePatientReference(criteria,
                             (ReferenceAndListParam) patientReference.getParam(), "patient"));
                     break;
+                case FhirConstants.COMMON_SEARCH_HANDLER:
+                    handleCommonSearchParameters(param.getValue()).ifPresent(criteria::add);
+                    break;
             }
         });
     }

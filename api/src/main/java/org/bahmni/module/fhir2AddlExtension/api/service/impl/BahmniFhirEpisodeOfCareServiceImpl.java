@@ -38,9 +38,9 @@ import java.util.stream.Collectors;
 @Slf4j
 public class BahmniFhirEpisodeOfCareServiceImpl extends BaseFhirService<EpisodeOfCare, Episode> implements BahmniFhirEpisodeOfCareService {
 	
-	public static final String PATIENT_IDENTIFIER_OR_REFERENCE_MUST_BE_SPECIFIED = "You must specify patient identifier or reference!";
+	public static final String PATIENT_IDENTIFIER_OR_REFERENCE_OR_RES_ID_MUST_BE_SPECIFIED = "You must specify patient identifier or reference or resource _id!";
 	
-	public static final String MISSING_PATIENT_IDENTIFIER_OR_ID = "Missing patient identifier or id";
+	public static final String MISSING_PATIENT_IDENTIFIER_OR_RES_ID = "Missing patient identifier/id or resource id";
 	
 	private final BahmniFhirEpisodeOfCareDao fhirEpisodeOfCareDao;
 	
@@ -110,17 +110,16 @@ public class BahmniFhirEpisodeOfCareServiceImpl extends BaseFhirService<EpisodeO
 	
 	@Override
 	public IBundleProvider episodesForPatient(BahmniEpisodeOfCareSearchParams searchParams) {
-		//TODO: check the reference is not empty. No need to make unnecessary db query
-		if (!searchParams.hasPatientReference()) {
-			logAndThrowUnsupportedExceptionForMissingPatientReference();
+		if (!searchParams.hasPatientReference() && !searchParams.hasId()) {
+			logAndThrowUnsupportedExceptionForMissingPatientOrResourceId();
 		}
 		return searchQuery.getQueryResults(searchParams.toSearchParameterMap(), fhirEpisodeOfCareDao, episodeTranslator,
 		    searchQueryInclude);
 	}
 	
-	private void logAndThrowUnsupportedExceptionForMissingPatientReference() {
-		log.error(MISSING_PATIENT_IDENTIFIER_OR_ID);
-		throw new UnsupportedOperationException(PATIENT_IDENTIFIER_OR_REFERENCE_MUST_BE_SPECIFIED);
+	private void logAndThrowUnsupportedExceptionForMissingPatientOrResourceId() {
+		log.error(MISSING_PATIENT_IDENTIFIER_OR_RES_ID);
+		throw new UnsupportedOperationException(PATIENT_IDENTIFIER_OR_REFERENCE_OR_RES_ID_MUST_BE_SPECIFIED);
 	}
 	
 	/**

@@ -6,7 +6,6 @@ import ca.uhn.fhir.rest.annotation.IdParam;
 import ca.uhn.fhir.rest.annotation.IncludeParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
 import ca.uhn.fhir.rest.annotation.Read;
-import ca.uhn.fhir.rest.annotation.RequiredParam;
 import ca.uhn.fhir.rest.annotation.ResourceParam;
 import ca.uhn.fhir.rest.annotation.Search;
 import ca.uhn.fhir.rest.annotation.Sort;
@@ -69,7 +68,7 @@ public class EpisodeOfCareFhirR4ResourceProvider implements IResourceProvider {
 	
 	@Search
 	public IBundleProvider searchEpisodesOfCare(
-	        @RequiredParam(name = EpisodeOfCare.SP_PATIENT, chainWhitelist = { "", Patient.SP_IDENTIFIER }, targetTypes = Patient.class) ReferenceAndListParam patientReference,
+	        @OptionalParam(name = EpisodeOfCare.SP_PATIENT, chainWhitelist = { "", Patient.SP_IDENTIFIER }, targetTypes = Patient.class) ReferenceAndListParam patientReference,
 	        @OptionalParam(name = EpisodeOfCare.SP_RES_ID) TokenAndListParam id,
 	        @OptionalParam(name = "_lastUpdated") DateRangeParam lastUpdated,
 	        @IncludeParam(reverse = true, allow = { "Encounter:" + Encounter.SP_EPISODE_OF_CARE }) HashSet<Include> revIncludes,
