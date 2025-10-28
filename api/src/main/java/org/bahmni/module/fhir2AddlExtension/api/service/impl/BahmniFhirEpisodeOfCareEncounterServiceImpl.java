@@ -61,8 +61,8 @@ public class BahmniFhirEpisodeOfCareEncounterServiceImpl implements BahmniFhirEp
 			allFhirEncounterResources.addAll(fhirEncounters);
 		});
 
-		BahmniSimpleBundleProvider simpleBundleProvider = new BahmniSimpleBundleProvider(allFhirEncounterResources);
-		simpleBundleProvider.setPreferredPageSize(allFhirEncounterResources.size());
-		return simpleBundleProvider;
+		BahmniSimpleBundleProvider bundleProvider = new BahmniSimpleBundleProvider(allFhirEncounterResources);
+		bundleProvider.setPreferredPageSize(allFhirEncounterResources.size());
+		return bundleProvider;
 	}
 }

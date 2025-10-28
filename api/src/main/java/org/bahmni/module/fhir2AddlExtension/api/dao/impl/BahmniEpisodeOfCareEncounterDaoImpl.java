@@ -70,15 +70,15 @@ public class BahmniEpisodeOfCareEncounterDaoImpl implements BahmniEpisodeOfCareE
 		        .setParameterList("encounterIds", encounterIds)
 				.list();
 
-		Map<String, List<Encounter>> episodeUuidToEncountersMap = new HashMap<>();
+		Map<String, List<Encounter>> mappedResults = new HashMap<>();
 		episodeUuidToEncounterIdMap
 				.forEach((episodeUuid, mappedEncounterIds)
-					-> episodeUuidToEncountersMap
+					-> mappedResults
 						.put(episodeUuid,
 								encounters.stream()
 								.filter(encounter -> mappedEncounterIds.contains(encounter.getEncounterId()))
 								.collect(Collectors.toList())));
 
-		return episodeUuidToEncountersMap;
+		return mappedResults;
 	}
 }
