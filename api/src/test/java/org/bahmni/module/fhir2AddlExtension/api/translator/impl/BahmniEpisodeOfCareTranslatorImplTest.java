@@ -171,7 +171,7 @@ public class BahmniEpisodeOfCareTranslatorImplTest {
 		when(conceptTranslator.toFhirResource(reasonValue2)).thenReturn(valueConcept2);
 
 		EpisodeOfCare episodeOfCare = episodeOfCareTranslator.toFhirResource(episode);
-		prettyPrint(episodeOfCare);
+		//prettyPrint(episodeOfCare);
 		assertThat(episodeOfCare, notNullValue());
 		assertThat(episodeOfCare.getId(), notNullValue());
 

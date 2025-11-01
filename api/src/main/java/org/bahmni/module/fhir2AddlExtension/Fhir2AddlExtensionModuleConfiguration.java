@@ -11,10 +11,6 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class Fhir2AddlExtensionModuleConfiguration {
 	
-	@Autowired
-	@Qualifier("adminService")
-	private AdministrationService administrationService;
-	
 	@Bean
 	public IParser getFhirJsonParser() {
 		return FhirContext.forR4().newJsonParser();

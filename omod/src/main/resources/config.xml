@@ -61,8 +61,6 @@
 	</servlet>
 	-->
 	<!-- /Servlets -->
-
-
 	<!-- Internationalization -->
 	<!-- All message codes should start with @MODULE_ID@.* -->
 	<aware_of_modules>
@@ -74,6 +72,11 @@
 		<require_module>org.openmrs.module.webservices.rest</require_module>
 		<require_module>org.openmrs.module.episodes</require_module>
 	</require_modules>
+
+	<mappingFiles>
+		DocumentReference.hbm.xml
+		DocumentReferenceContent.hbm.xml
+	</mappingFiles>
 
 	<messages>
 		<lang>en</lang>
@@ -87,6 +90,6 @@
 		<lang>es</lang>
 		<file>messages_es.properties</file>
 	</messages>
-	<!-- /Internationalization -->
 
+	<!-- /Internationalization -->
 </module>
