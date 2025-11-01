@@ -5,5 +5,6 @@ import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttri
 import java.util.List;
 
 public interface DocumentReferenceAttributeTypeDao {
-    List<FhirDocumentReferenceAttributeType> getAttributeTypes(boolean includeRetired);
+	
+	List<FhirDocumentReferenceAttributeType> getAttributeTypes(boolean includeRetired);
 }

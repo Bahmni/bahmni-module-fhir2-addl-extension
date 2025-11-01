@@ -21,6 +21,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Concept;
 import org.openmrs.ConceptName;
 import org.openmrs.Patient;
+import org.openmrs.Provider;
 import org.openmrs.User;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.context.UserContext;
@@ -60,7 +61,7 @@ public class BahmniEpisodeOfCareTranslatorImplTest {
 	private PatientReferenceTranslator patientReferenceTranslator;
 	
 	@Mock
-	PractitionerReferenceTranslator<User> providerReferenceTranslator;
+	PractitionerReferenceTranslator<Provider> providerReferenceTranslator;
 	
 	@Mock
 	private ContextDAO contextDAO;

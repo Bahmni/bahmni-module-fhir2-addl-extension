@@ -68,10 +68,10 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
 	
 	@Autowired
 	public DocumentReferenceTranslatorImpl(PatientReferenceTranslator patientReferenceTranslator,
-										   ConceptTranslator conceptTranslator, DocumentReferenceStatusTranslator statusTranslator,
-										   EncounterReferenceTranslator<Encounter> encounterReferenceTranslator,
-										   PractitionerReferenceTranslator<Provider> providerReferenceTranslator,
-										   DocumentReferenceAttributeExtensionTranslator attributeExtensionTranslator) {
+	    ConceptTranslator conceptTranslator, DocumentReferenceStatusTranslator statusTranslator,
+	    EncounterReferenceTranslator<Encounter> encounterReferenceTranslator,
+	    PractitionerReferenceTranslator<Provider> providerReferenceTranslator,
+	    DocumentReferenceAttributeExtensionTranslator attributeExtensionTranslator) {
 		this.patientReferenceTranslator = patientReferenceTranslator;
 		this.conceptTranslator = conceptTranslator;
 		this.statusTranslator = statusTranslator;
@@ -167,7 +167,7 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
 		
 		return newOrExistingDoc;
 	}
-
+	
 	private void mapExtensionsToDocumentAttributes(FhirDocumentReference newOrExistingDoc, DocumentReference resource, User authenticatedUser) {
 		if (!resource.hasExtension()) {
 			return;
@@ -192,7 +192,7 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
 		});
 
 	}
-
+	
 	private void mapProviderToFhirDocument(DocumentReference documentReference, FhirDocumentReference docRef) {
         Optional.ofNullable(docRef.getProvider())
             .ifPresent(provider -> {

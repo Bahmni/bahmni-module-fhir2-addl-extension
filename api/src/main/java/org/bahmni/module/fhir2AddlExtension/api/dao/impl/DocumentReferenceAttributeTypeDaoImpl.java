@@ -15,22 +15,24 @@ import java.util.List;
 
 @Component
 public class DocumentReferenceAttributeTypeDaoImpl implements DocumentReferenceAttributeTypeDao {
-
-    private static final String SELECT_ALL_ATTRIBUTETYPES = "FROM FhirDocumentReferenceAttributeType";
-    private static final String SELECT_ALL_ACTIVE_ATTRIBUTETYPES = "FROM FhirDocumentReferenceAttributeType dat WHERE dat.retied = false";
-
-    @Getter(AccessLevel.PUBLIC)
-    @Setter(value = AccessLevel.PROTECTED, onMethod = @__({ @Autowired, @Qualifier("sessionFactory") }))
-    private SessionFactory sessionFactory;
-
-    @Override
-    @Cacheable( value = "fhir2addlextensionDocAttributeType" )
-    public List<FhirDocumentReferenceAttributeType> getAttributeTypes(boolean includeRetired) {
-        if (includeRetired) {
-            return sessionFactory.getCurrentSession().createQuery(SELECT_ALL_ATTRIBUTETYPES, FhirDocumentReferenceAttributeType.class).list();
-        }
-        return sessionFactory.getCurrentSession().createQuery(SELECT_ALL_ACTIVE_ATTRIBUTETYPES, FhirDocumentReferenceAttributeType.class).list();
-    }
-
-
+	
+	private static final String SELECT_ALL_ATTRIBUTETYPES = "FROM FhirDocumentReferenceAttributeType";
+	
+	private static final String SELECT_ALL_ACTIVE_ATTRIBUTETYPES = "FROM FhirDocumentReferenceAttributeType dat WHERE dat.retied = false";
+	
+	@Getter(AccessLevel.PUBLIC)
+	@Setter(value = AccessLevel.PROTECTED, onMethod = @__({ @Autowired, @Qualifier("sessionFactory") }))
+	private SessionFactory sessionFactory;
+	
+	@Override
+	@Cacheable(value = "fhir2addlextensionDocAttributeType")
+	public List<FhirDocumentReferenceAttributeType> getAttributeTypes(boolean includeRetired) {
+		if (includeRetired) {
+			return sessionFactory.getCurrentSession()
+			        .createQuery(SELECT_ALL_ATTRIBUTETYPES, FhirDocumentReferenceAttributeType.class).list();
+		}
+		return sessionFactory.getCurrentSession()
+		        .createQuery(SELECT_ALL_ACTIVE_ATTRIBUTETYPES, FhirDocumentReferenceAttributeType.class).list();
+	}
+	
 }

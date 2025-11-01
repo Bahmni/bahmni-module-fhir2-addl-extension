@@ -20,22 +20,23 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Component
-public class DefaultDocumentReferenceAttributeTranslatorImpl implements DocumentReferenceAttributeTranslator  {
-    private static final String DOC_REF_ATTR_EXT_URL = BahmniFhirConstants.FHIR_EXT_DOCUMENT_REFERENCE_ATTRIBUTE + "#";
-    private final DocumentReferenceAttributeTypeDao attributeTypeDao;
-
-    @Autowired
-    public DefaultDocumentReferenceAttributeTranslatorImpl(DocumentReferenceAttributeTypeDao attributeTypeDao) {
-        this.attributeTypeDao = attributeTypeDao;
-    }
-
-    @Override
-    public boolean supports(String extUrl) {
-        return extUrl != null && extUrl.startsWith(DOC_REF_ATTR_EXT_URL);
-    }
-
-
-    @Override
+public class DefaultDocumentReferenceAttributeTranslatorImpl implements DocumentReferenceAttributeTranslator {
+	
+	private static final String DOC_REF_ATTR_EXT_URL = BahmniFhirConstants.FHIR_EXT_DOCUMENT_REFERENCE_ATTRIBUTE + "#";
+	
+	private final DocumentReferenceAttributeTypeDao attributeTypeDao;
+	
+	@Autowired
+	public DefaultDocumentReferenceAttributeTranslatorImpl(DocumentReferenceAttributeTypeDao attributeTypeDao) {
+		this.attributeTypeDao = attributeTypeDao;
+	}
+	
+	@Override
+	public boolean supports(String extUrl) {
+		return extUrl != null && extUrl.startsWith(DOC_REF_ATTR_EXT_URL);
+	}
+	
+	@Override
     public List<FhirDocumentReferenceAttribute> toOpenmrsType(String extUrl, List<Extension> extensions) {
         if (!supports(extUrl)) {
             return Collections.emptyList();

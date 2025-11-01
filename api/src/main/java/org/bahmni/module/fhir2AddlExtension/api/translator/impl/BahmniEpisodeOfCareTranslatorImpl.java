@@ -11,6 +11,7 @@ import org.hl7.fhir.r4.model.Period;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.Type;
 import org.openmrs.Concept;
+import org.openmrs.Provider;
 import org.openmrs.User;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.episodes.Episode;
@@ -45,13 +46,13 @@ public class BahmniEpisodeOfCareTranslatorImpl implements BahmniEpisodeOfCareTra
 	
 	private final ConceptTranslator conceptTranslator;
 	
-	private final PractitionerReferenceTranslator<User> providerReferenceTranslator;
+	private final PractitionerReferenceTranslator<Provider> providerReferenceTranslator;
 	
 	private final EpisodeOfCareStatusTranslator statusTranslator;
 	
 	@Autowired
 	public BahmniEpisodeOfCareTranslatorImpl(PatientReferenceTranslator patientReferenceTranslator,
-	    ConceptTranslator conceptTranslator, PractitionerReferenceTranslator<User> providerReferenceTranslator,
+	    ConceptTranslator conceptTranslator, PractitionerReferenceTranslator<Provider> providerReferenceTranslator,
 	    EpisodeOfCareStatusTranslator statusTranslator) {
 		this.patientReferenceTranslator = patientReferenceTranslator;
 		this.conceptTranslator = conceptTranslator;
@@ -178,6 +179,9 @@ public class BahmniEpisodeOfCareTranslatorImpl implements BahmniEpisodeOfCareTra
             //TODO check if episode date started is null
             episode.setDateStarted(new Date());
         }
+		if (episodeOfCare.hasCareManager()) {
+			episode.setCareManager(providerReferenceTranslator.toOpenmrsType(episodeOfCare.getCareManager()));
+		}
 
         if (episodeOfCare.hasType()) {
             Set<Concept> episodeType = episodeOfCare.getType().stream()
