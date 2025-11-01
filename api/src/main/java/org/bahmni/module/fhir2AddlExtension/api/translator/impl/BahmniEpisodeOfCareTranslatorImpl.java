@@ -11,6 +11,7 @@ import org.hl7.fhir.r4.model.Period;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.Type;
 import org.openmrs.Concept;
+import org.openmrs.Provider;
 import org.openmrs.User;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.episodes.Episode;
@@ -28,7 +29,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -45,13 +45,13 @@ public class BahmniEpisodeOfCareTranslatorImpl implements BahmniEpisodeOfCareTra
 	
 	private final ConceptTranslator conceptTranslator;
 	
-	private final PractitionerReferenceTranslator<User> providerReferenceTranslator;
+	private final PractitionerReferenceTranslator<Provider> providerReferenceTranslator;
 	
 	private final EpisodeOfCareStatusTranslator statusTranslator;
 	
 	@Autowired
 	public BahmniEpisodeOfCareTranslatorImpl(PatientReferenceTranslator patientReferenceTranslator,
-	    ConceptTranslator conceptTranslator, PractitionerReferenceTranslator<User> providerReferenceTranslator,
+	    ConceptTranslator conceptTranslator, PractitionerReferenceTranslator<Provider> providerReferenceTranslator,
 	    EpisodeOfCareStatusTranslator statusTranslator) {
 		this.patientReferenceTranslator = patientReferenceTranslator;
 		this.conceptTranslator = conceptTranslator;
@@ -69,7 +69,7 @@ public class BahmniEpisodeOfCareTranslatorImpl implements BahmniEpisodeOfCareTra
 		episodeOfCare.getMeta().setLastUpdated(getLastUpdated(episode));
 		episodeOfCare.getMeta().setVersionId(getVersionId(episode));
 		episodeOfCare.setStatus(statusTranslator.toFhirType(episode.getStatus()));
-		episodeOfCare.setType(Collections.singletonList(conceptTranslator.toFhirResource(episode.getConcept())));
+		episodeOfCare.setType(Collections.singletonList(conceptTranslator.toFhirResource(episode.getEpisodeType())));
 		toFhirEpisodeOfCareReasonAsExtension(episodeOfCare, episode);
 		toFhirEpisodeOfCareStatusHistory(episodeOfCare, episode);
 		if (episode.getCareManager() != null) {
@@ -160,7 +160,7 @@ public class BahmniEpisodeOfCareTranslatorImpl implements BahmniEpisodeOfCareTra
         }
 
         User authenticatedUser = Context.getUserContext().getAuthenticatedUser();
-        if (episode.getUuid() == null) {
+        if (episode.getEpisodeId() == null || episode.getEpisodeId() == 0) {
             episode.setCreator(authenticatedUser);
             episode.setDateCreated(new Date());
         } else {
@@ -187,7 +187,7 @@ public class BahmniEpisodeOfCareTranslatorImpl implements BahmniEpisodeOfCareTra
                 throw new InvalidRequestException("Can not find reference to episode type");
             }
             //if there are more than 1 distinct, then taking the first one.
-            episode.setConcept(episodeType.stream().findFirst().get());
+            episode.setEpisodeType(episodeType.stream().findFirst().get());
         }
 
         if (episodeOfCare.hasStatus()) {
@@ -235,7 +235,7 @@ public class BahmniEpisodeOfCareTranslatorImpl implements BahmniEpisodeOfCareTra
 							return conceptTranslator.toOpenmrsType((CodeableConcept) value);
 						}
 						return null;
-					}).filter(Objects::nonNull);
+					});
 			List<Extension> valueExtensions = eocReason.getExtensionsByUrl("value");
 			if (valueExtensions.isEmpty()) {
 				continue;
@@ -244,13 +244,13 @@ public class BahmniEpisodeOfCareTranslatorImpl implements BahmniEpisodeOfCareTra
 				Optional<Concept> valueConcept = valueExtn.getExtensionsByUrl("concept").stream().findFirst().map(extension -> {
 					Type value = extension.getValue();
 					return value instanceof CodeableConcept ? conceptTranslator.toOpenmrsType((CodeableConcept) value) : null;
-				}).filter(Objects::nonNull);
+				});
 
 				if (valueConcept.isPresent()) {
 					Optional<String> valueReference = valueExtn.getExtensionsByUrl("valueReference").stream().findFirst().map(extension -> {
 						Type value = extension.getValue();
 						return value instanceof Reference ? ((Reference) value).getReference() : null;
-					}).filter(Objects::nonNull);
+					});
 					EpisodeReason aReason = constructEpisodeReason(reasonUseConcept, valueConcept, valueReference, authenticatedUser);
 					specifiedReasons.add(aReason);
 				}

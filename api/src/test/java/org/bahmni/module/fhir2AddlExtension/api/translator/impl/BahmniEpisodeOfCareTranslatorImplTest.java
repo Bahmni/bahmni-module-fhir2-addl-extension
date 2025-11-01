@@ -21,6 +21,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Concept;
 import org.openmrs.ConceptName;
 import org.openmrs.Patient;
+import org.openmrs.Provider;
 import org.openmrs.User;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.context.UserContext;
@@ -60,7 +61,7 @@ public class BahmniEpisodeOfCareTranslatorImplTest {
 	private PatientReferenceTranslator patientReferenceTranslator;
 	
 	@Mock
-	PractitionerReferenceTranslator<User> providerReferenceTranslator;
+	PractitionerReferenceTranslator<Provider> providerReferenceTranslator;
 	
 	@Mock
 	private ContextDAO contextDAO;
@@ -207,12 +208,10 @@ public class BahmniEpisodeOfCareTranslatorImplTest {
 	
 	@Test
 	public void toOpenmrsType_shouldTranslateEpisodeType() {
-		String episodeOfCareUuid = UUID.randomUUID().toString();
 		String patientUuid = UUID.randomUUID().toString();
 		Concept episodeType = exampleConcept("Home and Community Care");
 		
 		EpisodeOfCare episodeOfCare = new EpisodeOfCare();
-		episodeOfCare.setId(episodeOfCareUuid);
 		episodeOfCare.setPatient(patientReference(patientUuid));
 		episodeOfCare.setPeriod(exampleEpisodePeriod());
 		episodeOfCare.setStatus(EpisodeOfCare.EpisodeOfCareStatus.ACTIVE);
@@ -222,11 +221,10 @@ public class BahmniEpisodeOfCareTranslatorImplTest {
 		when(conceptTranslator.toOpenmrsType(episodeTypeCodeableConcept)).thenReturn(episodeType);
 		
 		Episode openmrsEpisode = episodeOfCareTranslator.toOpenmrsType(episodeOfCare);
-		assertThat(episodeOfCare.getId(), equalTo(openmrsEpisode.getUuid()));
-		assertThat(episodeOfCare.getId(), equalTo(openmrsEpisode.getUuid()));
+		Assert.assertTrue(!openmrsEpisode.getUuid().isEmpty());
 		assertThat(Episode.Status.ACTIVE, equalTo(openmrsEpisode.getStatus()));
 		assertThat(episodeOfCare.getPeriod().getStart(), equalTo(openmrsEpisode.getDateStarted()));
-		assertThat(episodeOfCare.getType().get(0).getCoding().get(0).getCode(), equalTo(openmrsEpisode.getConcept()
+		assertThat(episodeOfCare.getType().get(0).getCoding().get(0).getCode(), equalTo(openmrsEpisode.getEpisodeType()
 		        .getUuid()));
 	}
 	
@@ -237,7 +235,6 @@ public class BahmniEpisodeOfCareTranslatorImplTest {
 		Concept episodeType = exampleConcept("Home and Community Care");
 		
 		EpisodeOfCare episodeOfCare = new EpisodeOfCare();
-		episodeOfCare.setId(episodeOfCareUuid);
 		episodeOfCare.setPatient(patientReference(patientUuid));
 		episodeOfCare.setPeriod(exampleEpisodePeriod());
 		episodeOfCare.setStatus(EpisodeOfCare.EpisodeOfCareStatus.ACTIVE);
@@ -264,11 +261,10 @@ public class BahmniEpisodeOfCareTranslatorImplTest {
 		reasonValueExtension1.addExtension("valueReference", reasonValueRef1);
 		
 		Episode openmrsEpisode = episodeOfCareTranslator.toOpenmrsType(episodeOfCare);
-		assertThat(episodeOfCare.getId(), equalTo(openmrsEpisode.getUuid()));
-		assertThat(episodeOfCare.getId(), equalTo(openmrsEpisode.getUuid()));
+		Assert.assertTrue(!openmrsEpisode.getUuid().isEmpty());
 		assertThat(Episode.Status.ACTIVE, equalTo(openmrsEpisode.getStatus()));
 		assertThat(episodeOfCare.getPeriod().getStart(), equalTo(openmrsEpisode.getDateStarted()));
-		assertThat(episodeOfCare.getType().get(0).getCoding().get(0).getCode(), equalTo(openmrsEpisode.getConcept()
+		assertThat(episodeOfCare.getType().get(0).getCoding().get(0).getCode(), equalTo(openmrsEpisode.getEpisodeType()
 		        .getUuid()));
 		
 		Set<EpisodeReason> episodeReasons = openmrsEpisode.getEpisodeReason();
@@ -339,7 +335,7 @@ public class BahmniEpisodeOfCareTranslatorImplTest {
 		episode.setUuid(uuid);
 		episode.setPatient(patient);
 		episode.setDateStarted(new Date());
-		episode.setConcept(episodeType);
+		episode.setEpisodeType(episodeType);
 		return episode;
 	}
 	

@@ -23,6 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Concept;
 import org.openmrs.Patient;
+import org.openmrs.Provider;
 import org.openmrs.User;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.context.UserContext;
@@ -73,7 +74,7 @@ public class BahmniFhirEpisodeOfCareServiceImplTest {
 	private PatientReferenceTranslator patientReferenceTranslator;
 	
 	@Mock
-	PractitionerReferenceTranslator<User> providerReferenceTranslator;
+	PractitionerReferenceTranslator<Provider> providerReferenceTranslator;
 	
 	@Before
 	public void setup() {
@@ -162,7 +163,7 @@ public class BahmniFhirEpisodeOfCareServiceImplTest {
 		episode.setUuid(uuid);
 		episode.setPatient(patient);
 		episode.setDateStarted(new Date());
-		episode.setConcept(concept);
+		episode.setEpisodeType(concept);
 		return episode;
 	}
 	
