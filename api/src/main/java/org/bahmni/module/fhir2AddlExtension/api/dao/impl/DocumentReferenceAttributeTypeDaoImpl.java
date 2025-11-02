@@ -18,7 +18,7 @@ public class DocumentReferenceAttributeTypeDaoImpl implements DocumentReferenceA
 	
 	private static final String SELECT_ALL_ATTRIBUTETYPES = "FROM FhirDocumentReferenceAttributeType";
 	
-	private static final String SELECT_ALL_ACTIVE_ATTRIBUTETYPES = "FROM FhirDocumentReferenceAttributeType dat WHERE dat.retied = false";
+	private static final String SELECT_ALL_ACTIVE_ATTRIBUTETYPES = "FROM FhirDocumentReferenceAttributeType dat WHERE dat.retired = false";
 	
 	@Getter(AccessLevel.PUBLIC)
 	@Setter(value = AccessLevel.PROTECTED, onMethod = @__({ @Autowired, @Qualifier("sessionFactory") }))

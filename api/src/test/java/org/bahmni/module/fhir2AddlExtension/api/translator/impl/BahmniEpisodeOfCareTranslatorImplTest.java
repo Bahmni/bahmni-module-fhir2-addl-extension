@@ -227,7 +227,7 @@ public class BahmniEpisodeOfCareTranslatorImplTest {
 		assertThat(episodeOfCare.getId(), equalTo(openmrsEpisode.getUuid()));
 		assertThat(Episode.Status.ACTIVE, equalTo(openmrsEpisode.getStatus()));
 		assertThat(episodeOfCare.getPeriod().getStart(), equalTo(openmrsEpisode.getDateStarted()));
-		assertThat(episodeOfCare.getType().get(0).getCoding().get(0).getCode(), equalTo(openmrsEpisode.getConcept()
+		assertThat(episodeOfCare.getType().get(0).getCoding().get(0).getCode(), equalTo(openmrsEpisode.getEpisodeType()
 		        .getUuid()));
 	}
 	
@@ -269,7 +269,7 @@ public class BahmniEpisodeOfCareTranslatorImplTest {
 		assertThat(episodeOfCare.getId(), equalTo(openmrsEpisode.getUuid()));
 		assertThat(Episode.Status.ACTIVE, equalTo(openmrsEpisode.getStatus()));
 		assertThat(episodeOfCare.getPeriod().getStart(), equalTo(openmrsEpisode.getDateStarted()));
-		assertThat(episodeOfCare.getType().get(0).getCoding().get(0).getCode(), equalTo(openmrsEpisode.getConcept()
+		assertThat(episodeOfCare.getType().get(0).getCoding().get(0).getCode(), equalTo(openmrsEpisode.getEpisodeType()
 		        .getUuid()));
 		
 		Set<EpisodeReason> episodeReasons = openmrsEpisode.getEpisodeReason();
@@ -340,7 +340,7 @@ public class BahmniEpisodeOfCareTranslatorImplTest {
 		episode.setUuid(uuid);
 		episode.setPatient(patient);
 		episode.setDateStarted(new Date());
-		episode.setConcept(episodeType);
+		episode.setEpisodeType(episodeType);
 		return episode;
 	}
 	

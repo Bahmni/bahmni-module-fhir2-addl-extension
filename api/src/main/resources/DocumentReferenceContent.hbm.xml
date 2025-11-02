@@ -16,7 +16,7 @@
         <many-to-one name="documentReference" class="org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReference"
                      not-null="true" column="document_reference_id"/>
 
-        <property name="contentFormat" type="java.lang.String" column="content_format" not-null="true" length="255"/>
+        <property name="contentFormat" type="java.lang.String" column="content_format" not-null="false" length="255"/>
         <property name="contentType" type="java.lang.String" column="content_type" not-null="true" length="255"/>
         <property name="contentUrl" type="java.lang.String" column="content_url" not-null="true" length="512"/>
 

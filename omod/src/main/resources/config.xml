@@ -76,6 +76,8 @@
 	<mappingFiles>
 		DocumentReference.hbm.xml
 		DocumentReferenceContent.hbm.xml
+		DocumentReferenceAttribute.hbm.xml
+		DocumentReferenceAttributeType.hbm.xml
 	</mappingFiles>
 
 	<messages>

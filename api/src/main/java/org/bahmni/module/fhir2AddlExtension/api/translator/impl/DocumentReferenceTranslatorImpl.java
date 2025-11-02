@@ -1,10 +1,14 @@
 package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
 
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
+import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
+import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReference;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttribute;
+import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttributeType;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceContent;
-import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceAttributeExtensionTranslator;
+import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceAttributeTranslator;
+import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceExtensionTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceStatusTranslator;
 import org.hl7.fhir.r4.model.Attachment;
@@ -26,9 +30,12 @@ import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -38,13 +45,8 @@ import java.util.stream.Collectors;
 import static org.apache.commons.lang3.Validate.notNull;
 
 @Component
+@Slf4j
 public class DocumentReferenceTranslatorImpl implements DocumentReferenceTranslator {
-	
-	public static final String DOCUMENT_CONTENT_FORMAT_MUST_BE_SPECIFIED_AND_FROM_ACCEPTED_LIST = "Document content format must be specified and from accepted list";
-	
-	public static final String NEW_RESOURCE_REQUEST_CAN_NOT_HAVE_STATUS_WITH_ENTERED_IN_ERROR = "New resource request can not have status with entered-in-error";
-	
-	public static final String ENTERED_IN_ERROR_VOID_REASON = "entered-in-error";
 	
 	public static final String CAN_NOT_FIND_REFERENCE_TO_DOCUMENT_TYPE = "Can not find reference to document type";
 	
@@ -64,20 +66,20 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
 	
 	private final PractitionerReferenceTranslator<Provider> providerReferenceTranslator;
 	
-	private final DocumentReferenceAttributeExtensionTranslator attributeExtensionTranslator;
+	private final DocumentReferenceExtensionTranslator extensionTranslator;
 	
 	@Autowired
 	public DocumentReferenceTranslatorImpl(PatientReferenceTranslator patientReferenceTranslator,
 	    ConceptTranslator conceptTranslator, DocumentReferenceStatusTranslator statusTranslator,
 	    EncounterReferenceTranslator<Encounter> encounterReferenceTranslator,
 	    PractitionerReferenceTranslator<Provider> providerReferenceTranslator,
-	    DocumentReferenceAttributeExtensionTranslator attributeExtensionTranslator) {
+	    DocumentReferenceExtensionTranslator extensionTranslator) {
 		this.patientReferenceTranslator = patientReferenceTranslator;
 		this.conceptTranslator = conceptTranslator;
 		this.statusTranslator = statusTranslator;
 		this.encounterReferenceTranslator = encounterReferenceTranslator;
 		this.providerReferenceTranslator = providerReferenceTranslator;
-		this.attributeExtensionTranslator = attributeExtensionTranslator;
+		this.extensionTranslator = extensionTranslator;
 	}
 	
 	@Override
@@ -96,6 +98,7 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
         mapContextToFhirDocument(documentReference, docRef);
         mapContentToFhirDocument(documentReference, docRef);
         mapProviderToFhirDocument(documentReference, docRef);
+		mapAttributesToExtensions(documentReference, docRef);
         return documentReference;
     }
 	
@@ -103,6 +106,9 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
 	public FhirDocumentReference toOpenmrsType(@Nonnull DocumentReference resource) {
 		notNull(resource.getSubject(), DOCUMENT_REFERENCE_OBJECT_MUST_HAVE_A_SUBJECT_REFERENCE_TO_PATIENT);
 		FhirDocumentReference newDoc = new FhirDocumentReference();
+		newDoc.setCreator(Context.getUserContext().getAuthenticatedUser());
+		newDoc.setDateCreated(new Date());
+		//not supporting client assigned id, resource.date is auto assigned
 		return this.toOpenmrsType(newDoc, resource);
 	}
 	
@@ -110,17 +116,11 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
 	public FhirDocumentReference toOpenmrsType(@Nonnull FhirDocumentReference newOrExistingDoc,
 	        @Nonnull DocumentReference resource) {
 		User authenticatedUser = Context.getUserContext().getAuthenticatedUser();
-		if (resource.hasSubject() && newOrExistingDoc.getSubject() == null) {
-			//TODO: safety check - ideally should check if the resource subject and db subject are same
-			//for now, assigning only in case of create request
+		if (resource.hasSubject()) {
 			newOrExistingDoc.setSubject(patientReferenceTranslator.toOpenmrsType(resource.getSubject()));
 		}
 		
-		//not supporting client assigned id, resource.date is auto assigned
-		if (newOrExistingDoc.getDocumentReferenceId() == null || newOrExistingDoc.getDocumentReferenceId() == 0) {
-			newOrExistingDoc.setCreator(authenticatedUser);
-			newOrExistingDoc.setDateCreated(new Date());
-		} else {
+		if (!isNewDocument(newOrExistingDoc)) {
 			newOrExistingDoc.setChangedBy(authenticatedUser);
 			newOrExistingDoc.setDateChanged(new Date());
 		}
@@ -154,8 +154,6 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
 			newOrExistingDoc.setMasterIdentifier(resource.getMasterIdentifier().getValue());
 		}
 		
-		checkAndVoidOnStatus(newOrExistingDoc, resource);
-		
 		if (resource.hasDescription()) {
 			newOrExistingDoc.setDescription(resource.getDescription());
 		}
@@ -168,27 +166,76 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
 		return newOrExistingDoc;
 	}
 	
+	private boolean isNewDocument(FhirDocumentReference newOrExistingDoc) {
+		return newOrExistingDoc.getDocumentReferenceId() == null || newOrExistingDoc.getDocumentReferenceId() == 0;
+	}
+	
+	private void mapAttributesToExtensions(DocumentReference resource, FhirDocumentReference docRef) {
+		if (!docRef.getActiveAttributes().isEmpty()) {
+			docRef.getActiveAttributes().forEach(attribute -> {
+				extensionTranslator.getAttributeTranslator(attribute)
+				.map(translator -> translator.toFhirResource(attribute))
+				.ifPresent(extension -> resource.addExtension(extension));
+			});
+		}
+	}
+	
 	private void mapExtensionsToDocumentAttributes(FhirDocumentReference newOrExistingDoc, DocumentReference resource, User authenticatedUser) {
 		if (!resource.hasExtension()) {
 			return;
 		}
-		Map<String, List<Extension>> extnListMap = resource.getExtension().stream()
-				.filter(extension -> attributeExtensionTranslator.supports(extension))
-				.collect(Collectors.groupingBy(Extension::getUrl));
+		Map<String, List<Extension>> attributeExtensions = resource.getExtension().stream().collect(Collectors.groupingBy(Extension::getUrl));
+		List<FhirDocumentReferenceAttribute> allAttributesFromExt = new ArrayList<>();
+		for (String extUrl : attributeExtensions.keySet()) {
+			Optional<DocumentReferenceAttributeTranslator> attributeTranslator = extensionTranslator.getAttributeTranslator(extUrl);
+			if (!attributeTranslator.isPresent()) {
+				continue;
+			}
+			allAttributesFromExt.addAll(attributeTranslator.get().toOpenmrsType(extUrl, attributeExtensions.get(extUrl)));
+		}
 
-		extnListMap.forEach((extUrl, extensions) -> {
-			List<FhirDocumentReferenceAttribute> attributes = attributeExtensionTranslator.toOpenmrsType(extUrl, extensions);
-			if (newOrExistingDoc.getActiveAttributes().isEmpty()) {
-				attributes.forEach(attr -> {
-					attr.setCreator(authenticatedUser);
-					attr.setDateCreated(new Date());
-					newOrExistingDoc.addAttribute(attr);
-				});
-			} else {
-				//not empty - merge
-				//TODO
+		if (newOrExistingDoc.getActiveAttributes().isEmpty()) { //add all new one
+			allAttributesFromExt.forEach(attr -> {
+				attr.setCreator(authenticatedUser);
+				attr.setDateCreated(new Date());
+				newOrExistingDoc.addAttribute(attr);
+			});
+			return;
+		}
+
+		List<FhirDocumentReferenceAttribute> newAttributes = new ArrayList<>();
+		//group the allAttributesFromExt by type
+		Map<FhirDocumentReferenceAttributeType, List<FhirDocumentReferenceAttribute>> groupedExtAttributes
+				= allAttributesFromExt.stream().collect(Collectors.groupingBy(FhirDocumentReferenceAttribute::getAttributeType));
+		for (FhirDocumentReferenceAttributeType attributeType : groupedExtAttributes.keySet()) {
+			List<FhirDocumentReferenceAttribute> extAttributes = groupedExtAttributes.get(attributeType);
+			List<FhirDocumentReferenceAttribute> existingAttributesForType
+				= newOrExistingDoc.getActiveAttributes().stream().filter(existing -> existing.getAttributeType().equals(attributeType))
+					.collect(Collectors.toList());
+
+			//no existing attribute for type, so just submitted ones need to be added
+			if (existingAttributesForType.isEmpty()) {
+				newAttributes.addAll(extAttributes);
 			}
 
+			//there are existing attribute for type, so we need to merge
+			if (!existingAttributesForType.isEmpty()) {
+				if (attributeType.getMaxOccurs() == null || attributeType.getMaxOccurs().equals(1)) {
+					existingAttributesForType.get(0).setValueReferenceInternal(extAttributes.get(0).getValueReference());
+					existingAttributesForType.get(0).setDateChanged(new Date());
+					existingAttributesForType.get(0).setChangedBy(authenticatedUser);
+					return;
+				} else {
+					//there can be more than 1.
+					//TODO diff and merge. add the new ones, update existing ones
+				}
+			}
+		}
+
+		newAttributes.forEach(attr -> {
+			attr.setCreator(authenticatedUser);
+			attr.setDateCreated(new Date());
+			newOrExistingDoc.addAttribute(attr);
 		});
 
 	}
@@ -219,7 +266,11 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
 	private void mapContentToFhirDocument(DocumentReference documentReference, FhirDocumentReference docRef) {
         //assumption is unless you have content for a document, you would not create just metadata.
         //TODO: add validation at service for checking content presence
-        docRef.getContents().forEach(content -> {
+		ArrayList<FhirDocumentReferenceContent> sortedList
+			= docRef.getContents().stream()
+				.sorted(Comparator.comparingInt(FhirDocumentReferenceContent::getDocumentReferenceContentId))
+				.collect(Collectors.toCollection(ArrayList::new));
+		sortedList.forEach(content -> {
             DocumentReference.DocumentReferenceContentComponent fhirContent = new DocumentReference.DocumentReferenceContentComponent();
             fhirContent.setId(content.getUuid());
             Attachment attachment = new Attachment().setContentType(content.getContentType()).setUrl(content.getContentUrl());
@@ -229,73 +280,81 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
 	
 	private void mapContextToFhirDocument(DocumentReference documentReference, FhirDocumentReference docRef) {
         Optional.ofNullable(docRef.getEncounter())
-                .ifPresent(encounter -> {
-                    DocumentReference.DocumentReferenceContextComponent contextComponent = new DocumentReference.DocumentReferenceContextComponent();
-                    contextComponent.setEncounter(Collections.singletonList(encounterReferenceTranslator.toFhirResource(encounter)));
-                    Optional<Period> contextPeriod = Optional.ofNullable(docRef.getDateStarted()).map(date -> {
-                        Period period = new Period();
-                        return period.setStart(docRef.getDateStarted());
-                    }).map(period -> period.setEnd((docRef.getDateEnded())));
-                    contextPeriod.ifPresent(value -> contextComponent.setPeriod(value));
-                    documentReference.setContext(contextComponent);
-                });
+			.ifPresent(encounter -> {
+				DocumentReference.DocumentReferenceContextComponent contextComponent = new DocumentReference.DocumentReferenceContextComponent();
+				contextComponent.setEncounter(Collections.singletonList(encounterReferenceTranslator.toFhirResource(encounter)));
+				Optional<Period> contextPeriod = Optional.ofNullable(docRef.getDateStarted()).map(date -> {
+					Period period = new Period();
+					return period.setStart(docRef.getDateStarted());
+				}).map(period -> period.setEnd((docRef.getDateEnded())));
+				contextPeriod.ifPresent(value -> contextComponent.setPeriod(value));
+				documentReference.setContext(contextComponent);
+			});
     }
 	
-	private void mapContentsFromFhirDocument(
-            FhirDocumentReference newOrExistingDoc, DocumentReference fhirResource, User user) {
-        if (!fhirResource.hasContent()) {
-            //TODO should we assume such resources have been voided? or is it a patch?
+	private void mapContentsFromFhirDocument(FhirDocumentReference document, DocumentReference resource, User user) {
+        if (!resource.hasContent()) {
             return;
         }
+        resource.getContent().forEach(contentComponent -> {
+            Optional<FhirDocumentReferenceContent> existingContent =
+				isNewDocument(document)
+				? Optional.empty()
+				: document.getContents().stream().filter(docContent -> docContent.getUuid().equals(contentComponent.getId())).findFirst();
 
-        fhirResource.getContent().forEach(contentComponent -> {
-            if (!contentComponent.hasAttachment()) {
-                return;
-            }
-            if (!contentComponent.getAttachment().hasContentType()) {
-                throw new InvalidRequestException(DOCUMENT_CONTENT_FORMAT_MUST_BE_SPECIFIED_AND_FROM_ACCEPTED_LIST);
-            }
-
-            Optional<FhirDocumentReferenceContent> existingDocContent = newOrExistingDoc.getContents().stream()
-                    .filter(docContent -> contentComponent.getAttachment().getContentType().equals(docContent.getContentType()))
-                    .findFirst();
-
-            if (!existingDocContent.isPresent()) {
-                FhirDocumentReferenceContent documentReferenceContent = new FhirDocumentReferenceContent();
-                if (contentComponent.hasFormat()) {
-                    documentReferenceContent.setContentFormat(contentComponent.getFormat().getCode());
-                }
-                //Should we check against a set of mimetypes?
-                documentReferenceContent.setContentType(contentComponent.getAttachment().getContentType());
-                //TODO - not handling attachment.data as of now
-                //would have to use some ways to create an interface, through which implementation
-                //can either configure or plugin their own storage if data is present
-                //examples include openmrs attachment omod, new storage service or simple volume storage or minio
-                documentReferenceContent.setContentUrl(contentComponent.getAttachment().getUrl());
-                documentReferenceContent.setCreator(user);
-                documentReferenceContent.setDateCreated(new Date());
-                newOrExistingDoc.addContent(documentReferenceContent);
-            } else {
-                if (contentComponent.hasFormat()) {
-                    existingDocContent.get().setContentFormat(contentComponent.getFormat().getCode());
-                }
-                existingDocContent.get().setContentType(contentComponent.getAttachment().getContentType());
-                existingDocContent.get().setContentUrl(contentComponent.getAttachment().getUrl());
-                existingDocContent.get().setChangedBy(user);
-                existingDocContent.get().setDateChanged(new Date());
+            if (!existingContent.isPresent()) {
+				document.addContent(translateContentToOpenmrsType(contentComponent, user));
+				return;
+            } else if (!existingContent.get().isVoided()) {
+				updateExistingContent(existingContent.get(), contentComponent, user);
             }
         });
     }
 	
-	private void checkAndVoidOnStatus(FhirDocumentReference newOrExistingDoc, DocumentReference resource) {
-		if (resource.getStatus().equals(Enumerations.DocumentReferenceStatus.ENTEREDINERROR)) {
-			if (newOrExistingDoc.getUuid() == null) {
-				throw new InvalidRequestException(NEW_RESOURCE_REQUEST_CAN_NOT_HAVE_STATUS_WITH_ENTERED_IN_ERROR);
-			}
-			newOrExistingDoc.setVoided(true);
-			newOrExistingDoc.setVoidReason(ENTERED_IN_ERROR_VOID_REASON);
-			newOrExistingDoc.setDocStatus(FhirDocumentReference.FhirDocumentReferenceDocStatus.ENTEREDINERROR);
+	private void updateExistingContent(FhirDocumentReferenceContent existingContent,
+	        DocumentReference.DocumentReferenceContentComponent resourceContent, User user) {
+		if (resourceContent.hasAttachment()) {
+			existingContent.setContentType(resourceContent.getAttachment().getContentType());
+			existingContent.setContentUrl(resourceContent.getAttachment().getUrl());
 		}
+		if (resourceContent.hasFormat()) {
+			existingContent.setContentFormat(resourceContent.getFormat().getCode());
+		}
+		existingContent.setChangedBy(user);
+		existingContent.setDateChanged(new Date());
+	}
+	
+	private FhirDocumentReferenceContent translateContentToOpenmrsType(
+	        DocumentReference.DocumentReferenceContentComponent contentComponent, User user) {
+		if (!isValidAttachment(contentComponent)) {
+			log.error("Submitted document does not have valid attachment");
+			throw new UnprocessableEntityException(
+			        "Invalid document attachment. Please ensure attachment has valid content-type and url");
+		}
+		FhirDocumentReferenceContent documentReferenceContent = new FhirDocumentReferenceContent();
+		if (contentComponent.hasFormat()) {
+			documentReferenceContent.setContentFormat(contentComponent.getFormat().getCode());
+		}
+		//Should we check against a set of mimetypes?
+		documentReferenceContent.setContentType(contentComponent.getAttachment().getContentType());
+		//TODO - not handling attachment.data as of now
+		//would have to use some ways to create an interface, through which implementation
+		//can either configure or plugin their own storage if data is present
+		//examples include openmrs attachment omod, new storage service or simple volume storage or minio
+		documentReferenceContent.setContentUrl(contentComponent.getAttachment().getUrl());
+		documentReferenceContent.setCreator(user);
+		documentReferenceContent.setDateCreated(new Date());
+		return documentReferenceContent;
+	}
+	
+	private boolean isValidAttachment(DocumentReference.DocumentReferenceContentComponent attachment) {
+		if (!attachment.hasAttachment())
+			return false;
+		if (StringUtils.isEmpty(attachment.getAttachment().getContentType()))
+			return false;
+		if (StringUtils.isEmpty(attachment.getAttachment().getUrl()))
+			return false;
+		return true;
 	}
 	
 	private void mapContextFromFhirDocument(FhirDocumentReference newOrExistingDoc, DocumentReference resource) {

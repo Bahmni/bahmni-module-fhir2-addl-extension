@@ -7,7 +7,6 @@ import org.openmrs.BaseOpenmrsData;
 
 @Data
 @NoArgsConstructor
-@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 public class FhirDocumentReferenceContent extends BaseOpenmrsData {
 	
 	private Integer documentReferenceContentId;

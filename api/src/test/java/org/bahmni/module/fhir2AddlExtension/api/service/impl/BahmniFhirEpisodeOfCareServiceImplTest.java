@@ -163,7 +163,7 @@ public class BahmniFhirEpisodeOfCareServiceImplTest {
 		episode.setUuid(uuid);
 		episode.setPatient(patient);
 		episode.setDateStarted(new Date());
-		episode.setConcept(concept);
+		episode.setEpisodeType(concept);
 		return episode;
 	}
 	

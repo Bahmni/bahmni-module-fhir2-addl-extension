@@ -5,6 +5,11 @@
 
 <hibernate-configuration>
 	<session-factory>
-<!--		<mapping resource="DocumentReference.hbm.xml"/>-->
+<!--
+    <mapping resource="DocumentReference.hbm.xml"/>
+    DocumentReferenceContent.hbm.xml
+    DocumentReferenceAttribute.hbm.xml
+	DocumentReferenceAttributeType.hbm.xml
+-->
 	</session-factory>
 </hibernate-configuration>
