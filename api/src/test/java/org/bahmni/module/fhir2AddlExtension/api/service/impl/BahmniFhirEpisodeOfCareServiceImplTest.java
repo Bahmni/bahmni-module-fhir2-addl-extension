@@ -4,6 +4,7 @@ import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.ReferenceOrListParam;
 import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.TokenAndListParam;
+import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirEpisodeOfCareDao;
 import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniEpisodeOfCareSearchParams;
 import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirEpisodeOfCareService;
@@ -35,6 +36,7 @@ import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -123,13 +125,29 @@ public class BahmniFhirEpisodeOfCareServiceImplTest {
 		
 		Concept concept = exampleConcept();
 		Patient patient = new Patient();
-		patient.setUuid(UUID.randomUUID().toString());
+		patient.setUuid(patientUuid);
 		Episode episode = prepareTestEpisode(UUID.randomUUID().toString(), concept, patient);
 		
 		when(fhirEpisodeOfCareDao.get(episodeOfCareUuid)).thenReturn(episode);
 		when(fhirEpisodeOfCareDao.createOrUpdate(episode)).thenReturn(episode);
 		EpisodeOfCare updatedEOC = episodeOfCareService.update(episodeOfCareUuid, episodeOfCare);
 		assertThat(1, equalTo(updatedEOC.getStatusHistory().size()));
+	}
+	
+	@Test(expected = InvalidRequestException.class)
+	public void shouldThrowErrorForDifferentPatientInUpdateOperation() throws IOException {
+		String episodeOfCareUuid = UUID.randomUUID().toString();
+		EpisodeOfCare episodeOfCare = new EpisodeOfCare();
+		episodeOfCare.setId(episodeOfCareUuid);
+		episodeOfCare.setPatient(patientReference("random"));
+		
+		Concept concept = exampleConcept();
+		Patient patient = new Patient();
+		patient.setUuid(UUID.randomUUID().toString());
+		Episode episode = prepareTestEpisode(UUID.randomUUID().toString(), concept, patient);
+		
+		when(fhirEpisodeOfCareDao.get(episodeOfCareUuid)).thenReturn(episode);
+		episodeOfCareService.update(episodeOfCareUuid, episodeOfCare);
 	}
 	
 	private Concept exampleConcept() {
@@ -147,7 +165,7 @@ public class BahmniFhirEpisodeOfCareServiceImplTest {
 	private Reference patientReference(String patientUuid) {
 		Reference reference = new Reference();
 		reference.setType("Patient");
-		reference.setReference(patientUuid);
+		reference.setReference("Patient/" + patientUuid);
 		return reference;
 	}
 	
