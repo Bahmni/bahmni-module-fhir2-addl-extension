@@ -4,10 +4,12 @@ import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
 import org.bahmni.module.fhir2AddlExtension.api.dao.DocumentReferenceAttributeTypeDao;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReference;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttributeType;
+import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceBasedOnReferenceTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceExtensionTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceStatusTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceTranslator;
 import org.hl7.fhir.r4.model.DocumentReference;
+import org.hl7.fhir.r4.model.Reference;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -15,6 +17,8 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Encounter;
+import org.openmrs.Order;
+import org.openmrs.Patient;
 import org.openmrs.Provider;
 import org.openmrs.User;
 import org.openmrs.api.context.Context;
@@ -65,6 +69,9 @@ public class DocumentReferenceTranslatorImplTest {
 	@Mock
 	private User user;
 	
+	@Mock
+	private DocumentReferenceBasedOnReferenceTranslator basedOnReferenceTranslator;
+	
 	@Before
     public void setUp() {
         when(userContext.getAuthenticatedUser()).thenReturn(user);
@@ -80,7 +87,8 @@ public class DocumentReferenceTranslatorImplTest {
                 statusTranslator,
                 encounterReferenceTranslator,
                 providerReferenceTranslator,
-                extensionTranslator);
+                extensionTranslator,
+				basedOnReferenceTranslator);
     }
 	
 	@Test
@@ -92,10 +100,17 @@ public class DocumentReferenceTranslatorImplTest {
 	@Test
     public void toOpenmrsType_shouldTranslateFromDocumentReference() throws IOException {
         DocumentReference resource = (DocumentReference) loadResourceFromFile("example-document-reference.json");
+		Reference orderRef = (Reference) resource.getExtensionByUrl("http://fhir.bahmni.org/ext/document-reference/based-on-service-request").getValue();
         when(conceptTranslator.toOpenmrsType(resource.getType())).thenReturn(exampleConceptWithUuid("Prescription", "e53c2ed9-6c23-4683-ad9e-12c2a5d780d8"));
         when(conceptTranslator.toOpenmrsType(resource.getSecurityLabelFirstRep())).thenReturn(exampleConceptWithUuid("All Clinicians", "a9a50608-0470-444d-aa44-3a03b63902b0"));
         when(providerReferenceTranslator.toOpenmrsType(resource.getAuthorFirstRep())).thenReturn(exampleProviderWithUuid("Dr Neha", "05d6752c-5e08-11ef-8f7c-0242ac120002"));
-        FhirDocumentReference fhirDocumentReference = translator.toOpenmrsType(resource);
+		Patient patient = new Patient();
+		patient.setUuid("1357c6aa-3421-44f9-9a8f-391b6cbb88e4");
+		Order order = new Order();
+		order.setPatient(patient);
+		order.setUuid("example-order-id");
+		when(basedOnReferenceTranslator.toOpenmrsType(orderRef)).thenReturn(order);
+		FhirDocumentReference fhirDocumentReference = translator.toOpenmrsType(resource);
         Assert.assertTrue(fhirDocumentReference != null);
         Assert.assertEquals(3, fhirDocumentReference.getContents().size());
         //asserting that none of the client assigned id is considered for content
@@ -111,6 +126,7 @@ public class DocumentReferenceTranslatorImplTest {
         Assert.assertEquals(0, difference.size());
         Assert.assertEquals(1, fhirDocumentReference.getActiveAttributes().size());
         Assert.assertEquals("Good Health Clinic", fhirDocumentReference.getActiveAttributes().iterator().next().getValueReference());
+		Assert.assertEquals("example-order-id", fhirDocumentReference.getOrder().getUuid());
     }
 	
 	@Test(expected = UnprocessableEntityException.class)

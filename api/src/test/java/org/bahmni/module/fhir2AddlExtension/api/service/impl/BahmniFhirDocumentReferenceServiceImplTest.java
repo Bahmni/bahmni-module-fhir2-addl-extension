@@ -6,6 +6,7 @@ import org.bahmni.module.fhir2AddlExtension.api.dao.DocumentReferenceAttributeTy
 import org.bahmni.module.fhir2AddlExtension.api.dao.DocumentReferenceDao;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReference;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttributeType;
+import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceBasedOnReferenceTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceExtensionTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceStatusTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceTranslator;
@@ -26,21 +27,18 @@ import org.openmrs.User;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.context.UserContext;
 import org.openmrs.api.db.ContextDAO;
-import org.openmrs.module.fhir2.api.dao.FhirPractitionerDao;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
 import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
 import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
 import org.openmrs.module.fhir2.api.translators.EncounterReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
-import org.openmrs.module.fhir2.api.util.FhirUtils;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
 import static org.bahmni.module.fhir2AddlExtension.api.TestDataFactory.*;
-import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -83,6 +81,9 @@ public class BahmniFhirDocumentReferenceServiceImplTest {
 	@Mock
 	private SearchQueryInclude<DocumentReference> searchQueryInclude;
 	
+	@Mock
+	private DocumentReferenceBasedOnReferenceTranslator basedOnReferenceTranslator;
+	
 	private DocumentReferenceTranslator translator;
 	
 	@Before
@@ -95,7 +96,7 @@ public class BahmniFhirDocumentReferenceServiceImplTest {
         DefaultDocumentReferenceAttributeTranslatorImpl defaultAttributeTranslator = new DefaultDocumentReferenceAttributeTranslatorImpl(attributeTypeDao);
         DocumentReferenceExtensionTranslator extensionTranslator = new DocumentReferenceExtensionTranslatorImpl(defaultAttributeTranslator);
         translator = new DocumentReferenceTranslatorImpl(patientReferenceTranslator,
-                conceptTranslator, statusTranslator, encounterReferenceTranslator, providerReferenceTranslator, extensionTranslator);
+                conceptTranslator, statusTranslator, encounterReferenceTranslator, providerReferenceTranslator, extensionTranslator, basedOnReferenceTranslator);
         documentReferenceService = new BahmniFhirDocumentReferenceServiceImpl(translator, documentReferenceDao, searchQueryInclude, searchQuery);
     }
 	

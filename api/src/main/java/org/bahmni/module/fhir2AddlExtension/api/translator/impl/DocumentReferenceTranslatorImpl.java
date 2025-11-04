@@ -3,23 +3,27 @@ package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
 import lombok.extern.slf4j.Slf4j;
+import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReference;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttribute;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttributeType;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceContent;
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceAttributeTranslator;
+import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceBasedOnReferenceTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceExtensionTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceStatusTranslator;
 import org.hl7.fhir.r4.model.Attachment;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.DocumentReference;
-import org.hl7.fhir.r4.model.Enumerations;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.Period;
+import org.hl7.fhir.r4.model.Reference;
+import org.hl7.fhir.r4.model.Type;
 import org.openmrs.Concept;
 import org.openmrs.Encounter;
+import org.openmrs.Order;
 import org.openmrs.Provider;
 import org.openmrs.User;
 import org.openmrs.api.context.Context;
@@ -56,6 +60,10 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
 	
 	public static final String PRACTITIONER_REFERENCE_IS_NOT_VALID = "Practitioner Reference is not valid.";
 	
+	public static final String INVALID_BASED_ON_REQUEST = "Invalid request. extension /document-reference/based-on-service-request must be a reference";
+	
+	public static final String INVALID_BASED_ON_SERVICE_REQUEST = "Invalid Document Reference attribute for based-on-service-request";
+	
 	private final PatientReferenceTranslator patientReferenceTranslator;
 	
 	private final ConceptTranslator conceptTranslator;
@@ -68,18 +76,22 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
 	
 	private final DocumentReferenceExtensionTranslator extensionTranslator;
 	
+	private final DocumentReferenceBasedOnReferenceTranslator basedOnReferenceTranslator;
+	
 	@Autowired
 	public DocumentReferenceTranslatorImpl(PatientReferenceTranslator patientReferenceTranslator,
 	    ConceptTranslator conceptTranslator, DocumentReferenceStatusTranslator statusTranslator,
 	    EncounterReferenceTranslator<Encounter> encounterReferenceTranslator,
 	    PractitionerReferenceTranslator<Provider> providerReferenceTranslator,
-	    DocumentReferenceExtensionTranslator extensionTranslator) {
+	    DocumentReferenceExtensionTranslator extensionTranslator,
+	    DocumentReferenceBasedOnReferenceTranslator basedOnReferenceTranslator) {
 		this.patientReferenceTranslator = patientReferenceTranslator;
 		this.conceptTranslator = conceptTranslator;
 		this.statusTranslator = statusTranslator;
 		this.encounterReferenceTranslator = encounterReferenceTranslator;
 		this.providerReferenceTranslator = providerReferenceTranslator;
 		this.extensionTranslator = extensionTranslator;
+		this.basedOnReferenceTranslator = basedOnReferenceTranslator;
 	}
 	
 	@Override
@@ -95,6 +107,9 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
         Optional.of(securityConcept).ifPresent(codeableConcept -> documentReference.setSecurityLabel(Collections.singletonList(codeableConcept)));
         documentReference.setStatus(statusTranslator.toFhirType(docRef.getStatus()));
         documentReference.setDocStatus(statusTranslator.toFhirType(docRef.getDocStatus()));
+		if (docRef.getOrder() != null) {
+			documentReference.addExtension(BahmniFhirConstants.FHIR_EXT_DOCUMENT_REFERENCE_BASED_ON, basedOnReferenceTranslator.toFhirResource(docRef.getOrder()));
+		}
         mapContextToFhirDocument(documentReference, docRef);
         mapContentToFhirDocument(documentReference, docRef);
         mapProviderToFhirDocument(documentReference, docRef);
@@ -162,8 +177,41 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
 		mapContextFromFhirDocument(newOrExistingDoc, resource);
 		mapContentsFromFhirDocument(newOrExistingDoc, resource, authenticatedUser);
 		mapExtensionsToDocumentAttributes(newOrExistingDoc, resource, authenticatedUser);
+		mapBasedOnServiceReqFromExtension(newOrExistingDoc, resource, authenticatedUser);
 		
 		return newOrExistingDoc;
+	}
+	
+	private void mapBasedOnServiceReqFromExtension(FhirDocumentReference newOrExistingDoc, DocumentReference resource, User authenticatedUser) {
+		if (!resource.hasExtension()) {
+			return;
+		}
+		resource.getExtension().forEach(extension -> {
+			String extUrl = Optional.ofNullable(extension.getUrl()).orElse("");
+			if (!extUrl.startsWith(BahmniFhirConstants.FHIR_EXT_DOCUMENT_REFERENCE_BASED_ON)) {
+				return;
+			}
+			Type serviceRequestReference = extension.getValue();
+			if (serviceRequestReference instanceof Reference) {
+				Order order = basedOnReferenceTranslator.toOpenmrsType((Reference) serviceRequestReference);
+				ensureOrderForSamePatient(newOrExistingDoc, order);
+				newOrExistingDoc.setOrder(order);
+				return;
+			} else {
+				log.error(INVALID_BASED_ON_REQUEST);
+				throw new UnprocessableEntityException(INVALID_BASED_ON_SERVICE_REQUEST);
+			}
+		});
+	}
+	
+	private void ensureOrderForSamePatient(FhirDocumentReference newOrExistingDoc, Order order) {
+		if (newOrExistingDoc.getSubject() == null) {
+			return;
+		}
+		if (order != null && order.getPatient().getUuid().equals(newOrExistingDoc.getSubject().getUuid())) {
+			log.error(INVALID_BASED_ON_SERVICE_REQUEST);
+			throw new UnprocessableEntityException(INVALID_BASED_ON_SERVICE_REQUEST);
+		}
 	}
 	
 	private boolean isNewDocument(FhirDocumentReference newOrExistingDoc) {
@@ -278,18 +326,23 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
         });
     }
 	
-	private void mapContextToFhirDocument(DocumentReference documentReference, FhirDocumentReference docRef) {
+	private void mapContextToFhirDocument(DocumentReference resource, FhirDocumentReference docRef) {
         Optional.ofNullable(docRef.getEncounter())
 			.ifPresent(encounter -> {
 				DocumentReference.DocumentReferenceContextComponent contextComponent = new DocumentReference.DocumentReferenceContextComponent();
 				contextComponent.setEncounter(Collections.singletonList(encounterReferenceTranslator.toFhirResource(encounter)));
-				Optional<Period> contextPeriod = Optional.ofNullable(docRef.getDateStarted()).map(date -> {
-					Period period = new Period();
-					return period.setStart(docRef.getDateStarted());
-				}).map(period -> period.setEnd((docRef.getDateEnded())));
-				contextPeriod.ifPresent(value -> contextComponent.setPeriod(value));
-				documentReference.setContext(contextComponent);
+				resource.setContext(contextComponent);
 			});
+		Optional<Period> contextPeriod = Optional.ofNullable(docRef.getDateStarted()).map(date -> {
+			Period period = new Period();
+			return period.setStart(docRef.getDateStarted());
+		}).map(period -> period.setEnd((docRef.getDateEnded())));
+		contextPeriod.ifPresent(value -> {
+			if (!resource.hasContext()) {
+				DocumentReference.DocumentReferenceContextComponent contextComponent = new DocumentReference.DocumentReferenceContextComponent();
+				contextComponent.setPeriod(value);
+			}
+		});
     }
 	
 	private void mapContentsFromFhirDocument(FhirDocumentReference document, DocumentReference resource, User user) {

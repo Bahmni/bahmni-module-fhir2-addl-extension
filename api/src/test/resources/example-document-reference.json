@@ -58,6 +58,13 @@
     {
       "url": "http://fhir.bahmni.org/ext/document-reference/attribute#external-organization",
       "valueString": "Good Health Clinic"
+    },
+    {
+      "url": "http://fhir.bahmni.org/ext/document-reference/based-on-service-request",
+      "valueReference": {
+        "reference": "ServiceRequest/example-order-id",
+        "type": "ServiceRequest"
+      }
     }
   ]
 }
