@@ -161,7 +161,7 @@ public class BahmniEpisodeOfCareTranslatorImpl implements BahmniEpisodeOfCareTra
         }
 
         User authenticatedUser = Context.getUserContext().getAuthenticatedUser();
-        if (episode.getUuid() == null) {
+        if (episode.getEpisodeId() == null || episode.getEpisodeId() == 0) {
             episode.setCreator(authenticatedUser);
             episode.setDateCreated(new Date());
         } else {

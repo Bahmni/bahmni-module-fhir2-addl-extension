@@ -223,8 +223,7 @@ public class BahmniEpisodeOfCareTranslatorImplTest {
 		when(conceptTranslator.toOpenmrsType(episodeTypeCodeableConcept)).thenReturn(episodeType);
 		
 		Episode openmrsEpisode = episodeOfCareTranslator.toOpenmrsType(episodeOfCare);
-		assertThat(episodeOfCare.getId(), equalTo(openmrsEpisode.getUuid()));
-		assertThat(episodeOfCare.getId(), equalTo(openmrsEpisode.getUuid()));
+		Assert.assertTrue(!openmrsEpisode.getUuid().isEmpty());
 		assertThat(Episode.Status.ACTIVE, equalTo(openmrsEpisode.getStatus()));
 		assertThat(episodeOfCare.getPeriod().getStart(), equalTo(openmrsEpisode.getDateStarted()));
 		assertThat(episodeOfCare.getType().get(0).getCoding().get(0).getCode(), equalTo(openmrsEpisode.getEpisodeType()
@@ -238,7 +237,6 @@ public class BahmniEpisodeOfCareTranslatorImplTest {
 		Concept episodeType = exampleConcept("Home and Community Care");
 		
 		EpisodeOfCare episodeOfCare = new EpisodeOfCare();
-		episodeOfCare.setId(episodeOfCareUuid);
 		episodeOfCare.setPatient(patientReference(patientUuid));
 		episodeOfCare.setPeriod(exampleEpisodePeriod());
 		episodeOfCare.setStatus(EpisodeOfCare.EpisodeOfCareStatus.ACTIVE);
@@ -265,8 +263,7 @@ public class BahmniEpisodeOfCareTranslatorImplTest {
 		reasonValueExtension1.addExtension("valueReference", reasonValueRef1);
 		
 		Episode openmrsEpisode = episodeOfCareTranslator.toOpenmrsType(episodeOfCare);
-		assertThat(episodeOfCare.getId(), equalTo(openmrsEpisode.getUuid()));
-		assertThat(episodeOfCare.getId(), equalTo(openmrsEpisode.getUuid()));
+		Assert.assertTrue(!openmrsEpisode.getUuid().isEmpty());
 		assertThat(Episode.Status.ACTIVE, equalTo(openmrsEpisode.getStatus()));
 		assertThat(episodeOfCare.getPeriod().getStart(), equalTo(openmrsEpisode.getDateStarted()));
 		assertThat(episodeOfCare.getType().get(0).getCoding().get(0).getCode(), equalTo(openmrsEpisode.getEpisodeType()

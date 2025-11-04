@@ -3,6 +3,7 @@ package org.bahmni.module.fhir2AddlExtension.api.service.impl;
 import ca.uhn.fhir.rest.api.PatchTypeEnum;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.api.server.RequestDetails;
+import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirEpisodeOfCareDao;
 import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniEpisodeOfCareSearchParams;
@@ -19,6 +20,7 @@ import org.openmrs.module.fhir2.api.impl.BaseFhirService;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
 import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
 import org.openmrs.module.fhir2.api.translators.OpenmrsFhirTranslator;
+import org.openmrs.module.fhir2.api.util.FhirUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
@@ -30,6 +32,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Component
@@ -41,6 +44,10 @@ public class BahmniFhirEpisodeOfCareServiceImpl extends BaseFhirService<EpisodeO
 	public static final String PATIENT_IDENTIFIER_OR_REFERENCE_OR_RES_ID_MUST_BE_SPECIFIED = "You must specify patient identifier or reference or resource _id!";
 	
 	public static final String MISSING_PATIENT_IDENTIFIER_OR_RES_ID = "Missing patient identifier/id or resource id";
+	
+	private static final String INVALID_OPERATION_OVERRIDE_OF_EPISODE_PATIENT_REFERENCE = "Invalid Operation: Override of Patient Reference of a Episode to another";
+	
+	private static final String ERROR_INVALID_EPISODE_PATIENT_REFERENCE = "Invalid Patient Reference";
 	
 	private final BahmniFhirEpisodeOfCareDao fhirEpisodeOfCareDao;
 	
@@ -89,7 +96,6 @@ public class BahmniFhirEpisodeOfCareServiceImpl extends BaseFhirService<EpisodeO
 	@Override
 	public EpisodeOfCare patch(@Nonnull String uuid, @Nonnull PatchTypeEnum patchType, @Nonnull String body,
 	        RequestDetails requestDetails) {
-		//throw new UnsupportedOperationException("Patch Operation on FHIR resource EpisodeOfCare is not supported yet!");
 		return super.patch(uuid, patchType, body, requestDetails);
 	}
 	
@@ -134,6 +140,7 @@ public class BahmniFhirEpisodeOfCareServiceImpl extends BaseFhirService<EpisodeO
 	 */
 	@Override
 	protected EpisodeOfCare applyUpdate(Episode existingObject, EpisodeOfCare updatedResource) {
+		ensurePatientReference(existingObject, updatedResource);
 		checkAndUpdateEpisodeStatusHistory(existingObject, updatedResource);
 		return super.applyUpdate(existingObject, updatedResource);
 	}
@@ -168,5 +175,17 @@ public class BahmniFhirEpisodeOfCareServiceImpl extends BaseFhirService<EpisodeO
 				.sorted(Comparator.comparingInt(EpisodeStatusHistory::getId).reversed())
 				.collect(Collectors.toList());
 		return sortedListDescending.get(0);
+	}
+	
+	private void ensurePatientReference(Episode episode, EpisodeOfCare updatedResource) {
+		if (updatedResource.hasPatient()) {
+			Optional.ofNullable(episode.getPatient())
+				.ifPresent(patient -> {
+					if (!patient.getUuid().equals(FhirUtils.referenceToId(updatedResource.getPatient().getReference()).get())) {
+						log.error(INVALID_OPERATION_OVERRIDE_OF_EPISODE_PATIENT_REFERENCE);
+						throw new InvalidRequestException(ERROR_INVALID_EPISODE_PATIENT_REFERENCE);
+					}
+				});
+		}
 	}
 }

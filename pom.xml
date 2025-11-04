@@ -85,6 +85,12 @@
 			</snapshots>
 		</repository>
 	</repositories>
+	<distributionManagement>
+		<snapshotRepository>
+			<id>nexus-sonatype</id>
+			<url>https://central.sonatype.com/repository/maven-snapshots/</url>
+		</snapshotRepository>
+	</distributionManagement>
 	<pluginRepositories>
 		<pluginRepository>
 			<id>openmrs-repo</id>
@@ -300,19 +306,6 @@
 			</plugin>
 		</plugins>
 	</build>
-
-	<distributionManagement>
-		<repository>
-			<id>github</id>
-			<name>GitHub Apache Maven Packages</name>
-			<url>https://maven.pkg.github.com/bahnew/bahmni-module-fhir2-addl-extension</url>
-		</repository>
-		<snapshotRepository>
-			<id>github</id>
-			<name>GitHub Apache Maven Packages</name>
-			<url>https://maven.pkg.github.com/bahnew/bahmni-module-fhir2-addl-extension</url>
-		</snapshotRepository>
-	</distributionManagement>
 
 	<profiles>
 		<profile>
