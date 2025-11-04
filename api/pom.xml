@@ -50,6 +50,13 @@
             <version>2.5</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.bahmni.module</groupId>
+            <artifactId>episodes-api</artifactId>
+            <version>${episodes.version}</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
     <build>

@@ -1,6 +1,5 @@
 package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
 
-import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.AccessLevel;
 import lombok.Setter;
 import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;

@@ -9,8 +9,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 public final class BahmniFhirConstants {
-	
-	private BahmniFhirConstants() {
+
+    private BahmniFhirConstants() {
 	}
 	
 	public static final String FHIR_NAMESPACE = "http://fhir.bahmni.org";
@@ -45,4 +45,7 @@ public final class BahmniFhirConstants {
 	public static final String HL7_CONDITION_CATEGORY_DIAGNOSIS_CODE = "encounter-diagnosis";
 
 	public static final String CONDITION_VERIFICATION_STATUS_SEARCH_HANDLER = "condition.verification.status.handler";
+	public static final String FHIR_EXT_EPISODE_OF_CARE_REASON = EXTENSION_PREFIX + "/episode-of-care/reason";
+	public static final String INCLUDE_EPISODE_OF_CARE_PARAM = "episode-of-care";
+	public static final String EPISODE_OF_CARE_REFERENCE_SEARCH_PARAM = "episodeOfCare.reference.search.handler";
 }

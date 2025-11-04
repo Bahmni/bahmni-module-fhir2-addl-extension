@@ -1,0 +1,191 @@
+package org.bahmni.module.fhir2AddlExtension.api.service.impl;
+
+import ca.uhn.fhir.rest.api.PatchTypeEnum;
+import ca.uhn.fhir.rest.api.server.IBundleProvider;
+import ca.uhn.fhir.rest.api.server.RequestDetails;
+import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
+import lombok.extern.slf4j.Slf4j;
+import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirEpisodeOfCareDao;
+import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniEpisodeOfCareSearchParams;
+import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirEpisodeOfCareService;
+import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniEpisodeOfCareTranslator;
+import org.bahmni.module.fhir2AddlExtension.api.translator.EpisodeOfCareStatusTranslator;
+import org.hl7.fhir.r4.model.EpisodeOfCare;
+import org.openmrs.User;
+import org.openmrs.api.context.Context;
+import org.openmrs.module.episodes.Episode;
+import org.openmrs.module.episodes.EpisodeStatusHistory;
+import org.openmrs.module.fhir2.api.dao.FhirDao;
+import org.openmrs.module.fhir2.api.impl.BaseFhirService;
+import org.openmrs.module.fhir2.api.search.SearchQuery;
+import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
+import org.openmrs.module.fhir2.api.translators.OpenmrsFhirTranslator;
+import org.openmrs.module.fhir2.api.util.FhirUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Primary;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import javax.annotation.Nonnull;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+@Component
+@Primary
+@Transactional
+@Slf4j
+public class BahmniFhirEpisodeOfCareServiceImpl extends BaseFhirService<EpisodeOfCare, Episode> implements BahmniFhirEpisodeOfCareService {
+	
+	public static final String PATIENT_IDENTIFIER_OR_REFERENCE_OR_RES_ID_MUST_BE_SPECIFIED = "You must specify patient identifier or reference or resource _id!";
+	
+	public static final String MISSING_PATIENT_IDENTIFIER_OR_RES_ID = "Missing patient identifier/id or resource id";
+	
+	private static final String INVALID_OPERATION_OVERRIDE_OF_EPISODE_PATIENT_REFERENCE = "Invalid Operation: Override of Patient Reference of a Episode to another";
+	
+	private static final String ERROR_INVALID_EPISODE_PATIENT_REFERENCE = "Invalid Patient Reference";
+	
+	private final BahmniFhirEpisodeOfCareDao fhirEpisodeOfCareDao;
+	
+	private final BahmniEpisodeOfCareTranslator episodeTranslator;
+	
+	private final SearchQueryInclude<EpisodeOfCare> searchQueryInclude;
+	
+	private final EpisodeOfCareStatusTranslator statusTranslator;
+	
+	private final SearchQuery<org.openmrs.module.episodes.Episode, EpisodeOfCare, BahmniFhirEpisodeOfCareDao, BahmniEpisodeOfCareTranslator, SearchQueryInclude<EpisodeOfCare>> searchQuery;
+	
+	@Autowired
+	public BahmniFhirEpisodeOfCareServiceImpl(
+	    BahmniFhirEpisodeOfCareDao fhirEpisodeOfCareDao,
+	    BahmniEpisodeOfCareTranslator episodeTranslator,
+	    SearchQueryInclude<EpisodeOfCare> searchQueryInclude,
+	    EpisodeOfCareStatusTranslator statusTranslator,
+	    SearchQuery<Episode, EpisodeOfCare, BahmniFhirEpisodeOfCareDao, BahmniEpisodeOfCareTranslator, SearchQueryInclude<EpisodeOfCare>> searchQuery) {
+		this.fhirEpisodeOfCareDao = fhirEpisodeOfCareDao;
+		this.episodeTranslator = episodeTranslator;
+		this.searchQueryInclude = searchQueryInclude;
+		this.statusTranslator = statusTranslator;
+		this.searchQuery = searchQuery;
+	}
+	
+	@Override
+	public EpisodeOfCare get(@Nonnull String s) {
+		return super.get(s);
+	}
+	
+	@Override
+	public List<EpisodeOfCare> get(@Nonnull Collection<String> collection) {
+		return super.get(collection);
+	}
+	
+	@Override
+	public EpisodeOfCare create(@Nonnull EpisodeOfCare episodeOfCare) {
+		return super.create(episodeOfCare);
+	}
+	
+	@Override
+	public EpisodeOfCare update(@Nonnull String uuid, @Nonnull EpisodeOfCare episodeOfCare) {
+		return super.update(uuid, episodeOfCare);
+	}
+	
+	@Override
+	public EpisodeOfCare patch(@Nonnull String uuid, @Nonnull PatchTypeEnum patchType, @Nonnull String body,
+	        RequestDetails requestDetails) {
+		return super.patch(uuid, patchType, body, requestDetails);
+	}
+	
+	@Override
+	public void delete(@Nonnull String uuid) {
+		super.delete(uuid);
+	}
+	
+	@Override
+	protected FhirDao<Episode> getDao() {
+		return fhirEpisodeOfCareDao;
+	}
+	
+	@Override
+	protected OpenmrsFhirTranslator<Episode, EpisodeOfCare> getTranslator() {
+		return episodeTranslator;
+	}
+	
+	@Override
+	public IBundleProvider episodesForPatient(BahmniEpisodeOfCareSearchParams searchParams) {
+		if (!searchParams.hasPatientReference() && !searchParams.hasId()) {
+			logAndThrowUnsupportedExceptionForMissingPatientOrResourceId();
+		}
+		return searchQuery.getQueryResults(searchParams.toSearchParameterMap(), fhirEpisodeOfCareDao, episodeTranslator,
+		    searchQueryInclude);
+	}
+	
+	private void logAndThrowUnsupportedExceptionForMissingPatientOrResourceId() {
+		log.error(MISSING_PATIENT_IDENTIFIER_OR_RES_ID);
+		throw new UnsupportedOperationException(PATIENT_IDENTIFIER_OR_REFERENCE_OR_RES_ID_MUST_BE_SPECIFIED);
+	}
+	
+	/**
+	 * Overriding because we want to setup the status history. Alternative would have been to do
+	 * this in the episodeTranslator, which is not preferred as its core responsibilities should be
+	 * just limited to translation. Unfortunately for create operation, we still need to depend on
+	 * the translation to set history as there is no hook like applyUpdate below
+	 * 
+	 * @param existingObject existing openmrs episode
+	 * @param updatedResource submitted episodeOfCare
+	 * @return either new or mapped episodeOfCare
+	 */
+	@Override
+	protected EpisodeOfCare applyUpdate(Episode existingObject, EpisodeOfCare updatedResource) {
+		ensurePatientReference(existingObject, updatedResource);
+		checkAndUpdateEpisodeStatusHistory(existingObject, updatedResource);
+		return super.applyUpdate(existingObject, updatedResource);
+	}
+	
+	protected void checkAndUpdateEpisodeStatusHistory(Episode existingEpisode, EpisodeOfCare episodeOfCare) {
+		User authenticatedUser = Context.getUserContext().getAuthenticatedUser();
+		if (!existingEpisode.hasStatusHistory()) {
+			EpisodeStatusHistory episodeStatusHistory = episodeTranslator.toOpenmrsEpisodeStatusHistory(episodeOfCare,
+			    existingEpisode.getDateStarted());
+			episodeStatusHistory.setCreator(authenticatedUser);
+			existingEpisode.addEpisodeStatusHistory(episodeStatusHistory);
+			return;
+		}
+		Episode.Status status = statusTranslator.toOpenmrsType(episodeOfCare.getStatus());
+		if (existingEpisode.getStatus().equals(status)) {
+			return;
+		}
+		EpisodeStatusHistory lastHistory = identifyLastStatusHistory(existingEpisode);
+		lastHistory.setDateEnded(new Date());
+		//create a new history entry corresponding to current status
+		EpisodeStatusHistory newStatusHistoryEntry = new EpisodeStatusHistory();
+		newStatusHistoryEntry.setDateStarted(new Date());
+		newStatusHistoryEntry.setStatus(status);
+		newStatusHistoryEntry.setCreator(authenticatedUser);
+		newStatusHistoryEntry.setDateCreated(new Date());
+		existingEpisode.addEpisodeStatusHistory(newStatusHistoryEntry);
+	}
+	
+	private EpisodeStatusHistory identifyLastStatusHistory(Episode episode) {
+		ArrayList<EpisodeStatusHistory> existingHistoryList = new ArrayList<>(episode.getStatusHistory());
+		List<EpisodeStatusHistory> sortedListDescending = existingHistoryList.stream()
+				.sorted(Comparator.comparingInt(EpisodeStatusHistory::getId).reversed())
+				.collect(Collectors.toList());
+		return sortedListDescending.get(0);
+	}
+	
+	private void ensurePatientReference(Episode episode, EpisodeOfCare updatedResource) {
+		if (updatedResource.hasPatient()) {
+			Optional.ofNullable(episode.getPatient())
+				.ifPresent(patient -> {
+					if (!patient.getUuid().equals(FhirUtils.referenceToId(updatedResource.getPatient().getReference()).get())) {
+						log.error(INVALID_OPERATION_OVERRIDE_OF_EPISODE_PATIENT_REFERENCE);
+						throw new InvalidRequestException(ERROR_INVALID_EPISODE_PATIENT_REFERENCE);
+					}
+				});
+		}
+	}
+}
