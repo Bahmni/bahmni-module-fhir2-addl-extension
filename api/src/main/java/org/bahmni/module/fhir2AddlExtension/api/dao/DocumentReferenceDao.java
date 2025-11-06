@@ -17,7 +17,7 @@ public interface DocumentReferenceDao extends FhirDao<FhirDocumentReference> {
 	@Authorized({ "Get DocumentReference" })
 	List<FhirDocumentReference> get(@Nonnull Collection<String> uuids);
 	
-	@Authorized({ "Add DocumentReference" })
+	@Authorized({ "Add DocumentReference", "Edit DocumentReference" })
 	FhirDocumentReference createOrUpdate(@Nonnull FhirDocumentReference newEntry);
 	
 	@Authorized({ "Delete DocumentReference" })

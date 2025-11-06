@@ -7,6 +7,6 @@ import org.openmrs.module.fhir2.api.FhirService;
 
 public interface BahmniFhirDocumentReferenceService extends FhirService<DocumentReference> {
 	
-	IBundleProvider searchDocumentReferences(BahmniDocumentReferenceSearchParams bahmniEpisodeOfCareSearchParams);
+	IBundleProvider searchDocumentReferences(BahmniDocumentReferenceSearchParams searchParams);
 	
 }

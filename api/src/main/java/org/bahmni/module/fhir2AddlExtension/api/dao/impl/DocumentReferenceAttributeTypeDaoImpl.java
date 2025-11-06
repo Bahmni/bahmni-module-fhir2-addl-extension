@@ -25,7 +25,7 @@ public class DocumentReferenceAttributeTypeDaoImpl implements DocumentReferenceA
 	private SessionFactory sessionFactory;
 	
 	@Override
-	@Cacheable(value = "fhir2addlextensionDocAttributeType")
+	@Cacheable(value = "fhir2extensionDocAttributeType")
 	public List<FhirDocumentReferenceAttributeType> getAttributeTypes(boolean includeRetired) {
 		if (includeRetired) {
 			return sessionFactory.getCurrentSession()
