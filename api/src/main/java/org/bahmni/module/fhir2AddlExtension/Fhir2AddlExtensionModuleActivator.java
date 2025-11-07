@@ -39,4 +39,21 @@ public class Fhir2AddlExtensionModuleActivator extends BaseModuleActivator {
 		log.info("Shutting down FHIR2 Additional Extension Module");
 	}
 	
+	@Override
+	public void started() {
+		super.started();
+		log.info("FHIR2 Additional Extension Module Started");
+	}
+	
+	@Override
+	public void willRefreshContext() {
+		super.willRefreshContext();
+		log.info("FHIR2 Additional Extension Module Will refresh context");
+	}
+	
+	@Override
+	public void stopped() {
+		super.stopped();
+		log.info("FHIR2 Additional Extension Module Stopped");
+	}
 }

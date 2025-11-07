@@ -172,7 +172,7 @@ public class BahmniEpisodeOfCareTranslatorImplTest {
 		when(conceptTranslator.toFhirResource(reasonValue2)).thenReturn(valueConcept2);
 
 		EpisodeOfCare episodeOfCare = episodeOfCareTranslator.toFhirResource(episode);
-		prettyPrint(episodeOfCare);
+		//prettyPrint(episodeOfCare);
 		assertThat(episodeOfCare, notNullValue());
 		assertThat(episodeOfCare.getId(), notNullValue());
 
@@ -208,10 +208,12 @@ public class BahmniEpisodeOfCareTranslatorImplTest {
 	
 	@Test
 	public void toOpenmrsType_shouldTranslateEpisodeType() {
+		String episodeOfCareUuid = UUID.randomUUID().toString();
 		String patientUuid = UUID.randomUUID().toString();
 		Concept episodeType = exampleConcept("Home and Community Care");
 		
 		EpisodeOfCare episodeOfCare = new EpisodeOfCare();
+		episodeOfCare.setId(episodeOfCareUuid);
 		episodeOfCare.setPatient(patientReference(patientUuid));
 		episodeOfCare.setPeriod(exampleEpisodePeriod());
 		episodeOfCare.setStatus(EpisodeOfCare.EpisodeOfCareStatus.ACTIVE);

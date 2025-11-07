@@ -1,0 +1,70 @@
+{
+  "resourceType": "DocumentReference",
+  "id": "307c33b7-08ec-4d3d-bdd1-f3a14485a67b",
+  "masterIdentifier": {
+    "value": "Case:12345"
+  },
+  "status": "current",
+  "docStatus": "preliminary",
+  "type": {
+    "coding": [
+      {
+        "code": "e53c2ed9-6c23-4683-ad9e-12c2a5d780d8",
+        "display": "Prescription"
+      }
+    ]
+  },
+  "subject": {
+    "reference": "Patient/1357c6aa-3421-44f9-9a8f-391b6cbb88e4"
+  },
+  "author": [
+    {
+      "reference": "Practitioner/05d6752c-5e08-11ef-8f7c-0242ac120002"
+    }
+  ],
+  "securityLabel": [
+    {
+      "coding": [
+        {
+          "code": "a9a50608-0470-444d-aa44-3a03b63902b0"
+        }
+      ]
+    }
+  ],
+  "content": [
+    {
+      "id": "db6a7b92-7c2b-4cba-ad5e-51698822769c",
+      "attachment": {
+        "contentType": "application/hl7-v3+xml",
+        "url": "http://example.org/xds/mhd/Binary/07a6483f-732b-461e-86b6-edb665c45510"
+      }
+    },
+    {
+      "id": "c703b90e-2530-4965-b056-92fff0baf3e1",
+      "attachment": {
+        "contentType": "application/pdf",
+        "url": "http://example.org/xds/docs/example1.pdf"
+      }
+    },
+    {
+      "id": "1a7331fc-a924-4327-babf-cf6e85dac436",
+      "attachment": {
+        "contentType": "application/pdf",
+        "url": "http://example.org/xds/docs/example2.pdf"
+      }
+    }
+  ],
+  "extension": [
+    {
+      "url": "http://fhir.bahmni.org/ext/document-reference/attribute#external-organization",
+      "valueString": "Good Health Clinic"
+    },
+    {
+      "url": "http://fhir.bahmni.org/ext/document-reference/based-on-service-request",
+      "valueReference": {
+        "reference": "ServiceRequest/example-order-id",
+        "type": "ServiceRequest"
+      }
+    }
+  ]
+}

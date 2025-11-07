@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -178,6 +179,9 @@ public class BahmniEpisodeOfCareTranslatorImpl implements BahmniEpisodeOfCareTra
             //TODO check if episode date started is null
             episode.setDateStarted(new Date());
         }
+		if (episodeOfCare.hasCareManager()) {
+			episode.setCareManager(providerReferenceTranslator.toOpenmrsType(episodeOfCare.getCareManager()));
+		}
 
         if (episodeOfCare.hasType()) {
             Set<Concept> episodeType = episodeOfCare.getType().stream()
@@ -268,17 +272,17 @@ public class BahmniEpisodeOfCareTranslatorImpl implements BahmniEpisodeOfCareTra
 		//TODO: Void nonMatchingExistingReasons but with what void_reason?
 		Set<EpisodeReason> nonMatchingExistingReasons = episode.getEpisodeReason().stream()
 				.filter(existing -> specifiedReasons.stream().noneMatch(specified -> {
-					return isSameValueReference(existing.getValueReference(), specified.getValueReference())
-							&& isSameConcept(existing.getReasonUse(), specified.getReasonUse())
-							&& isSameConcept(existing.getValueConcept(), specified.getValueConcept());
+					return Objects.equals(existing.getValueReference(), specified.getValueReference())
+							&& Objects.equals(existing.getReasonUse(), specified.getReasonUse())
+							&& Objects.equals(existing.getValueConcept(), specified.getValueConcept());
 				})).collect(Collectors.toSet());
 
 
 		Set<EpisodeReason> nonMatchingNewReasons = specifiedReasons.stream()
 				.filter(sr -> episode.getEpisodeReason().stream().noneMatch(existingReason -> {
-					return isSameValueReference(existingReason.getValueReference(), sr.getValueReference())
-							&& isSameConcept(existingReason.getReasonUse(), sr.getReasonUse())
-							&& isSameConcept(existingReason.getValueConcept(), sr.getValueConcept());
+					return Objects.equals(existingReason.getValueReference(), sr.getValueReference())
+							&& Objects.equals(existingReason.getReasonUse(), sr.getReasonUse())
+							&& Objects.equals(existingReason.getValueConcept(), sr.getValueConcept());
 				})).collect(Collectors.toSet());
 		//add them to episode
 		for (EpisodeReason nonMatchingNewReason : nonMatchingNewReasons) {
@@ -286,16 +290,6 @@ public class BahmniEpisodeOfCareTranslatorImpl implements BahmniEpisodeOfCareTra
 			episode.addEpisodeReason(nonMatchingNewReason);
 		}
     }
-	
-	private boolean isSameValueReference(String s1, String s2) {
-		if (s1 == s2) return true;
-		return Optional.ofNullable(s1).map(s -> s.equals(s2)).orElse(false);
-	}
-	
-	private boolean isSameConcept(Concept c1, Concept c2) {
-		if (c1 == c2) return true;
-		return Optional.ofNullable(c1).map(c -> c.equals(c2)).orElse(false);
-	}
 	
 	private EpisodeReason constructEpisodeReason(Optional<Concept> reasonUseConcept, Optional<Concept> valueConcept, Optional<String> valueReference, User authenticatedUser) {
 		EpisodeReason episodeReason = new EpisodeReason();
