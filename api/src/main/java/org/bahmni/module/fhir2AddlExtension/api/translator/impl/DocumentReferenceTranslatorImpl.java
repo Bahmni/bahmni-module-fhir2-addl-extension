@@ -104,7 +104,7 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
 		documentReference.setSubject(patientReferenceTranslator.toFhirResource(docRef.getSubject()));
         documentReference.setType(conceptTranslator.toFhirResource(docRef.getDocType()));
         CodeableConcept securityConcept = conceptTranslator.toFhirResource(docRef.getSecurityLabel());
-        Optional.of(securityConcept).ifPresent(codeableConcept -> documentReference.setSecurityLabel(Collections.singletonList(codeableConcept)));
+        Optional.ofNullable(securityConcept).ifPresent(codeableConcept -> documentReference.setSecurityLabel(Collections.singletonList(codeableConcept)));
         documentReference.setStatus(statusTranslator.toFhirType(docRef.getStatus()));
         documentReference.setDocStatus(statusTranslator.toFhirType(docRef.getDocStatus()));
 		if (docRef.getOrder() != null) {
