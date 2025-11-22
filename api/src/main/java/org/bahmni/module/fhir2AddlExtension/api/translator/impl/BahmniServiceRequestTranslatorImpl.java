@@ -133,42 +133,8 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 		order.setEncounter(encounterReferenceTranslator.toOpenmrsType(resource.getEncounter()));
 		order.setOrderer(providerReferenceTranslator.toOpenmrsType(resource.getRequester()));
 		order.setUrgency(serviceRequestPriorityTranslator.toOpenmrsType(resource.getPriority()));
-		
-		//		if (resource.hasLocationReference()) {
-		//			setRequestedLocationOnOrder(resource.getLocationReference().get(0), order);
-		//		} else {
-		//			setDefaultOrderLocation(order);
-		//		}
 		return order;
 	}
-	
-	//
-	//	private void setDefaultOrderLocation(Order order) {
-	//		if (order.getEncounter() == null) {
-	//			return;
-	//		}
-	//		Location preferredLocationForOrder = locationReferenceResolver.getPreferredLocation(order);
-	//		Location orderLocation = preferredLocationForOrder != null ? preferredLocationForOrder :  order.getEncounter().getLocation();
-	//		if (orderLocation == null) {
-	//			return;
-	//		}
-	//
-	//		log.info("No preferred location is set for the order. System will attempt to default to the ordering location");
-	//		if (locationReferenceResolver.hasRequestedLocation(order)) {
-	//			locationReferenceResolver.updateOrderRequestLocation(orderLocation, order);
-	//		} else {
-	//			Reference reference = new Reference("Location/" + orderLocation.getUuid());
-	//			locationReferenceResolver.setOrderRequestLocation(reference, order);
-	//		}
-	//	}
-	//
-	//	protected void setRequestedLocationOnOrder(Reference reference, Order order) {
-	//		if (locationReferenceResolver.hasRequestedLocation(order)) {
-	//			locationReferenceResolver.updateOrderRequestLocation(reference, order);
-	//		} else {
-	//			locationReferenceResolver.setOrderRequestLocation(reference, order);
-	//		}
-	//	}
 	
 	private ServiceRequest.ServiceRequestStatus determineServiceRequestStatus(Order order) {
 		
