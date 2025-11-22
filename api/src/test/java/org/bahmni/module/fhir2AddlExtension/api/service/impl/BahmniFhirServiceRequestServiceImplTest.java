@@ -3,20 +3,41 @@ package org.bahmni.module.fhir2AddlExtension.api.service.impl;
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.rest.api.SortSpec;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
-import ca.uhn.fhir.rest.param.*;
+import ca.uhn.fhir.rest.param.DateRangeParam;
+import ca.uhn.fhir.rest.param.NumberParam;
+import ca.uhn.fhir.rest.param.ReferenceAndListParam;
+import ca.uhn.fhir.rest.param.ReferenceOrListParam;
+import ca.uhn.fhir.rest.param.ReferenceParam;
+import ca.uhn.fhir.rest.param.TokenAndListParam;
+import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
+import org.bahmni.module.fhir2AddlExtension.api.context.AppContext;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
+import org.bahmni.module.fhir2AddlExtension.api.dao.OrderAttributeTypeDao;
 import org.hamcrest.Matchers;
 import org.hl7.fhir.instance.model.api.IBaseResource;
+import org.hl7.fhir.r4.model.CodeableConcept;
+import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.Patient;
+import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.ServiceRequest;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.openmrs.Encounter;
+import org.openmrs.Location;
+import org.openmrs.LocationAttribute;
+import org.openmrs.LocationAttributeType;
 import org.openmrs.Order;
+import org.openmrs.OrderAttributeType;
+import org.openmrs.OrderType;
+import org.openmrs.PersonName;
+import org.openmrs.User;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.FhirGlobalPropertyService;
 import org.openmrs.module.fhir2.api.dao.FhirServiceRequestDao;
@@ -25,11 +46,13 @@ import org.openmrs.module.fhir2.api.search.SearchQueryBundleProvider;
 import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
 import org.openmrs.module.fhir2.api.search.param.PropParam;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
+import org.openmrs.module.fhir2.api.translators.LocationReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.ServiceRequestTranslator;
 
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -38,8 +61,8 @@ import static org.hamcrest.Matchers.*;
 import static org.hl7.fhir.r4.model.Patient.SP_GIVEN;
 import static org.hl7.fhir.r4.model.Practitioner.SP_IDENTIFIER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.openmrs.module.fhir2.FhirConstants.*;
 
@@ -81,11 +104,19 @@ public class BahmniFhirServiceRequestServiceImplTest {
 	@Mock
 	private SearchQuery<Order, ServiceRequest, FhirServiceRequestDao<Order>, ServiceRequestTranslator<Order>, SearchQueryInclude<ServiceRequest>> searchQuery;
 	
+	@Mock
+	OrderAttributeTypeDao orderAttributeTypeDao;
+	
+	@Mock
+	LocationReferenceTranslator locationReferenceTranslator;
+	
 	private BahmniFhirServiceRequestServiceImpl serviceRequestService;
 	
 	private ServiceRequest fhirServiceRequest;
 	
 	private Order order;
+	
+	private User user;
 	
 	@Before
 	public void setUp() {
@@ -100,6 +131,18 @@ public class BahmniFhirServiceRequestServiceImplTest {
 		serviceRequestService.setTranslator(translator);
 		serviceRequestService.setSearchQuery(searchQuery);
 		serviceRequestService.setSearchQueryInclude(searchQueryInclude);
+		user = exampleUser();
+		
+		ServiceRequestLocationReferenceResolverImpl orderLocationReferenceResolver = new ServiceRequestLocationReferenceResolverImpl(
+		        locationReferenceTranslator, orderAttributeTypeDao, new AppContext() {
+			        
+			        @Override
+			        public User getCurrentUser() {
+				        return user;
+			        }
+		        });
+		orderLocationReferenceResolver.initialize();
+		serviceRequestService.setLocationReferenceResolver(orderLocationReferenceResolver);
 		
 		order = new Order();
 		order.setUuid(SERVICE_REQUEST_UUID);
@@ -555,5 +598,182 @@ public class BahmniFhirServiceRequestServiceImplTest {
 		
 		// Verify searchQuery was not called
 		verify(searchQuery, times(0)).getQueryResults(any(), any(), any(), any());
+	}
+	
+	@Test
+    public void createServiceRequestShouldSetLocationReferenceOnOrder() {
+        // Create different concept for different order type
+        OrderType labOrderType = new OrderType();
+        labOrderType.setUuid("lab-order-type-uuid");
+        labOrderType.setName("Lab Order");
+
+        Location pathLab = new Location();
+        pathLab.setName("Path lab");
+        pathLab.setUuid(UUID.randomUUID().toString());
+        LocationAttributeType locationAttributeType = new LocationAttributeType();
+        locationAttributeType.setName("REFERRAL_LABORATORY_CENTER");
+        locationAttributeType.setDatatypeClassname(ServiceRequestLocationReferenceResolverImpl.LOCATION_DATA_TYPE);
+
+        Location clinic = new Location();
+        clinic.setName("Clinic");
+        clinic.setUuid(UUID.randomUUID().toString());
+        LocationAttribute referLocation = new LocationAttribute();
+        referLocation.setAttributeType(locationAttributeType);
+        referLocation.setValue(pathLab);
+        clinic.addAttribute(referLocation);
+
+        Encounter encounter = new Encounter();
+        encounter.setLocation(clinic);
+
+        OrderType orderType = new OrderType();
+        orderType.setName("Lab Order");
+        Order order = new Order();
+        order.setOrderType(orderType);
+        order.setEncounter(encounter);
+
+        OrderAttributeType orderLocationType = new OrderAttributeType();
+        orderLocationType.setName(ServiceRequestLocationReferenceResolverImpl.REQUESTED_LOCATION_FOR_ORDER);
+        orderLocationType.setDatatypeClassname(ServiceRequestLocationReferenceResolverImpl.LOCATION_DATA_TYPE);
+        when(orderAttributeTypeDao.getOrderAttributeTypes(false)).thenReturn(Collections.singletonList(orderLocationType));
+
+        ServiceRequest serviceRequest = exampleServiceRequest();
+        when(translator.toOpenmrsType(serviceRequest)).thenReturn(order);
+        when(locationReferenceTranslator.toOpenmrsType(
+                ArgumentMatchers.argThat(reference -> reference.getReference().equals("Location/" + pathLab.getUuid()))))
+                .thenReturn(pathLab);
+
+        ServiceRequest updatedResource = serviceRequestService.create(serviceRequest);
+        Assert.assertEquals(1, order.getActiveAttributes().size());
+        Assert.assertEquals(pathLab, order.getActiveAttributes().iterator().next().getValue());
+    }
+	
+	@Test
+	public void createServiceRequestShouldNotSetLocationReferenceOnOrderIfOrderAttributeIsNotDefined() {
+		// Create different concept for different order type
+		OrderType labOrderType = new OrderType();
+		labOrderType.setUuid("lab-order-type-uuid");
+		labOrderType.setName("Lab Order");
+		
+		Location pathLab = new Location();
+		pathLab.setName("Path lab");
+		pathLab.setUuid(UUID.randomUUID().toString());
+		LocationAttributeType locationAttributeType = new LocationAttributeType();
+		locationAttributeType.setName("REFERRAL_LABORATORY_CENTER");
+		locationAttributeType.setDatatypeClassname(ServiceRequestLocationReferenceResolverImpl.LOCATION_DATA_TYPE);
+		
+		Location clinic = new Location();
+		clinic.setName("Clinic");
+		clinic.setUuid(UUID.randomUUID().toString());
+		LocationAttribute referLocation = new LocationAttribute();
+		referLocation.setAttributeType(locationAttributeType);
+		referLocation.setValue(pathLab);
+		clinic.addAttribute(referLocation);
+		
+		Encounter encounter = new Encounter();
+		encounter.setLocation(clinic);
+		
+		OrderType orderType = new OrderType();
+		orderType.setName("Lab Order");
+		Order order = new Order();
+		order.setOrderType(orderType);
+		order.setEncounter(encounter);
+		
+		when(orderAttributeTypeDao.getOrderAttributeTypes(false)).thenReturn(Collections.emptyList());
+		
+		ServiceRequest serviceRequest = exampleServiceRequest();
+		when(translator.toOpenmrsType(serviceRequest)).thenReturn(order);
+		ServiceRequest updatedResource = serviceRequestService.create(serviceRequest);
+		Assert.assertEquals(0, order.getActiveAttributes().size());
+	}
+	
+	@Test
+    public void createServiceRequestShouldSetVisitLocationOnOrderIfNoPreferredLocationIsDefined() {
+        // Create different concept for different order type
+        OrderType labOrderType = new OrderType();
+        labOrderType.setUuid("lab-order-type-uuid");
+        labOrderType.setName("Lab Order");
+
+        LocationAttributeType otherAttributeType = new LocationAttributeType();
+        otherAttributeType.setName("External Lab");
+        otherAttributeType.setDatatypeClassname(ServiceRequestLocationReferenceResolverImpl.LOCATION_DATA_TYPE);
+
+        Location clinic = new Location();
+        clinic.setName("Clinic");
+        clinic.setUuid(UUID.randomUUID().toString());
+        LocationAttribute referLocation = new LocationAttribute();
+        referLocation.setAttributeType(otherAttributeType);
+        clinic.addAttribute(referLocation);
+
+        Location labRoom = new Location();
+        labRoom.setName("Lab Room");
+        labRoom.setUuid(UUID.randomUUID().toString());
+        labRoom.setParentLocation(clinic);
+
+        Encounter encounter = new Encounter();
+        encounter.setLocation(clinic);
+
+        OrderType orderType = new OrderType();
+        orderType.setName("Lab Order");
+        Order order = new Order();
+        order.setOrderType(orderType);
+        order.setEncounter(encounter);
+
+        OrderAttributeType orderLocationType = new OrderAttributeType();
+        orderLocationType.setName(ServiceRequestLocationReferenceResolverImpl.REQUESTED_LOCATION_FOR_ORDER);
+        orderLocationType.setDatatypeClassname(ServiceRequestLocationReferenceResolverImpl.LOCATION_DATA_TYPE);
+        when(orderAttributeTypeDao.getOrderAttributeTypes(false)).thenReturn(Collections.singletonList(orderLocationType));
+
+        ServiceRequest serviceRequest = exampleServiceRequest();
+        when(translator.toOpenmrsType(serviceRequest)).thenReturn(order);
+        when(locationReferenceTranslator.toOpenmrsType(
+                ArgumentMatchers.argThat(reference -> reference.getReference().equals("Location/" + clinic.getUuid()))))
+                .thenReturn(clinic);
+
+        ServiceRequest updatedResource = serviceRequestService.create(serviceRequest);
+        Assert.assertEquals(1, order.getActiveAttributes().size());
+        Assert.assertEquals(clinic, order.getActiveAttributes().iterator().next().getValue());
+    }
+	
+	private ServiceRequest exampleServiceRequest() {
+		// Create test ServiceRequest
+		ServiceRequest serviceRequest = new ServiceRequest();
+		serviceRequest.setId("test-service-request-id");
+		serviceRequest.setStatus(ServiceRequest.ServiceRequestStatus.ACTIVE);
+		serviceRequest.setIntent(ServiceRequest.ServiceRequestIntent.ORDER);
+		serviceRequest.setPriority(ServiceRequest.ServiceRequestPriority.ROUTINE);
+		
+		// Create test code
+		CodeableConcept code = new CodeableConcept();
+		Coding coding = new Coding();
+		coding.setSystem("http://loinc.org");
+		coding.setCode("12345-6");
+		coding.setDisplay("Test Lab Order");
+		code.addCoding(coding);
+		serviceRequest.setCode(code);
+		
+		// Create test subject reference
+		Reference subjectRef = new Reference();
+		subjectRef.setReference("Patient/test-patient-uuid");
+		serviceRequest.setSubject(subjectRef);
+		
+		// Create test encounter reference
+		Reference encounterRef = new Reference();
+		encounterRef.setReference("Encounter/test-encounter-uuid");
+		serviceRequest.setEncounter(encounterRef);
+		
+		// Create test requester reference
+		Reference requesterRef = new Reference();
+		requesterRef.setReference("Practitioner/test-provider-uuid");
+		serviceRequest.setRequester(requesterRef);
+		return serviceRequest;
+	}
+	
+	private User exampleUser() {
+		User user = new User();
+		PersonName personName = new PersonName();
+		personName.setFamilyName("Beth");
+		personName.setGivenName("Bethany");
+		user.addName(personName);
+		return user;
 	}
 }

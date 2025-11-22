@@ -2,7 +2,9 @@ package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
 
 import lombok.AccessLevel;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2AddlExtension.api.service.ServiceRequestLocationReferenceResolver;
 import org.bahmni.module.fhir2AddlExtension.api.translator.OrderTypeTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.ServiceRequestPriorityTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.validators.ServiceRequestValidator;
@@ -21,6 +23,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.Date;
+import java.util.Optional;
 
 import static org.apache.commons.lang3.Validate.notNull;
 import static org.openmrs.module.fhir2.api.translators.impl.FhirTranslatorUtils.getLastUpdated;
@@ -30,6 +33,7 @@ import static org.openmrs.module.fhir2.api.translators.impl.ReferenceHandlingTra
 @Primary
 @Component
 @Setter(AccessLevel.PACKAGE)
+@Slf4j
 public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTranslator<Order> {
 	
 	@Autowired
@@ -58,6 +62,9 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 	
 	@Autowired
 	private ServiceRequestValidator serviceRequestValidator;
+	
+	@Autowired
+	private ServiceRequestLocationReferenceResolver locationReferenceResolver;
 	
 	@Override
 	public ServiceRequest toFhirResource(@Nonnull Order order) {
@@ -92,6 +99,10 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 			serviceRequest.setBasedOn(Collections.singletonList(createOrderReferenceInternal(order.getPreviousOrder())
 			        .setIdentifier(orderIdentifierTranslator.toFhirResource(order.getPreviousOrder()))));
 		}
+
+		Optional.ofNullable(locationReferenceResolver.getRequestedLocationReferenceForOrder(order)).ifPresent(reference -> {
+			serviceRequest.setLocationReference(Collections.singletonList(reference));
+		});
 		
 		serviceRequest.getMeta().setLastUpdated(getLastUpdated(order));
 		serviceRequest.getMeta().setVersionId(getVersionId(order));
@@ -122,8 +133,42 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 		order.setEncounter(encounterReferenceTranslator.toOpenmrsType(resource.getEncounter()));
 		order.setOrderer(providerReferenceTranslator.toOpenmrsType(resource.getRequester()));
 		order.setUrgency(serviceRequestPriorityTranslator.toOpenmrsType(resource.getPriority()));
+		
+		//		if (resource.hasLocationReference()) {
+		//			setRequestedLocationOnOrder(resource.getLocationReference().get(0), order);
+		//		} else {
+		//			setDefaultOrderLocation(order);
+		//		}
 		return order;
 	}
+	
+	//
+	//	private void setDefaultOrderLocation(Order order) {
+	//		if (order.getEncounter() == null) {
+	//			return;
+	//		}
+	//		Location preferredLocationForOrder = locationReferenceResolver.getPreferredLocation(order);
+	//		Location orderLocation = preferredLocationForOrder != null ? preferredLocationForOrder :  order.getEncounter().getLocation();
+	//		if (orderLocation == null) {
+	//			return;
+	//		}
+	//
+	//		log.info("No preferred location is set for the order. System will attempt to default to the ordering location");
+	//		if (locationReferenceResolver.hasRequestedLocation(order)) {
+	//			locationReferenceResolver.updateOrderRequestLocation(orderLocation, order);
+	//		} else {
+	//			Reference reference = new Reference("Location/" + orderLocation.getUuid());
+	//			locationReferenceResolver.setOrderRequestLocation(reference, order);
+	//		}
+	//	}
+	//
+	//	protected void setRequestedLocationOnOrder(Reference reference, Order order) {
+	//		if (locationReferenceResolver.hasRequestedLocation(order)) {
+	//			locationReferenceResolver.updateOrderRequestLocation(reference, order);
+	//		} else {
+	//			locationReferenceResolver.setOrderRequestLocation(reference, order);
+	//		}
+	//	}
 	
 	private ServiceRequest.ServiceRequestStatus determineServiceRequestStatus(Order order) {
 		

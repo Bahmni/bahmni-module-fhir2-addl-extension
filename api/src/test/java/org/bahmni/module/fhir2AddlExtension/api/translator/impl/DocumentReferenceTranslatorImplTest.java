@@ -4,7 +4,7 @@ import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
 import org.bahmni.module.fhir2AddlExtension.api.dao.DocumentReferenceAttributeTypeDao;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReference;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttributeType;
-import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceBasedOnReferenceTranslator;
+import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniServiceRequestReferenceTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceExtensionTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceStatusTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceTranslator;
@@ -70,7 +70,7 @@ public class DocumentReferenceTranslatorImplTest {
 	private User user;
 	
 	@Mock
-	private DocumentReferenceBasedOnReferenceTranslator basedOnReferenceTranslator;
+	private BahmniServiceRequestReferenceTranslator basedOnReferenceTranslator;
 	
 	@Before
     public void setUp() {

@@ -9,7 +9,7 @@ import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttri
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttributeType;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceContent;
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceAttributeTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceBasedOnReferenceTranslator;
+import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniServiceRequestReferenceTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceExtensionTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceStatusTranslator;
@@ -76,7 +76,7 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
 	
 	private final DocumentReferenceExtensionTranslator extensionTranslator;
 	
-	private final DocumentReferenceBasedOnReferenceTranslator basedOnReferenceTranslator;
+	private final BahmniServiceRequestReferenceTranslator basedOnReferenceTranslator;
 	
 	@Autowired
 	public DocumentReferenceTranslatorImpl(PatientReferenceTranslator patientReferenceTranslator,
@@ -84,7 +84,7 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
 	    EncounterReferenceTranslator<Encounter> encounterReferenceTranslator,
 	    PractitionerReferenceTranslator<Provider> providerReferenceTranslator,
 	    DocumentReferenceExtensionTranslator extensionTranslator,
-	    DocumentReferenceBasedOnReferenceTranslator basedOnReferenceTranslator) {
+	    BahmniServiceRequestReferenceTranslator basedOnReferenceTranslator) {
 		this.patientReferenceTranslator = patientReferenceTranslator;
 		this.conceptTranslator = conceptTranslator;
 		this.statusTranslator = statusTranslator;

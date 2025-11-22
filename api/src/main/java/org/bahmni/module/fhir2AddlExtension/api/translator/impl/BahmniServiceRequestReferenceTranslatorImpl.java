@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
-import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceBasedOnReferenceTranslator;
+import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniServiceRequestReferenceTranslator;
 import org.hl7.fhir.r4.model.Reference;
 import org.openmrs.DrugOrder;
 import org.openmrs.Order;
@@ -23,7 +23,7 @@ import static org.openmrs.module.fhir2.api.translators.impl.ReferenceHandlingTra
 
 @Slf4j
 @Component
-public class DocumentReferenceBasedOnReferenceTranslatorImpl implements DocumentReferenceBasedOnReferenceTranslator {
+public class BahmniServiceRequestReferenceTranslatorImpl implements BahmniServiceRequestReferenceTranslator {
 	
 	@Getter(value = AccessLevel.PROTECTED)
 	@Setter(value = AccessLevel.PACKAGE, onMethod_ = @Autowired)

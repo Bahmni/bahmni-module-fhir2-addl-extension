@@ -2,6 +2,9 @@ package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
 
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2AddlExtension.api.context.AppContext;
+import org.bahmni.module.fhir2AddlExtension.api.dao.OrderAttributeTypeDao;
+import org.bahmni.module.fhir2AddlExtension.api.service.impl.ServiceRequestLocationReferenceResolverImpl;
 import org.bahmni.module.fhir2AddlExtension.api.translator.OrderTypeTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.ServiceRequestPriorityTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.validators.ServiceRequestValidator;
@@ -18,6 +21,7 @@ import org.openmrs.api.OrderService;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
 import org.openmrs.module.fhir2.api.translators.EncounterReferenceTranslator;
+import org.openmrs.module.fhir2.api.translators.LocationReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.impl.OrderIdentifierTranslatorImpl;
@@ -85,6 +89,15 @@ public class BahmniServiceRequestTranslatorImplTest {
 	@Mock
 	private OrderService orderService;
 	
+	@Mock
+	OrderAttributeTypeDao orderAttributeTypeDao;
+	
+	@Mock
+	LocationReferenceTranslator locationReferenceTranslator;
+	
+	@Mock
+	AppContext appContext;
+	
 	private Order discontinuedOrder;
 	
 	private Order order;
@@ -117,6 +130,12 @@ public class BahmniServiceRequestTranslatorImplTest {
 		translator.setServiceRequestPriorityTranslator(serviceRequestPriorityTranslator);
 		translator.setServiceRequestValidator(serviceRequestValidator);
 		translator.setOrderService(orderService);
+		
+		ServiceRequestLocationReferenceResolverImpl orderLocationReferenceResolver = new ServiceRequestLocationReferenceResolverImpl(
+		        locationReferenceTranslator, orderAttributeTypeDao, appContext);
+		orderLocationReferenceResolver.initialize();
+		
+		translator.setLocationReferenceResolver(orderLocationReferenceResolver);
 		
 		orderConcept = new Concept();
 		ConceptClass cc = new ConceptClass();
