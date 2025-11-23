@@ -5,6 +5,7 @@ import org.bahmni.module.fhir2AddlExtension.api.dao.OrderAttributeTypeDao;
 import org.openmrs.OrderAttributeType;
 import org.openmrs.OrderGroupAttributeType;
 import org.openmrs.api.db.OrderDAO;
+import org.openmrs.attribute.BaseAttributeType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
@@ -25,26 +26,23 @@ public class OrderAttributeTypeDaoImpl implements OrderAttributeTypeDao {
 	}
 	
 	@Override
-    @Cacheable(value = "fhir2extensionOrderAttributeType")
-    public List<OrderAttributeType> getOrderAttributeTypes(boolean includeRetired) {
-        List<OrderAttributeType> allOrderAttributeTypes = orderDao.getAllOrderAttributeTypes();
-        if (allOrderAttributeTypes == null) {
-            return Collections.emptyList();
-        }
-        return allOrderAttributeTypes.stream().filter(orderAttributeType -> {
-            return includeRetired || !orderAttributeType.getRetired();
-        }).collect(Collectors.toList());
-    }
+	@Cacheable(value = "fhir2extensionOrderAttributeType")
+	public List<OrderAttributeType> getOrderAttributeTypes(boolean includeRetired) {
+		return filterAttributeTypes(orderDao.getAllOrderAttributeTypes(), includeRetired);
+	}
 	
 	@Override
-    @Cacheable(value = "fhir2extensionOrderGroupAttributeType")
-    public List<OrderGroupAttributeType> getOrderGroupAttributeTypes(boolean includeRetired) {
-        List<OrderGroupAttributeType> allOrderGroupAttributeTypes = orderDao.getAllOrderGroupAttributeTypes();
-        if (allOrderGroupAttributeTypes == null) {
+	@Cacheable(value = "fhir2extensionOrderGroupAttributeType")
+	public List<OrderGroupAttributeType> getOrderGroupAttributeTypes(boolean includeRetired) {
+		return filterAttributeTypes(orderDao.getAllOrderGroupAttributeTypes(), includeRetired);
+	}
+	
+	private <T extends BaseAttributeType> List<T> filterAttributeTypes(List<T> allOrderAttributeTypes, boolean includeRetired) {
+        if (allOrderAttributeTypes == null || allOrderAttributeTypes.isEmpty()) {
             return Collections.emptyList();
         }
-        return allOrderGroupAttributeTypes.stream().filter(orderGroupAttributeType -> {
-            return includeRetired || !orderGroupAttributeType.getRetired();
-        }).collect(Collectors.toList());
+        return allOrderAttributeTypes.stream()
+            .filter(orderAttributeType -> includeRetired || !orderAttributeType.getRetired())
+            .collect(Collectors.toList());
     }
 }
