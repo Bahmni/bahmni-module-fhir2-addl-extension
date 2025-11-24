@@ -6,6 +6,7 @@ import org.apache.commons.lang.StringUtils;
 import org.bahmni.module.fhir2AddlExtension.api.context.AppContext;
 import org.bahmni.module.fhir2AddlExtension.api.dao.OrderAttributeTypeDao;
 import org.bahmni.module.fhir2AddlExtension.api.service.ServiceRequestLocationReferenceResolver;
+import org.bahmni.module.fhir2AddlExtension.api.utils.ModuleUtils;
 import org.hl7.fhir.r4.model.Reference;
 import org.openmrs.Location;
 import org.openmrs.LocationAttribute;
@@ -36,7 +37,6 @@ public class ServiceRequestLocationReferenceResolverImpl implements ServiceReque
 	private static final String NO_REQUESTED_LOCATION_ATTRIBUTE_SET = "There is no requested location attribute defined for order. Ignoring location reference";
 	private static final String STR_INVALID_ORDER_REQUEST_LOCATION = "Could not find location for order's requested location";
 	private static final String ERR_INVALID_ORDER_LOCATION_REFERENCE = "Invalid order location reference";
-	private static final String VISIT_LOCATION_TAG = "Visit Location";
 	private final Map<String, String> orderTypeToLocationAttributeNameMap = new HashMap<>();
 
 	private LocationReferenceTranslator locationReferenceTranslator;
@@ -89,7 +89,6 @@ public class ServiceRequestLocationReferenceResolverImpl implements ServiceReque
 	public OrderAttribute updateOrderRequestLocation(@NotNull final Reference reference, @NotNull final Order order) {
 		OrderAttributeType attributeType = getLocationReferenceAttributeType();
 		if (attributeType == null) {
-			System.out.println(NO_REQUESTED_LOCATION_ATTRIBUTE_SET);
 			log.info(NO_REQUESTED_LOCATION_ATTRIBUTE_SET);
 			return null;
 		}
@@ -110,7 +109,7 @@ public class ServiceRequestLocationReferenceResolverImpl implements ServiceReque
 	}
 
 	private OrderAttribute updateOrderAttribute(Location location, Optional<OrderAttribute> existingAttribute) {
-		System.out.println("Updating order's existing requested location attribute");
+		log.info("Updating order's existing requested location attribute");
 		existingAttribute.get().setValue(location);
 		existingAttribute.get().setValueReferenceInternal(location.getUuid());
 		return existingAttribute.get();
@@ -134,7 +133,6 @@ public class ServiceRequestLocationReferenceResolverImpl implements ServiceReque
 	public OrderAttribute setOrderRequestLocation(Reference reference, Order order) {
 		OrderAttributeType attributeType = getLocationReferenceAttributeType();
 		if (attributeType == null) {
-			System.out.println(NO_REQUESTED_LOCATION_ATTRIBUTE_SET);
 			log.info(NO_REQUESTED_LOCATION_ATTRIBUTE_SET);
 			return null;
 		}
@@ -145,7 +143,7 @@ public class ServiceRequestLocationReferenceResolverImpl implements ServiceReque
 			throw new InvalidRequestException(ERR_INVALID_ORDER_LOCATION_REFERENCE);
 		}
 
-		System.out.println("Creating new order attribute for requested location");
+		log.info("Creating new order attribute for requested location");
 		OrderAttribute attribute = new OrderAttribute();
 		attribute.setAttributeType(attributeType);
 		attribute.setValueReferenceInternal(location.getUuid());
@@ -162,7 +160,7 @@ public class ServiceRequestLocationReferenceResolverImpl implements ServiceReque
 		if (order.getEncounter() == null || order.getEncounter().getLocation() == null) {
 			return null;
 		}
-		Location visitLocation = getVisitLocation(order.getEncounter().getLocation());
+		Location visitLocation = ModuleUtils.getVisitLocation(order.getEncounter().getLocation());
 		String locationAttributeTypeName = getLocationAttributeType(order.getOrderType());
 
 		if (StringUtils.isEmpty(locationAttributeTypeName)) {
@@ -185,23 +183,6 @@ public class ServiceRequestLocationReferenceResolverImpl implements ServiceReque
 			}
 		}
 		return null;
-	}
-
-	private Location getVisitLocation(@NotNull Location aLocation) {
-		if (aLocation.getTags() != null) {
-			//check if the location is marked as visit location
-			for (org.openmrs.LocationTag tag: aLocation.getTags()) {
-				if (tag.getName().equals(VISIT_LOCATION_TAG)) {
-					return aLocation;
-				}
-			}
-		}
-		//check if the location is root of the location hierarchy
-		if (aLocation.getParentLocation() == null) {
-			return aLocation;
-		}
-		//check location parent
-		return getVisitLocation(aLocation.getParentLocation());
 	}
 
 	protected OrderAttributeType getLocationReferenceAttributeType() {

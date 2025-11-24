@@ -11,6 +11,7 @@ import lombok.Setter;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
 import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirServiceRequestService;
 import org.bahmni.module.fhir2AddlExtension.api.service.ServiceRequestLocationReferenceResolver;
+import org.bahmni.module.fhir2AddlExtension.api.utils.ModuleUtils;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.ServiceRequest;
 import org.openmrs.Location;
@@ -135,8 +136,8 @@ public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<Service
 			return;
 		}
 		Location preferredLocationForOrder = locationReferenceResolver.getPreferredLocation(order);
-		Location orderLocation = preferredLocationForOrder != null ? preferredLocationForOrder : order.getEncounter()
-		        .getLocation();
+		Location orderLocation = preferredLocationForOrder != null ? preferredLocationForOrder : ModuleUtils
+		        .getVisitLocation(order.getEncounter().getLocation());
 		if (orderLocation == null) {
 			return;
 		}
