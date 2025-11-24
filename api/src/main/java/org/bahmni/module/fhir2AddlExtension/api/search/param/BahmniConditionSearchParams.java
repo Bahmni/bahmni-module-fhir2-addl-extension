@@ -26,8 +26,9 @@ public class BahmniConditionSearchParams extends ConditionSearchParams {
 	    TokenAndListParam clinicalStatus, DateRangeParam onsetDate, QuantityAndListParam onsetAge,
 	    DateRangeParam recordedDate, TokenAndListParam id, TokenAndListParam verificationStatus, StringParam category,
 	    DateRangeParam lastUpdated, SortSpec sort, HashSet<Include> includes) {
-		
-		super(patientParam, code, clinicalStatus, onsetDate, onsetAge, recordedDate, id, lastUpdated, sort, includes);
+
+		//ReferenceAndListParam patientParam, TokenAndListParam code, TokenAndListParam clinicalStatus, DateRangeParam onsetDate, QuantityAndListParam onsetAge, DateRangeParam recordedDate, TokenAndListParam category, TokenAndListParam id, DateRangeParam lastUpdated, SortSpec sort, HashSet<Include> includes
+		super(patientParam, code, clinicalStatus, onsetDate, onsetAge, recordedDate, category, id, lastUpdated, sort, includes);
 		this.verificationStatus = verificationStatus;
 		this.category = category;
 		
