@@ -34,12 +34,23 @@
 	 /AOP -->
 
 
-	<!-- Required Privileges
+    <!-- Required Privileges -->
 	<privilege>
-		<name>Form Entry</name>
-		<description>Allows user to access Form Entry pages/functions</description>
+		<name>Get DocumentReference</name>
+		<description>Allows user to get document references</description>
 	</privilege>
-	 /Required Privileges -->
+	<privilege>
+		<name>Add DocumentReference</name>
+		<description>Allows user to add a document reference</description>
+	</privilege>
+	<privilege>
+		<name>Delete DocumentReference</name>
+		<description>Allows user to delete an existing document reference</description>
+	</privilege>
+	<privilege>
+		<name>Edit DocumentReference</name>
+		<description>Allows user to edit an existing document reference</description>
+	</privilege>
 
 	<!-- Required Global Properties
 	<globalProperty>
