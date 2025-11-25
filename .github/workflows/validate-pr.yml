@@ -18,9 +18,6 @@ jobs:
           java-version: '8'
           distribution: 'corretto'
           cache: maven
-          server-id: nexus-sonatype
-          server-username: NEXUS_USERNAME
-          server-password: NEXUS_PASSWORD
       - name: Build with Maven
         run: |
           mvn --no-transfer-progress clean install
