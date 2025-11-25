@@ -61,13 +61,40 @@ public class BahmniEncounterTranslatorImplTest {
 	
 	@Before
 	public void setup() {
-		translator = new BahmniEncounterTranslatorImpl();
-		translator.setParticipantTranslator(participantTranslator);
-		translator.setEncounterLocationTranslator(encounterLocationTranslator);
-		translator.setPatientReferenceTranslator(patientReferenceTranslator);
-		translator.setVisitReferenceTranlator(visitReferenceTranslator);
-		translator.setEncounterTypeTranslator(encounterTypeTranslator);
-		translator.setEncounterPeriodTranslator(encounterPeriodTranslator);
+		translator = new BahmniEncounterTranslatorImpl() {
+			
+			@Override
+			protected EncounterParticipantTranslator getParticipantTranslator() {
+				return participantTranslator;
+			}
+			
+			@Override
+			protected EncounterPeriodTranslator<org.openmrs.Encounter> getEncounterPeriodTranslator() {
+				return encounterPeriodTranslator;
+			}
+			
+			@Override
+			protected EncounterTypeTranslator<EncounterType> getEncounterTypeTranslator() {
+				return encounterTypeTranslator;
+			}
+			
+			@Override
+			protected EncounterReferenceTranslator<Visit> getVisitReferenceTranlator() {
+				return visitReferenceTranslator;
+			}
+			
+			@Override
+			protected PatientReferenceTranslator getPatientReferenceTranslator() {
+				return patientReferenceTranslator;
+			}
+			
+			@Override
+			protected EncounterLocationTranslator getEncounterLocationTranslator() {
+				return encounterLocationTranslator;
+			}
+		};
+		//translator = new BahmniEncounterTranslatorImpl();
+		
 		translator.setBahmniEncounterValidator(bahmniEncounterValidator);
 		existingEncounter = new org.openmrs.Encounter();
 		existingEncounter.setUuid("existing-encounter-uuid");
