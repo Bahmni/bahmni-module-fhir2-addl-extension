@@ -3,7 +3,10 @@ package org.bahmni.module.fhir2AddlExtension.api.service.impl;
 import ca.uhn.fhir.rest.api.PatchTypeEnum;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.api.server.RequestDetails;
-import ca.uhn.fhir.rest.param.StringParam;
+import ca.uhn.fhir.rest.param.TokenAndListParam;
+import ca.uhn.fhir.rest.param.TokenOrListParam;
+import ca.uhn.fhir.rest.param.TokenParam;
+import ca.uhn.fhir.rest.server.SimpleBundleProvider;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.exceptions.MethodNotAllowedException;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
@@ -16,10 +19,13 @@ import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirConditionServi
 import org.bahmni.module.fhir2AddlExtension.api.service.FhirEncounterDiagnosisService;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Condition;
+import org.openmrs.module.fhir2.FhirConstants;
+import org.openmrs.module.fhir2.api.FhirGlobalPropertyService;
 import org.openmrs.module.fhir2.api.dao.FhirConditionDao;
 import org.openmrs.module.fhir2.api.impl.BaseFhirService;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
 import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
+import org.openmrs.module.fhir2.api.search.TwoSearchQueryBundleProvider;
 import org.openmrs.module.fhir2.api.search.param.ConditionSearchParams;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.openmrs.module.fhir2.api.translators.ConditionTranslator;
@@ -47,6 +53,10 @@ public class BahmniFhirConditionServiceImpl extends BaseFhirService<Condition, o
 	
 	@Setter(value = AccessLevel.PACKAGE, onMethod_ = @Autowired)
 	private SearchQueryInclude<Condition> searchQueryInclude;
+	
+	@Getter(value = AccessLevel.PROTECTED)
+	@Setter(value = AccessLevel.PACKAGE, onMethod_ = @Autowired)
+	private FhirGlobalPropertyService globalPropertyService;
 	
 	@Setter(value = AccessLevel.PACKAGE, onMethod_ = @Autowired)
 	private SearchQuery<org.openmrs.Condition, Condition, FhirConditionDao, ConditionTranslator<org.openmrs.Condition>, SearchQueryInclude<Condition>> searchQuery;
@@ -93,16 +103,53 @@ public class BahmniFhirConditionServiceImpl extends BaseFhirService<Condition, o
 	@Override
 	public IBundleProvider searchConditions(BahmniConditionSearchParams conditionSearchParams) {
 		SearchParameterMap searchParameterMap = conditionSearchParams.toSearchParameterMap();
-		StringParam categoryParam = conditionSearchParams.getCategory();
-		String category = categoryParam.getValue();
-		if (category.equals(BahmniFhirConstants.HL7_CONDITION_CATEGORY_CONDITION_CODE)) {
-			return searchQuery.getQueryResults(searchParameterMap, dao, translator, searchQueryInclude);
-		} else if (category.equals(BahmniFhirConstants.HL7_CONDITION_CATEGORY_DIAGNOSIS_CODE)) {
-			return encounterDiagnosisService.searchForDiagnosis(searchParameterMap);
-		} else {
-			throw new InvalidRequestException("Unknown condition category: " + category);
+		IBundleProvider diagnosisBundle = null;
+		IBundleProvider conditionBundle = null;
+		
+		if (shouldSearchExplicitlyFor(conditionSearchParams.getCategory(), FhirConstants.CONDITION_CATEGORY_CODE_DIAGNOSIS)) {
+			diagnosisBundle = encounterDiagnosisService.searchForDiagnosis(searchParameterMap);
 		}
 		
+		if (shouldSearchExplicitlyFor(conditionSearchParams.getCategory(), FhirConstants.CONDITION_CATEGORY_CODE_CONDITION)) {
+			conditionBundle = searchQuery.getQueryResults(searchParameterMap, dao, translator, searchQueryInclude);
+		}
+		
+		if (conditionBundle != null && diagnosisBundle != null) {
+			return new TwoSearchQueryBundleProvider(diagnosisBundle, conditionBundle, globalPropertyService);
+		} else if (conditionBundle == null && diagnosisBundle != null) {
+			return diagnosisBundle;
+		}
+		
+		return conditionBundle == null ? new SimpleBundleProvider() : conditionBundle;
+		
+		//		String category = categoryParam.getValue();
+		//		if (category.equals(BahmniFhirConstants.HL7_CONDITION_CATEGORY_CONDITION_CODE)) {
+		//			return searchQuery.getQueryResults(searchParameterMap, dao, translator, searchQueryInclude);
+		//		} else if (category.equals(BahmniFhirConstants.HL7_CONDITION_CATEGORY_DIAGNOSIS_CODE)) {
+		//			return encounterDiagnosisService.searchForDiagnosis(searchParameterMap);
+		//		} else {
+		//			throw new InvalidRequestException("Unknown condition category: " + category);
+		//		}
+		
+	}
+	
+	private boolean shouldSearchExplicitlyFor(TokenAndListParam tokenAndListParam, @Nonnull String valueToCheck) {
+		if (tokenAndListParam == null || tokenAndListParam.size() == 0 || valueToCheck.isEmpty()) {
+			return true;
+		}
+		
+		for (TokenOrListParam orList : tokenAndListParam.getValuesAsQueryTokens()) {
+			for (TokenParam tp : orList.getValuesAsQueryTokens()) {
+				String sys = tp.getSystem();
+				String code = tp.getValue();
+				if (sys != null && !sys.isEmpty() && FhirConstants.CONDITION_CATEGORY_SYSTEM_URI.equals(sys)
+				        && valueToCheck.equals(code)) {
+					return true;
+				}
+			}
+		}
+		
+		return false;
 	}
 	
 	@Override

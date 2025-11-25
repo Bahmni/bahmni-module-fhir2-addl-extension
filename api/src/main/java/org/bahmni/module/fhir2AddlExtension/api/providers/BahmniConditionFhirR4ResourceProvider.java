@@ -26,7 +26,7 @@ public class BahmniConditionFhirR4ResourceProvider extends ConditionFhirResource
 	private BahmniFhirConditionService conditionService;
 	
 	@Search
-	public IBundleProvider searchConditions(@RequiredParam(name = Condition.SP_CATEGORY) StringParam category,
+	public IBundleProvider searchConditions(@OptionalParam(name = Condition.SP_CATEGORY) TokenAndListParam category,
 	        @OptionalParam(name = Condition.SP_PATIENT, chainWhitelist = { "", Patient.SP_IDENTIFIER, Patient.SP_NAME,
 	                Patient.SP_GIVEN, Patient.SP_FAMILY }) ReferenceAndListParam patientParam,
 	        @OptionalParam(name = Condition.SP_SUBJECT, chainWhitelist = { "", Patient.SP_IDENTIFIER, Patient.SP_NAME,

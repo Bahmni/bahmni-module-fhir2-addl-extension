@@ -2,7 +2,8 @@ package org.bahmni.module.fhir2AddlExtension.api.service.impl;
 
 import ca.uhn.fhir.rest.api.PatchTypeEnum;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
-import ca.uhn.fhir.rest.param.StringParam;
+import ca.uhn.fhir.rest.param.TokenAndListParam;
+import ca.uhn.fhir.rest.param.TokenOrListParam;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.exceptions.MethodNotAllowedException;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
@@ -12,12 +13,14 @@ import org.bahmni.module.fhir2AddlExtension.api.service.FhirEncounterDiagnosisSe
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.Condition;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.dao.FhirConditionDao;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
 import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
@@ -187,7 +190,8 @@ public class BahmniFhirConditionServiceImplTest {
 	public void shouldSearchConditionsUsingSearchQueryWhenCategoryIsProblemListItem() {
 		// Create search params with problem-list-item category
 		BahmniConditionSearchParams searchParams = new BahmniConditionSearchParams();
-		searchParams.setCategory(new StringParam(BahmniFhirConstants.HL7_CONDITION_CATEGORY_CONDITION_CODE));
+		searchParams.setCategory(new TokenAndListParam().addAnd(new TokenOrListParam().add(
+		    FhirConstants.CONDITION_CATEGORY_SYSTEM_URI, FhirConstants.CONDITION_CATEGORY_CODE_CONDITION)));
 		
 		// Mock the searchQuery behavior
 		SearchParameterMap parameterMap = searchParams.toSearchParameterMap();
@@ -206,8 +210,8 @@ public class BahmniFhirConditionServiceImplTest {
 	public void shouldSearchConditionsUsingEncounterDiagnosisServiceWhenCategoryIsEncounterDiagnosis() {
 		// Create search params with encounter-diagnosis category
 		BahmniConditionSearchParams searchParams = new BahmniConditionSearchParams();
-		searchParams.setCategory(new StringParam(BahmniFhirConstants.HL7_CONDITION_CATEGORY_DIAGNOSIS_CODE));
-		
+		searchParams.setCategory(new TokenAndListParam().addAnd(new TokenOrListParam().add(
+		    FhirConstants.CONDITION_CATEGORY_SYSTEM_URI, FhirConstants.CONDITION_CATEGORY_CODE_DIAGNOSIS)));
 		// Mock the encounterDiagnosisService behavior
 		SearchParameterMap parameterMap = searchParams.toSearchParameterMap();
 		when(encounterDiagnosisService.searchForDiagnosis(parameterMap)).thenReturn(mock(IBundleProvider.class));
@@ -220,13 +224,16 @@ public class BahmniFhirConditionServiceImplTest {
 		verify(encounterDiagnosisService).searchForDiagnosis(any(SearchParameterMap.class));
 	}
 	
-	@Test(expected = InvalidRequestException.class)
+	//@Test(expected = InvalidRequestException.class)
+	@Test
 	public void shouldThrowInvalidRequestExceptionWhenSearchingConditionsWithInvalidCategory() {
 		// Create search params with an invalid category
 		BahmniConditionSearchParams searchParams = new BahmniConditionSearchParams();
-		searchParams.setCategory(new StringParam("invalid-category"));
+		searchParams.setCategory(new TokenAndListParam().addAnd(new TokenOrListParam().add(
+		    FhirConstants.CONDITION_CATEGORY_SYSTEM_URI, "invalid-category")));
+		IBundleProvider iBundleProvider = conditionService.searchConditions(searchParams);
+		Assert.assertEquals(0, iBundleProvider.getAllResources().size());
 		
-		conditionService.searchConditions(searchParams);
 	}
 	
 	@Test(expected = InvalidRequestException.class)

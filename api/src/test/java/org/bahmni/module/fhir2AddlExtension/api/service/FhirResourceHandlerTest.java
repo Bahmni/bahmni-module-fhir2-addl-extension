@@ -102,6 +102,12 @@ public class FhirResourceHandlerTest {
 			}
 			
 			@Override
+			public Encounter update(@Nonnull String s, @Nonnull Encounter toUpdate, RequestDetails requestDetails, boolean b) {
+				System.out.println("FhirEncounterService.update(). encounter: " + toUpdate);
+				return toUpdate;
+			}
+			
+			@Override
 			public Encounter patch(@Nonnull String s, @Nonnull PatchTypeEnum patchTypeEnum, @Nonnull String s1,
 			        RequestDetails requestDetails) {
 				System.out.println("FhirEncounterService.patch()");

@@ -19,7 +19,7 @@ import static org.apache.commons.lang3.Validate.notNull;
 
 @Component
 @Primary
-@Setter(AccessLevel.PACKAGE)
+@Setter(AccessLevel.PROTECTED)
 public class BahmniEncounterTranslatorImpl extends EncounterTranslatorImpl {
 	
 	@Autowired

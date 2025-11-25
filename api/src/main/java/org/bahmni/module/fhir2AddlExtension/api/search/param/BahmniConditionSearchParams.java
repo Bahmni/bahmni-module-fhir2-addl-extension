@@ -20,15 +20,15 @@ public class BahmniConditionSearchParams extends ConditionSearchParams {
 	
 	private TokenAndListParam verificationStatus;
 	
-	private StringParam category;
+	private TokenAndListParam category;
 	
 	public BahmniConditionSearchParams(ReferenceAndListParam patientParam, TokenAndListParam code,
 	    TokenAndListParam clinicalStatus, DateRangeParam onsetDate, QuantityAndListParam onsetAge,
-	    DateRangeParam recordedDate, TokenAndListParam id, TokenAndListParam verificationStatus, StringParam category,
+	    DateRangeParam recordedDate, TokenAndListParam id, TokenAndListParam verificationStatus, TokenAndListParam category,
 	    DateRangeParam lastUpdated, SortSpec sort, HashSet<Include> includes) {
-
-		//ReferenceAndListParam patientParam, TokenAndListParam code, TokenAndListParam clinicalStatus, DateRangeParam onsetDate, QuantityAndListParam onsetAge, DateRangeParam recordedDate, TokenAndListParam category, TokenAndListParam id, DateRangeParam lastUpdated, SortSpec sort, HashSet<Include> includes
-		super(patientParam, code, clinicalStatus, onsetDate, onsetAge, recordedDate, category, id, lastUpdated, sort, includes);
+		
+		super(patientParam, code, clinicalStatus, onsetDate, onsetAge, recordedDate, category, id, lastUpdated, sort,
+		        includes);
 		this.verificationStatus = verificationStatus;
 		this.category = category;
 		
