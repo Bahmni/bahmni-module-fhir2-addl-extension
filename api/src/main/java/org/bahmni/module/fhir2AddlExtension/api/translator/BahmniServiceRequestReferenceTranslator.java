@@ -6,7 +6,7 @@ import org.openmrs.module.fhir2.api.translators.OpenmrsFhirTranslator;
 
 import javax.annotation.Nonnull;
 
-public interface DocumentReferenceBasedOnReferenceTranslator extends OpenmrsFhirTranslator<Order, Reference> {
+public interface BahmniServiceRequestReferenceTranslator extends OpenmrsFhirTranslator<Order, Reference> {
 	
 	/**
 	 * Maps an {@link Order} to an {@link org.hl7.fhir.r4.model.Reference}

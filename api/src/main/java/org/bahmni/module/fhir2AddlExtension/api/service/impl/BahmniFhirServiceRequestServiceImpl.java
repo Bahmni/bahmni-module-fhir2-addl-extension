@@ -10,7 +10,11 @@ import lombok.Getter;
 import lombok.Setter;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
 import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirServiceRequestService;
+import org.bahmni.module.fhir2AddlExtension.api.service.ServiceRequestLocationReferenceResolver;
+import org.bahmni.module.fhir2AddlExtension.api.utils.ModuleUtils;
+import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.ServiceRequest;
+import org.openmrs.Location;
 import org.openmrs.Order;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.dao.FhirServiceRequestDao;
@@ -19,10 +23,12 @@ import org.openmrs.module.fhir2.api.search.SearchQuery;
 import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.openmrs.module.fhir2.api.translators.ServiceRequestTranslator;
+import org.openmrs.module.fhir2.api.util.FhirUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Nonnull;
 import java.util.HashSet;
 
 @Component
@@ -39,6 +45,9 @@ public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<Service
 	
 	@Setter(value = AccessLevel.PACKAGE, onMethod_ = @Autowired)
 	private SearchQueryInclude<ServiceRequest> searchQueryInclude;
+	
+	@Setter(value = AccessLevel.PACKAGE, onMethod_ = @Autowired)
+	private ServiceRequestLocationReferenceResolver locationReferenceResolver;
 	
 	@Setter(value = AccessLevel.PACKAGE, onMethod_ = @Autowired)
 	private SearchQuery<Order, ServiceRequest, FhirServiceRequestDao<Order>, ServiceRequestTranslator<Order>, SearchQueryInclude<ServiceRequest>> searchQuery;
@@ -90,6 +99,64 @@ public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<Service
 			theParams.setSortSpec(sort);
 		}
 		return searchQuery.getQueryResults(theParams, dao, translator, searchQueryInclude);
+	}
+	
+	@Override
+	public ServiceRequest create(@Nonnull ServiceRequest newResource) {
+		if (newResource == null) {
+			throw new InvalidRequestException("A resource of type " + resourceClass.getSimpleName() + " must be supplied");
+		}
+		
+		Order order = getTranslator().toOpenmrsType(newResource);
+		if (newResource.hasLocationReference()) {
+			setRequestedLocationOnOrder(newResource.getLocationReference().get(0), order);
+		} else {
+			setDefaultOrderLocation(order);
+		}
+		
+		validateObject(order);
+		
+		if (order.getUuid() == null) {
+			order.setUuid(FhirUtils.newUuid());
+		}
+		
+		return getTranslator().toFhirResource(getDao().createOrUpdate(order));
+	}
+	
+	@Override
+	protected ServiceRequest applyUpdate(Order existingObject, ServiceRequest updatedResource) {
+		if (updatedResource.hasLocationReference()) {
+			setRequestedLocationOnOrder(updatedResource.getLocationReference().get(0), existingObject);
+		}
+		return super.applyUpdate(existingObject, updatedResource);
+	}
+	
+	private void setDefaultOrderLocation(Order order) {
+		if (order.getEncounter() == null) {
+			return;
+		}
+		Location preferredLocationForOrder = locationReferenceResolver.getPreferredLocation(order);
+		Location orderLocation = preferredLocationForOrder != null ? preferredLocationForOrder : ModuleUtils
+		        .getVisitLocation(order.getEncounter().getLocation());
+		if (orderLocation == null) {
+			return;
+		}
+		
+		log.info("No preferred location is set for the order. System will attempt to default to the ordering location");
+		if (locationReferenceResolver.hasRequestedLocation(order)) {
+			locationReferenceResolver.updateOrderRequestLocation(orderLocation, order);
+		} else {
+			Reference reference = new Reference("Location/" + orderLocation.getUuid());
+			locationReferenceResolver.setOrderRequestLocation(reference, order);
+		}
+	}
+	
+	protected void setRequestedLocationOnOrder(Reference reference, Order order) {
+		if (locationReferenceResolver.hasRequestedLocation(order)) {
+			locationReferenceResolver.updateOrderRequestLocation(reference, order);
+		} else {
+			locationReferenceResolver.setOrderRequestLocation(reference, order);
+		}
 	}
 	
 	private SearchParameterMap getSearchParameterMap(ReferenceAndListParam patientReference, TokenAndListParam code,

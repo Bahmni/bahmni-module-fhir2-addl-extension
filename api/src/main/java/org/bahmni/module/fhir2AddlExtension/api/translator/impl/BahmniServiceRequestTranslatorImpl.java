@@ -2,7 +2,9 @@ package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
 
 import lombok.AccessLevel;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2AddlExtension.api.service.ServiceRequestLocationReferenceResolver;
 import org.bahmni.module.fhir2AddlExtension.api.translator.OrderTypeTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.ServiceRequestPriorityTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.validators.ServiceRequestValidator;
@@ -21,6 +23,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.Date;
+import java.util.Optional;
 
 import static org.apache.commons.lang3.Validate.notNull;
 import static org.openmrs.module.fhir2.api.translators.impl.FhirTranslatorUtils.getLastUpdated;
@@ -30,6 +33,7 @@ import static org.openmrs.module.fhir2.api.translators.impl.ReferenceHandlingTra
 @Primary
 @Component
 @Setter(AccessLevel.PACKAGE)
+@Slf4j
 public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTranslator<Order> {
 	
 	@Autowired
@@ -58,6 +62,9 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 	
 	@Autowired
 	private ServiceRequestValidator serviceRequestValidator;
+	
+	@Autowired
+	private ServiceRequestLocationReferenceResolver locationReferenceResolver;
 	
 	@Override
 	public ServiceRequest toFhirResource(@Nonnull Order order) {
@@ -92,6 +99,10 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 			serviceRequest.setBasedOn(Collections.singletonList(createOrderReferenceInternal(order.getPreviousOrder())
 			        .setIdentifier(orderIdentifierTranslator.toFhirResource(order.getPreviousOrder()))));
 		}
+
+		Optional.ofNullable(locationReferenceResolver.getRequestedLocationReferenceForOrder(order)).ifPresent(reference -> {
+			serviceRequest.setLocationReference(Collections.singletonList(reference));
+		});
 		
 		serviceRequest.getMeta().setLastUpdated(getLastUpdated(order));
 		serviceRequest.getMeta().setVersionId(getVersionId(order));
