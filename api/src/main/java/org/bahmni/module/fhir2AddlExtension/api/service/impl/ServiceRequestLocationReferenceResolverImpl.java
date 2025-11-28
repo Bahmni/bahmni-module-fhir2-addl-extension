@@ -20,38 +20,39 @@ import org.openmrs.module.fhir2.api.translators.LocationReferenceTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import javax.validation.constraints.NotNull;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @Component
 @Slf4j
 public class ServiceRequestLocationReferenceResolverImpl implements ServiceRequestLocationReferenceResolver {
-
-	public static final String REQUESTED_LOCATION_FOR_ORDER = "REQUESTED_LOCATION";
-	public static final String LOCATION_DATA_TYPE = "org.openmrs.customdatatype.datatype.LocationDatatype";
-	private static final String NO_REQUESTED_LOCATION_ATTRIBUTE_SET = "There is no requested location attribute defined for order. Ignoring location reference";
-	private static final String STR_INVALID_ORDER_REQUEST_LOCATION = "Could not find location for order's requested location";
-	private static final String ERR_INVALID_ORDER_LOCATION_REFERENCE = "Invalid order location reference";
-	private final Map<String, String> orderTypeToLocationAttributeNameMap = new HashMap<>();
-
-	private LocationReferenceTranslator locationReferenceTranslator;
 	
-	private OrderAttributeTypeDao attributeTypeDao;
-
-	private AppContext appContext;
-
+	public static final String REQUESTED_LOCATION_FOR_ORDER = "REQUESTED_LOCATION";
+	
+	public static final String LOCATION_DATA_TYPE = "org.openmrs.customdatatype.datatype.LocationDatatype";
+	
+	private static final String NO_REQUESTED_LOCATION_ATTRIBUTE_SET = "There is no requested location attribute defined for order. Ignoring location reference";
+	
+	private static final String STR_INVALID_ORDER_REQUEST_LOCATION = "Could not find location for order's requested location";
+	
+	private static final String ERR_INVALID_ORDER_LOCATION_REFERENCE = "Invalid order location reference";
+	
+	private final LocationReferenceTranslator locationReferenceTranslator;
+	
+	private final OrderAttributeTypeDao attributeTypeDao;
+	
+	private final AppContext appContext;
+	
 	@Autowired
-	public ServiceRequestLocationReferenceResolverImpl(LocationReferenceTranslator locationReferenceTranslator, OrderAttributeTypeDao attributeTypeDao, AppContext appContext) {
+	public ServiceRequestLocationReferenceResolverImpl(LocationReferenceTranslator locationReferenceTranslator,
+	    OrderAttributeTypeDao attributeTypeDao, AppContext appContext) {
 		this.locationReferenceTranslator = locationReferenceTranslator;
 		this.attributeTypeDao = attributeTypeDao;
 		this.appContext = appContext;
 	}
-
+	
 	@Override
     public Reference getRequestedLocationReferenceForOrder(@NotNull final Order order) {
         if (order.getActiveAttributes().isEmpty()) {
@@ -75,7 +76,7 @@ public class ServiceRequestLocationReferenceResolverImpl implements ServiceReque
 	
 	protected Optional<OrderAttribute> getRequestedLocationAttribute(Order order) {
 		if (order.getActiveAttributes().isEmpty()) {
-			Optional.empty();
+			return Optional.empty();
 		}
         return order.getActiveAttributes().stream()
                 .filter(orderAttribute -> {
@@ -99,36 +100,36 @@ public class ServiceRequestLocationReferenceResolverImpl implements ServiceReque
 			throw new InvalidRequestException(ERR_INVALID_ORDER_LOCATION_REFERENCE);
 		}
 		//Optional<String> locationUuid = FhirUtils.referenceToId(locationReference.getReference());
-
+		
 		Optional<OrderAttribute> existingAttribute = getRequestedLocationAttribute(order);
 		if (existingAttribute.isPresent()) {
-			return updateOrderAttribute(location, existingAttribute);
+			return updateOrderAttribute(location, existingAttribute.get());
 		}
 		
 		return null;
 	}
-
-	private OrderAttribute updateOrderAttribute(Location location, Optional<OrderAttribute> existingAttribute) {
+	
+	private OrderAttribute updateOrderAttribute(Location location, OrderAttribute existingAttribute) {
 		log.info("Updating order's existing requested location attribute");
-		existingAttribute.get().setValue(location);
-		existingAttribute.get().setValueReferenceInternal(location.getUuid());
-		return existingAttribute.get();
+		existingAttribute.setValue(location);
+		existingAttribute.setValueReferenceInternal(location.getUuid());
+		return existingAttribute;
 	}
-
+	
 	@Override
 	public OrderAttribute updateOrderRequestLocation(Location preferredLocationForOrder, Order order) {
 		Optional<OrderAttribute> existingAttribute = getRequestedLocationAttribute(order);
 		if (existingAttribute.isPresent()) {
-			return updateOrderAttribute(preferredLocationForOrder, existingAttribute);
+			return updateOrderAttribute(preferredLocationForOrder, existingAttribute.get());
 		}
 		return null;
 	}
-
+	
 	@Override
 	public boolean hasRequestedLocation(Order order) {
 		return getRequestedLocationAttribute(order).isPresent();
 	}
-
+	
 	@Override
 	public OrderAttribute setOrderRequestLocation(Reference reference, Order order) {
 		OrderAttributeType attributeType = getLocationReferenceAttributeType();
@@ -136,13 +137,13 @@ public class ServiceRequestLocationReferenceResolverImpl implements ServiceReque
 			log.info(NO_REQUESTED_LOCATION_ATTRIBUTE_SET);
 			return null;
 		}
-
+		
 		Location location = locationReferenceTranslator.toOpenmrsType(reference);
 		if (location == null) {
 			log.error(STR_INVALID_ORDER_REQUEST_LOCATION);
 			throw new InvalidRequestException(ERR_INVALID_ORDER_LOCATION_REFERENCE);
 		}
-
+		
 		log.info("Creating new order attribute for requested location");
 		OrderAttribute attribute = new OrderAttribute();
 		attribute.setAttributeType(attributeType);
@@ -150,11 +151,11 @@ public class ServiceRequestLocationReferenceResolverImpl implements ServiceReque
 		attribute.setValue(location);
 		attribute.setDateCreated(new Date());
 		attribute.setCreator(appContext.getCurrentUser());
-        attribute.setVoided(false);
+		attribute.setVoided(false);
 		order.addAttribute(attribute);
 		return attribute;
 	}
-
+	
 	@Override
 	public Location getPreferredLocation(@NotNull final Order order) {
 		if (order.getEncounter() == null || order.getEncounter().getLocation() == null) {
@@ -162,11 +163,11 @@ public class ServiceRequestLocationReferenceResolverImpl implements ServiceReque
 		}
 		Location visitLocation = ModuleUtils.getVisitLocation(order.getEncounter().getLocation());
 		String locationAttributeTypeName = getLocationAttributeType(order.getOrderType());
-
+		
 		if (StringUtils.isEmpty(locationAttributeTypeName)) {
 			return null;
 		}
-
+		
 		for (LocationAttribute locationAttribute : visitLocation.getActiveAttributes()) {
 			LocationAttributeType attributeType = locationAttribute.getAttributeType();
 			if (attributeType.getRetired()) {
@@ -184,7 +185,7 @@ public class ServiceRequestLocationReferenceResolverImpl implements ServiceReque
 		}
 		return null;
 	}
-
+	
 	protected OrderAttributeType getLocationReferenceAttributeType() {
 		List<OrderAttributeType> orderAttributeTypes = attributeTypeDao.getOrderAttributeTypes(false);
 		for (OrderAttributeType attributeType : orderAttributeTypes) {
@@ -195,25 +196,18 @@ public class ServiceRequestLocationReferenceResolverImpl implements ServiceReque
 		}
 		return null;
 	}
-
-	@PostConstruct
-	public void initialize() {
-		orderTypeToLocationAttributeNameMap.put("RADIOLOGY ORDER", "REFERRAL_RADIOLOGY_CENTER");
-		orderTypeToLocationAttributeNameMap.put("TEST ORDER", "REFERRAL_LABORATORY_CENTER");
-		orderTypeToLocationAttributeNameMap.put("LAB ORDER", "REFERRAL_LABORATORY_CENTER");
-	}
-
+	
 	/**
-	 * This employs a simple name matching strategy, the map above.
-	 * This may be externalized or read from external configurations or a global property
-	 * Subclasses may override this method if their strategy is to use Order Attribute to capture
-	 * targeted location, and location lookup is based on location attribute
+	 * This employs a simple name matching strategy, the map above. This may be externalized or read
+	 * from external configurations or a global property Subclasses may override this method if
+	 * their strategy is to use Order Attribute to capture targeted location, and location lookup is
+	 * based on location attribute
+	 * 
 	 * @param orderType
 	 * @return Name of the location attribute
 	 */
 	protected String getLocationAttributeType(OrderType orderType) {
-		String orderTypeName = orderType.getName().toUpperCase();
-		return orderTypeToLocationAttributeNameMap.get(orderTypeName);
+		return appContext.getOrderTypeToLocationAttributeNameMap().get(orderType.getName());
 	}
-
+	
 }
