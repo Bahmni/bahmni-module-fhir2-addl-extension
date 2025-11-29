@@ -52,7 +52,10 @@ import org.openmrs.module.fhir2.api.translators.ServiceRequestTranslator;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -62,14 +65,24 @@ import static org.hl7.fhir.r4.model.Patient.SP_GIVEN;
 import static org.hl7.fhir.r4.model.Practitioner.SP_IDENTIFIER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-import static org.openmrs.module.fhir2.FhirConstants.*;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.openmrs.module.fhir2.FhirConstants.CATEGORY_SEARCH_HANDLER;
+import static org.openmrs.module.fhir2.FhirConstants.CODED_SEARCH_HANDLER;
+import static org.openmrs.module.fhir2.FhirConstants.COMMON_SEARCH_HANDLER;
+import static org.openmrs.module.fhir2.FhirConstants.DATE_RANGE_SEARCH_HANDLER;
+import static org.openmrs.module.fhir2.FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER;
+import static org.openmrs.module.fhir2.FhirConstants.ID_PROPERTY;
+import static org.openmrs.module.fhir2.FhirConstants.INCLUDE_SEARCH_HANDLER;
+import static org.openmrs.module.fhir2.FhirConstants.LAST_UPDATED_PROPERTY;
+import static org.openmrs.module.fhir2.FhirConstants.PARTICIPANT_REFERENCE_SEARCH_HANDLER;
+import static org.openmrs.module.fhir2.FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BahmniFhirServiceRequestServiceImplTest {
-	
-	private static final Integer SERVICE_REQUEST_ID = 123;
 	
 	private static final String SERVICE_REQUEST_UUID = "249b9094-b812-4b0c-a204-0052a05c657f";
 	
@@ -109,6 +122,9 @@ public class BahmniFhirServiceRequestServiceImplTest {
 	
 	@Mock
 	LocationReferenceTranslator locationReferenceTranslator;
+
+    @Mock
+    AppContext appContext;
 	
 	private BahmniFhirServiceRequestServiceImpl serviceRequestService;
 	
@@ -117,7 +133,17 @@ public class BahmniFhirServiceRequestServiceImplTest {
 	private Order order;
 	
 	private User user;
-	
+
+    private Map<String, String> orderTypeToLocationAttributeNameMap = Stream.of(new Object[][] {
+            { "RADIOLOGY ORDER", "REFERRAL_RADIOLOGY_CENTER" },
+            { "TEST ORDER", "REFERRAL_LABORATORY_CENTER" },
+            { "LAB ORDER", "REFERRAL_LABORATORY_CENTER" }
+    }).collect(Collectors.toMap(
+            data -> (String) data[0],
+            data -> (String) data[1]
+    ));
+
+
 	@Before
 	public void setUp() {
 		serviceRequestService = new BahmniFhirServiceRequestServiceImpl() {
@@ -132,16 +158,11 @@ public class BahmniFhirServiceRequestServiceImplTest {
 		serviceRequestService.setSearchQuery(searchQuery);
 		serviceRequestService.setSearchQueryInclude(searchQueryInclude);
 		user = exampleUser();
-		
-		ServiceRequestLocationReferenceResolverImpl orderLocationReferenceResolver = new ServiceRequestLocationReferenceResolverImpl(
-		        locationReferenceTranslator, orderAttributeTypeDao, new AppContext() {
-			        
-			        @Override
-			        public User getCurrentUser() {
-				        return user;
-			        }
-		        });
-		orderLocationReferenceResolver.initialize();
+
+        when(appContext.getCurrentUser()).thenReturn(user);
+        when(appContext.getOrderTypeToLocationAttributeNameMap()).thenReturn(orderTypeToLocationAttributeNameMap);
+		ServiceRequestLocationReferenceResolverImpl orderLocationReferenceResolver =
+            new ServiceRequestLocationReferenceResolverImpl(locationReferenceTranslator, orderAttributeTypeDao,appContext);
 		serviceRequestService.setLocationReferenceResolver(orderLocationReferenceResolver);
 		
 		order = new Order();
@@ -626,7 +647,7 @@ public class BahmniFhirServiceRequestServiceImplTest {
         encounter.setLocation(clinic);
 
         OrderType orderType = new OrderType();
-        orderType.setName("Lab Order");
+        orderType.setName("LAB ORDER");
         Order order = new Order();
         order.setOrderType(orderType);
         order.setEncounter(encounter);

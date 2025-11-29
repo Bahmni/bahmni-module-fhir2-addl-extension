@@ -6,7 +6,9 @@ import org.hl7.fhir.r4.model.Reference;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Encounter;
 import org.openmrs.Location;
 import org.openmrs.LocationAttribute;
@@ -17,26 +19,39 @@ import org.openmrs.OrderAttributeType;
 import org.openmrs.OrderType;
 import org.openmrs.module.fhir2.api.translators.LocationReferenceTranslator;
 
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import static org.mockito.Mockito.when;
+
+@RunWith(MockitoJUnitRunner.class)
 public class ServiceRequestLocationReferenceResolverImplTest {
 	
 	ServiceRequestLocationReferenceResolverImpl serviceRequestLocationReferenceResolver;
 	
 	@Mock
 	OrderAttributeTypeDao orderAttributeTypeDao;
-	
 	@Mock
 	LocationReferenceTranslator locationReferenceTranslator;
-	
 	@Mock
 	AppContext appContext;
+
+	private Map<String, String> orderTypeToLocationAttributeNameMap = Stream.of(new Object[][] {
+			{ "RADIOLOGY ORDER", "REFERRAL_RADIOLOGY_CENTER" },
+			{ "TEST ORDER", "REFERRAL_LABORATORY_CENTER" },
+			{ "LAB ORDER", "REFERRAL_LABORATORY_CENTER" }
+	}).collect(Collectors.toMap(
+			data -> (String) data[0],
+			data -> (String) data[1]
+	));
 	
 	@Before
 	public void setUp() {
 		serviceRequestLocationReferenceResolver = new ServiceRequestLocationReferenceResolverImpl(
 		        locationReferenceTranslator, orderAttributeTypeDao, appContext);
-		serviceRequestLocationReferenceResolver.initialize();
+		when(appContext.getOrderTypeToLocationAttributeNameMap()).thenReturn(orderTypeToLocationAttributeNameMap);
 	}
 	
 	@Test
@@ -134,7 +149,7 @@ public class ServiceRequestLocationReferenceResolverImplTest {
 		encounter.setLocation(clinic);
 		
 		OrderType orderType = new OrderType();
-		orderType.setName("Lab Order");
+		orderType.setName("LAB ORDER");
 		Order order = new Order();
 		order.setOrderType(orderType);
 		order.setEncounter(encounter);
@@ -150,7 +165,7 @@ public class ServiceRequestLocationReferenceResolverImplTest {
 		Encounter encounter = new Encounter();
 		
 		OrderType orderType = new OrderType();
-		orderType.setName("Lab Order");
+		orderType.setName("LAB ORDER");
 		Order order = new Order();
 		order.setOrderType(orderType);
 		order.setEncounter(encounter);

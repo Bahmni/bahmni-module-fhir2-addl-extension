@@ -133,7 +133,6 @@ public class BahmniServiceRequestTranslatorImplTest {
 		
 		ServiceRequestLocationReferenceResolverImpl orderLocationReferenceResolver = new ServiceRequestLocationReferenceResolverImpl(
 		        locationReferenceTranslator, orderAttributeTypeDao, appContext);
-		orderLocationReferenceResolver.initialize();
 		
 		translator.setLocationReferenceResolver(orderLocationReferenceResolver);
 		

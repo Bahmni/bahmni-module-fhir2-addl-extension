@@ -52,17 +52,21 @@
 		<description>Allows user to edit an existing document reference</description>
 	</privilege>
 
-	<!-- Required Global Properties
+	<!-- Required Global Properties -->
 	<globalProperty>
-		<property>@MODULE_ID@.someProperty</property>
+		<property>fhir2Extension.orderTypeToRequestedLocationAttributeMap</property>
 		<defaultValue></defaultValue>
 		<description>
-			A description of the global property goes here.  The description
-			should explain enough for administrators to understand the purpose
-			and possible values for the global property.
+			This configuration maps an order type (order_type.name) to a location attribute type (location_attribute_type.name)
+			to determine a requested/preferred location for a given order through order attribute (LOCATION_REFERENCE). If a
+			location has such an attribute set (e.g. REFERRAL_RADIOLOGY_CENTER), and there exists a mapping through
+			this configuration for an order's type (e.g. Radiology Order), then the order's requested/preferred location will be set
+			to the location specified for the encounter/visit location. The configuration takes in multiple mappings
+			separated by semicolon (format key1:value1; key2:value2). The maps are case sensitive.
+			e.g - "RADIOLOGY ORDER:REFERRAL_RADIOLOGY_CENTER;LAB ORDER:REFERRAL_LABORATORY_CENTER"
 		</description>
 	</globalProperty>
-	/Required Global Properties -->
+	<!-- Required Global Properties -->
 
 	<!-- Servlets -->
 	<!-- Accessed through the url /pageContext()/moduleServlet/<moduleId>/<servlet-name>
