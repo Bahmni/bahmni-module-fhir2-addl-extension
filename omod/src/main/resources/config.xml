@@ -54,7 +54,7 @@
 
 	<!-- Required Global Properties -->
 	<globalProperty>
-		<property>fhir2Extension.orderTypeToRequestedLocationAttributeMap</property>
+		<property>fhir2Extension.orderTypeToReferralLocationAttributeMap</property>
 		<defaultValue></defaultValue>
 		<description>
 			This configuration maps an order type (order_type.name) to a location attribute type (location_attribute_type.name)
