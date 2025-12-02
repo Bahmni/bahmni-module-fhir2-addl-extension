@@ -24,7 +24,9 @@ public class BahmniConditionTranslatorImpl extends ConditionTranslatorImpl {
 	@Override
 	public Condition toFhirResource(@Nonnull org.openmrs.Condition condition) {
 		Condition fhirCondition = super.toFhirResource(condition);
-		fhirCondition.setCategory(Collections.singletonList(createCategoryCodeableConcept()));
+		if (condition.getEncounter() != null) {
+			fhirCondition.setEncounter(encounterReferenceTranslator.toFhirResource(condition.getEncounter()));
+		}
 		return fhirCondition;
 	}
 	
@@ -37,12 +39,4 @@ public class BahmniConditionTranslatorImpl extends ConditionTranslatorImpl {
 		return existingCondition;
 	}
 	
-	private CodeableConcept createCategoryCodeableConcept() {
-		CodeableConcept codeableConcept = new CodeableConcept();
-		Coding coding = new Coding();
-		coding.setSystem(BahmniFhirConstants.HL7_CONDITION_CATEGORY_CODE_SYSTEM);
-		coding.setCode(BahmniFhirConstants.HL7_CONDITION_CATEGORY_CONDITION_CODE);
-		codeableConcept.addCoding(coding);
-		return codeableConcept;
-	}
 }
