@@ -327,29 +327,25 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
     }
 	
 	private void mapContextToFhirDocument(DocumentReference resource, FhirDocumentReference docRef) {
-		DocumentReference.DocumentReferenceContextComponent contextComponent = null;
-		
-		if (docRef.getEncounter() != null) {
-			contextComponent = new DocumentReference.DocumentReferenceContextComponent();
-			contextComponent.setEncounter(Collections.singletonList(encounterReferenceTranslator.toFhirResource(docRef
-			        .getEncounter())));
-		}
-		
+        Optional.ofNullable(docRef.getEncounter())
+			.ifPresent(encounter -> {
+				DocumentReference.DocumentReferenceContextComponent contextComponent = new DocumentReference.DocumentReferenceContextComponent();
+				contextComponent.setEncounter(Collections.singletonList(encounterReferenceTranslator.toFhirResource(encounter)));
+				resource.setContext(contextComponent);
+			});
 		if (docRef.getDateStarted() != null || docRef.getDateEnded() != null) {
 			Period period = new Period();
 			period.setStart(docRef.getDateStarted());
 			period.setEnd(docRef.getDateEnded());
-			
-			if (contextComponent == null) {
-				contextComponent = new DocumentReference.DocumentReferenceContextComponent();
+			if (!resource.hasContext()) {
+				DocumentReference.DocumentReferenceContextComponent contextComponent = new DocumentReference.DocumentReferenceContextComponent();
+				contextComponent.setPeriod(period);
+				resource.setContext(contextComponent);
+			} else {
+				resource.getContext().setPeriod(period);
 			}
-			contextComponent.setPeriod(period);
 		}
-		
-		if (contextComponent != null) {
-			resource.setContext(contextComponent);
-		}
-	}
+    }
 	
 	private void mapContentsFromFhirDocument(FhirDocumentReference document, DocumentReference resource, User user) {
         if (!resource.hasContent()) {
