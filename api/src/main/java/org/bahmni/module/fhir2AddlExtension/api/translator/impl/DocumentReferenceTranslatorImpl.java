@@ -333,16 +333,18 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
 				contextComponent.setEncounter(Collections.singletonList(encounterReferenceTranslator.toFhirResource(encounter)));
 				resource.setContext(contextComponent);
 			});
-		Optional<Period> contextPeriod = Optional.ofNullable(docRef.getDateStarted()).map(date -> {
+		if (docRef.getDateStarted() != null || docRef.getDateEnded() != null) {
 			Period period = new Period();
-			return period.setStart(docRef.getDateStarted());
-		}).map(period -> period.setEnd((docRef.getDateEnded())));
-		contextPeriod.ifPresent(value -> {
+			period.setStart(docRef.getDateStarted());
+			period.setEnd(docRef.getDateEnded());
 			if (!resource.hasContext()) {
 				DocumentReference.DocumentReferenceContextComponent contextComponent = new DocumentReference.DocumentReferenceContextComponent();
-				contextComponent.setPeriod(value);
+				contextComponent.setPeriod(period);
+				resource.setContext(contextComponent);
+			} else {
+				resource.getContext().setPeriod(period);
 			}
-		});
+		}
     }
 	
 	private void mapContentsFromFhirDocument(FhirDocumentReference document, DocumentReference resource, User user) {

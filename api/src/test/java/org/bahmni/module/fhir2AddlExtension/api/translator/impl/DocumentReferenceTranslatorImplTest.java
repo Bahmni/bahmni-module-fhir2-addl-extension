@@ -9,6 +9,7 @@ import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceExte
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceStatusTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceTranslator;
 import org.hl7.fhir.r4.model.DocumentReference;
+import org.hl7.fhir.r4.model.Period;
 import org.hl7.fhir.r4.model.Reference;
 import org.junit.Assert;
 import org.junit.Before;
@@ -30,7 +31,10 @@ import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 
 import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -172,4 +176,136 @@ public class DocumentReferenceTranslatorImplTest {
         FhirDocumentReference updated = translator.toOpenmrsType(existing, resource);
         Assert.assertEquals(3, existing.getContents().stream().filter(c -> !c.getVoided()).collect(Collectors.toList()).size());
     }
+	
+	@Test
+	public void toFhirResource_shouldMapContextPeriodStartAndEndDates() throws ParseException {
+		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		Date startDate = dateFormat.parse("2025-10-31 18:30:00");
+		Date endDate = dateFormat.parse("2025-11-21 18:30:00");
+		
+		FhirDocumentReference docRef = new FhirDocumentReference();
+		docRef.setUuid("test-uuid");
+		docRef.setMasterIdentifier("TEST123");
+		docRef.setDateStarted(startDate);
+		docRef.setDateEnded(endDate);
+		docRef.setStatus(FhirDocumentReference.FhirDocumentReferenceStatus.CURRENT);
+		docRef.setDocStatus(FhirDocumentReference.FhirDocumentReferenceDocStatus.PRELIMINARY);
+		
+		DocumentReference fhirResource = translator.toFhirResource(docRef);
+		
+		Assert.assertTrue(fhirResource.hasContext());
+		Assert.assertTrue(fhirResource.getContext().hasPeriod());
+		Assert.assertEquals(startDate, fhirResource.getContext().getPeriod().getStart());
+		Assert.assertEquals(endDate, fhirResource.getContext().getPeriod().getEnd());
+	}
+	
+	@Test
+	public void toFhirResource_shouldMapContextPeriodWithOnlyStartDate() throws ParseException {
+		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		Date startDate = dateFormat.parse("2025-10-31 18:30:00");
+		
+		FhirDocumentReference docRef = new FhirDocumentReference();
+		docRef.setUuid("test-uuid");
+		docRef.setMasterIdentifier("TEST123");
+		docRef.setDateStarted(startDate);
+		docRef.setStatus(FhirDocumentReference.FhirDocumentReferenceStatus.CURRENT);
+		docRef.setDocStatus(FhirDocumentReference.FhirDocumentReferenceDocStatus.PRELIMINARY);
+		
+		DocumentReference fhirResource = translator.toFhirResource(docRef);
+		
+		Assert.assertTrue(fhirResource.hasContext());
+		Assert.assertTrue(fhirResource.getContext().hasPeriod());
+		Assert.assertEquals(startDate, fhirResource.getContext().getPeriod().getStart());
+		Assert.assertNull(fhirResource.getContext().getPeriod().getEnd());
+	}
+	
+	@Test
+	public void toFhirResource_shouldMapContextPeriodWithOnlyEndDate() throws ParseException {
+		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		Date endDate = dateFormat.parse("2025-11-21 18:30:00");
+		
+		FhirDocumentReference docRef = new FhirDocumentReference();
+		docRef.setUuid("test-uuid");
+		docRef.setMasterIdentifier("TEST123");
+		docRef.setDateEnded(endDate);
+		docRef.setStatus(FhirDocumentReference.FhirDocumentReferenceStatus.CURRENT);
+		docRef.setDocStatus(FhirDocumentReference.FhirDocumentReferenceDocStatus.PRELIMINARY);
+		
+		DocumentReference fhirResource = translator.toFhirResource(docRef);
+		
+		Assert.assertTrue(fhirResource.hasContext());
+		Assert.assertTrue(fhirResource.getContext().hasPeriod());
+		Assert.assertNull(fhirResource.getContext().getPeriod().getStart());
+		Assert.assertEquals(endDate, fhirResource.getContext().getPeriod().getEnd());
+	}
+	
+	@Test
+	public void toFhirResource_shouldMapContextWithEncounterAndPeriod() throws ParseException {
+		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		Date startDate = dateFormat.parse("2025-10-31 18:30:00");
+		Date endDate = dateFormat.parse("2025-11-21 18:30:00");
+		
+		Encounter encounter = new Encounter();
+		encounter.setUuid("encounter-uuid");
+		
+		FhirDocumentReference docRef = new FhirDocumentReference();
+		docRef.setUuid("test-uuid");
+		docRef.setMasterIdentifier("TEST123");
+		docRef.setEncounter(encounter);
+		docRef.setDateStarted(startDate);
+		docRef.setDateEnded(endDate);
+		docRef.setStatus(FhirDocumentReference.FhirDocumentReferenceStatus.CURRENT);
+		docRef.setDocStatus(FhirDocumentReference.FhirDocumentReferenceDocStatus.PRELIMINARY);
+		
+		org.hl7.fhir.r4.model.Reference encounterRef = new org.hl7.fhir.r4.model.Reference();
+		encounterRef.setReference("Encounter/encounter-uuid");
+		when(encounterReferenceTranslator.toFhirResource(encounter)).thenReturn(encounterRef);
+		
+		DocumentReference fhirResource = translator.toFhirResource(docRef);
+		
+		Assert.assertTrue(fhirResource.hasContext());
+		Assert.assertTrue(fhirResource.getContext().hasEncounter());
+		Assert.assertEquals(1, fhirResource.getContext().getEncounter().size());
+		Assert.assertEquals("Encounter/encounter-uuid", fhirResource.getContext().getEncounter().get(0).getReference());
+		Assert.assertTrue(fhirResource.getContext().hasPeriod());
+		Assert.assertEquals(startDate, fhirResource.getContext().getPeriod().getStart());
+		Assert.assertEquals(endDate, fhirResource.getContext().getPeriod().getEnd());
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldMapContextPeriodFromFhirResource() throws ParseException, IOException {
+		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		Date startDate = dateFormat.parse("2025-10-31 18:30:00");
+		Date endDate = dateFormat.parse("2025-11-21 18:30:00");
+		
+		DocumentReference resource = (DocumentReference) loadResourceFromFile("example-document-reference.json");
+		Period period = new Period();
+		period.setStart(startDate);
+		period.setEnd(endDate);
+		DocumentReference.DocumentReferenceContextComponent context = new DocumentReference.DocumentReferenceContextComponent();
+		context.setPeriod(period);
+		resource.setContext(context);
+		
+		when(conceptTranslator.toOpenmrsType(resource.getType())).thenReturn(
+		    exampleConceptWithUuid("Prescription", "e53c2ed9-6c23-4683-ad9e-12c2a5d780d8"));
+		when(conceptTranslator.toOpenmrsType(resource.getSecurityLabelFirstRep())).thenReturn(
+		    exampleConceptWithUuid("All Clinicians", "a9a50608-0470-444d-aa44-3a03b63902b0"));
+		when(providerReferenceTranslator.toOpenmrsType(resource.getAuthorFirstRep())).thenReturn(
+		    exampleProviderWithUuid("Dr Neha", "05d6752c-5e08-11ef-8f7c-0242ac120002"));
+		Reference orderRef = (Reference) resource.getExtensionByUrl(
+		    "http://fhir.bahmni.org/ext/document-reference/based-on-service-request").getValue();
+		Patient patient = new Patient();
+		patient.setUuid("1357c6aa-3421-44f9-9a8f-391b6cbb88e4");
+		Order order = new Order();
+		order.setPatient(patient);
+		order.setUuid("example-order-id");
+		when(basedOnReferenceTranslator.toOpenmrsType(orderRef)).thenReturn(order);
+		
+		FhirDocumentReference fhirDocumentReference = translator.toOpenmrsType(resource);
+		
+		Assert.assertNotNull(fhirDocumentReference.getDateStarted());
+		Assert.assertNotNull(fhirDocumentReference.getDateEnded());
+		Assert.assertEquals(startDate, fhirDocumentReference.getDateStarted());
+		Assert.assertEquals(endDate, fhirDocumentReference.getDateEnded());
+	}
 }
