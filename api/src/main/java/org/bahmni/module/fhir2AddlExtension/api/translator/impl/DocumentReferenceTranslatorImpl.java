@@ -327,23 +327,29 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
     }
 	
 	private void mapContextToFhirDocument(DocumentReference resource, FhirDocumentReference docRef) {
-        Optional.ofNullable(docRef.getEncounter())
-			.ifPresent(encounter -> {
-				DocumentReference.DocumentReferenceContextComponent contextComponent = new DocumentReference.DocumentReferenceContextComponent();
-				contextComponent.setEncounter(Collections.singletonList(encounterReferenceTranslator.toFhirResource(encounter)));
-				resource.setContext(contextComponent);
-			});
-		Optional<Period> contextPeriod = Optional.ofNullable(docRef.getDateStarted()).map(date -> {
+		DocumentReference.DocumentReferenceContextComponent contextComponent = null;
+		
+		if (docRef.getEncounter() != null) {
+			contextComponent = new DocumentReference.DocumentReferenceContextComponent();
+			contextComponent.setEncounter(Collections.singletonList(encounterReferenceTranslator.toFhirResource(docRef
+			        .getEncounter())));
+		}
+		
+		if (docRef.getDateStarted() != null || docRef.getDateEnded() != null) {
 			Period period = new Period();
-			return period.setStart(docRef.getDateStarted());
-		}).map(period -> period.setEnd((docRef.getDateEnded())));
-		contextPeriod.ifPresent(value -> {
-			if (!resource.hasContext()) {
-				DocumentReference.DocumentReferenceContextComponent contextComponent = new DocumentReference.DocumentReferenceContextComponent();
-				contextComponent.setPeriod(value);
+			period.setStart(docRef.getDateStarted());
+			period.setEnd(docRef.getDateEnded());
+			
+			if (contextComponent == null) {
+				contextComponent = new DocumentReference.DocumentReferenceContextComponent();
 			}
-		});
-    }
+			contextComponent.setPeriod(period);
+		}
+		
+		if (contextComponent != null) {
+			resource.setContext(contextComponent);
+		}
+	}
 	
 	private void mapContentsFromFhirDocument(FhirDocumentReference document, DocumentReference resource, User user) {
         if (!resource.hasContent()) {
