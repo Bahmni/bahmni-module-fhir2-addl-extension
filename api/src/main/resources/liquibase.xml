@@ -268,7 +268,7 @@
         </modifySql>
     </changeSet>
 
-    <changeSet id="create_imaging_study_table_20251203" author="angshus" dbms="mysql,mariadb,postgresql">
+    <changeSet id="create_imaging_study_table_20251204" author="angshus" dbms="mysql,mariadb,postgresql">
         <preConditions onFail="MARK_RAN" onError="WARN">
             <not>
                 <tableExists tableName="imaging_study"/>
@@ -286,7 +286,7 @@
             <column name="performer_id" type="int"/>
             <column name="location_id" type="int"/>
             <column name="description" type="varchar(255)"/>
-            <column name="note" type="varchar(255)"/>
+            <column name="notes" type="varchar(255)"/>
             <column name="encounter_id" type="int"/>
             <column name="subject_id" type="int"/>
             <column name="order_id" type="int"/>

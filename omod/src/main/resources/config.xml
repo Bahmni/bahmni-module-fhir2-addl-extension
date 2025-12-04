@@ -88,11 +88,14 @@
 		<require_module>org.openmrs.module.episodes</require_module>
 	</require_modules>
 
+	<databaseChangelogFile>liquibase.xml</databaseChangelogFile>
+
 	<mappingFiles>
 		DocumentReference.hbm.xml
 		DocumentReferenceContent.hbm.xml
 		DocumentReferenceAttribute.hbm.xml
 		DocumentReferenceAttributeType.hbm.xml
+        ImagingStudy.hbm.xml
 	</mappingFiles>
 
 	<messages>

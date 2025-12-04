@@ -21,7 +21,7 @@
         </property>
         <property name="studyInstanceUuid" type="java.lang.String" column="study_instance_uuid" length="100" />
         <property name="description" type="java.lang.String" column="description" length="255"/>
-        <property name="notes" type="java.lang.String" column="description" length="255"/>
+        <property name="notes" type="java.lang.String" column="notes" length="255"/>
 
         <property name="dateStarted" type="java.util.Date" column="date_started" length="19" />
 

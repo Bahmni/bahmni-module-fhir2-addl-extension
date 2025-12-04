@@ -119,6 +119,7 @@ public class BahmniFhirImagingStudyTranslatorImpl implements BahmniFhirImagingSt
 				log.error(ERR_INVALID_LOCATION_REFERENCE);
 				throw new InvalidRequestException(ERR_INVALID_LOCATION_REFERENCE);
 			}
+			existingObject.setLocation(location);
 		}
 		
 		if (resource.hasDescription()) {
