@@ -6,5 +6,4 @@ import org.openmrs.module.fhir2.api.dao.impl.BaseFhirDao;
 import org.springframework.stereotype.Component;
 
 @Component
-public class BahmniFhirImagingStudyDaoImpl extends BaseFhirDao<FhirImagingStudy> implements BahmniFhirImagingStudyDao {
-}
+public class BahmniFhirImagingStudyDaoImpl extends BaseFhirDao<FhirImagingStudy> implements BahmniFhirImagingStudyDao {}

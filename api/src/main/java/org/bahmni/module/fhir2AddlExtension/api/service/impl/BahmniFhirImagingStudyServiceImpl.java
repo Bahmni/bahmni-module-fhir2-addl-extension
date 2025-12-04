@@ -17,23 +17,25 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 @Slf4j
 public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingStudy, FhirImagingStudy> implements BahmniFhirImagingStudyService {
-
-    private final BahmniFhirImagingStudyDao imagingStudyDao;
-    private final BahmniFhirImagingStudyTranslator imagingStudyTranslator;
-
-    @Autowired
-    public BahmniFhirImagingStudyServiceImpl(BahmniFhirImagingStudyDao imagingStudyDao, BahmniFhirImagingStudyTranslator imagingStudyTranslator) {
-        this.imagingStudyDao = imagingStudyDao;
-        this.imagingStudyTranslator = imagingStudyTranslator;
-    }
-
-    @Override
-    protected FhirDao<FhirImagingStudy> getDao() {
-        return imagingStudyDao;
-    }
-
-    @Override
-    protected OpenmrsFhirTranslator<FhirImagingStudy, ImagingStudy> getTranslator() {
-        return imagingStudyTranslator;
-    }
+	
+	private final BahmniFhirImagingStudyDao imagingStudyDao;
+	
+	private final BahmniFhirImagingStudyTranslator imagingStudyTranslator;
+	
+	@Autowired
+	public BahmniFhirImagingStudyServiceImpl(BahmniFhirImagingStudyDao imagingStudyDao,
+	    BahmniFhirImagingStudyTranslator imagingStudyTranslator) {
+		this.imagingStudyDao = imagingStudyDao;
+		this.imagingStudyTranslator = imagingStudyTranslator;
+	}
+	
+	@Override
+	protected FhirDao<FhirImagingStudy> getDao() {
+		return imagingStudyDao;
+	}
+	
+	@Override
+	protected OpenmrsFhirTranslator<FhirImagingStudy, ImagingStudy> getTranslator() {
+		return imagingStudyTranslator;
+	}
 }

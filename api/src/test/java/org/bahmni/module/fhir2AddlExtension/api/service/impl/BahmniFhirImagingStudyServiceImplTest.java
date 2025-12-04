@@ -36,47 +36,56 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BahmniFhirImagingStudyServiceImplTest {
-    @Mock
-    private ContextDAO contextDAO;
-
-    @Mock
-    private UserContext userContext;
-
-    @Mock
-    private User user;
-
-    @Mock
-    private BahmniFhirImagingStudyDao imagingStudyDao;
-    @Mock
-    private BahmniServiceRequestReferenceTranslator basedOnReferenceTranslator;
-    @Mock
-    private PatientReferenceTranslator patientReferenceTranslator;
-    @Mock
-    private LocationReferenceTranslator locationReferenceTranslator;
-    @Mock
-    private PractitionerReferenceTranslator<Provider> practitionerReferenceTranslator;
-
-    private BahmniFhirImagingStudyTranslator imagingStudyTranslator;
-    private BahmniFhirImagingStudyService fhirImagingStudyService;
-
-    @Before
-    public void setUp() {
-        when(userContext.getAuthenticatedUser()).thenReturn(user);
-        Context.setDAO(contextDAO);
-        Context.openSession();
-        Context.setUserContext(userContext);
-
-        imagingStudyTranslator = new BahmniFhirImagingStudyTranslatorImpl(basedOnReferenceTranslator, patientReferenceTranslator, locationReferenceTranslator, practitionerReferenceTranslator);
-        fhirImagingStudyService = new BahmniFhirImagingStudyServiceImpl(imagingStudyDao, imagingStudyTranslator) {
-            @Override
-            protected void validateObject(FhirImagingStudy object) {
-                //Done because baseFhirService implementation uses Context.getAdministrativeService()
-                //we are not mocking Context.serviceContext
-            }
-        };
-    }
-
-    @Test
+	
+	@Mock
+	private ContextDAO contextDAO;
+	
+	@Mock
+	private UserContext userContext;
+	
+	@Mock
+	private User user;
+	
+	@Mock
+	private BahmniFhirImagingStudyDao imagingStudyDao;
+	
+	@Mock
+	private BahmniServiceRequestReferenceTranslator basedOnReferenceTranslator;
+	
+	@Mock
+	private PatientReferenceTranslator patientReferenceTranslator;
+	
+	@Mock
+	private LocationReferenceTranslator locationReferenceTranslator;
+	
+	@Mock
+	private PractitionerReferenceTranslator<Provider> practitionerReferenceTranslator;
+	
+	private BahmniFhirImagingStudyTranslator imagingStudyTranslator;
+	
+	private BahmniFhirImagingStudyService fhirImagingStudyService;
+	
+	@Before
+	public void setUp() {
+		when(userContext.getAuthenticatedUser()).thenReturn(user);
+		Context.setDAO(contextDAO);
+		Context.openSession();
+		Context.setUserContext(userContext);
+		
+		imagingStudyTranslator = new BahmniFhirImagingStudyTranslatorImpl(basedOnReferenceTranslator,
+		        patientReferenceTranslator, locationReferenceTranslator, practitionerReferenceTranslator);
+		fhirImagingStudyService = new BahmniFhirImagingStudyServiceImpl(
+		                                                                imagingStudyDao, imagingStudyTranslator) {
+			
+			@Override
+			protected void validateObject(FhirImagingStudy object) {
+				//Done because baseFhirService implementation uses Context.getAdministrativeService()
+				//we are not mocking Context.serviceContext
+			}
+		};
+	}
+	
+	@Test
     public void shouldCreateImagingStudy() throws IOException {
         Location studyLocation = new Location();
         studyLocation.setName("Radiology Center");
@@ -95,8 +104,8 @@ public class BahmniFhirImagingStudyServiceImplTest {
         Assert.assertFalse("Client Id is not accepted", imagingStudy.getId().equals("example-imaging-study"));
         Assert.assertEquals(ImagingStudy.ImagingStudyStatus.REGISTERED, imagingStudy.getStatus());
     }
-
-    @Test
+	
+	@Test
     public void shouldUpdateImagingStudy() throws IOException {
         Location studyLocation = new Location();
         studyLocation.setName("Radiology Center");
@@ -133,5 +142,4 @@ public class BahmniFhirImagingStudyServiceImplTest {
         Extension performerExt = imagingStudy.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_IMAGING_STUDY_PERFORMER);
         Assert.assertNotNull("Performer extension should not be null for Imaging Study", performerExt);
     }
-
 }
