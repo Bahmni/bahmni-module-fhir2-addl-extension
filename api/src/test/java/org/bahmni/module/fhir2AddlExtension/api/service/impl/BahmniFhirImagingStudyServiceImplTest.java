@@ -2,6 +2,7 @@ package org.bahmni.module.fhir2AddlExtension.api.service.impl;
 
 import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirImagingStudyDao;
+import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirImagingStudy;
 import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirImagingStudyService;
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirImagingStudyTranslator;
@@ -19,6 +20,7 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Location;
+import org.openmrs.Order;
 import org.openmrs.Provider;
 import org.openmrs.User;
 import org.openmrs.api.context.Context;
@@ -32,6 +34,7 @@ import java.io.IOException;
 
 import static org.bahmni.module.fhir2AddlExtension.api.TestDataFactory.loadResourceFromFile;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -61,6 +64,9 @@ public class BahmniFhirImagingStudyServiceImplTest {
 	@Mock
 	private PractitionerReferenceTranslator<Provider> practitionerReferenceTranslator;
 	
+	@Mock
+	private BahmniFhirServiceRequestDao<Order> serviceRequestDao;
+	
 	private BahmniFhirImagingStudyTranslator imagingStudyTranslator;
 	
 	private BahmniFhirImagingStudyService fhirImagingStudyService;
@@ -75,7 +81,8 @@ public class BahmniFhirImagingStudyServiceImplTest {
 		imagingStudyTranslator = new BahmniFhirImagingStudyTranslatorImpl(basedOnReferenceTranslator,
 		        patientReferenceTranslator, locationReferenceTranslator, practitionerReferenceTranslator);
 		fhirImagingStudyService = new BahmniFhirImagingStudyServiceImpl(
-		                                                                imagingStudyDao, imagingStudyTranslator) {
+		                                                                imagingStudyDao, imagingStudyTranslator,
+		                                                                serviceRequestDao) {
 			
 			@Override
 			protected void validateObject(FhirImagingStudy object) {
@@ -114,9 +121,14 @@ public class BahmniFhirImagingStudyServiceImplTest {
         Provider performer = new Provider();
         performer.setUuid("example-technician-id");
 
+        Order existingOrder = new Order();
+        existingOrder.setUuid("existing-order-uuid");
+        existingOrder.setFulfillerStatus(Order.FulfillerStatus.RECEIVED);
+
         FhirImagingStudy existingStudy = new FhirImagingStudy();
         existingStudy.setStudyInstanceUuid("urn:oid:2.16.124.113543.6003.1154777499.30246.19789.3503430045");
         existingStudy.setStatus(FhirImagingStudy.FhirImagingStudyStatus.REGISTERED);
+        existingStudy.setOrder(existingOrder);
 
         IBaseResource fhirResource = loadResourceFromFile("example-imaging-study-performed.json");
         when(imagingStudyDao.get("example-imaging-study")).thenReturn(existingStudy);

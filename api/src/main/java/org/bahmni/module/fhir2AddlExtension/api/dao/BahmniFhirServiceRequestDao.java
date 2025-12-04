@@ -14,4 +14,7 @@ public interface BahmniFhirServiceRequestDao<T extends OpenmrsObject & Auditable
 	ReferenceAndListParam getEncounterReferencesByNumberOfVisit(NumberParam numberOfVisitsParam,
 	        ReferenceParam patientReferenceParam);
 	
+	@Authorized({ "Edit Orders" })
+	T updateOrder(T order);
+	
 }

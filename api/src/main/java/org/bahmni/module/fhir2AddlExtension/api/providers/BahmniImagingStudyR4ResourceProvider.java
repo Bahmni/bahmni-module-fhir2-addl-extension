@@ -35,7 +35,7 @@ public class BahmniImagingStudyR4ResourceProvider implements IResourceProvider {
 	}
 	
 	@Create
-	public MethodOutcome createDocumentReference(@ResourceParam ImagingStudy imagingStudy) {
+	public MethodOutcome createImagingStudy(@ResourceParam ImagingStudy imagingStudy) {
 		ImagingStudy study = fhirImagingStudyService.create(imagingStudy);
 		return FhirProviderUtils.buildCreate(study);
 	}
@@ -50,7 +50,7 @@ public class BahmniImagingStudyR4ResourceProvider implements IResourceProvider {
 	}
 	
 	@Read
-	public ImagingStudy getDocumentReferenceByUuid(@IdParam IdType id) {
+	public ImagingStudy getImagingStudyByUuid(@IdParam IdType id) {
 		ImagingStudy imagingStudy = fhirImagingStudyService.get(id.getIdPart());
 		if (imagingStudy == null) {
 			throw new ResourceNotFoundException("Could not find ImagingStudy with Id " + id.getIdPart());
