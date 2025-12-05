@@ -268,5 +268,71 @@
         </modifySql>
     </changeSet>
 
+    <changeSet id="create_imaging_study_table_20251204" author="angshus" dbms="mysql,mariadb,postgresql">
+        <preConditions onFail="MARK_RAN" onError="WARN">
+            <not>
+                <tableExists tableName="imaging_study"/>
+            </not>
+        </preConditions>
+        <createTable tableName="imaging_study">
+            <column name="imaging_study_id" type="int" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="study_instance_uuid" type="varchar(100)"/>
+            <column name="status" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_started" type="datetime"/>
+            <column name="performer_id" type="int"/>
+            <column name="location_id" type="int"/>
+            <column name="description" type="varchar(255)"/>
+            <column name="notes" type="varchar(255)"/>
+            <column name="encounter_id" type="int"/>
+            <column name="subject_id" type="int"/>
+            <column name="order_id" type="int"/>
+            <column name="creator" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_created" type="datetime">
+                <constraints nullable="false"/>
+            </column>
+            <column name="changed_by" type="int"/>
+            <column name="date_changed" type="datetime"/>
+            <column name="voided" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="voided_by" type="int"/>
+            <column name="date_voided" type="datetime"/>
+            <column name="void_reason" type="varchar(255)"/>
+            <column name="uuid" type="char(38)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint constraintName="imaging_study_performer_fk"
+                                 baseTableName="imaging_study" baseColumnNames="performer_id"
+                                 referencedTableName="provider" referencedColumnNames="provider_id"/>
+        <addForeignKeyConstraint constraintName="imaging_study_location_fk"
+                                 baseTableName="imaging_study" baseColumnNames="location_id"
+                                 referencedTableName="location" referencedColumnNames="location_id"/>
+        <addForeignKeyConstraint constraintName="imaging_study_encounter_fk"
+                                 baseTableName="imaging_study" baseColumnNames="encounter_id"
+                                 referencedTableName="encounter" referencedColumnNames="encounter_id"/>
+        <addForeignKeyConstraint constraintName="imaging_study_order_fk"
+                                 baseTableName="imaging_study" baseColumnNames="order_id"
+                                 referencedTableName="orders" referencedColumnNames="order_id"/>
+        <addForeignKeyConstraint constraintName="imaging_study_subject_patient_fk"
+                                 baseTableName="imaging_study" baseColumnNames="subject_id"
+                                 referencedTableName="patient" referencedColumnNames="patient_id"/>
+        <addForeignKeyConstraint constraintName="imaging_study_creator_fk"
+                                 baseTableName="imaging_study" baseColumnNames="creator"
+                                 referencedTableName="users"  referencedColumnNames="user_id"/>
+        <addForeignKeyConstraint constraintName="imaging_study_changed_by_fk"
+                                 baseTableName="imaging_study" baseColumnNames="changed_by"
+                                 referencedTableName="users" referencedColumnNames="user_id"/>
+        <addForeignKeyConstraint constraintName="imaging_study_voided_by_fk"
+                                 baseTableName="imaging_study" baseColumnNames="voided_by"
+                                 referencedTableName="users" referencedColumnNames="user_id"/>
+    </changeSet>
+
  
 </databaseChangeLog>

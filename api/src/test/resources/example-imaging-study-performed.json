@@ -1,0 +1,53 @@
+{
+  "resourceType": "ImagingStudy",
+  "id": "example-imaging-study",
+  "identifier": [
+    {
+      "system": "urn:dicom:uid",
+      "value": "urn:oid:2.16.124.113543.6003.1154777499.30246.19789.3503430045"
+    }
+  ],
+  "status": "registered",
+  "subject": {
+    "reference": "Patient/example-patient-id"
+  },
+  "encounter": {
+    "reference": "Encounter/example-encounter-id"
+  },
+  "started": "2025-12-03T11:01:20+03:00",
+  "basedOn": [
+    {
+      "reference": "ServiceRequest/example-order-id"
+    }
+  ],
+  "location": {
+    "reference": "Location/example-radiology-center"
+  },
+  "procedureCode": [
+    {
+      "coding": [
+        {
+          "system": "http://www.radlex.org",
+          "code": "RPID2589",
+          "display": "XR Wrist 3+ Views"
+        }
+      ],
+      "text": "XR Wrist 3+ Views"
+    }
+  ],
+  "description": "Imaging Study taken for XR Wrist",
+  "note": [
+    {
+      "text": "XR Wrist 3+ Views"
+    }
+  ],
+  "extension": [
+    {
+      "url": "http://fhir.bahmni.org/ext/imaging-study/performer",
+      "valueReference": {
+        "reference": "Practitioner/example-technician-id",
+        "type": "Practitioner"
+      }
+    }
+  ]
+}
