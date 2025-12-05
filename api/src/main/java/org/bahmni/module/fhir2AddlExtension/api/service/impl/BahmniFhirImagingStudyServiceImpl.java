@@ -2,6 +2,7 @@ package org.bahmni.module.fhir2AddlExtension.api.service.impl;
 
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import lombok.extern.slf4j.Slf4j;
+import org.bahmni.module.fhir2AddlExtension.api.PrivilegeConstants;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirImagingStudyDao;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirImagingStudy;
@@ -10,6 +11,7 @@ import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirImagingStudySe
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirImagingStudyTranslator;
 import org.hl7.fhir.r4.model.ImagingStudy;
 import org.openmrs.Order;
+import org.openmrs.annotation.Authorized;
 import org.openmrs.module.fhir2.api.dao.FhirDao;
 import org.openmrs.module.fhir2.api.impl.BaseFhirService;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
@@ -18,6 +20,10 @@ import org.openmrs.module.fhir2.api.translators.OpenmrsFhirTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import javax.validation.constraints.NotNull;
+
+import static org.bahmni.module.fhir2AddlExtension.api.PrivilegeConstants.*;
 
 @Component
 @Transactional
@@ -59,13 +65,31 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	}
 	
 	@Override
-	protected ImagingStudy applyUpdate(FhirImagingStudy existingObject, ImagingStudy updatedResource) {
+	@Transactional(readOnly = true)
+	@Authorized(GET_IMAGING_STUDY)
+	public ImagingStudy get(@NotNull String uuid) {
+		return super.get(uuid);
+	}
+	
+	@Override
+	@Transactional
+	@Authorized(CREATE_IMAGING_STUDY)
+	public ImagingStudy create(@NotNull ImagingStudy newResource) {
+		return super.create(newResource);
+	}
+	
+	@Override
+	@Transactional
+	@Authorized(EDIT_IMAGING_STUDY)
+	public ImagingStudy applyUpdate(FhirImagingStudy existingObject, ImagingStudy updatedResource) {
 		ImagingStudy imagingStudy = super.applyUpdate(existingObject, updatedResource);
 		updateOrderFulFillerStatus(existingObject, imagingStudy);
 		return imagingStudy;
 	}
 	
 	@Override
+	@Transactional(readOnly = true)
+	@Authorized(GET_IMAGING_STUDY)
 	public IBundleProvider searchImagingStudy(BahmniImagingStudySearchParams searchParams) {
 		if (!searchParams.hasPatientReference() && !searchParams.hasId() && !searchParams.hasBasedOnReference()) {
 			log.error("Missing patient reference, resource id or basedOn reference for ImagingStudy search");

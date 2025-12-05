@@ -157,7 +157,7 @@ public class BahmniFhirImagingStudyTranslatorImpl implements BahmniFhirImagingSt
 	}
 	
 	private boolean isExistingRecord(FhirImagingStudy record) {
-		return record.getImagingStudyId() == null || record.getImagingStudyId() == 0;
+		return record.getImagingStudyId() != null && record.getImagingStudyId() != 0;
 	}
 	
 	private void mapExtensionToStudyPerformer(FhirImagingStudy study, ImagingStudy resource) {
@@ -174,7 +174,6 @@ public class BahmniFhirImagingStudyTranslatorImpl implements BahmniFhirImagingSt
 				throw new InvalidRequestException(INVALID_PERFORMER_FOR_IMAGING_STUDY);
 			}
 			study.setPerformer(performer);
-			
 		}
 	}
 }
