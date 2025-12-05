@@ -1,18 +1,21 @@
 package org.bahmni.module.fhir2AddlExtension.api.providers;
 
-import ca.uhn.fhir.rest.annotation.Create;
-import ca.uhn.fhir.rest.annotation.IdParam;
-import ca.uhn.fhir.rest.annotation.Read;
-import ca.uhn.fhir.rest.annotation.ResourceParam;
-import ca.uhn.fhir.rest.annotation.Update;
+import ca.uhn.fhir.rest.annotation.*;
 import ca.uhn.fhir.rest.api.MethodOutcome;
+import ca.uhn.fhir.rest.api.SortSpec;
+import ca.uhn.fhir.rest.api.server.IBundleProvider;
+import ca.uhn.fhir.rest.param.DateRangeParam;
+import ca.uhn.fhir.rest.param.ReferenceAndListParam;
+import ca.uhn.fhir.rest.param.TokenAndListParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
+import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniImagingStudySearchParams;
 import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirImagingStudyService;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.IdType;
 import org.hl7.fhir.r4.model.ImagingStudy;
+import org.hl7.fhir.r4.model.Patient;
 import org.openmrs.module.fhir2.api.annotations.R4Provider;
 import org.openmrs.module.fhir2.providers.util.FhirProviderUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,5 +59,17 @@ public class BahmniImagingStudyR4ResourceProvider implements IResourceProvider {
 			throw new ResourceNotFoundException("Could not find ImagingStudy with Id " + id.getIdPart());
 		}
 		return imagingStudy;
+	}
+	
+	@Search
+	public IBundleProvider searchImagingStudy(
+	        @OptionalParam(name = ImagingStudy.SP_PATIENT, chainWhitelist = { "", Patient.SP_IDENTIFIER, Patient.SP_NAME,
+	                Patient.SP_GIVEN, Patient.SP_FAMILY }, targetTypes = Patient.class) ReferenceAndListParam patientReference,
+	        @OptionalParam(name = ImagingStudy.SP_BASEDON, chainWhitelist = { "" }) ReferenceAndListParam basedOnReference,
+	        @OptionalParam(name = ImagingStudy.SP_RES_ID) TokenAndListParam id,
+	        @OptionalParam(name = "_lastUpdated") DateRangeParam lastUpdated, @Sort SortSpec sort) {
+		BahmniImagingStudySearchParams searchParams = new BahmniImagingStudySearchParams(patientReference, basedOnReference,
+		        id, lastUpdated, sort);
+		return fhirImagingStudyService.searchImagingStudy(searchParams);
 	}
 }
