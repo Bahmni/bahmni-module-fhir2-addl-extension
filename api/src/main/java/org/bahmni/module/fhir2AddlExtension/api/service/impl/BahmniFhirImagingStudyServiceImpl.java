@@ -10,7 +10,6 @@ import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirImagingStudySe
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirImagingStudyTranslator;
 import org.hl7.fhir.r4.model.ImagingStudy;
 import org.openmrs.Order;
-import org.openmrs.annotation.Authorized;
 import org.openmrs.module.fhir2.api.dao.FhirDao;
 import org.openmrs.module.fhir2.api.impl.BaseFhirService;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
@@ -19,10 +18,6 @@ import org.openmrs.module.fhir2.api.translators.OpenmrsFhirTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-
-import javax.validation.constraints.NotNull;
-
-import static org.bahmni.module.fhir2AddlExtension.api.PrivilegeConstants.GET_IMAGING_STUDY;
 
 @Component
 @Transactional
@@ -61,19 +56,6 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	@Override
 	protected OpenmrsFhirTranslator<FhirImagingStudy, ImagingStudy> getTranslator() {
 		return imagingStudyTranslator;
-	}
-	
-	@Override
-	@Transactional(readOnly = true)
-	@Authorized(GET_IMAGING_STUDY)
-	public ImagingStudy get(@NotNull String uuid) {
-		return super.get(uuid);
-	}
-	
-	@Override
-	@Transactional
-	public ImagingStudy create(@NotNull ImagingStudy newResource) {
-		return super.create(newResource);
 	}
 	
 	@Override
