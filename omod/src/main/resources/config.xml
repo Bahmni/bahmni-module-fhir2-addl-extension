@@ -63,6 +63,10 @@
 		<name>Edit Imaging Study</name>
 		<description>Allows user to edit existing imaging study resources</description>
 	</privilege>
+    <privilege>
+        <name>Delete Imaging Study</name>
+        <description>Allows user to delete existing imaging study resources</description>
+    </privilege>
 
 	<!-- Required Global Properties -->
 	<globalProperty>

@@ -2,7 +2,6 @@ package org.bahmni.module.fhir2AddlExtension.api.service.impl;
 
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import lombok.extern.slf4j.Slf4j;
-import org.bahmni.module.fhir2AddlExtension.api.PrivilegeConstants;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirImagingStudyDao;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirImagingStudy;
@@ -23,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.validation.constraints.NotNull;
 
-import static org.bahmni.module.fhir2AddlExtension.api.PrivilegeConstants.*;
+import static org.bahmni.module.fhir2AddlExtension.api.PrivilegeConstants.GET_IMAGING_STUDY;
 
 @Component
 @Transactional
@@ -73,14 +72,12 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	
 	@Override
 	@Transactional
-	@Authorized(CREATE_IMAGING_STUDY)
 	public ImagingStudy create(@NotNull ImagingStudy newResource) {
 		return super.create(newResource);
 	}
 	
 	@Override
 	@Transactional
-	@Authorized(EDIT_IMAGING_STUDY)
 	public ImagingStudy applyUpdate(FhirImagingStudy existingObject, ImagingStudy updatedResource) {
 		ImagingStudy imagingStudy = super.applyUpdate(existingObject, updatedResource);
 		updateOrderFulFillerStatus(existingObject, imagingStudy);
@@ -89,7 +86,6 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	
 	@Override
 	@Transactional(readOnly = true)
-	@Authorized(GET_IMAGING_STUDY)
 	public IBundleProvider searchImagingStudy(BahmniImagingStudySearchParams searchParams) {
 		if (!searchParams.hasPatientReference() && !searchParams.hasId() && !searchParams.hasBasedOnReference()) {
 			log.error("Missing patient reference, resource id or basedOn reference for ImagingStudy search");

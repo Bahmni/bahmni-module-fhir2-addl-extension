@@ -16,4 +16,6 @@ public class PrivilegeConstants {
 	public static final String EDIT_IMAGING_STUDY = "Edit Imaging Study";
 	
 	public static final String CREATE_IMAGING_STUDY = "Create Imaging Study";
+	
+	public static final String DELETE_IMAGING_STUDY = "Delete Imaging Study";
 }
