@@ -66,7 +66,11 @@ public class BahmniServiceRequestReferenceTranslatorImpl implements BahmniServic
         }
 
         return getReferenceId(reference).map(uuid -> {
-            switch (reference.getType()) {
+            String refType = getReferenceType(reference).orElse(null);
+            if (refType == null) {
+                return null;
+            }
+            switch (refType) {
                 case FhirConstants.MEDICATION_REQUEST:
                     return medicationRequestDao.get(uuid);
                 case FhirConstants.SERVICE_REQUEST:

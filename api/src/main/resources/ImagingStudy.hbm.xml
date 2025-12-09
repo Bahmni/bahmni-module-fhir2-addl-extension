@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC
+        "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<hibernate-mapping package="org.bahmni.module.fhir2AddlExtension.api.model">
+
+    <class name="org.bahmni.module.fhir2AddlExtension.api.model.FhirImagingStudy" table="imaging_study">
+        <id name="imagingStudyId" type="java.lang.Integer" column="imaging_study_id">
+            <generator class="native">
+                <param name="sequence">imaging_study_id_seq</param>
+            </generator>
+        </id>
+        <many-to-one name="subject" class="org.openmrs.Patient" column="subject_id" not-null="false" />
+        <many-to-one name="order" class="org.openmrs.Order"  column="order_id" not-null="false" />
+
+        <property name="status" column="status" length="20" not-null="true">
+            <type name="org.hibernate.type.EnumType">
+                <param name="enumClass">org.bahmni.module.fhir2AddlExtension.api.model.FhirImagingStudy$FhirImagingStudyStatus</param>
+                <param name="useNamed">true</param>
+            </type>
+        </property>
+        <property name="studyInstanceUuid" type="java.lang.String" column="study_instance_uuid" length="100" />
+        <property name="description" type="java.lang.String" column="description" length="255"/>
+        <property name="notes" type="java.lang.String" column="notes" length="255"/>
+
+        <property name="dateStarted" type="java.util.Date" column="date_started" length="19" />
+
+        <many-to-one name="performer" class="org.openmrs.Provider" column="performer_id" />
+        <many-to-one name="location" class="org.openmrs.Location" column="location_id" />
+
+        <property name="uuid" type="java.lang.String" column="uuid" length="38" unique="true" />
+
+        <many-to-one name="creator" class="org.openmrs.User" not-null="true" column="creator"/>
+        <property name="dateCreated" type="java.util.Date" column="date_created" not-null="true" length="19" />
+        <many-to-one name="voidedBy" class="org.openmrs.User" column="voided_by" />
+        <property name="voided" type="java.lang.Boolean" column="voided" length="1" not-null="true" />
+        <property name="dateVoided" type="java.util.Date" column="date_voided" length="19" />
+        <property name="voidReason" type="java.lang.String" column="void_reason" length="255" />
+        <many-to-one name="changedBy" class="org.openmrs.User" column="changed_by"/>
+        <property name="dateChanged" type="java.util.Date" column="date_changed" length="19" />
+    </class>
+
+</hibernate-mapping>
