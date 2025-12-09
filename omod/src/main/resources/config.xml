@@ -51,6 +51,22 @@
 		<name>Edit DocumentReference</name>
 		<description>Allows user to edit an existing document reference</description>
 	</privilege>
+	<privilege>
+		<name>Get Imaging Study</name>
+		<description>Allows user to view and search imaging study resources</description>
+	</privilege>
+	<privilege>
+		<name>Create Imaging Study</name>
+		<description>Allows user to create new imaging study resources</description>
+	</privilege>
+	<privilege>
+		<name>Edit Imaging Study</name>
+		<description>Allows user to edit existing imaging study resources</description>
+	</privilege>
+    <privilege>
+        <name>Delete Imaging Study</name>
+        <description>Allows user to delete existing imaging study resources</description>
+    </privilege>
 
 	<!-- Required Global Properties -->
 	<globalProperty>
@@ -89,11 +105,14 @@
 		<require_module>org.ict4h.openmrs.openmrs-atomfeed</require_module>
 	</require_modules>
 
+	<databaseChangelogFile>liquibase.xml</databaseChangelogFile>
+
 	<mappingFiles>
 		DocumentReference.hbm.xml
 		DocumentReferenceContent.hbm.xml
 		DocumentReferenceAttribute.hbm.xml
 		DocumentReferenceAttributeType.hbm.xml
+        ImagingStudy.hbm.xml
 	</mappingFiles>
 
 	<messages>
