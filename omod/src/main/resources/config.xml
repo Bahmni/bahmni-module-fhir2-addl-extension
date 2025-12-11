@@ -102,6 +102,7 @@
 		<require_module>org.openmrs.module.fhir2</require_module>
 		<require_module>org.openmrs.module.webservices.rest</require_module>
 		<require_module>org.openmrs.module.episodes</require_module>
+		<require_module>org.ict4h.openmrs.openmrs-atomfeed</require_module>
 	</require_modules>
 
 	<databaseChangelogFile>liquibase.xml</databaseChangelogFile>
