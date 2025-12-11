@@ -3,6 +3,7 @@ package org.bahmni.module.fhir2AddlExtension.api.validators.impl;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.hl7.fhir.r4.model.*;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -167,13 +168,13 @@ public class ConsultationBundleValidatorImplTest {
         bundleWithUnsupportedResource.addEntry(encounterEntry);
 
         // Add an unsupported resource type (Observation)
-        Bundle.BundleEntryComponent observationEntry = createValidBundleEntry(createObservation());
-        bundleWithUnsupportedResource.addEntry(observationEntry);
+        Bundle.BundleEntryComponent immunizationEntry = createValidBundleEntry(createImmunizationIncident());
+        bundleWithUnsupportedResource.addEntry(immunizationEntry);
 
         // When & Then
         InvalidRequestException exception = assertThrows(InvalidRequestException.class,
                 () -> validator.validateBundleEntries(bundleWithUnsupportedResource));
-        assertEquals("Entry of resource type Observation is not supported as part of Consultation Bundle",
+        assertEquals("Entry of resource type Immunization is not supported as part of Consultation Bundle",
                 exception.getMessage());
     }
 	
@@ -234,6 +235,14 @@ public class ConsultationBundleValidatorImplTest {
 		observation.setSubject(new Reference("Patient/123"));
 		observation.setEncounter(new Reference("Encounter/456"));
 		return observation;
+	}
+
+	private Immunization createImmunizationIncident() {
+		Immunization immunization = new Immunization();
+		immunization.setStatus(Immunization.ImmunizationStatus.COMPLETED);
+		immunization.setPatient(new Reference("Patient/123"));
+		immunization.setEncounter(new Reference("Encounter/456"));
+		return immunization;
 	}
 	
 	private MedicationRequest createMedicationRequest() {

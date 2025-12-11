@@ -300,7 +300,7 @@ public class ConsultationBundleEntriesHelperTest {
 	}
 	
 	@Test
-	public void shouldNotModifyEntryWhenResourceTypeIsNotSupported() {
+	public void shouldResolveObservationEncounterReference() {
 		// Given
 		Observation observation = createObservation();
 		observation.setEncounter(new Reference("urn:uuid:placeholder"));
@@ -318,8 +318,7 @@ public class ConsultationBundleEntriesHelperTest {
 		
 		// Then
 		Observation resultObservation = (Observation) result.getResource();
-		// Reference should not be modified
-		assertEquals("urn:uuid:placeholder", resultObservation.getEncounter().getReference());
+		assertEquals(FhirConstants.ENCOUNTER + "/encounter-uuid", resultObservation.getEncounter().getReference());
 	}
 	
 	@Test
