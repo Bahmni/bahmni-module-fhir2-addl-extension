@@ -7,5 +7,10 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
   		    http://www.springframework.org/schema/beans/spring-beans-4.1.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.1.xsd">
     <context:annotation-config />
+
+    <!-- Enable component scanning to pick up @Configuration and @Component classes -->
+    <context:component-scan base-package="org.bahmni.module.fhir2AddlExtension.spring" />
+    <context:component-scan base-package="org.bahmni.module.fhir2AddlExtension.advice" />
+
     <bean id="bahmniDiagnosisValidator" class="org.bahmni.module.fhir2AddlExtension.api.validators.impl.BahmniEncounterDiagnosisValidator"/>
 </beans>
