@@ -27,7 +27,7 @@ import org.openmrs.module.fhir2.api.translators.impl.ObservationTranslatorImpl;
 
 import java.lang.reflect.Field;
 
-import static org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants.FHIR_EXT_OBSERVATiON_FORM_NAMESPACE_PATH;
+import static org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants.FHIR_EXT_OBSERVATION_FORM_NAMESPACE_PATH;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -97,7 +97,7 @@ public class BahmniObservationTranslatorImplTest {
         codeableConcept.setId(CONCEPT_UUID);
         resource.setCode(codeableConcept);
 
-        resource.addExtension(FHIR_EXT_OBSERVATiON_FORM_NAMESPACE_PATH, new StringType(EXAMPLE_OBS_FORM_NAMESPACE_PATH));
+        resource.addExtension(FHIR_EXT_OBSERVATION_FORM_NAMESPACE_PATH, new StringType(EXAMPLE_OBS_FORM_NAMESPACE_PATH));
 
         when(conceptTranslator.toOpenmrsType(codeableConcept)).thenReturn(concept);
         Obs result = observationTranslator.toOpenmrsType(new Obs(), resource);
@@ -111,7 +111,7 @@ public class BahmniObservationTranslatorImplTest {
         observation.setFormNamespaceAndPath(EXAMPLE_OBS_FORM_NAMESPACE_PATH);
         Observation result = observationTranslator.toFhirResource(observation);
         Assert.assertEquals(EXAMPLE_OBS_FORM_NAMESPACE_PATH,
-                result.getExtensionByUrl(FHIR_EXT_OBSERVATiON_FORM_NAMESPACE_PATH).getValue().primitiveValue());
+                result.getExtensionByUrl(FHIR_EXT_OBSERVATION_FORM_NAMESPACE_PATH).getValue().primitiveValue());
     }
 
     private void setPropertyOnSuperClass(ObservationTranslatorImpl translator, String attributeName, Object value)

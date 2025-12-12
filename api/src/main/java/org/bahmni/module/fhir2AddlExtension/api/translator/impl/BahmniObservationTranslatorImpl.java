@@ -13,7 +13,7 @@ import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.Optional;
 
-import static org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants.FHIR_EXT_OBSERVATiON_FORM_NAMESPACE_PATH;
+import static org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants.FHIR_EXT_OBSERVATION_FORM_NAMESPACE_PATH;
 
 @Component
 @Primary
@@ -26,7 +26,7 @@ public class BahmniObservationTranslatorImpl extends ObservationTranslatorImpl {
     }
 
     private String mapFormNamespacePathExtension(Observation fhirObservation) {
-        List<Extension> extensions = fhirObservation.getExtensionsByUrl(FHIR_EXT_OBSERVATiON_FORM_NAMESPACE_PATH);
+        List<Extension> extensions = fhirObservation.getExtensionsByUrl(FHIR_EXT_OBSERVATION_FORM_NAMESPACE_PATH);
         if (!extensions.isEmpty()) {
             Extension formNameSpacePathExtn = extensions.get(0);
             Type formNameSpacePathExtnValue = formNameSpacePathExtn.getValue();
@@ -40,7 +40,7 @@ public class BahmniObservationTranslatorImpl extends ObservationTranslatorImpl {
         Observation fhirResource = super.toFhirResource(obs);
         if (obs.getFormNamespaceAndPath() != null) {
             Optional.ofNullable(obs.getFormNamespaceAndPath())
-               .ifPresent(value -> fhirResource.addExtension(FHIR_EXT_OBSERVATiON_FORM_NAMESPACE_PATH, new StringType(value)));
+               .ifPresent(value -> fhirResource.addExtension(FHIR_EXT_OBSERVATION_FORM_NAMESPACE_PATH, new StringType(value)));
         }
         return fhirResource;
     }
