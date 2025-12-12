@@ -134,6 +134,15 @@ public class ConsultationBundleEntriesHelper {
 					entry.setResource(medicationRequest);
 				}
 				break;
+			case Observation:
+				org.hl7.fhir.r4.model.Observation observation = (org.hl7.fhir.r4.model.Observation) resource;
+				if (observation.hasEncounter()) {
+					String placeholderReferenceUrl = observation.getEncounter().getReference();
+					observation.setEncounter(createEncounterReference(getIdForPlaceHolderReference(placeholderReferenceUrl,
+					    processedEntries)));
+					entry.setResource(observation);
+				}
+				break;
 			default:
 				break;
 		}
@@ -173,6 +182,12 @@ public class ConsultationBundleEntriesHelper {
                 org.hl7.fhir.r4.model.MedicationRequest medicationRequest = (org.hl7.fhir.r4.model.MedicationRequest) resource;
                 if (medicationRequest.hasEncounter()) {
                     references.add(medicationRequest.getEncounter());
+                }
+                break;
+            case Observation:
+                org.hl7.fhir.r4.model.Observation observation = (org.hl7.fhir.r4.model.Observation) resource;
+                if (observation.hasEncounter()) {
+                    references.add(observation.getEncounter());
                 }
                 break;
             default:
