@@ -37,7 +37,8 @@ public final class BahmniFhirConstants {
 					ResourceType.AllergyIntolerance,
 					ResourceType.Condition,
 					ResourceType.ServiceRequest,
-					ResourceType.MedicationRequest
+					ResourceType.MedicationRequest,
+					ResourceType.Observation
 			))
 	);
 	public static final String HL7_CONDITION_CATEGORY_CODE_SYSTEM = FhirConstants.HL7_FHIR_CODE_SYSTEM_PREFIX + "/condition-category";
@@ -51,4 +52,5 @@ public final class BahmniFhirConstants {
 	public static final String FHIR_EXT_DOCUMENT_REFERENCE_ATTRIBUTE = EXTENSION_PREFIX + "/document-reference/attribute";
 	public static final String FHIR_EXT_DOCUMENT_REFERENCE_BASED_ON = EXTENSION_PREFIX + "/document-reference/based-on-service-request";
 	public static final String FHIR_EXT_IMAGING_STUDY_PERFORMER = EXTENSION_PREFIX + "/imaging-study/performer";
+	public static final String FHIR_EXT_OBSERVATION_FORM_NAMESPACE_PATH = EXTENSION_PREFIX + "/observation/form-namespace-path";
 }
