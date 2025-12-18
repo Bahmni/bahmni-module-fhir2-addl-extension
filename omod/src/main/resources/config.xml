@@ -112,6 +112,7 @@
 		DocumentReferenceAttribute.hbm.xml
 		DocumentReferenceAttributeType.hbm.xml
         ImagingStudy.hbm.xml
+        ImagingStudyNotes.hbm.xml
 	</mappingFiles>
 
 	<messages>
