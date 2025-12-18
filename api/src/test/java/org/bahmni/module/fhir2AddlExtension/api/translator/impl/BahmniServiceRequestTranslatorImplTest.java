@@ -952,4 +952,167 @@ public class BahmniServiceRequestTranslatorImplTest {
 		assertThat(result.getOrderType(), equalTo(labOrderType));
 		verify(orderService).getOrderTypeByConcept(labConcept);
 	}
+	
+	@Test
+	public void toOpenmrsType_shouldSetCommentToFulfillerWhenNoteIsPresent() {
+		String noteText = "Please expedite this lab test";
+		
+		// Add note to ServiceRequest
+		Annotation note = new Annotation();
+		note.setText(noteText);
+		serviceRequest.addNote(note);
+		
+		// Setup mocks
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		
+		// Execute
+		Order result = translator.toOpenmrsType(serviceRequest);
+		
+		// Verify commentToFulfiller is set
+		assertThat(result, notNullValue());
+		assertThat(result.getCommentToFulfiller(), notNullValue());
+		assertThat(result.getCommentToFulfiller(), equalTo(noteText));
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldNotSetCommentToFulfillerWhenNoteListIsEmpty() {
+		// Ensure ServiceRequest has no notes
+		serviceRequest.setNote(new ArrayList<>());
+		
+		// Setup mocks
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		
+		// Execute
+		Order result = translator.toOpenmrsType(serviceRequest);
+		
+		// Verify commentToFulfiller is not set
+		assertThat(result, notNullValue());
+		assertThat(result.getCommentToFulfiller(), nullValue());
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldNotSetCommentToFulfillerWhenNoteHasNoText() {
+		// Add note without text to ServiceRequest
+		Annotation note = new Annotation();
+		// Don't set text on the annotation
+		serviceRequest.addNote(note);
+		
+		// Setup mocks
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		
+		// Execute
+		Order result = translator.toOpenmrsType(serviceRequest);
+		
+		// Verify commentToFulfiller is not set
+		assertThat(result, notNullValue());
+		assertThat(result.getCommentToFulfiller(), nullValue());
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldUseOnlyFirstNoteWhenMultipleNotesArePresent() {
+		String firstNoteText = "First note - this should be used";
+		String secondNoteText = "Second note - this should be ignored";
+		
+		// Add multiple notes to ServiceRequest
+		Annotation firstNote = new Annotation();
+		firstNote.setText(firstNoteText);
+		serviceRequest.addNote(firstNote);
+		
+		Annotation secondNote = new Annotation();
+		secondNote.setText(secondNoteText);
+		serviceRequest.addNote(secondNote);
+		
+		// Setup mocks
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		
+		// Execute
+		Order result = translator.toOpenmrsType(serviceRequest);
+		
+		// Verify only first note is used as commentToFulfiller
+		assertThat(result, notNullValue());
+		assertThat(result.getCommentToFulfiller(), notNullValue());
+		assertThat(result.getCommentToFulfiller(), equalTo(firstNoteText));
+		assertThat(result.getCommentToFulfiller(), not(equalTo(secondNoteText)));
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldNotSetCommentToFulfillerWhenNoteHasEmptyString() {
+		// Add note with empty string - hasText() returns false for empty strings
+		Annotation note = new Annotation();
+		note.setText("");
+		serviceRequest.addNote(note);
+		
+		// Setup mocks
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		
+		// Execute
+		Order result = translator.toOpenmrsType(serviceRequest);
+		
+		// Verify commentToFulfiller is not set because hasText() returns false for empty strings
+		assertThat(result, notNullValue());
+		assertThat(result.getCommentToFulfiller(), nullValue());
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldSetCommentToFulfillerWhenNoteHasNonEmptyText() {
+		String textWithContent = "Test note content";
+		
+		// Add note with actual content
+		Annotation note = new Annotation();
+		note.setText(textWithContent);
+		serviceRequest.addNote(note);
+		
+		// Setup mocks
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		
+		// Execute
+		Order result = translator.toOpenmrsType(serviceRequest);
+		
+		// Verify commentToFulfiller is set to the text content
+		assertThat(result, notNullValue());
+		assertThat(result.getCommentToFulfiller(), notNullValue());
+		assertThat(result.getCommentToFulfiller(), equalTo(textWithContent));
+	}
 }
