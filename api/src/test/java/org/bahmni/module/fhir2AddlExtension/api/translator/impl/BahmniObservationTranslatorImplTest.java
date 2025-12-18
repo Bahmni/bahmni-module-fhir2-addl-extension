@@ -113,18 +113,18 @@ public class BahmniObservationTranslatorImplTest {
 		Assert.assertEquals(EXAMPLE_OBS_FORM_NAMESPACE_PATH,
 		    result.getExtensionByUrl(FHIR_EXT_OBSERVATION_FORM_NAMESPACE_PATH).getValue().primitiveValue());
 	}
-
+	
 	/**
 	 * TBD: Commented off till we resolve the obsGroup issue in the translator.
 	 */
-//	private void setPropertyOnSuperClass(ObservationTranslatorImpl translator, String attributeName, Object value)
-//			throws NoSuchFieldException, IllegalAccessException {
-//		//TBD: unfortunately, the way the fhir2 ObservationTranslatorImpl beans are declared (package private),
-//		//and since BahmniObservationTranslatorImpl is from different package, hence usage of reflection
-//		Class<?> clazz = translator.getClass().getSuperclass();
-//		Field field = clazz.getDeclaredField(attributeName);
-//		field.setAccessible(true);
-//		field.set(translator, value);
-//  	}
-
+	//	private void setPropertyOnSuperClass(ObservationTranslatorImpl translator, String attributeName, Object value)
+	//			throws NoSuchFieldException, IllegalAccessException {
+	//		//TBD: unfortunately, the way the fhir2 ObservationTranslatorImpl beans are declared (package private),
+	//		//and since BahmniObservationTranslatorImpl is from different package, hence usage of reflection
+	//		Class<?> clazz = translator.getClass().getSuperclass();
+	//		Field field = clazz.getDeclaredField(attributeName);
+	//		field.setAccessible(true);
+	//		field.set(translator, value);
+	//  	}
+	
 }

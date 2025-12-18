@@ -47,13 +47,12 @@ import static org.openmrs.module.fhir2.api.translators.impl.FhirTranslatorUtils.
 import static org.openmrs.module.fhir2.api.translators.impl.ReferenceHandlingTranslator.createLocationReferenceByUuid;
 
 /**
- * Note, besides mapping the formNamespaceAndPath extension, this overloaded class fixes
- * the obs group translation to openmrs, where instead of using obs.addGroupMember(member)
- * it uses obs.setGroupMember(obs set). Otherwise, Hibernate throws error when the persisted obs
- * are dirtied when obs.addGroupMember() tries to set the member obs' group, causing Hibernate to throw
- * for attached transient group. Once we resolve the issue with OpenMRS,
- * then the overridden toOpenmrsType(Obs obs, Observation resource, Supplier<Obs> groupedObsFactory)
- * should be removed.
+ * Note, besides mapping the formNamespaceAndPath extension, this overloaded class fixes the obs
+ * group translation to openmrs, where instead of using obs.addGroupMember(member) it uses
+ * obs.setGroupMember(obs set). Otherwise, Hibernate throws error when the persisted obs are dirtied
+ * when obs.addGroupMember() tries to set the member obs' group, causing Hibernate to throw for
+ * attached transient group. Once we resolve the issue with OpenMRS, then the overridden
+ * toOpenmrsType(Obs obs, Observation resource, Supplier<Obs> groupedObsFactory) should be removed.
  */
 @Component
 @Primary
