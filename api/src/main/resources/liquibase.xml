@@ -334,5 +334,54 @@
                                  referencedTableName="users" referencedColumnNames="user_id"/>
     </changeSet>
 
+    <changeSet id="create_imaging_study_notes_table_20251217" author="kousalya-samridhi" dbms="mysql,mariadb,postgresql">
+        <preConditions onFail="MARK_RAN" onError="WARN">
+            <not>
+                <tableExists tableName="imaging_study_notes"/>
+            </not>
+            <tableExists tableName="imaging_study"/>
+        </preConditions>
+        <createTable tableName="imaging_study_notes">
+            <column name="imaging_study_notes_id" type="int" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="imaging_study_id" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="uuid" type="char(38)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="performer_id" type="int"/>
+            <column name="note" type="text"/>
+            <column name="date_created" type="datetime"/>
+            <column name="creator" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="changed_by" type="int"/>
+            <column name="date_changed" type="datetime"/>
+            <column name="voided" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="voided_by" type="int"/>
+            <column name="date_voided" type="datetime"/>
+            <column name="void_reason" type="varchar(255)"/>
+        </createTable>
+        <addForeignKeyConstraint constraintName="imaging_study_notes_imaging_study_fk"
+                                 baseTableName="imaging_study_notes" baseColumnNames="imaging_study_id"
+                                 referencedTableName="imaging_study" referencedColumnNames="imaging_study_id"/>
+        <addForeignKeyConstraint constraintName="imaging_study_notes_performer_fk"
+                                 baseTableName="imaging_study_notes" baseColumnNames="performer_id"
+                                 referencedTableName="provider" referencedColumnNames="provider_id"/>
+        <addForeignKeyConstraint constraintName="imaging_study_notes_creator_fk"
+                                 baseTableName="imaging_study_notes" baseColumnNames="creator"
+                                 referencedTableName="users" referencedColumnNames="user_id"/>
+        <addForeignKeyConstraint constraintName="imaging_study_notes_changed_by_fk"
+                                 baseTableName="imaging_study_notes" baseColumnNames="changed_by"
+                                 referencedTableName="users" referencedColumnNames="user_id"/>
+        <addForeignKeyConstraint constraintName="imaging_study_notes_voided_by_fk"
+                                 baseTableName="imaging_study_notes" baseColumnNames="voided_by"
+                                 referencedTableName="users" referencedColumnNames="user_id"/>
+    </changeSet>
+
  
 </databaseChangeLog>
