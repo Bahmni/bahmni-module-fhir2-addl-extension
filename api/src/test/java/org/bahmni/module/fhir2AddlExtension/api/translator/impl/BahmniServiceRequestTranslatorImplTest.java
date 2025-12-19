@@ -1115,4 +1115,37 @@ public class BahmniServiceRequestTranslatorImplTest {
 		assertThat(result.getCommentToFulfiller(), notNullValue());
 		assertThat(result.getCommentToFulfiller(), equalTo(textWithContent));
 	}
+	
+	@Test
+	public void toFhirResource_shouldAddNoteWhenOrderHasCommentToFulfiller() {
+		String commentText = "Please process urgently";
+		order.setCommentToFulfiller(commentText);
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getNote(), notNullValue());
+		assertThat(result.getNote().size(), equalTo(1));
+		assertThat(result.getNote().get(0).getText(), equalTo(commentText));
+	}
+	
+	@Test
+	public void toFhirResource_shouldNotAddNoteWhenOrderHasNullCommentToFulfiller() {
+		order.setCommentToFulfiller(null);
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getNote(), empty());
+	}
+	
+	@Test
+	public void toFhirResource_shouldNotAddNoteWhenOrderHasEmptyCommentToFulfiller() {
+		order.setCommentToFulfiller("");
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getNote(), empty());
+	}
 }

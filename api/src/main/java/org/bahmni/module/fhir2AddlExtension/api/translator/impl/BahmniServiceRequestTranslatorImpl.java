@@ -114,6 +114,10 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 			serviceRequest.addExtension(extension);
 		}
 		
+		if (order.getCommentToFulfiller() != null && !order.getCommentToFulfiller().isEmpty()) {
+			serviceRequest.addNote(new Annotation().setText(order.getCommentToFulfiller()));
+		}
+		
 		return serviceRequest;
 	}
 	
