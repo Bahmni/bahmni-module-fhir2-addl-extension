@@ -114,6 +114,10 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 			serviceRequest.addExtension(extension);
 		}
 		
+		if (order.getCommentToFulfiller() != null && !order.getCommentToFulfiller().isEmpty()) {
+			serviceRequest.addNote(new Annotation().setText(order.getCommentToFulfiller()));
+		}
+		
 		return serviceRequest;
 	}
 	
@@ -133,6 +137,14 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 		order.setEncounter(encounterReferenceTranslator.toOpenmrsType(resource.getEncounter()));
 		order.setOrderer(providerReferenceTranslator.toOpenmrsType(resource.getRequester()));
 		order.setUrgency(serviceRequestPriorityTranslator.toOpenmrsType(resource.getPriority()));
+		
+		if (resource.hasNote() && !resource.getNote().isEmpty()) {
+			Annotation firstNote = resource.getNote().get(0);
+			if (firstNote.hasText()) {
+				order.setCommentToFulfiller(firstNote.getText());
+			}
+		}
+		
 		return order;
 	}
 	
