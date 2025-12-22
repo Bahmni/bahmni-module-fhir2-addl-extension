@@ -142,6 +142,15 @@ public class ConsultationBundleEntriesHelper {
 					    processedEntries)));
 					entry.setResource(observation);
 				}
+                if (observation.hasHasMember()) {
+                    observation.getHasMember().forEach(reference -> {
+                        String placeholderReferenceUrl = reference.getReference();
+                        String observationUuid = getIdForPlaceHolderReference(placeholderReferenceUrl, processedEntries);
+                        reference.setReference(FhirConstants.OBSERVATION + "/" + observationUuid);
+                        reference.setType(FhirConstants.OBSERVATION);
+                    });
+                    entry.setResource(observation);
+                }
 				break;
 			default:
 				break;
@@ -188,6 +197,9 @@ public class ConsultationBundleEntriesHelper {
                 org.hl7.fhir.r4.model.Observation observation = (org.hl7.fhir.r4.model.Observation) resource;
                 if (observation.hasEncounter()) {
                     references.add(observation.getEncounter());
+                }
+                if (observation.hasHasMember()) {
+                    references.addAll(observation.getHasMember());
                 }
                 break;
             default:
