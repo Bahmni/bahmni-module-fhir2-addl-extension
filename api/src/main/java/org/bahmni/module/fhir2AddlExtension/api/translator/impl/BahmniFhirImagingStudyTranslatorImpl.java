@@ -6,11 +6,7 @@ import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirImagingStudy;
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirImagingStudyTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniServiceRequestReferenceTranslator;
-import org.hl7.fhir.r4.model.Extension;
-import org.hl7.fhir.r4.model.Identifier;
-import org.hl7.fhir.r4.model.ImagingStudy;
-import org.hl7.fhir.r4.model.Reference;
-import org.hl7.fhir.r4.model.Type;
+import org.hl7.fhir.r4.model.*;
 import org.openmrs.Location;
 import org.openmrs.Provider;
 import org.openmrs.api.context.Context;
@@ -25,7 +21,9 @@ import javax.annotation.Nonnull;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
+import static org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants.FHIR_EXT_IMAGING_STUDY_COMPLETION_DATE;
 import static org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants.FHIR_EXT_IMAGING_STUDY_PERFORMER;
 
 @Component
@@ -67,8 +65,22 @@ public class BahmniFhirImagingStudyTranslatorImpl implements BahmniFhirImagingSt
         resource.setLocation(locationReferenceTranslator.toFhirResource(study.getLocation()));
         resource.setDescription(study.getDescription());
         resource.setStarted(study.getDateStarted());
+        if (study.getNotes() != null) {
+            resource.setNote(
+                study.getNotes().stream().map(note -> {
+                    Annotation annotation = new Annotation();
+                    annotation.setId(note.getUuid());
+                    annotation.setAuthor(practitionerReferenceTranslator.toFhirResource(note.getPerformer()));
+                    annotation.setTime(note.getDateCreated());
+                    annotation.setText(note.getNote());
+                    return annotation;
+                }).collect(Collectors.toList()));
+        }
         Optional.ofNullable(practitionerReferenceTranslator.toFhirResource(study.getPerformer()))
                 .ifPresent(reference -> resource.addExtension(FHIR_EXT_IMAGING_STUDY_PERFORMER, reference));
+        if (study.getDateCompleted() != null) {
+            resource.addExtension(FHIR_EXT_IMAGING_STUDY_COMPLETION_DATE, new DateTimeType(study.getDateCompleted()));
+        }
         return resource;
     }
 	
@@ -132,8 +144,20 @@ public class BahmniFhirImagingStudyTranslatorImpl implements BahmniFhirImagingSt
 		}
 		
 		mapExtensionToStudyPerformer(existingObject, resource);
+		mapExtensionToDateCompleted(existingObject, resource);
 		
 		return existingObject;
+	}
+	
+	private static void mapExtensionToDateCompleted(FhirImagingStudy existingObject, ImagingStudy resource) {
+		List<Extension> completionDateExtns = resource.getExtensionsByUrl(FHIR_EXT_IMAGING_STUDY_COMPLETION_DATE);
+		if (!completionDateExtns.isEmpty()) {
+			Type value = completionDateExtns.get(0).getValue();
+			if (value instanceof DateTimeType) {
+				Date completionDate = ((DateTimeType) value).getValue();
+				existingObject.setDateCompleted(completionDate);
+			}
+		}
 	}
 	
 	private String findStudyInstanceUuid(List<Identifier> identifiers) {
