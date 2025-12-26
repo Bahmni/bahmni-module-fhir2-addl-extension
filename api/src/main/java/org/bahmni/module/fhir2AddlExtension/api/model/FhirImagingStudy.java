@@ -9,7 +9,10 @@ import org.openmrs.Order;
 import org.openmrs.Patient;
 import org.openmrs.Provider;
 
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
 @Data
 @NoArgsConstructor
@@ -28,12 +31,14 @@ public class FhirImagingStudy extends BaseOpenmrsData {
 	private Provider performer;
 	
 	private String description;
-	
-	private String notes;
-	
+
 	private Encounter encounter;
 	
 	private Date dateStarted;
+
+    private Date dateCompleted;
+
+    private Set<FhirImagingStudyNote> notes = new HashSet<>();
 	
 	private FhirImagingStudyStatus status;
 	
