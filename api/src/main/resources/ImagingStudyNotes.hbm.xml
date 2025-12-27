@@ -13,7 +13,7 @@
             </generator>
         </id>
 
-        <many-to-one name="imagingStudy" class="FhirImagingStudy" not-null="true" column="imaging_study_id"/>
+        <many-to-one name="imagingStudy" class="org.bahmni.module.fhir2AddlExtension.api.model.FhirImagingStudy" not-null="true" column="imaging_study_id"/>
 
         <many-to-one name="performer" class="org.openmrs.Provider" column="performer_id"/>
 
