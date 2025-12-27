@@ -21,7 +21,6 @@
         </property>
         <property name="studyInstanceUuid" type="java.lang.String" column="study_instance_uuid" length="100" />
         <property name="description" type="java.lang.String" column="description" length="255"/>
-        <property name="notes" type="java.lang.String" column="notes" length="255"/>
 
         <property name="dateStarted" type="java.util.Date" column="date_started" length="19" />
 
@@ -38,6 +37,12 @@
         <property name="voidReason" type="java.lang.String" column="void_reason" length="255" />
         <many-to-one name="changedBy" class="org.openmrs.User" column="changed_by"/>
         <property name="dateChanged" type="java.util.Date" column="date_changed" length="19" />
+        <property name="dateCompleted" type="java.util.Date" column="date_completed" length="19" />
+        <many-to-one name="encounter" class="org.openmrs.Encounter" column="encounter_id" />
+        <set name="notes" cascade="all-delete-orphan" inverse="true">
+            <key column="imaging_study_id"/>
+            <one-to-many class="org.bahmni.module.fhir2AddlExtension.api.model.FhirImagingStudyNote" />
+        </set>
     </class>
 
 </hibernate-mapping>

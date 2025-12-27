@@ -18,24 +18,25 @@ import static org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants.FHIR_
 @Component
 @Primary
 public class BahmniObservationTranslatorImpl extends ObservationTranslatorImpl {
-    @Override
-    public Obs toOpenmrsType(@Nonnull Observation fhirObservation) {
-        Obs obs = super.toOpenmrsType(fhirObservation);
-        obs.setFormNamespaceAndPath(mapFormNamespacePathExtension(fhirObservation));
-        return obs;
-    }
-
-    private String mapFormNamespacePathExtension(Observation fhirObservation) {
-        List<Extension> extensions = fhirObservation.getExtensionsByUrl(FHIR_EXT_OBSERVATION_FORM_NAMESPACE_PATH);
-        if (!extensions.isEmpty()) {
-            Extension formNameSpacePathExtn = extensions.get(0);
-            Type formNameSpacePathExtnValue = formNameSpacePathExtn.getValue();
-            return formNameSpacePathExtnValue.primitiveValue();
-        }
-        return null;
-    }
-
-    @Override
+	
+	@Override
+	public Obs toOpenmrsType(@Nonnull Observation fhirObservation) {
+		Obs obs = super.toOpenmrsType(fhirObservation);
+		obs.setFormNamespaceAndPath(mapFormNamespacePathExtension(fhirObservation));
+		return obs;
+	}
+	
+	private String mapFormNamespacePathExtension(Observation fhirObservation) {
+		List<Extension> extensions = fhirObservation.getExtensionsByUrl(FHIR_EXT_OBSERVATION_FORM_NAMESPACE_PATH);
+		if (!extensions.isEmpty()) {
+			Extension formNameSpacePathExtn = extensions.get(0);
+			Type formNameSpacePathExtnValue = formNameSpacePathExtn.getValue();
+			return formNameSpacePathExtnValue.primitiveValue();
+		}
+		return null;
+	}
+	
+	@Override
     public Observation toFhirResource(@Nonnull Obs obs) {
         Observation fhirResource = super.toFhirResource(obs);
         if (obs.getFormNamespaceAndPath() != null) {
@@ -44,11 +45,11 @@ public class BahmniObservationTranslatorImpl extends ObservationTranslatorImpl {
         }
         return fhirResource;
     }
-
-    @Override
-    public Obs toOpenmrsType(@Nonnull Obs existingObs, @Nonnull Observation observation) {
-        Obs obs = super.toOpenmrsType(existingObs, observation);
-        obs.setFormNamespaceAndPath(mapFormNamespacePathExtension(observation));
-        return obs;
-    }
+	
+	@Override
+	public Obs toOpenmrsType(@Nonnull Obs existingObs, @Nonnull Observation observation) {
+		Obs obs = super.toOpenmrsType(existingObs, observation);
+		obs.setFormNamespaceAndPath(mapFormNamespacePathExtension(observation));
+		return obs;
+	}
 }

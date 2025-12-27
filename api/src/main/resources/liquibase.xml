@@ -383,5 +383,25 @@
                                  referencedTableName="users" referencedColumnNames="user_id"/>
     </changeSet>
 
- 
+    <changeSet id="update_imaging_study_add_column_date_completed_26122025" author="Anghsu,Kousalya,Samridhi" dbms="mysql,mariadb,postgresql">
+        <preConditions onFail="MARK_RAN" onError="WARN">
+            <tableExists tableName="imaging_study"/>
+            <not>
+                <columnExists tableName="imaging_study" columnName="date_completed"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="imaging_study">
+            <column name="date_completed" type="datetime"/>
+        </addColumn>
+    </changeSet>
+
+
+    <changeSet id="update_imaging_study_drop_column_notes_26122025" author="Anghsu,Kousalya,Samridhi" dbms="mysql,mariadb,postgresql">
+        <preConditions onFail="MARK_RAN" onError="WARN">
+            <tableExists tableName="imaging_study"/>
+            <columnExists tableName="imaging_study" columnName="notes"/>
+        </preConditions>
+        <dropColumn tableName="imaging_study" columnName="notes"/>
+    </changeSet>
+
 </databaseChangeLog>
