@@ -1,7 +1,10 @@
 package org.bahmni.module.fhir2AddlExtension.api.model;
 
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 import org.openmrs.BaseOpenmrsData;
 import org.openmrs.Encounter;
 import org.openmrs.Location;
@@ -14,8 +17,11 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
+@ToString(exclude = {"notes"})
+@EqualsAndHashCode(exclude = {"notes"}, callSuper = false)
 public class FhirImagingStudy extends BaseOpenmrsData {
 	
 	private Integer imagingStudyId;
