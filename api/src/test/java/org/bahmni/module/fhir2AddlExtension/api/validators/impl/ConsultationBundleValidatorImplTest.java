@@ -235,7 +235,7 @@ public class ConsultationBundleValidatorImplTest {
 		observation.setEncounter(new Reference("Encounter/456"));
 		return observation;
 	}
-
+	
 	private Immunization createImmunizationIncident() {
 		Immunization immunization = new Immunization();
 		immunization.setStatus(Immunization.ImmunizationStatus.COMPLETED);

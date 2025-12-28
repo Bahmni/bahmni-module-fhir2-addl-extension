@@ -400,4 +400,45 @@ public class ConsultationBundleEntriesHelperTest {
 		observation.setSubject(new Reference("Patient/123"));
 		return observation;
 	}
+	
+	@Test
+	public void shouldResolveMemberObservationReferences() {
+		// Given
+		Observation systolicObs = createObservation();
+		systolicObs.setId("systolicObs"); //to assist in debugging
+		systolicObs.setEncounter(new Reference("urn:uuid:example-encounter"));
+		Bundle.BundleEntryComponent systolicObsEntry = createBundleEntry(systolicObs, "urn:uuid:systolicObs");
+		
+		Observation diastolicObs = createObservation();
+		diastolicObs.setId("diastolicObs"); //to assist in debugging
+		diastolicObs.setEncounter(new Reference("urn:uuid:example-encounter"));
+		Bundle.BundleEntryComponent diastolicObsEntry = createBundleEntry(diastolicObs, "urn:uuid:diastolicObs");
+		
+		Observation bpObs = createObservation();
+		bpObs.setId("bpObs"); //to assist in debugging
+		bpObs.setEncounter(new Reference("urn:uuid:example-encounter"));
+		bpObs.addHasMember(new Reference("urn:uuid:systolicObs"));
+		bpObs.addHasMember(new Reference("urn:uuid:diastolicObs"));
+		Bundle.BundleEntryComponent bpObsEntry = createBundleEntry(bpObs, "urn:uuid:bpObs");
+		
+		Encounter encounter = createEncounter();
+		encounter.setId("example-encounter"); //to assist in debugging
+		Bundle.BundleEntryComponent encounterEntry = createBundleEntry(encounter, "urn:uuid:example-encounter");
+		
+		// Add entries in an order where dependencies are not respected
+		entries.add(bpObsEntry);
+		entries.add(systolicObsEntry);
+		entries.add(diastolicObsEntry);
+		entries.add(encounterEntry);
+		
+		// When
+		List<Bundle.BundleEntryComponent> result = ConsultationBundleEntriesHelper.orderEntriesByReference(entries);
+		
+		// Then
+		assertEquals(4, result.size());
+		// Encounter should be first since it's referenced by the others
+		assertEquals(encounterEntry, result.get(0));
+		assertEquals(bpObsEntry, result.get(3));
+		
+	}
 }
