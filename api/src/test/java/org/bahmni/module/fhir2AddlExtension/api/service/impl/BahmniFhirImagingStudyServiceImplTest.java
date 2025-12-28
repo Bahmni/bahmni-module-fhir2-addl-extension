@@ -185,7 +185,6 @@ public class BahmniFhirImagingStudyServiceImplTest {
                 })))
                 .thenReturn(studyLocation);
         ImagingStudy imagingStudy = fhirImagingStudyService.create((ImagingStudy)  fhirResource);
-        //we are not considering client id for resoruces
         Assert.assertFalse("Client Id is not accepted", imagingStudy.getId().equals("example-imaging-study"));
         Assert.assertEquals(ImagingStudy.ImagingStudyStatus.REGISTERED, imagingStudy.getStatus());
     }
@@ -217,16 +216,19 @@ public class BahmniFhirImagingStudyServiceImplTest {
                     return reference.getReference().equals("Location/example-radiology-center");
                 })))
                 .thenReturn(studyLocation);
-        when(practitionerReferenceTranslator.toOpenmrsType(
+		when(practitionerReferenceTranslator.toOpenmrsType(
                 ArgumentMatchers.argThat(reference -> {
                     return reference.getReference().equals("Practitioner/example-technician-id");
                 })))
                 .thenReturn(performer);
-        when(practitionerReferenceTranslator.toFhirResource(
-                ArgumentMatchers.argThat(provider -> {
-                    return provider.getUuid().equals("example-technician-id");
-                })))
-                .thenReturn(new Reference("Practitioner/example-technician-id"));
+        when(practitionerReferenceTranslator.toFhirResource(any(Provider.class)))
+                .thenAnswer(invocation -> {
+                    Provider provider = invocation.getArgument(0);
+                    if (provider == null) return null;
+                    Reference ref = new Reference();
+                    ref.setReference("Practitioner/" + provider.getUuid());
+                    return ref;
+                });
         ImagingStudy imagingStudy = fhirImagingStudyService.update("example-imaging-study", (ImagingStudy)  fhirResource);
         Assert.assertEquals(ImagingStudy.ImagingStudyStatus.REGISTERED, imagingStudy.getStatus());
         Extension performerExt = imagingStudy.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_IMAGING_STUDY_PERFORMER);
