@@ -5,6 +5,8 @@ import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
 import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniImagingStudySearchParams;
 import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirEpisodeOfCareEncounterService;
@@ -25,43 +27,72 @@ import java.util.Set;
 @OpenmrsProfile(openmrsPlatformVersion = "2.* - 2.5.*")
 public class BahmniSearchQueryIncludeImpl<U extends IBaseResource> extends SearchQueryIncludeImpl<U> {
 	
-	@Setter(onMethod_ = @Autowired)
-	BahmniFhirEpisodeOfCareEncounterService episodeOfCareEncounterService;
+	private static final Log log = LogFactory.getLog(BahmniSearchQueryIncludeImpl.class);
 	
 	@Setter(onMethod_ = @Autowired)
-	BahmniFhirImagingStudyService imagingStudyService;
+	private BahmniFhirEpisodeOfCareEncounterService episodeOfCareEncounterService;
+	
+	@Setter(onMethod_ = @Autowired)
+	private BahmniFhirImagingStudyService imagingStudyService;
 	
 	@Override
 	protected IBundleProvider handleRevIncludeParam(Set<Include> includeSet, Set<Include> revIncludeSet,
 	        ReferenceAndListParam referenceParams, Include revIncludeParam) {
-		String paramName = revIncludeParam.getParamName();
-		switch (paramName) {
-			case BahmniFhirConstants.INCLUDE_EPISODE_OF_CARE_PARAM:
-				return handleEpisodeOfCareRevInclude(referenceParams, revIncludeParam);
-			case BahmniFhirConstants.INCLUDE_BASED_ON_PARAM:
-				return handleBasedOnRevInclude(referenceParams, revIncludeParam);
+		
+		if (revIncludeParam == null) {
+			log.warn("revIncludeParam is null, delegating to parent implementation");
+			return super.handleRevIncludeParam(includeSet, revIncludeSet, referenceParams, null);
+		}
+		
+		String resourceType = revIncludeParam.getParamType();
+		
+		IBundleProvider result = null;
+		
+		switch (resourceType) {
+			case BahmniFhirConstants.IMAGING_STUDY:
+				result = handleImagingStudyRevInclude(referenceParams, revIncludeParam);
+				break;
+			
+			case FhirConstants.ENCOUNTER:
+				result = handleEncounterRevInclude(referenceParams, revIncludeParam);
+				break;
+			
 			default:
 				return super.handleRevIncludeParam(includeSet, revIncludeSet, referenceParams, revIncludeParam);
 		}
+		
+		if (result == null) {
+			log.debug("No handler found for resourceType '" + resourceType + "' with paramName '"
+			        + revIncludeParam.getParamName() + "', delegating to parent implementation");
+			return super.handleRevIncludeParam(includeSet, revIncludeSet, referenceParams, revIncludeParam);
+		}
+		
+		return result;
 	}
 	
-	private IBundleProvider handleBasedOnRevInclude(ReferenceAndListParam referenceParams, Include revIncludeParam) {
-		String targetType = revIncludeParam.getParamType();
-		switch (targetType) {
-			case BahmniFhirConstants.IMAGING_STUDY:
+	private IBundleProvider handleImagingStudyRevInclude(ReferenceAndListParam referenceParams, Include revIncludeParam) {
+		String paramName = revIncludeParam.getParamName();
+		
+		switch (paramName) {
+			case BahmniFhirConstants.INCLUDE_BASED_ON_PARAM:
 				return imagingStudyService.searchImagingStudy(new BahmniImagingStudySearchParams(null, referenceParams,
 				        null, null, null));
 			default:
+				log.debug("Unhandled paramName '" + paramName + "' for resourceType '" + revIncludeParam.getParamType()
+				        + "'");
 				return null;
 		}
 	}
 	
-	private IBundleProvider handleEpisodeOfCareRevInclude(ReferenceAndListParam referenceParams, Include revIncludeParam) {
-		String targetType = revIncludeParam.getParamType();
-		switch (targetType) {
-			case FhirConstants.ENCOUNTER:
+	private IBundleProvider handleEncounterRevInclude(ReferenceAndListParam referenceParams, Include revIncludeParam) {
+		String paramName = revIncludeParam.getParamName();
+		
+		switch (paramName) {
+			case BahmniFhirConstants.INCLUDE_EPISODE_OF_CARE_PARAM:
 				return episodeOfCareEncounterService.encountersForEpisodes(referenceParams);
 			default:
+				log.debug("Unhandled paramName '" + paramName + "' for resourceType '" + revIncludeParam.getParamType()
+				        + "'");
 				return null;
 		}
 	}
