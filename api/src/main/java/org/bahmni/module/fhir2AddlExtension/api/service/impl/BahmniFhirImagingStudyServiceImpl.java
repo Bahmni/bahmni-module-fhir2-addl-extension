@@ -1,8 +1,6 @@
 package org.bahmni.module.fhir2AddlExtension.api.service.impl;
 
-import ca.uhn.fhir.rest.api.PatchTypeEnum;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
-import ca.uhn.fhir.rest.api.server.RequestDetails;
 import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirImagingStudyDao;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
@@ -20,8 +18,6 @@ import org.openmrs.module.fhir2.api.translators.OpenmrsFhirTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-
-import javax.annotation.Nonnull;
 
 @Component
 @Transactional
