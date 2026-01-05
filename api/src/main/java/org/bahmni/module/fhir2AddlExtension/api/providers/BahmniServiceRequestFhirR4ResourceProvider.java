@@ -16,6 +16,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
 import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirServiceRequestService;
 import org.hl7.fhir.r4.model.Encounter;
+import org.hl7.fhir.r4.model.ImagingStudy;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Practitioner;
 import org.hl7.fhir.r4.model.ServiceRequest;
@@ -54,7 +55,8 @@ public class BahmniServiceRequestFhirR4ResourceProvider extends ServiceRequestFh
 	        @OptionalParam(name = ServiceRequest.SP_CATEGORY) ReferenceAndListParam categoryReference,
 	        @OptionalParam(name = "_lastUpdated") DateRangeParam lastUpdated, @IncludeParam(allow = {
 	                "ServiceRequest:" + ServiceRequest.SP_PATIENT, "ServiceRequest:" + ServiceRequest.SP_REQUESTER,
-	                "ServiceRequest:" + ServiceRequest.SP_ENCOUNTER }) HashSet<Include> includes) {
+	                "ServiceRequest:" + ServiceRequest.SP_ENCOUNTER }) HashSet<Include> includes,
+	        @IncludeParam(reverse = true, allow = { "ImagingStudy:" + ImagingStudy.SP_BASEDON }) HashSet<Include> revIncludes) {
 		if (patientReference == null) {
 			patientReference = subjectReference;
 		}
@@ -64,7 +66,7 @@ public class BahmniServiceRequestFhirR4ResourceProvider extends ServiceRequestFh
 		}
 		
 		return serviceRequestService.searchForServiceRequestsWithCategory(patientReference, code, encounterReference,
-		    participantReference, categoryReference, occurrence, uuid, lastUpdated, includes);
+		    participantReference, categoryReference, occurrence, uuid, lastUpdated, includes, revIncludes);
 	}
 	
 	@Search
@@ -75,13 +77,14 @@ public class BahmniServiceRequestFhirR4ResourceProvider extends ServiceRequestFh
 	        @OptionalParam(name = ServiceRequest.SP_CATEGORY) ReferenceAndListParam categoryReference,
 	        @Sort SortSpec sort,
 	        @IncludeParam(allow = { "ServiceRequest:" + ServiceRequest.SP_PATIENT,
-	                "ServiceRequest:" + ServiceRequest.SP_REQUESTER, "ServiceRequest:" + ServiceRequest.SP_ENCOUNTER }) HashSet<Include> includes) {
+	                "ServiceRequest:" + ServiceRequest.SP_REQUESTER, "ServiceRequest:" + ServiceRequest.SP_ENCOUNTER }) HashSet<Include> includes,
+	        @IncludeParam(reverse = true, allow = { "ImagingStudy:" + ImagingStudy.SP_BASEDON }) HashSet<Include> revIncludes) {
 		
 		if (CollectionUtils.isEmpty(includes)) {
 			includes = null;
 		}
 		
 		return serviceRequestService.searchForServiceRequestsByNumberOfVisits(patientReference, numberOfVisits,
-		    categoryReference, sort, includes);
+		    categoryReference, sort, includes, revIncludes);
 	}
 }

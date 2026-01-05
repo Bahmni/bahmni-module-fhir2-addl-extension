@@ -501,7 +501,7 @@ public class BahmniFhirServiceRequestServiceImplTest {
         // Call the service method with all parameters including category
         IBundleProvider results = serviceRequestService.searchForServiceRequestsWithCategory(
                 patientReference, code, encounterReference, participantReference,
-                category, occurrence, uuid, lastUpdated, includes);
+                category, occurrence, uuid, lastUpdated, includes, null);
 
         // Capture the actual SearchParameterMap passed to searchQuery.getQueryResults
         ArgumentCaptor<SearchParameterMap> mapCaptor = ArgumentCaptor.forClass(SearchParameterMap.class);
@@ -569,7 +569,7 @@ public class BahmniFhirServiceRequestServiceImplTest {
 		
 		// Call the method under test
 		IBundleProvider results = serviceRequestService.searchForServiceRequestsByNumberOfVisits(
-				patientReference, numberOfVisits, category, sort, includes);
+				patientReference, numberOfVisits, category, sort, includes, null);
 		
 		// Verify results
 		assertThat(results, notNullValue());
@@ -588,14 +588,14 @@ public class BahmniFhirServiceRequestServiceImplTest {
 	@Test(expected = InvalidRequestException.class)
 	public void searchForServiceRequestsByNumberOfVisits_shouldThrowExceptionWhenPatientReferenceIsNull() {
 		// Call the method with null patient reference
-		serviceRequestService.searchForServiceRequestsByNumberOfVisits(null, new NumberParam(3), null, null, null);
+		serviceRequestService.searchForServiceRequestsByNumberOfVisits(null, new NumberParam(3), null, null, null, null);
 	}
 	
 	@Test(expected = InvalidRequestException.class)
 	public void searchForServiceRequestsByNumberOfVisits_shouldThrowExceptionWhenNumberOfVisitsIsNull() {
 		// Call the method with null number of visits
 		serviceRequestService.searchForServiceRequestsByNumberOfVisits(new ReferenceParam().setValue(PATIENT_GIVEN_NAME),
-		    null, null, null, null);
+		    null, null, null, null, null);
 	}
 	
 	@Test
@@ -609,7 +609,7 @@ public class BahmniFhirServiceRequestServiceImplTest {
 		
 		// Call the method under test
 		IBundleProvider results = serviceRequestService.searchForServiceRequestsByNumberOfVisits(patientReference,
-		    numberOfVisits, null, null, null);
+		    numberOfVisits, null, null, null, null);
 		
 		// Verify results
 		assertThat(results, nullValue());
