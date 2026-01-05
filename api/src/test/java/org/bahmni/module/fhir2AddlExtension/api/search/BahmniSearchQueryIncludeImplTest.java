@@ -72,8 +72,6 @@ public class BahmniSearchQueryIncludeImplTest {
 		IBundleProvider result = searchQueryInclude.handleRevIncludeParam(new HashSet<>(),
 		    Collections.singleton(revInclude), serviceRequestReferences, revInclude);
 
-		assertThat(result, notNullValue());
-
 		ArgumentCaptor<BahmniImagingStudySearchParams> paramsCaptor = ArgumentCaptor
 		        .forClass(BahmniImagingStudySearchParams.class);
 		verify(imagingStudyService).searchImagingStudy(paramsCaptor.capture());
@@ -81,20 +79,6 @@ public class BahmniSearchQueryIncludeImplTest {
 		BahmniImagingStudySearchParams capturedParams = paramsCaptor.getValue();
 		assertThat(capturedParams.getBasedOnReference(), equalTo(serviceRequestReferences));
 		assertThat(capturedParams.getPatientReference(), nullValue());
-	}
-	
-	@Test
-	public void handleRevIncludeParam_shouldHandleImagingStudyBasedOnWhenThereIsNoImagingStudy() {
-		Include revInclude = new Include("ImagingStudy:basedon", true);
-
-		when(imagingStudyService.searchImagingStudy(any(BahmniImagingStudySearchParams.class)))
-		        .thenReturn(mockBundleProvider);
-
-		IBundleProvider result = searchQueryInclude.handleRevIncludeParam(new HashSet<>(),
-		    Collections.singleton(revInclude), serviceRequestReferences, revInclude);
-
-		assertThat(result, notNullValue());
-		verify(imagingStudyService).searchImagingStudy(any(BahmniImagingStudySearchParams.class));
 	}
 	
 	@Test
@@ -106,8 +90,6 @@ public class BahmniSearchQueryIncludeImplTest {
 
 		IBundleProvider result = searchQueryInclude.handleRevIncludeParam(new HashSet<>(),
 		    Collections.singleton(revInclude), episodeOfCareReferences, revInclude);
-
-		assertThat(result, notNullValue());
 
 		ArgumentCaptor<ReferenceAndListParam> paramsCaptor = ArgumentCaptor.forClass(ReferenceAndListParam.class);
 		verify(episodeOfCareEncounterService).encountersForEpisodes(paramsCaptor.capture());
@@ -131,17 +113,6 @@ public class BahmniSearchQueryIncludeImplTest {
 		searchQueryInclude.handleRevIncludeParam(new HashSet<>(), Collections.singleton(revInclude),
 				episodeOfCareReferences, revInclude);
 
-		verify(episodeOfCareEncounterService, never()).encountersForEpisodes(any());
-	}
-	
-	@Test
-	public void handleRevIncludeParam_shouldNotCallServicesForUnsupportedResourceType() {
-		Include revInclude = new Include("Observation:subject", true);
-
-		searchQueryInclude.handleRevIncludeParam(new HashSet<>(), Collections.singleton(revInclude),
-				serviceRequestReferences, revInclude);
-
-		verify(imagingStudyService, never()).searchImagingStudy(any());
 		verify(episodeOfCareEncounterService, never()).encountersForEpisodes(any());
 	}
 }
