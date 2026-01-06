@@ -25,8 +25,12 @@ import org.springframework.util.StringUtils;
 
 import javax.annotation.Nonnull;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants.FHIR_EXT_IMAGING_STUDY_COMPLETION_DATE;
@@ -214,16 +218,37 @@ public class BahmniFhirImagingStudyTranslatorImpl implements BahmniFhirImagingSt
 		if (!resource.hasNote()) {
 			return;
 		}
-		
+
+		Map<String, FhirImagingStudyNote> existingNotesMap = new HashMap<>();
 		if (study.getNotes() != null) {
-			study.getNotes().clear();
+			for (FhirImagingStudyNote existingNote : study.getNotes()) {
+				if (existingNote.getUuid() != null) {
+					existingNotesMap.put(existingNote.getUuid(), existingNote);
+				}
+			}
 		}
 		
+		Set<String> incomingNoteUuids = new HashSet<>();
+		
 		for (Annotation annotation : resource.getNote()) {
-			FhirImagingStudyNote note = new FhirImagingStudyNote();
+			String noteUuid = annotation.getId();
+			incomingNoteUuids.add(noteUuid);
+
+			FhirImagingStudyNote note;
 			
-			note.setImagingStudy(study);
-			
+			if (noteUuid != null && existingNotesMap.containsKey(noteUuid)) {
+				note = existingNotesMap.get(noteUuid);
+				note.setChangedBy(Context.getUserContext().getAuthenticatedUser());
+				note.setDateChanged(new Date());
+			} else {
+				note = new FhirImagingStudyNote();
+				note.setImagingStudy(study);
+				note.setCreator(Context.getUserContext().getAuthenticatedUser());
+                note.setUuid(noteUuid);
+                note.setDateCreated(new Date());
+				study.getNotes().add(note);
+			}
+
 			if (annotation.hasText()) {
 				note.setNote(annotation.getText());
 			}
@@ -235,14 +260,13 @@ public class BahmniFhirImagingStudyTranslatorImpl implements BahmniFhirImagingSt
 			
 			if (annotation.hasTime()) {
 				note.setDateCreated(annotation.getTime());
-			} else {
-				note.setDateCreated(new Date());
 			}
-			
-			note.setCreator(Context.getUserContext().getAuthenticatedUser());
-			note.setUuid(annotation.getId());
-			
-			study.getNotes().add(note);
+		}
+		
+		if (study.getNotes() != null) {
+			study.getNotes().removeIf(note -> 
+				note.getUuid() != null && !incomingNoteUuids.contains(note.getUuid())
+			);
 		}
 	}
 }

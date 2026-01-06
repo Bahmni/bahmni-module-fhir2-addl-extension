@@ -57,12 +57,6 @@ public class BahmniImagingStudyR4ResourceProvider implements IResourceProvider {
 	@Patch
 	public MethodOutcome patchImagingStudy(@IdParam IdType id, PatchTypeEnum patchType, @ResourceParam String body,
 	        RequestDetails requestDetails) {
-		System.out.println("==============================================");
-		System.out.println("Inside patch method: " + id);
-		System.out.println("Inside patch method for type: " + patchType);
-		System.out.println("Inside patch method for body: " + body);
-		System.out.println("Inside patch method for request: " + requestDetails);
-		System.out.println("==============================================");
 		if (id == null || id.getIdPart() == null) {
 			throw new InvalidRequestException("id must be specified to patch");
 		}
