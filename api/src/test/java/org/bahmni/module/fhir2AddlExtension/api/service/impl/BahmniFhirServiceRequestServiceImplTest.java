@@ -501,7 +501,7 @@ public class BahmniFhirServiceRequestServiceImplTest {
         // Call the service method with all parameters including category
         IBundleProvider results = serviceRequestService.searchForServiceRequestsWithCategory(
                 patientReference, code, encounterReference, participantReference,
-                category, occurrence, uuid, lastUpdated, includes);
+                category, occurrence, uuid, lastUpdated, includes, null);
 
         // Capture the actual SearchParameterMap passed to searchQuery.getQueryResults
         ArgumentCaptor<SearchParameterMap> mapCaptor = ArgumentCaptor.forClass(SearchParameterMap.class);
@@ -569,7 +569,7 @@ public class BahmniFhirServiceRequestServiceImplTest {
 		
 		// Call the method under test
 		IBundleProvider results = serviceRequestService.searchForServiceRequestsByNumberOfVisits(
-				patientReference, numberOfVisits, category, sort, includes);
+				patientReference, numberOfVisits, category, sort, includes, null);
 		
 		// Verify results
 		assertThat(results, notNullValue());
@@ -588,14 +588,14 @@ public class BahmniFhirServiceRequestServiceImplTest {
 	@Test(expected = InvalidRequestException.class)
 	public void searchForServiceRequestsByNumberOfVisits_shouldThrowExceptionWhenPatientReferenceIsNull() {
 		// Call the method with null patient reference
-		serviceRequestService.searchForServiceRequestsByNumberOfVisits(null, new NumberParam(3), null, null, null);
+		serviceRequestService.searchForServiceRequestsByNumberOfVisits(null, new NumberParam(3), null, null, null, null);
 	}
 	
 	@Test(expected = InvalidRequestException.class)
 	public void searchForServiceRequestsByNumberOfVisits_shouldThrowExceptionWhenNumberOfVisitsIsNull() {
 		// Call the method with null number of visits
 		serviceRequestService.searchForServiceRequestsByNumberOfVisits(new ReferenceParam().setValue(PATIENT_GIVEN_NAME),
-		    null, null, null, null);
+		    null, null, null, null, null);
 	}
 	
 	@Test
@@ -609,7 +609,7 @@ public class BahmniFhirServiceRequestServiceImplTest {
 		
 		// Call the method under test
 		IBundleProvider results = serviceRequestService.searchForServiceRequestsByNumberOfVisits(patientReference,
-		    numberOfVisits, null, null, null);
+		    numberOfVisits, null, null, null, null);
 		
 		// Verify results
 		assertThat(results, nullValue());
@@ -796,5 +796,52 @@ public class BahmniFhirServiceRequestServiceImplTest {
 		personName.setGivenName("Bethany");
 		user.addName(personName);
 		return user;
+	}
+
+	@Test
+	public void searchForServiceRequestsWithCategory_shouldIncludeRevIncludeParamForImagingStudy() {
+		ReferenceAndListParam patientReference = createReferenceParam(PATIENT_GIVEN_NAME, SP_GIVEN);
+		ReferenceAndListParam category = createReferenceParam("radiology", null);
+		HashSet<Include> revIncludes = new HashSet<>();
+		revIncludes.add(new Include("ImagingStudy:basedon", true));
+
+		when(searchQuery.getQueryResults(any(), any(), any(), any())).thenReturn(
+		        new SearchQueryBundleProvider<>(new SearchParameterMap(), dao, translator, globalPropertyService,
+		                searchQueryInclude));
+
+		IBundleProvider results = serviceRequestService.searchForServiceRequestsWithCategory(patientReference, null, null,
+		    null, category, null, null, null, null, revIncludes);
+
+		assertThat(results, notNullValue());
+
+		ArgumentCaptor<SearchParameterMap> mapCaptor = ArgumentCaptor.forClass(SearchParameterMap.class);
+		verify(searchQuery).getQueryResults(mapCaptor.capture(), eq(dao), eq(translator), eq(searchQueryInclude));
+
+		SearchParameterMap actualMap = mapCaptor.getValue();
+		assertThat(actualMap.getParameters(FhirConstants.REVERSE_INCLUDE_SEARCH_HANDLER), notNullValue());
+		assertEquals(revIncludes,
+		    actualMap.getParameters(FhirConstants.REVERSE_INCLUDE_SEARCH_HANDLER).get(0).getParam());
+	}
+
+	@Test
+	public void searchForServiceRequestsWithCategory_shouldHandleNullRevIncludes() {
+		ReferenceAndListParam patientReference = createReferenceParam(PATIENT_GIVEN_NAME, SP_GIVEN);
+		ReferenceAndListParam category = createReferenceParam("radiology", null);
+
+		when(searchQuery.getQueryResults(any(), any(), any(), any())).thenReturn(
+		        new SearchQueryBundleProvider<>(new SearchParameterMap(), dao, translator, globalPropertyService,
+		                searchQueryInclude));
+
+		IBundleProvider results = serviceRequestService.searchForServiceRequestsWithCategory(patientReference, null, null,
+		    null, category, null, null, null, null, null);
+
+		assertThat(results, notNullValue());
+
+		ArgumentCaptor<SearchParameterMap> mapCaptor = ArgumentCaptor.forClass(SearchParameterMap.class);
+		verify(searchQuery).getQueryResults(mapCaptor.capture(), eq(dao), eq(translator), eq(searchQueryInclude));
+
+		SearchParameterMap actualMap = mapCaptor.getValue();
+		Object revIncludesParam = actualMap.getParameters(FhirConstants.REVERSE_INCLUDE_SEARCH_HANDLER);
+		assertThat(revIncludesParam, anyOf(nullValue(), equalTo(Collections.emptyList())));
 	}
 }
