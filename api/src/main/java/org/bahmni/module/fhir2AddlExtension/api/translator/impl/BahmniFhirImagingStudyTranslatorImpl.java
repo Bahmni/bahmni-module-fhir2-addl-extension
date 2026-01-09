@@ -15,6 +15,7 @@ import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.Type;
 import org.openmrs.Location;
 import org.openmrs.Provider;
+import org.openmrs.User;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.fhir2.api.translators.LocationReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
@@ -215,58 +216,64 @@ public class BahmniFhirImagingStudyTranslatorImpl implements BahmniFhirImagingSt
 	}
 	
 	private void mapAnnotationsToNotes(FhirImagingStudy study, ImagingStudy resource) {
-		if (!resource.hasNote()) {
-			return;
-		}
+        if (!resource.hasNote()) {
+            return;
+        }
 
-		Map<String, FhirImagingStudyNote> existingNotesMap = new HashMap<>();
-		if (study.getNotes() != null) {
-			for (FhirImagingStudyNote existingNote : study.getNotes()) {
-				if (existingNote.getUuid() != null) {
-					existingNotesMap.put(existingNote.getUuid(), existingNote);
-				}
-			}
-		}
-		
-		Set<String> incomingNoteUuids = new HashSet<>();
-		
-		for (Annotation annotation : resource.getNote()) {
-			String noteUuid = annotation.getId();
-			incomingNoteUuids.add(noteUuid);
+        Map<String, FhirImagingStudyNote> existingNotesMap = study.getNotes() != null
+                ? study.getNotes().stream()
+                .collect(Collectors.toMap(
+                        FhirImagingStudyNote::getUuid, note -> note)
+                )
+                : new HashMap<>();
 
-			FhirImagingStudyNote note;
-			
-			if (noteUuid != null && existingNotesMap.containsKey(noteUuid)) {
-				note = existingNotesMap.get(noteUuid);
-				note.setChangedBy(Context.getUserContext().getAuthenticatedUser());
-				note.setDateChanged(new Date());
-			} else {
-				note = new FhirImagingStudyNote();
-				note.setImagingStudy(study);
-				note.setCreator(Context.getUserContext().getAuthenticatedUser());
+        Set<String> incomingNoteUuids = new HashSet<>();
+        User authenticatedUser = Context.getUserContext().getAuthenticatedUser();
+
+        for (Annotation annotation : resource.getNote()) {
+            String noteUuid = annotation.getId();
+            incomingNoteUuids.add(noteUuid);
+
+            FhirImagingStudyNote note = existingNotesMap.get(noteUuid);
+
+            if (note != null) {
+                note.setChangedBy(authenticatedUser);
+                note.setDateChanged(new Date());
+            } else {
+                note = new FhirImagingStudyNote();
+                note.setImagingStudy(study);
+                note.setCreator(authenticatedUser);
                 note.setUuid(noteUuid);
                 note.setDateCreated(new Date());
-				study.getNotes().add(note);
-			}
 
-			if (annotation.hasText()) {
-				note.setNote(annotation.getText());
-			}
-			
-			if (annotation.hasAuthorReference()) {
-				Provider performer = practitionerReferenceTranslator.toOpenmrsType(annotation.getAuthorReference());
-				note.setPerformer(performer);
-			}
-			
-			if (annotation.hasTime()) {
-				note.setDateCreated(annotation.getTime());
-			}
-		}
-		
-		if (study.getNotes() != null) {
-			study.getNotes().removeIf(note -> 
-				note.getUuid() != null && !incomingNoteUuids.contains(note.getUuid())
-			);
-		}
-	}
+                if (study.getNotes() == null) {
+                    study.setNotes(new HashSet<>());
+                }
+                study.getNotes().add(note);
+            }
+
+            if (annotation.hasText()) {
+                note.setNote(annotation.getText());
+            }
+
+            if (annotation.hasAuthorReference()) {
+                Provider performer = practitionerReferenceTranslator.toOpenmrsType(annotation.getAuthorReference());
+                note.setPerformer(performer);
+            }
+
+            if (annotation.hasTime()) {
+                note.setDateCreated(annotation.getTime());
+            }
+        }
+
+        if (study.getNotes() != null) {
+            for (FhirImagingStudyNote note : study.getNotes()) {
+                if (note.getUuid() != null && !incomingNoteUuids.contains(note.getUuid())) {
+                    note.setVoided(true);
+                    note.setVoidedBy(authenticatedUser);
+                    note.setDateVoided(new Date());
+                }
+            }
+        }
+    }
 }

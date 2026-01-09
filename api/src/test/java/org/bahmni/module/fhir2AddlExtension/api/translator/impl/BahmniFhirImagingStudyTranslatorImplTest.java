@@ -74,6 +74,15 @@ public class BahmniFhirImagingStudyTranslatorImplTest {
 		        locationReferenceTranslator, practitionerReferenceTranslator);
 	}
 	
+	private Annotation createAnnotation(String id, String text, Reference author, Date time) {
+		Annotation annotation = new Annotation();
+		annotation.setId(id);
+		annotation.setText(text);
+		annotation.setAuthor(author);
+		annotation.setTime(time);
+		return annotation;
+	}
+	
 	@Test
 	public void toFhirResource_shouldTranslateBasicImagingStudyFields() {
 		FhirImagingStudy study = new FhirImagingStudy();
@@ -268,9 +277,7 @@ public class BahmniFhirImagingStudyTranslatorImplTest {
 		resource.setId("test-uuid");
 		resource.setStatus(ImagingStudy.ImagingStudyStatus.REGISTERED);
 		
-		Annotation annotation = new Annotation();
-		annotation.setText("Observation without author");
-		annotation.setTime(noteDate);
+		Annotation annotation = createAnnotation(null, "Observation without author", null, noteDate);
 		resource.addNote(annotation);
 		
 		FhirImagingStudy result = translator.toOpenmrsType(resource);
@@ -290,8 +297,7 @@ public class BahmniFhirImagingStudyTranslatorImplTest {
 		resource.setId("test-uuid");
 		resource.setStatus(ImagingStudy.ImagingStudyStatus.REGISTERED);
 		
-		Annotation annotation = new Annotation();
-		annotation.setText("Observation without time");
+		Annotation annotation = createAnnotation(null, "Observation without time", null, null);
 		resource.addNote(annotation);
 		
 		FhirImagingStudy result = translator.toOpenmrsType(resource);
@@ -305,13 +311,14 @@ public class BahmniFhirImagingStudyTranslatorImplTest {
 	}
 	
 	@Test
-    public void toOpenmrsType_shouldClearExistingNotesWhenUpdating() throws IOException {
+    public void toOpenmrsType_shouldVoidExistingNotesWhenUpdating() throws IOException {
         FhirImagingStudy existingStudy = new FhirImagingStudy();
         existingStudy.setImagingStudyId(1);
         existingStudy.setUuid("existing-uuid");
 
         FhirImagingStudyNote oldNote = new FhirImagingStudyNote();
-        oldNote.setNote("Old note that should be cleared");
+        oldNote.setUuid("old-note-uuid");
+        oldNote.setNote("Old note that should be voided");
         Set<FhirImagingStudyNote> oldNotes = new HashSet<>();
         oldNotes.add(oldNote);
         existingStudy.setNotes(oldNotes);
@@ -320,18 +327,30 @@ public class BahmniFhirImagingStudyTranslatorImplTest {
         resource.setId("existing-uuid");
         resource.setStatus(ImagingStudy.ImagingStudyStatus.AVAILABLE);
 
-        Annotation newAnnotation = new Annotation();
-        newAnnotation.setText("New updated note");
-        newAnnotation.setTime(new Date());
+        Annotation newAnnotation = createAnnotation("new-note-uuid", "New updated note", null, new Date());
         resource.addNote(newAnnotation);
 
         FhirImagingStudy result = translator.toOpenmrsType(existingStudy, resource);
 
         Assert.assertNotNull(result);
-        Assert.assertEquals(1, result.getNotes().size());
+        Assert.assertEquals(2, result.getNotes().size());
 
-        FhirImagingStudyNote note = result.getNotes().iterator().next();
-        Assert.assertEquals("New updated note", note.getNote());
+        FhirImagingStudyNote voidedNote = result.getNotes().stream()
+            .filter(n -> "old-note-uuid".equals(n.getUuid()))
+            .findFirst()
+            .orElse(null);
+        Assert.assertNotNull(voidedNote);
+        Assert.assertTrue(voidedNote.getVoided());
+        Assert.assertNotNull(voidedNote.getVoidedBy());
+        Assert.assertNotNull(voidedNote.getDateVoided());
+       
+        FhirImagingStudyNote newNote = result.getNotes().stream()
+            .filter(n -> "new-note-uuid".equals(n.getUuid()))
+            .findFirst()
+            .orElse(null);
+        Assert.assertNotNull(newNote);
+        Assert.assertEquals("New updated note", newNote.getNote());
+        Assert.assertFalse(newNote.getVoided());
     }
 	
 	@Test
@@ -357,23 +376,14 @@ public class BahmniFhirImagingStudyTranslatorImplTest {
         Provider provider1 = exampleProviderWithUuid("Dr. First", "provider-1-uuid");
         Provider provider2 = exampleProviderWithUuid("Dr. Second", "provider-2-uuid");
 
-        Annotation annotation1 = new Annotation();
-        annotation1.setId("note-1");
-        annotation1.setText("First radiologist observation");
-        annotation1.setAuthor(new Reference("Practitioner/provider-1-uuid"));
-        annotation1.setTime(dateFormat.parse("2025-12-03T11:01:20+03:00"));
+        Annotation annotation1 = createAnnotation("note-1", "First radiologist observation",
+                new Reference("Practitioner/provider-1-uuid"), dateFormat.parse("2025-12-03T11:01:20+03:00"));
 
-        Annotation annotation2 = new Annotation();
-        annotation2.setId("note-2");
-        annotation2.setText("Second radiologist observation");
-        annotation2.setAuthor(new Reference("Practitioner/provider-2-uuid"));
-        annotation2.setTime(dateFormat.parse("2025-12-03T14:30:00+03:00"));
+        Annotation annotation2 = createAnnotation("note-2", "Second radiologist observation",
+                new Reference("Practitioner/provider-2-uuid"), dateFormat.parse("2025-12-03T14:30:00+03:00"));
 
-        Annotation annotation3 = new Annotation();
-        annotation3.setId("note-3");
-        annotation3.setText("Third observation");
-        annotation3.setAuthor(new Reference("Practitioner/provider-1-uuid"));
-        annotation3.setTime(dateFormat.parse("2025-12-04T09:15:00+03:00"));
+        Annotation annotation3 = createAnnotation("note-3", "Third observation",
+                new Reference("Practitioner/provider-1-uuid"), dateFormat.parse("2025-12-04T09:15:00+03:00"));
 
         resource.addNote(annotation1);
         resource.addNote(annotation2);
@@ -429,11 +439,8 @@ public class BahmniFhirImagingStudyTranslatorImplTest {
 		updatedResource.setId("study-uuid-456");
 		updatedResource.setStatus(ImagingStudy.ImagingStudyStatus.AVAILABLE);
 		
-		Annotation updatedAnnotation = new Annotation();
-		updatedAnnotation.setId("existing-note-uuid");
-		updatedAnnotation.setText("Scan reviewed - follow-up scheduled");
-		updatedAnnotation.setAuthor(new Reference("Practitioner/radiologist-uuid"));
-		updatedAnnotation.setTime(dateFormat.parse("2025-12-10T15:00:00+00:00"));
+		Annotation updatedAnnotation = createAnnotation("existing-note-uuid", "Scan reviewed - follow-up scheduled",
+				new Reference("Practitioner/radiologist-uuid"), dateFormat.parse("2025-12-10T15:00:00+00:00"));
 		updatedResource.addNote(updatedAnnotation);
 		
 		when(practitionerReferenceTranslator.toOpenmrsType(any(Reference.class))).thenReturn(radiologist);
@@ -460,11 +467,8 @@ public class BahmniFhirImagingStudyTranslatorImplTest {
 		newResource.setId("new-study-uuid");
 		newResource.setStatus(ImagingStudy.ImagingStudyStatus.REGISTERED);
 		
-		Annotation newAnnotation = new Annotation();
-		newAnnotation.setId("new-note-uuid");
-		newAnnotation.setText("Chest X-ray ordered for suspected pneumonia");
-		newAnnotation.setAuthor(new Reference("Practitioner/radiologist-uuid"));
-		newAnnotation.setTime(dateFormat.parse("2025-12-15T08:30:00+00:00"));
+		Annotation newAnnotation = createAnnotation("new-note-uuid", "Chest X-ray ordered for suspected pneumonia",
+		    new Reference("Practitioner/radiologist-uuid"), dateFormat.parse("2025-12-15T08:30:00+00:00"));
 		newResource.addNote(newAnnotation);
 		
 		when(practitionerReferenceTranslator.toOpenmrsType(any(Reference.class))).thenReturn(radiologist);
