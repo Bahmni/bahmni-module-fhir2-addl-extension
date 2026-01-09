@@ -15,6 +15,7 @@ import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.Type;
 import org.openmrs.Location;
 import org.openmrs.Provider;
+import org.openmrs.User;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.fhir2.api.translators.LocationReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
@@ -25,8 +26,12 @@ import org.springframework.util.StringUtils;
 
 import javax.annotation.Nonnull;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants.FHIR_EXT_IMAGING_STUDY_COMPLETION_DATE;
@@ -211,38 +216,64 @@ public class BahmniFhirImagingStudyTranslatorImpl implements BahmniFhirImagingSt
 	}
 	
 	private void mapAnnotationsToNotes(FhirImagingStudy study, ImagingStudy resource) {
-		if (!resource.hasNote()) {
-			return;
-		}
-		
-		if (study.getNotes() != null) {
-			study.getNotes().clear();
-		}
-		
-		for (Annotation annotation : resource.getNote()) {
-			FhirImagingStudyNote note = new FhirImagingStudyNote();
-			
-			note.setImagingStudy(study);
-			
-			if (annotation.hasText()) {
-				note.setNote(annotation.getText());
-			}
-			
-			if (annotation.hasAuthorReference()) {
-				Provider performer = practitionerReferenceTranslator.toOpenmrsType(annotation.getAuthorReference());
-				note.setPerformer(performer);
-			}
-			
-			if (annotation.hasTime()) {
-				note.setDateCreated(annotation.getTime());
-			} else {
-				note.setDateCreated(new Date());
-			}
-			
-			note.setCreator(Context.getUserContext().getAuthenticatedUser());
-			note.setUuid(annotation.getId());
-			
-			study.getNotes().add(note);
-		}
-	}
+        if (!resource.hasNote()) {
+            return;
+        }
+
+        Map<String, FhirImagingStudyNote> existingNotesMap = study.getNotes() != null
+                ? study.getNotes().stream()
+                .collect(Collectors.toMap(
+                        FhirImagingStudyNote::getUuid, note -> note)
+                )
+                : new HashMap<>();
+
+        Set<String> incomingNoteUuids = new HashSet<>();
+        User authenticatedUser = Context.getUserContext().getAuthenticatedUser();
+
+        for (Annotation annotation : resource.getNote()) {
+            String noteUuid = annotation.getId();
+            incomingNoteUuids.add(noteUuid);
+
+            FhirImagingStudyNote note = existingNotesMap.get(noteUuid);
+
+            if (note != null) {
+                note.setChangedBy(authenticatedUser);
+                note.setDateChanged(new Date());
+            } else {
+                note = new FhirImagingStudyNote();
+                note.setImagingStudy(study);
+                note.setCreator(authenticatedUser);
+                note.setUuid(noteUuid);
+                note.setDateCreated(new Date());
+
+                if (study.getNotes() == null) {
+                    study.setNotes(new HashSet<>());
+                }
+                study.getNotes().add(note);
+            }
+
+            if (annotation.hasText()) {
+                note.setNote(annotation.getText());
+            }
+
+            if (annotation.hasAuthorReference()) {
+                Provider performer = practitionerReferenceTranslator.toOpenmrsType(annotation.getAuthorReference());
+                note.setPerformer(performer);
+            }
+
+            if (annotation.hasTime()) {
+                note.setDateCreated(annotation.getTime());
+            }
+        }
+
+        if (study.getNotes() != null) {
+            for (FhirImagingStudyNote note : study.getNotes()) {
+                if (note.getUuid() != null && !incomingNoteUuids.contains(note.getUuid())) {
+                    note.setVoided(true);
+                    note.setVoidedBy(authenticatedUser);
+                    note.setDateVoided(new Date());
+                }
+            }
+        }
+    }
 }

@@ -94,8 +94,6 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 		switch (status) {
 			case REGISTERED:
 				return Order.FulfillerStatus.RECEIVED;
-			case ENTEREDINERROR:
-				return Order.FulfillerStatus.EXCEPTION;
 			case UNKNOWN:
 			case NULL:
 			default:
