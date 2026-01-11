@@ -2,8 +2,10 @@ package org.bahmni.module.fhir2AddlExtension.api.providers;
 
 import ca.uhn.fhir.rest.annotation.*;
 import ca.uhn.fhir.rest.api.MethodOutcome;
+import ca.uhn.fhir.rest.api.PatchTypeEnum;
 import ca.uhn.fhir.rest.api.SortSpec;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
+import ca.uhn.fhir.rest.api.server.RequestDetails;
 import ca.uhn.fhir.rest.param.DateRangeParam;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.TokenAndListParam;
@@ -50,6 +52,16 @@ public class BahmniImagingStudyR4ResourceProvider implements IResourceProvider {
 		}
 		updatedStudy.setId(id);
 		return FhirProviderUtils.buildUpdate(fhirImagingStudyService.update(id.getIdPart(), updatedStudy));
+	}
+	
+	@Patch
+	public MethodOutcome patchImagingStudy(@IdParam IdType id, PatchTypeEnum patchType, @ResourceParam String body,
+	        RequestDetails requestDetails) {
+		if (id == null || id.getIdPart() == null) {
+			throw new InvalidRequestException("id must be specified to patch");
+		}
+		ImagingStudy imagingStudy = fhirImagingStudyService.patch(id.getIdPart(), patchType, body, requestDetails);
+		return FhirProviderUtils.buildPatch(imagingStudy);
 	}
 	
 	@Read
