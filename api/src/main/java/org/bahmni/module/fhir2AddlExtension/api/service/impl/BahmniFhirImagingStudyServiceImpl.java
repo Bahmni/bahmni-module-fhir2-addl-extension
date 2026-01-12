@@ -28,8 +28,6 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	
 	private final BahmniFhirImagingStudyTranslator imagingStudyTranslator;
 	
-	private final BahmniFhirServiceRequestDao<Order> serviceRequestDao;
-	
 	private final SearchQueryInclude<ImagingStudy> searchQueryInclude;
 	
 	private final SearchQuery<FhirImagingStudy, ImagingStudy, BahmniFhirImagingStudyDao, BahmniFhirImagingStudyTranslator, SearchQueryInclude<ImagingStudy>> searchQuery;
@@ -38,12 +36,10 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	public BahmniFhirImagingStudyServiceImpl(
 	    BahmniFhirImagingStudyDao imagingStudyDao,
 	    BahmniFhirImagingStudyTranslator imagingStudyTranslator,
-	    BahmniFhirServiceRequestDao<Order> serviceRequestDao,
 	    SearchQueryInclude<ImagingStudy> searchQueryInclude,
 	    SearchQuery<FhirImagingStudy, ImagingStudy, BahmniFhirImagingStudyDao, BahmniFhirImagingStudyTranslator, SearchQueryInclude<ImagingStudy>> searchQuery) {
 		this.imagingStudyDao = imagingStudyDao;
 		this.imagingStudyTranslator = imagingStudyTranslator;
-		this.serviceRequestDao = serviceRequestDao;
 		this.searchQueryInclude = searchQueryInclude;
 		this.searchQuery = searchQuery;
 	}
