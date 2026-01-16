@@ -1,5 +1,7 @@
 package org.bahmni.module.fhir2AddlExtension.api.dao.impl;
 
+import org.bahmni.module.fhir2AddlExtension.api.utils.ModuleUtils;
+import org.hibernate.criterion.Criterion;
 import org.openmrs.Drug;
 import org.openmrs.api.ConceptService;
 import org.openmrs.module.fhir2.FhirConstants;
@@ -62,4 +64,11 @@ public class BahmniFhirMedicationDaoImpl extends FhirMedicationDaoImpl implement
 		return searchPhrase;
 	}
 	
+	@Override
+	protected Criterion generateSystemQuery(String system, List<String> codes, String conceptReferenceTermAlias) {
+		if (ModuleUtils.isConceptReferenceCodeEmpty(codes)) {
+			return ModuleUtils.generateSystemQueryForEmptyCodes(system, conceptReferenceTermAlias);
+		}
+		return super.generateSystemQuery(system, codes, conceptReferenceTermAlias);
+	}
 }
