@@ -20,7 +20,7 @@ import static org.powermock.api.mockito.PowerMockito.verifyStatic;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(ModuleUtils.class)
-@PowerMockIgnore({ "javax.management.*", "javax.script.*", "org.apache.logging.log4j.*" })
+@PowerMockIgnore({ "javax.*", "org.apache.*", "org.slf4j.*", "org.xml.*" })
 public class BahmniFhirMedicationRequestDaoImplTest {
 	
 	private static final String SYSTEM_URL = "http://example.com/system";
