@@ -26,12 +26,17 @@ import static org.openmrs.module.fhir2.api.translators.impl.ReferenceHandlingTra
 public class BahmniServiceRequestReferenceTranslatorImpl implements BahmniServiceRequestReferenceTranslator {
 	
 	@Getter(value = AccessLevel.PROTECTED)
-	@Setter(value = AccessLevel.PACKAGE, onMethod_ = @Autowired)
 	private BahmniFhirServiceRequestDao<Order> serviceRequestDao;
 	
 	@Getter(PROTECTED)
-	@Setter(value = PROTECTED, onMethod_ = @Autowired)
 	private FhirMedicationRequestDao medicationRequestDao;
+	
+	@Autowired
+	public BahmniServiceRequestReferenceTranslatorImpl(BahmniFhirServiceRequestDao<Order> serviceRequestDao,
+	    FhirMedicationRequestDao medicationRequestDao) {
+		this.serviceRequestDao = serviceRequestDao;
+		this.medicationRequestDao = medicationRequestDao;
+	}
 	
 	@Override
 	public Reference toFhirResource(@Nonnull Order order) {

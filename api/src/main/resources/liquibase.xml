@@ -404,4 +404,117 @@
         <dropColumn tableName="imaging_study" columnName="notes"/>
     </changeSet>
 
+    <!--
+    The following two changesets are temporary and should be deleted in time.
+    Temporary till the PR for https://openmrs.atlassian.net/browse/FM2-675
+    on github https://github.com/openmrs/openmrs-module-fhir2/pull/583/files
+    is merged and a version released. and this module's (fhir2-addl-extension)
+    dependency is updated
+    -->
+    <!-- START -->
+    <changeSet id="add_col_diagnostic_report_status_conclusion_202511_temp" author="angshu">
+        <preConditions onFail="MARK_RAN" onError="WARN">
+            <tableExists tableName="fhir_diagnostic_report"/>
+            <not>
+                <columnExists tableName="fhir_diagnostic_report" columnName="conclusion"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="fhir_diagnostic_report">
+            <column name="conclusion" type="VARCHAR(1024)"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="add_table_diagnostic_report_service_request_251212_temp" author="angshu">
+        <preConditions onFail="MARK_RAN" onError="WARN">
+            <not>
+                <tableExists tableName="fhir_diagnostic_report_service_request"/>
+            </not>
+            <tableExists tableName="fhir_diagnostic_report"/>
+        </preConditions>
+        <createTable tableName="fhir_diagnostic_report_service_request">
+            <column name="diagnostic_report_id" type="int">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="order_id" type="int">
+                <constraints primaryKey="true"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint constraintName="fhir_diagnostic_report_service_request_diagnostic_report"
+                                 baseTableName="fhir_diagnostic_report_service_request" baseColumnNames="diagnostic_report_id"
+                                 referencedTableName="fhir_diagnostic_report" referencedColumnNames="diagnostic_report_id"/>
+        <addForeignKeyConstraint constraintName="fhir_diagnostic_report_service_request_order"
+                                 baseTableName="fhir_diagnostic_report_service_request" baseColumnNames="order_id"
+                                 referencedTableName="orders" referencedColumnNames="order_id"/>
+    </changeSet>
+    <!-- END -->
+
+    <changeSet id="create_document_attachment_table_20260114" author="angshus" dbms="mysql,mariadb,postgresql">
+        <preConditions onFail="MARK_RAN" onError="WARN">
+            <not>
+                <tableExists tableName="document_attachment"/>
+            </not>
+        </preConditions>
+        <createTable tableName="document_attachment">
+            <column name="document_attachment_id" type="int" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="title" type="varchar(255)"/>
+            <column name="content_type" type="varchar(255)"/>
+            <column name="content_url" type="varchar(512)"/>
+            <column name="voided" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="creator" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_created" type="datetime">
+                <constraints nullable="false"/>
+            </column>
+            <column name="changed_by" type="int"/>
+            <column name="date_changed" type="datetime"/>
+            <column name="voided_by" type="int"/>
+            <column name="date_voided" type="datetime"/>
+            <column name="void_reason" type="varchar(255)"/>
+            <column name="uuid" type="char(38)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint constraintName="document_attachment_creator_fk"
+                                 baseTableName="document_attachment" baseColumnNames="creator"
+                                 referencedTableName="users" referencedColumnNames="user_id"/>
+        <addForeignKeyConstraint constraintName="document_attachment_changed_by_fk"
+                                 baseTableName="document_attachment" baseColumnNames="changed_by"
+                                 referencedTableName="users" referencedColumnNames="user_id"/>
+        <addForeignKeyConstraint constraintName="document_attachment_voided_by_fk"
+                                 baseTableName="document_attachment" baseColumnNames="voided_by"
+                                 referencedTableName="users" referencedColumnNames="user_id"/>
+    </changeSet>
+
+
+    <!-- Ideally, this should also be in OpenMRS core, but to address it part of
+    https://openmrs.atlassian.net/browse/FM2-675, may not be possible as it also
+    requires the above changeset for document_attachment
+    -->
+    <changeSet id="add_table_diagnostic_report_presented_form" author="angshu">
+        <preConditions onFail="MARK_RAN" onError="WARN">
+            <not>
+                <tableExists tableName="fhir_diagnostic_report_presented_form"/>
+            </not>
+        </preConditions>
+        <createTable tableName="fhir_diagnostic_report_presented_form">
+            <column name="diagnostic_report_id" type="int">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="document_attachment_id" type="int">
+                <constraints primaryKey="true"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint constraintName="fhir_diagnostic_report_presented_form_diagnostic_report"
+                                 baseTableName="fhir_diagnostic_report_presented_form" baseColumnNames="diagnostic_report_id"
+                                 referencedTableName="fhir_diagnostic_report" referencedColumnNames="diagnostic_report_id"/>
+        <addForeignKeyConstraint constraintName="fhir_diagnostic_report_presented_form_attachment"
+                                 baseTableName="fhir_diagnostic_report_presented_form" baseColumnNames="document_attachment_id"
+                                 referencedTableName="document_attachment" referencedColumnNames="document_attachment_id"/>
+    </changeSet>
+
 </databaseChangeLog>

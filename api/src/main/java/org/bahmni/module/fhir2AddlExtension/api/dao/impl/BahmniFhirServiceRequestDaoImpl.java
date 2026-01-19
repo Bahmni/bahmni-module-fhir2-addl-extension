@@ -5,7 +5,9 @@ import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.AccessLevel;
 import lombok.Setter;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
+import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttributeType;
 import org.hibernate.Criteria;
+import org.hibernate.Session;
 import org.hibernate.criterion.Criterion;
 import org.hibernate.criterion.Restrictions;
 import org.openmrs.Order;
@@ -18,6 +20,10 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
+import javax.persistence.TypedQuery;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Root;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -42,11 +48,18 @@ public class BahmniFhirServiceRequestDaoImpl extends BahmniBaseFhirDao<Order> im
 	
 	@Override
 	public Order get(@Nonnull String uuid) {
-		Criteria criteria = super.getSessionFactory().getCurrentSession().createCriteria(Order.class);
-		criteria.add(eq("uuid", uuid));
-		addCriteriaForDrugOrderFilter(criteria);
-		Order result = (Order) criteria.uniqueResult();
-		return result == null ? null : deproxyResult(result);
+		Session currentSession = getSessionFactory().getCurrentSession();
+		CriteriaBuilder cb = currentSession.getCriteriaBuilder();
+		CriteriaQuery<Order> cq = cb.createQuery(Order.class);
+		Root<Order> criteriaRoot = cq.from(Order.class);
+		cq.select(criteriaRoot).where(cb.equal(criteriaRoot.get("uuid"), uuid));
+		Order order = currentSession.createQuery(cq).uniqueResult();
+		return order == null ? null : deproxyResult(order);
+		//		Criteria criteria = super.getSessionFactory().getCurrentSession().createCriteria(Order.class);
+		//		criteria.add(eq("uuid", uuid));
+		//		addCriteriaForDrugOrderFilter(criteria);
+		//		Order result = (Order) criteria.uniqueResult();
+		//		return result == null ? null : deproxyResult(result);
 	}
 	
 	@Override

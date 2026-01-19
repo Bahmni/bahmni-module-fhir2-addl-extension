@@ -19,6 +19,7 @@ import java.util.Set;
 @Component
 @Primary
 public class BahmniFhirObservationServiceImpl extends FhirObservationServiceImpl {
+	
 	@Getter(value = AccessLevel.PROTECTED)
 	@Setter(onMethod_ = @Autowired)
 	private BahmniObsDao bahmniObsDao;

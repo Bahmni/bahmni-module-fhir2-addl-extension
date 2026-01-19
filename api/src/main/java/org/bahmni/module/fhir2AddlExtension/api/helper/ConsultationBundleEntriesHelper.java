@@ -2,6 +2,7 @@ package org.bahmni.module.fhir2AddlExtension.api.helper;
 
 import ca.uhn.fhir.rest.server.exceptions.InternalErrorException;
 import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.r4.model.ResourceType;
@@ -156,6 +157,41 @@ public class ConsultationBundleEntriesHelper {
 				break;
 		}
 		return entry;
+	}
+	
+	public static List<Observation> sortObservationsByDepth(List<Observation> inputs) {
+        List<Observation> result = new ArrayList<>();
+        Set<String> visited = new HashSet<>();
+        Set<String> beingVisited = new HashSet<>(); // For cycle detection
+
+        for (Observation obj : inputs) {
+            depthFirstSearch(obj, visited, beingVisited, result);
+        }
+        return result;
+    }
+	
+	private static void depthFirstSearch(Observation node, Set<String> visited, Set<String> beingVisited,
+	        List<Observation> result) {
+		if (visited.contains(node.getId()))
+			return;
+		
+		if (beingVisited.contains(node.getId())) {
+			throw new RuntimeException("Circular dependency detected at: " + node.getId());
+		}
+		
+		beingVisited.add(node.getId()); // Mark as currently in the recursion stack
+		
+		for (Reference child : node.getHasMember()) {
+			Observation memberObs = (Observation) child.getResource();
+			if (memberObs == null) {
+				continue;
+			}
+			depthFirstSearch(memberObs, visited, beingVisited, result);
+		}
+		
+		beingVisited.remove(node.getId()); // Remove from stack
+		visited.add(node.getId()); // Mark as fully processed
+		result.add(node); // Add to final list
 	}
 	
 	private static Set<Reference> extractReferences(Resource resource) {

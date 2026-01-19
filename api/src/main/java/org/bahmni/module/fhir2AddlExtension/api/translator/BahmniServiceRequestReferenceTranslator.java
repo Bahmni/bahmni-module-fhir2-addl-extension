@@ -6,6 +6,11 @@ import org.openmrs.module.fhir2.api.translators.OpenmrsFhirTranslator;
 
 import javax.annotation.Nonnull;
 
+/**
+ * TODO: to be replaced in future by https://openmrs.atlassian.net/browse/FM2-675 pending PR merge
+ * of https://github.com/openmrs/openmrs-module-fhir2/pull/583/files and upgrade to fhir2 module
+ * where the above PR is reflected
+ */
 public interface BahmniServiceRequestReferenceTranslator extends OpenmrsFhirTranslator<Order, Reference> {
 	
 	/**

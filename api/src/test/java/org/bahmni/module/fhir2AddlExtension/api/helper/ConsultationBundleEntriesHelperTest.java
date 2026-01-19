@@ -1,21 +1,27 @@
 package org.bahmni.module.fhir2AddlExtension.api.helper;
 
 import ca.uhn.fhir.rest.server.exceptions.InternalErrorException;
+import org.bahmni.module.fhir2AddlExtension.api.TestDataFactory;
+import org.bahmni.module.fhir2AddlExtension.api.domain.DiagnosticReportBundle;
+import org.bahmni.module.fhir2AddlExtension.api.utils.BahmniFhirUtils;
+import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.*;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.module.fhir2.FhirConstants;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.*;
 
-@RunWith(MockitoJUnitRunner.class)
 public class ConsultationBundleEntriesHelperTest {
 	
 	private List<Bundle.BundleEntryComponent> entries;
@@ -440,5 +446,23 @@ public class ConsultationBundleEntriesHelperTest {
 		assertEquals(encounterEntry, result.get(0));
 		assertEquals(bpObsEntry, result.get(3));
 		
+	}
+	
+	@Test
+	public void shouldSortObservationsByDependencies() throws IOException {
+		//the following is the order in the json file for observations
+		//29b5f5c4-b256-4f8f-809b-f87d8384b5cb
+		//49a86246-4004-42eb-9bdc-f542f93f9228
+		//60613a43-c4cb-4502-b3e2-cf9215feaa70
+		DiagnosticReportBundle reportBundle = TestDataFactory.loadDiagnosticReportBundle("example-diagnostic-report-bundle-with-encounter-reference-nested-results.json");
+		List<Observation> observations = reportBundle.getEntry().stream()
+				.map(Bundle.BundleEntryComponent::getResource)
+				.filter(resource -> resource != null && resource.getResourceType().name().equals("Observation"))
+				.map(resource -> (Observation) resource )
+				.collect(Collectors.toList());
+		List<Observation> list = ConsultationBundleEntriesHelper.sortObservationsByDepth(observations);
+		Assert.assertEquals("urn:uuid:49a86246-4004-42eb-9bdc-f542f93f9228", list.get(0).getId());
+		Assert.assertEquals("urn:uuid:60613a43-c4cb-4502-b3e2-cf9215feaa70", list.get(1).getId());
+		Assert.assertEquals("Observation/29b5f5c4-b256-4f8f-809b-f87d8384b5cb", list.get(2).getId());
 	}
 }
