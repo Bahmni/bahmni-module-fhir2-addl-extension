@@ -2,27 +2,25 @@ package org.bahmni.module.fhir2AddlExtension.api.dao.impl;
 
 import ca.uhn.fhir.rest.param.StringParam;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
-import org.bahmni.module.fhir2AddlExtension.api.utils.ModuleUtils;
 import org.hibernate.criterion.Criterion;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Drug;
 import org.openmrs.api.ConceptService;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,11 +33,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.powermock.api.mockito.PowerMockito.verifyStatic;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest(ModuleUtils.class)
-@PowerMockIgnore({ "javax.*", "org.apache.*", "org.slf4j.*", "org.xml.*" })
+@RunWith(MockitoJUnitRunner.class)
 public class BahmniFhirMedicationDaoImplTest {
 	
 	private static final String DRUG_NAME = "Aspirin";
@@ -56,9 +51,6 @@ public class BahmniFhirMedicationDaoImplTest {
 	
 	@Mock
 	private ConceptService conceptService;
-	
-	@Mock
-	private Criterion mockCriterion;
 	
 	@InjectMocks
 	private BahmniFhirMedicationDaoImpl bahmniFhirMedicationDao;
@@ -319,36 +311,19 @@ public class BahmniFhirMedicationDaoImplTest {
 	}
 	
 	@Test
-	public void generateSystemQuery_shouldCallModuleUtilsWhenCodesIsEmpty() {
-		PowerMockito.mockStatic(ModuleUtils.class);
+	public void generateSystemQuery_shouldReturnPropertySubqueryExpressionWhenCodesIsEmpty() {
+		Criterion result = bahmniFhirMedicationDao.generateSystemQuery(SYSTEM_URL, null, CONCEPT_REFERENCE_TERM_ALIAS);
 		
-		when(ModuleUtils.isConceptReferenceCodeEmpty(null)).thenReturn(true);
-		when(ModuleUtils.generateSystemQueryForEmptyCodes(SYSTEM_URL, CONCEPT_REFERENCE_TERM_ALIAS)).thenReturn(
-		    mockCriterion);
-		
-		bahmniFhirMedicationDao.generateSystemQuery(SYSTEM_URL, null, CONCEPT_REFERENCE_TERM_ALIAS);
-		
-		verifyStatic(ModuleUtils.class);
-		ModuleUtils.isConceptReferenceCodeEmpty(null);
-		
-		verifyStatic(ModuleUtils.class);
-		ModuleUtils.generateSystemQueryForEmptyCodes(SYSTEM_URL, CONCEPT_REFERENCE_TERM_ALIAS);
+		assertThat(result, notNullValue());
+		assertThat(result, instanceOf(org.hibernate.criterion.PropertySubqueryExpression.class));
 	}
 	
 	@Test
-	public void generateSystemQuery_shouldNotCallGenerateSystemQueryForEmptyCodesWhenCodesHasValues() {
+	public void generateSystemQuery_shouldDelegateToSuperWhenCodesHasValues() {
 		List<String> codes = Collections.singletonList("validCode");
 		
-		PowerMockito.mockStatic(ModuleUtils.class);
+		Criterion result = bahmniFhirMedicationDao.generateSystemQuery(SYSTEM_URL, codes, CONCEPT_REFERENCE_TERM_ALIAS);
 		
-		when(ModuleUtils.isConceptReferenceCodeEmpty(codes)).thenReturn(false);
-		
-		bahmniFhirMedicationDao.generateSystemQuery(SYSTEM_URL, codes, CONCEPT_REFERENCE_TERM_ALIAS);
-		
-		verifyStatic(ModuleUtils.class);
-		ModuleUtils.isConceptReferenceCodeEmpty(codes);
-		
-		verifyStatic(ModuleUtils.class, never());
-		ModuleUtils.generateSystemQueryForEmptyCodes(SYSTEM_URL, CONCEPT_REFERENCE_TERM_ALIAS);
+		assertThat(result, notNullValue());
 	}
 }

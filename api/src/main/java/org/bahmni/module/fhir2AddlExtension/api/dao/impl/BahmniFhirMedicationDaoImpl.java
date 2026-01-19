@@ -1,6 +1,8 @@
 package org.bahmni.module.fhir2AddlExtension.api.dao.impl;
 
-import org.bahmni.module.fhir2AddlExtension.api.utils.ModuleUtils;
+import ca.uhn.fhir.rest.param.StringParam;
+import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
+import org.bahmni.module.fhir2AddlExtension.api.dao.FhirConceptCodeSystemQuery;
 import org.hibernate.criterion.Criterion;
 import org.openmrs.Drug;
 import org.openmrs.api.ConceptService;
@@ -13,15 +15,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
-import ca.uhn.fhir.rest.param.StringParam;
-import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
-
 import javax.annotation.Nonnull;
 import java.util.List;
 
 @Component
 @Primary
-public class BahmniFhirMedicationDaoImpl extends FhirMedicationDaoImpl implements FhirMedicationDao {
+public class BahmniFhirMedicationDaoImpl extends FhirMedicationDaoImpl implements FhirMedicationDao, FhirConceptCodeSystemQuery {
 	
 	@Autowired
 	private ConceptService conceptService;
@@ -66,8 +65,8 @@ public class BahmniFhirMedicationDaoImpl extends FhirMedicationDaoImpl implement
 	
 	@Override
 	protected Criterion generateSystemQuery(String system, List<String> codes, String conceptReferenceTermAlias) {
-		if (ModuleUtils.isConceptReferenceCodeEmpty(codes)) {
-			return ModuleUtils.generateSystemQueryForEmptyCodes(system, conceptReferenceTermAlias);
+		if (isConceptReferenceCodeEmpty(codes)) {
+			return generateSystemQueryForEmptyCodes(system, conceptReferenceTermAlias);
 		}
 		return super.generateSystemQuery(system, codes, conceptReferenceTermAlias);
 	}

@@ -1,6 +1,6 @@
 package org.bahmni.module.fhir2AddlExtension.api.dao.impl;
 
-import org.bahmni.module.fhir2AddlExtension.api.utils.ModuleUtils;
+import org.bahmni.module.fhir2AddlExtension.api.dao.FhirConceptCodeSystemQuery;
 import org.hibernate.criterion.Criterion;
 import org.openmrs.DrugOrder;
 import org.openmrs.api.OrderService;
@@ -14,7 +14,7 @@ import java.util.List;
 
 @Component
 @Primary
-public class BahmniFhirMedicationRequestDaoImpl extends FhirMedicationRequestDaoImpl {
+public class BahmniFhirMedicationRequestDaoImpl extends FhirMedicationRequestDaoImpl implements FhirConceptCodeSystemQuery {
 	
 	@Autowired
 	private OrderService orderService;
@@ -26,8 +26,8 @@ public class BahmniFhirMedicationRequestDaoImpl extends FhirMedicationRequestDao
 	
 	@Override
 	protected Criterion generateSystemQuery(String system, List<String> codes, String conceptReferenceTermAlias) {
-		if (ModuleUtils.isConceptReferenceCodeEmpty(codes)) {
-			return ModuleUtils.generateSystemQueryForEmptyCodes(system, conceptReferenceTermAlias);
+		if (isConceptReferenceCodeEmpty(codes)) {
+			return generateSystemQueryForEmptyCodes(system, conceptReferenceTermAlias);
 		}
 		return super.generateSystemQuery(system, codes, conceptReferenceTermAlias);
 	}
