@@ -52,7 +52,13 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 	public static final String BUNDLE_MUST_HAVE_DIAGNOSTIC_REPORT = "A bundle containing Diagnostic Report must be supplied";
 	
 	public static final String REPORT_MUST_HAVE_VALID_PATIENT_REFERENCE = "Diagnostic Report must have valid patient reference";
-	
+	public static final String INVALID_ENCOUNTER_REFERENCE = "Invalid encounter reference for Diagnostic Report";
+	public static final String INVALID_SERVICE_REQUEST_REFERENCE = "Invalid Service Request Reference for Diagnostic Report";
+	public static final String RESULT_OR_PRESENTED_FORM_REQUIRED = "Diagnostic Report can not be created without any result or presented form";
+	public static final String INVALID_RESULT_OBSERVATION_REFERENCE = "Invalid result observation reference in Diagnostic Report bundle.";
+	public static final String INVALID_REFERENCED_OBSERVATION_RESOURCE = "Can not identify referenced observation resource";
+	public static final String INVALID_REFERENCES_TO_PATIENT = "Diagnostic Report has invalid result references to patient";
+
 	private final BahmniFhirDiagnosticReportDao dao;
 	
 	private final BahmniFhirDiagnosticReportBundleTranslator translator;
@@ -142,7 +148,7 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		for (Reference resultRef : report.get().getResult()) {
 			Optional<Reference> obsRef = BahmniFhirUtils.referenceToId(resultRef.getReference()).map(id -> obsReferenceMap.get(id));
 			if (obsRef.isPresent()) {
-				System.out.printf("replacing report.result ref: %s - %s%n", resultRef.getReference(), obsRef.get().getReference());
+				log.info("replacing report.result references: %s - %s%n", resultRef.getReference(), obsRef.get().getReference());
 				resultRef.setReference(obsRef.get().getReference());
 			}
 		}
@@ -158,7 +164,7 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		Reference encounter = report.hasEncounter() ? findOrCreateReferencedEncounterResource(report) : labEncounterService
 		        .createLabResultEncounter(omrsPatient, order);
 		if (encounter == null) {
-			throw new InvalidRequestException("Invalid encounter reference for Diagnostic Report");
+			throw new InvalidRequestException(INVALID_ENCOUNTER_REFERENCE);
 		}
 		return encounter;
 	}
@@ -186,7 +192,7 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 				if (memberObs != null) {
 					Reference mappedRef = observationsReferenceMap.get(memberObs.getId());
 					if (mappedRef != null) {
-						System.out.printf("replacing obs.member ref: %s - %s%n", member.getReference(), mappedRef.getReference());
+						log.info("replacing obs.member ref: %s - %s%n", member.getReference(), mappedRef.getReference());
 						member.setReference(mappedRef.getReference());
 					}
 				}
@@ -194,7 +200,6 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 			Observation newObservation = fhirObservationService.create(observation);
 			Reference newObsReference = new Reference().setReference(FhirConstants.OBSERVATION + "/" + newObservation.getId()).setType(FhirConstants.OBSERVATION);
 			newObsReference.setResource(newObservation);
-			//System.out.println(String.format("mapped - %s:%s", resId, newObsReference.getReference()));
 			observationsReferenceMap.put(obsEntryId, newObsReference);
 		}
 		return observationsReferenceMap;
@@ -250,7 +255,7 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		report.getBasedOn().forEach(reference -> {
 			Order aOrder = serviceRequestReferenceTranslator.toOpenmrsType(reference);
 			if (aOrder == null) {
-				throw new InvalidRequestException("Invalid Service Request Reference for Diagnostic Report");
+				throw new InvalidRequestException(INVALID_SERVICE_REQUEST_REFERENCE);
 			}
 			serviceRequests.add(aOrder);
 		});
@@ -269,8 +274,8 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		if (!diagnosticReport.hasPresentedForm()
 				&& !diagnosticReport.hasResult()
 				&& !DiagnosticReportValidator.DIAGNOSTIC_REPORT_DRAFT_STATES.contains(diagnosticReport.getStatus())) {
-			log.error("Diagnostic Report can not be created without any result or presented form");
-			throw new InvalidRequestException("Diagnostic Report can not be created without any result or presented form");
+			log.error(RESULT_OR_PRESENTED_FORM_REQUIRED);
+			throw new InvalidRequestException(RESULT_OR_PRESENTED_FORM_REQUIRED);
 		}
 		if (diagnosticReport.hasResult()) {
 			diagnosticReport.getResult().forEach(resultRef -> {
@@ -281,7 +286,7 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 				}
 				Optional<String> refResultId = BahmniFhirUtils.referenceToId(resultRef.getReference());
 				if (!refResultId.isPresent()) {
-					throw new InvalidRequestException("Invalid result observation reference in Diagnostic Report bundle.");
+					throw new InvalidRequestException(INVALID_RESULT_OBSERVATION_REFERENCE);
 				}
 
 				referencedResource = bundledObservationLocator
@@ -289,8 +294,8 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 						.orElseGet(() -> fhirObservationService.get(refResultId.get()));
 
 				if (referencedResource == null) {
-					log.error("Can not identify referenced observation resource");
-					System.out.println("Can not identify referenced observation resource");
+					log.error(INVALID_REFERENCED_OBSERVATION_RESOURCE);
+					System.out.println(INVALID_REFERENCED_OBSERVATION_RESOURCE);
 				}
 				validatePatientReference(patientReference, referencedResource);
 			});
@@ -300,8 +305,8 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 	private void validatePatientReference(Reference patientReference, Observation observation) {
 		boolean sameRef = observation.getSubject().getReference().equals(patientReference.getReference());
 		if (!sameRef) {
-			log.error("Diagnostic Report has invalid result references to patient");
-			throw new InvalidRequestException("Diagnostic Report has invalid result references to patient");
+			log.error(INVALID_REFERENCES_TO_PATIENT);
+			throw new InvalidRequestException(INVALID_REFERENCES_TO_PATIENT);
 		}
 	}
 	

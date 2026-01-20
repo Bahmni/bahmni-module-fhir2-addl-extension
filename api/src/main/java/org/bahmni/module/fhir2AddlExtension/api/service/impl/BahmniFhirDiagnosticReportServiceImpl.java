@@ -24,17 +24,7 @@ import javax.annotation.Nonnull;
 @Component("bahmniFhirDiagnosticReportServiceImpl")
 @Primary
 public class BahmniFhirDiagnosticReportServiceImpl extends BaseFhirService<DiagnosticReport, FhirDiagnosticReportExt> implements BahmniFhirDiagnosticReportService {
-	
-	private static final String LAB_RESULT_ENC_TYPE = "LAB_RESULT";
-	
-	private static final String UNABLE_TO_PROCESS_DIAGNOSTIC_REPORT = "Can not process Diagnostic Report. Please check with your administrator.";
-	
-	private static final String LAB_ENTRY_VISIT_TYPE = "labEntry.visitType";
-	
-	private static final String DEFAULT_LAB_VISIT_TYPE = "LAB_VISIT";
-	
-	public static final String CAN_NOT_IDENTIFY_VISIT_FOR_DIAGNOSTIC_REPORT = "Can not identify a Visit to associate the diagnostic report. Please contact your administrator.";
-	
+
 	private BahmniFhirDiagnosticReportDao diagnosticReportDao;
 	
 	private DiagnosticReportValidator validator;

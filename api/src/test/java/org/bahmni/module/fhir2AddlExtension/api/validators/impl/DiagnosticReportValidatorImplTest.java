@@ -8,7 +8,6 @@ import org.hl7.fhir.r4.model.DiagnosticReport;
 import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Reference;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -17,9 +16,9 @@ import org.openmrs.Order;
 
 import java.util.Collections;
 
-import static org.bahmni.module.fhir2AddlExtension.api.validators.impl.DiagnosticReportValidatorImpl.RESOURCE_NOT_PRESENT_FOR_GIVEN_REFERENCE_ERROR_MESSAGE;
 import static org.bahmni.module.fhir2AddlExtension.api.validators.impl.DiagnosticReportValidatorImpl.RESULT_OR_ATTACHMENT_NOT_PRESENT_ERROR_MESSAGE;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DiagnosticReportValidatorImplTest {
@@ -72,7 +71,7 @@ public class DiagnosticReportValidatorImplTest {
 		diagnosticReport.setPresentedForm(Collections.singletonList(new Attachment()));
 		diagnosticReportValidator.validate(diagnosticReport);
 	}
-	
+
 	
 	@Test
 	public void shouldNotThrowExceptionWhenReferencesHaveRespectiveResources() {
