@@ -13,8 +13,8 @@ public interface BahmniFhirServiceRequestService extends FhirServiceRequestServi
 	IBundleProvider searchForServiceRequestsWithCategory(ReferenceAndListParam patientReference, TokenAndListParam code,
 	        ReferenceAndListParam encounterReference, ReferenceAndListParam participantReference,
 	        ReferenceAndListParam category, DateRangeParam occurrence, TokenAndListParam uuid, DateRangeParam lastUpdated,
-	        HashSet<Include> includes);
+	        HashSet<Include> includes, HashSet<Include> revIncludes);
 	
 	IBundleProvider searchForServiceRequestsByNumberOfVisits(ReferenceParam patientReference, NumberParam numberOfVisits,
-	        ReferenceAndListParam category, SortSpec sort, HashSet<Include> includes);
+	        ReferenceAndListParam category, SortSpec sort, HashSet<Include> includes, HashSet<Include> revIncludes);
 }

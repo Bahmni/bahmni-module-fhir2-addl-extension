@@ -10,7 +10,6 @@ import ca.uhn.fhir.rest.param.TokenAndListParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirImagingStudyDao;
-import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirImagingStudy;
 import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniImagingStudySearchParams;
 import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirImagingStudyService;
@@ -29,7 +28,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.openmrs.*;
+import org.openmrs.Location;
+import org.openmrs.Order;
+import org.openmrs.Patient;
+import org.openmrs.Provider;
+import org.openmrs.User;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.context.UserContext;
 import org.openmrs.api.db.ContextDAO;
@@ -49,11 +52,16 @@ import java.util.List;
 
 import static org.bahmni.module.fhir2AddlExtension.api.TestDataFactory.loadResourceFromFile;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -83,9 +91,6 @@ public class BahmniFhirImagingStudyServiceImplTest {
 	
 	@Mock
 	private PractitionerReferenceTranslator<Provider> practitionerReferenceTranslator;
-	
-	@Mock
-	private BahmniFhirServiceRequestDao<Order> serviceRequestDao;
 	
 	@Mock
 	private SearchQueryInclude<ImagingStudy> searchQueryInclude;
@@ -133,7 +138,7 @@ public class BahmniFhirImagingStudyServiceImplTest {
 		        patientReferenceTranslator, locationReferenceTranslator, practitionerReferenceTranslator);
 		fhirImagingStudyService = new BahmniFhirImagingStudyServiceImpl(
 		                                                                imagingStudyDao, imagingStudyTranslator,
-		                                                                serviceRequestDao, searchQueryInclude, searchQuery) {
+		                                                                searchQueryInclude, searchQuery) {
 			
 			@Override
 			protected void validateObject(FhirImagingStudy object) {
@@ -233,78 +238,6 @@ public class BahmniFhirImagingStudyServiceImplTest {
         Assert.assertEquals(ImagingStudy.ImagingStudyStatus.REGISTERED, imagingStudy.getStatus());
         Extension performerExt = imagingStudy.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_IMAGING_STUDY_PERFORMER);
         Assert.assertNotNull("Performer extension should not be null for Imaging Study", performerExt);
-    }
-	
-	@Test
-    public void shouldUpdateImagingStudyWithNullOrderGracefully() throws IOException {
-        Location studyLocation = new Location();
-        studyLocation.setName("Radiology Center");
-        studyLocation.setUuid("example-radiology-center");
-
-        Provider performer = new Provider();
-        performer.setUuid("example-technician-id");
-
-        FhirImagingStudy existingStudy = new FhirImagingStudy();
-        existingStudy.setStudyInstanceUuid("urn:oid:2.16.124.113543.6003.1154777499.30246.19789.3503430045");
-        existingStudy.setStatus(FhirImagingStudy.FhirImagingStudyStatus.REGISTERED);
-
-        IBaseResource fhirResource = loadResourceFromFile("example-imaging-study-performed.json");
-        when(imagingStudyDao.get("example-imaging-study")).thenReturn(existingStudy);
-        when(imagingStudyDao.createOrUpdate(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        when(locationReferenceTranslator.toOpenmrsType(
-                ArgumentMatchers.argThat(reference -> {
-                    return reference.getReference().equals("Location/example-radiology-center");
-                })))
-                .thenReturn(studyLocation);
-        when(practitionerReferenceTranslator.toOpenmrsType(
-                ArgumentMatchers.argThat(reference -> {
-                    return reference.getReference().equals("Practitioner/example-technician-id");
-                })))
-                .thenReturn(performer);
-        when(practitionerReferenceTranslator.toFhirResource(
-                ArgumentMatchers.argThat(provider -> {
-                    return provider.getUuid().equals("example-technician-id");
-                })))
-                .thenReturn(new Reference("Practitioner/example-technician-id"));
-        
-        ImagingStudy imagingStudy = fhirImagingStudyService.update("example-imaging-study", (ImagingStudy)  fhirResource);
-        
-        Assert.assertEquals(ImagingStudy.ImagingStudyStatus.REGISTERED, imagingStudy.getStatus());
-        verify(serviceRequestDao, never()).updateOrder(any());
-    }
-	
-	@Test
-    public void shouldNotUpdateOrderWhenFulfillerStatusIsNull() throws IOException {
-        Location studyLocation = new Location();
-        studyLocation.setName("Radiology Center");
-        studyLocation.setUuid("example-radiology-center");
-
-        Order existingOrder = new Order();
-        existingOrder.setUuid("existing-order-uuid");
-        existingOrder.setFulfillerStatus(Order.FulfillerStatus.RECEIVED);
-
-        FhirImagingStudy existingStudy = new FhirImagingStudy();
-        existingStudy.setStudyInstanceUuid("urn:oid:2.16.124.113543.6003.1154777499.30246.19789.3503430045");
-        existingStudy.setStatus(FhirImagingStudy.FhirImagingStudyStatus.REGISTERED);
-        existingStudy.setOrder(existingOrder);
-
-        IBaseResource fhirResource = loadResourceFromFile("example-imaging-study-registered.json");
-        ((ImagingStudy) fhirResource).setStatus(ImagingStudy.ImagingStudyStatus.UNKNOWN);
-
-        when(imagingStudyDao.get("example-imaging-study")).thenReturn(existingStudy);
-        when(imagingStudyDao.createOrUpdate(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        when(locationReferenceTranslator.toOpenmrsType(
-                ArgumentMatchers.argThat(reference -> {
-                    return reference.getReference().equals("Location/example-radiology-center");
-                })))
-                .thenReturn(studyLocation);
-
-        ImagingStudy imagingStudy = fhirImagingStudyService.update("example-imaging-study", (ImagingStudy)  fhirResource);
-
-        Assert.assertEquals(ImagingStudy.ImagingStudyStatus.UNKNOWN, imagingStudy.getStatus());
-        verify(serviceRequestDao, never()).updateOrder(any());
     }
 	
 	@Test

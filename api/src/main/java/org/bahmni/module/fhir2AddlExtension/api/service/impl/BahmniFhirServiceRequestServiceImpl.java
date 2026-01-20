@@ -58,7 +58,7 @@ public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<Service
 	        TokenAndListParam uuid, DateRangeParam lastUpdated, HashSet<Include> includes) {
 		
 		SearchParameterMap theParams = getSearchParameterMap(patientReference, code, encounterReference,
-		    participantReference, occurrence, uuid, lastUpdated, includes);
+		    participantReference, occurrence, uuid, lastUpdated, includes, null);
 		
 		return searchQuery.getQueryResults(theParams, dao, translator, searchQueryInclude);
 	}
@@ -67,16 +67,17 @@ public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<Service
 	public IBundleProvider searchForServiceRequestsWithCategory(ReferenceAndListParam patientReference,
 	        TokenAndListParam code, ReferenceAndListParam encounterReference, ReferenceAndListParam participantReference,
 	        ReferenceAndListParam category, DateRangeParam occurrence, TokenAndListParam uuid, DateRangeParam lastUpdated,
-	        HashSet<Include> includes) {
+	        HashSet<Include> includes, HashSet<Include> revIncludes) {
 		SearchParameterMap theParams = getSearchParameterMap(patientReference, code, encounterReference,
-		    participantReference, occurrence, uuid, lastUpdated, includes);
+		    participantReference, occurrence, uuid, lastUpdated, includes, revIncludes);
 		theParams.addParameter(FhirConstants.CATEGORY_SEARCH_HANDLER, category);
 		return searchQuery.getQueryResults(theParams, dao, translator, searchQueryInclude);
 	}
 	
 	@Override
 	public IBundleProvider searchForServiceRequestsByNumberOfVisits(ReferenceParam patientReference,
-	        NumberParam numberOfVisits, ReferenceAndListParam category, SortSpec sort, HashSet<Include> includes) {
+	        NumberParam numberOfVisits, ReferenceAndListParam category, SortSpec sort, HashSet<Include> includes,
+	        HashSet<Include> revIncludes) {
 		if (patientReference == null) {
 			throw new InvalidRequestException("Patient reference is required for searching by number of visits");
 		}
@@ -93,7 +94,8 @@ public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<Service
 		SearchParameterMap theParams = new SearchParameterMap()
 		        .addParameter(FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER, encounterReferencesByNumberOfVisit)
 		        .addParameter(FhirConstants.CATEGORY_SEARCH_HANDLER, category)
-		        .addParameter(FhirConstants.INCLUDE_SEARCH_HANDLER, includes);
+		        .addParameter(FhirConstants.INCLUDE_SEARCH_HANDLER, includes)
+		        .addParameter(FhirConstants.REVERSE_INCLUDE_SEARCH_HANDLER, revIncludes);
 		
 		if (sort != null) {
 			theParams.setSortSpec(sort);
@@ -161,7 +163,7 @@ public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<Service
 	
 	private SearchParameterMap getSearchParameterMap(ReferenceAndListParam patientReference, TokenAndListParam code,
 	        ReferenceAndListParam encounterReference, ReferenceAndListParam participantReference, DateRangeParam occurrence,
-	        TokenAndListParam uuid, DateRangeParam lastUpdated, HashSet<Include> includes) {
+	        TokenAndListParam uuid, DateRangeParam lastUpdated, HashSet<Include> includes, HashSet<Include> revIncludes) {
 		return new SearchParameterMap().addParameter(FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER, patientReference)
 		        .addParameter(FhirConstants.CODED_SEARCH_HANDLER, code)
 		        .addParameter(FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER, encounterReference)
@@ -169,6 +171,7 @@ public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<Service
 		        .addParameter(FhirConstants.DATE_RANGE_SEARCH_HANDLER, occurrence)
 		        .addParameter(FhirConstants.COMMON_SEARCH_HANDLER, FhirConstants.ID_PROPERTY, uuid)
 		        .addParameter(FhirConstants.COMMON_SEARCH_HANDLER, FhirConstants.LAST_UPDATED_PROPERTY, lastUpdated)
-		        .addParameter(FhirConstants.INCLUDE_SEARCH_HANDLER, includes);
+		        .addParameter(FhirConstants.INCLUDE_SEARCH_HANDLER, includes)
+		        .addParameter(FhirConstants.REVERSE_INCLUDE_SEARCH_HANDLER, revIncludes);
 	}
 }
