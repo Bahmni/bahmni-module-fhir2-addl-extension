@@ -37,7 +37,6 @@ public class DiagnosticReportValidatorImpl implements DiagnosticReportValidator 
 	public void validate(DiagnosticReport diagnosticReport) {
 		validateBasedOn(diagnosticReport);
 		validateEitherResultOrAttachmentIsPresent(diagnosticReport);
-		validateReferencesHaveRespectiveResources(diagnosticReport);
 	}
 	
 	//TODO: Lab lite sends reference as identifier for basedOn. Need to change that
@@ -65,17 +64,4 @@ public class DiagnosticReportValidatorImpl implements DiagnosticReportValidator 
 			        createExceptionErrorOperationOutcome(RESULT_OR_ATTACHMENT_NOT_PRESENT_ERROR_MESSAGE));
 		}
 	}
-	
-	private void validateReferencesHaveRespectiveResources(DiagnosticReport diagnosticReport) {
-        if (diagnosticReport.getResult().size() != 0) {
-            diagnosticReport.getResult().forEach(reference -> {
-                IBaseResource resource = reference.getResource();
-                if (resource == null)
-                    throw new UnprocessableEntityException(
-                            RESOURCE_NOT_PRESENT_FOR_GIVEN_REFERENCE_ERROR_MESSAGE,
-                            createExceptionErrorOperationOutcome(
-                                    RESOURCE_NOT_PRESENT_FOR_GIVEN_REFERENCE_ERROR_MESSAGE));
-            });
-        }
-    }
 }

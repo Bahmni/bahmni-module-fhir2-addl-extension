@@ -31,7 +31,8 @@
       },
       "valueQuantity": {
         "value": "16"
-      }
+      },
+      "effectiveDateTime": "2026-01-08T18:30:00.000Z"
     },
     {
       "resourceType": "Observation",
@@ -59,7 +60,8 @@
       ],
       "valueQuantity": {
         "value": "58"
-      }
+      },
+      "effectiveDateTime": "2026-01-08T18:30:00.000Z"
     },
     {
       "resourceType": "Observation",
@@ -76,7 +78,8 @@
       "subject": {
         "reference": "Patient/f8d2fe8b-283e-4446-a395-782c4dfa4d0b"
       },
-      "valueString": "12"
+      "valueString": "12",
+      "effectiveDateTime": "2026-01-08T18:30:00.000Z"
     },
     {
       "resourceType": "Observation",
@@ -100,7 +103,8 @@
             "display": "Negative"
           }
         ]
-      }
+      },
+      "effectiveDateTime": "2026-01-08T18:30:00.000Z"
     },
     {
       "resourceType": "Observation",
@@ -119,7 +123,8 @@
       },
       "valueQuantity": {
         "value": "12"
-      }
+      },
+      "effectiveDateTime": "2026-01-08T18:30:00.000Z"
     },
     {
       "resourceType": "Observation",
@@ -136,7 +141,8 @@
       "subject": {
         "reference": "Patient/f8d2fe8b-283e-4446-a395-782c4dfa4d0b"
       },
-      "valueString": "12"
+      "valueString": "12",
+      "effectiveDateTime": "2026-01-08T18:30:00.000Z"
     },
     {
       "resourceType": "Observation",
@@ -164,7 +170,8 @@
       ],
       "valueQuantity": {
         "value": "120"
-      }
+      },
+      "effectiveDateTime": "2026-01-08T18:30:00.000Z"
     }
   ],
   "result": [

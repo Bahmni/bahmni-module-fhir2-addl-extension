@@ -60,7 +60,7 @@
               "display": "Absolute monocyte count"
             }
           ],
-          "text": "Haemoglobin"
+          "text": "Absolute monocyte count"
         },
         "subject": {
           "reference": "Patient/23a8371b-df7a-47c7-a015-b24198392cfa"

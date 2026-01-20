@@ -8,6 +8,7 @@ import org.hl7.fhir.r4.model.DiagnosticReport;
 import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Reference;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -72,21 +73,6 @@ public class DiagnosticReportValidatorImplTest {
 		diagnosticReportValidator.validate(diagnosticReport);
 	}
 	
-	@Test
-    public void shouldThrowExpectedExceptionWhenReferencesDoesNotHaveRespectiveResources() {
-        DiagnosticReport diagnosticReport = new DiagnosticReport();
-        Observation observation = new Observation();
-        observation.setId("test");
-        Reference reference = new Reference("#test");
-        reference.setType("Observation");
-        diagnosticReport.setResult(Collections.singletonList(reference));
-        diagnosticReport.setPresentedForm(Collections.singletonList(new Attachment()));
-
-        Exception exception = assertThrows(UnprocessableEntityException.class, () -> {
-            diagnosticReportValidator.validate(diagnosticReport);
-        });
-        assertEquals(RESOURCE_NOT_PRESENT_FOR_GIVEN_REFERENCE_ERROR_MESSAGE, exception.getMessage());
-    }
 	
 	@Test
 	public void shouldNotThrowExceptionWhenReferencesHaveRespectiveResources() {

@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component
@@ -127,7 +128,8 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 			log.error(REPORT_MUST_HAVE_VALID_PATIENT_REFERENCE);
 			throw new InvalidRequestException(REPORT_MUST_HAVE_VALID_PATIENT_REFERENCE);
 		}
-		validateResults(report.get(), report.get().getSubject());
+		Function<String, Optional<Observation>> obsLocator = referenceId -> BahmniFhirUtils.findResourceInBundle(bundle, referenceId, Observation.class);
+		validateResults(report.get(), report.get().getSubject(), obsLocator);
 		//TODO match observation code with order code to identify the right order, as a diagnostic report may submit for multiple order
 		Optional<Map.Entry<Reference, Order>> orderReferenceMap = getServiceRequest(identifyOrders(report.get()));
 		Reference encounterReference = resolveEncounter(report.get(), omrsPatient.get(), orderReferenceMap.map(entry -> entry.getValue()));
@@ -135,18 +137,13 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		// we need to pass all the order references and resolve the observation to order relation by looking up the concept
 		// there is a chance that observation.code does not map to order concept (e.g. panel, panel member, or individual test)
 		// and in that case we do not set order reference
-		Map<String, Reference> obsReferenceMap = createResultObservations(report.get(), encounterReference, orderReferenceMap.map(entry -> entry.getKey()));
+		Map<String, Reference> obsReferenceMap = createResultObservations(report.get(), encounterReference, orderReferenceMap.map(entry -> entry.getKey()), obsLocator);
 		//set the matching references from the above saved observation list
 		for (Reference resultRef : report.get().getResult()) {
-			if (resultRef.getResource() == null) {
-				// must be pre-existing observation. its possible if the diagnostic report was partially saved before
-				// need to match, as of now ignoring the processing
-				continue;
-			}
-			Reference obsRef = obsReferenceMap.get(((Observation) resultRef.getResource()).getId());
-			if (obsRef != null) {
-				System.out.printf("replacing report.result ref: %s - %s%n", resultRef.getReference(), obsRef.getReference());
-				resultRef.setReference(obsRef.getReference());
+			Optional<Reference> obsRef = BahmniFhirUtils.referenceToId(resultRef.getReference()).map(id -> obsReferenceMap.get(id));
+			if (obsRef.isPresent()) {
+				System.out.printf("replacing report.result ref: %s - %s%n", resultRef.getReference(), obsRef.get().getReference());
+				resultRef.setReference(obsRef.get().getReference());
 			}
 		}
 		diagnosticReportValidator.validate(report.get());
@@ -166,16 +163,20 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		return encounter;
 	}
 	
-	private Map<String, Reference> createResultObservations(DiagnosticReport diagnosticReport, Reference encounterReference, Optional<Reference> orderReference) {
+	private Map<String, Reference> createResultObservations(DiagnosticReport diagnosticReport, Reference encounterReference, Optional<Reference> orderReference, Function<String, Optional<Observation>> obsLocator) {
 		List<Observation> resultResources = diagnosticReport.getResult().stream().map(reference -> {
 			IBaseResource res = reference.getResource();
-			return res != null ? (Observation) res : null;
+			if (res != null) {
+				return (Observation) res;
+			}
+			Optional<String> refResultId = BahmniFhirUtils.referenceToId(reference.getReference());
+			return obsLocator.apply(refResultId.get()).orElse(null);
 		}).filter(Objects::nonNull).collect(Collectors.toList());
 
 		List<Observation> sortedObservations = ConsultationBundleEntriesHelper.sortObservationsByDepth(resultResources);
 		Map<String, Reference> observationsReferenceMap = new HashMap<>();
 		for (Observation observation : sortedObservations) {
-			String resId = observation.getId();
+			String obsEntryId = BahmniFhirUtils.extractId(observation.getIdElement().getValue());
 			observation.setEncounter(encounterReference);
 			if (orderReference.isPresent()) {
 				observation.setBasedOn(Collections.singletonList(orderReference.get()));
@@ -192,8 +193,9 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 			});
 			Observation newObservation = fhirObservationService.create(observation);
 			Reference newObsReference = new Reference().setReference(FhirConstants.OBSERVATION + "/" + newObservation.getId()).setType(FhirConstants.OBSERVATION);
+			newObsReference.setResource(newObservation);
 			//System.out.println(String.format("mapped - %s:%s", resId, newObsReference.getReference()));
-			observationsReferenceMap.put(resId, newObsReference);
+			observationsReferenceMap.put(obsEntryId, newObsReference);
 		}
 		return observationsReferenceMap;
 	}
@@ -263,7 +265,7 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		return Optional.of(new AbstractMap.SimpleImmutableEntry<>(orderReference, serviceRequests.get(0)));
 	}
 	
-	private void validateResults(DiagnosticReport diagnosticReport, Reference patientReference) {
+	private void validateResults(DiagnosticReport diagnosticReport, Reference patientReference, Function<String, Optional<Observation>> bundledObservationLocator) {
 		if (!diagnosticReport.hasPresentedForm()
 				&& !diagnosticReport.hasResult()
 				&& !DiagnosticReportValidator.DIAGNOSTIC_REPORT_DRAFT_STATES.contains(diagnosticReport.getStatus())) {
@@ -272,15 +274,34 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		}
 		if (diagnosticReport.hasResult()) {
 			diagnosticReport.getResult().forEach(resultRef -> {
-				Observation resultObservation = (Observation) resultRef.getResource();
-				if (resultObservation == null) {
+				Observation referencedResource = (Observation) resultRef.getResource();
+				if (referencedResource != null) {
+					validatePatientReference(patientReference, referencedResource);
+					return;
+				}
+				Optional<String> refResultId = BahmniFhirUtils.referenceToId(resultRef.getReference());
+				if (!refResultId.isPresent()) {
 					throw new InvalidRequestException("Invalid result observation reference in Diagnostic Report bundle.");
 				}
-				if (!resultObservation.getSubject().getReference().equals(patientReference.getReference())) {
-					log.error("Diagnostic Report has invalid result references to patient");
-					throw new InvalidRequestException("Diagnostic Report has invalid result references to patient");
+
+				referencedResource = bundledObservationLocator
+						.apply(refResultId.get())
+						.orElseGet(() -> fhirObservationService.get(refResultId.get()));
+
+				if (referencedResource == null) {
+					log.error("Can not identify referenced observation resource");
+					System.out.println("Can not identify referenced observation resource");
 				}
+				validatePatientReference(patientReference, referencedResource);
 			});
+		}
+	}
+	
+	private void validatePatientReference(Reference patientReference, Observation observation) {
+		boolean sameRef = observation.getSubject().getReference().equals(patientReference.getReference());
+		if (!sameRef) {
+			log.error("Diagnostic Report has invalid result references to patient");
+			throw new InvalidRequestException("Diagnostic Report has invalid result references to patient");
 		}
 	}
 	

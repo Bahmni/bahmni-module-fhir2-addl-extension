@@ -82,4 +82,8 @@ public class TestDataFactory {
 		BeanUtils.copyProperties(baseBundle, reportBundle);
 		return reportBundle;
 	}
+	
+	public static IBaseResource getResourceFromString(String resourceString) {
+		return r4ResourceParser.parseResource(resourceString);
+	}
 }

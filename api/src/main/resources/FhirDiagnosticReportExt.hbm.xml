@@ -9,7 +9,7 @@
     packagesToScan directive on config.xml to scan for JPA entities, does not seem to work in combination with HBM.
     To investigate further later
     -->
-    <class name="org.bahmni.module.fhir2AddlExtension.api.model.FhirDiagnosticReportExt" table="fhir_diagnostic_report" entity-name="FhirDiagnosticReportExt">
+    <class name="org.bahmni.module.fhir2AddlExtension.api.model.FhirDiagnosticReportExt" table="fhir_diagnostic_report">
 
         <!-- Primary Key -->
         <id name="id" column="diagnostic_report_id" type="integer">

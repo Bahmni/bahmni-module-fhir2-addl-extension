@@ -239,7 +239,7 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 		verify(diagnosticReportTranslator, times(1)).toOpenmrsType(any(DiagnosticReport.class));
 		verify(bahmniFhirDiagnosticReportBundleTranslator, times(1)).toFhirResource(any(FhirDiagnosticReportExt.class));
 	}
-
+	
 	@Test
 	public void shouldCreateValidateObservationReferenceInDiagnosticReport() throws IOException {
 		DiagnosticReportBundle reportBundle = loadDiagnosticReportBundle("example-diagnostic-report-with-encounter-and-service-request-reference-and-result-observation.json");
