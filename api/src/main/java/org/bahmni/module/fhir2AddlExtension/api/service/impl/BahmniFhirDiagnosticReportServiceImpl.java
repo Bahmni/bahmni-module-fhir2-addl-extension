@@ -8,6 +8,7 @@ import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirDiagnosticRepo
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirDiagnosticReportTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.validators.DiagnosticReportValidator;
 import org.hl7.fhir.r4.model.DiagnosticReport;
+import org.openmrs.Order;
 import org.openmrs.module.fhir2.api.dao.FhirDao;
 import org.openmrs.module.fhir2.api.impl.BaseFhirService;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
@@ -78,6 +79,15 @@ public class BahmniFhirDiagnosticReportServiceImpl extends BaseFhirService<Diagn
 			openmrsReport.setUuid(FhirUtils.newUuid());
 		}
 		return getTranslator().toFhirResource(getDao().createOrUpdate(openmrsReport));
+	}
+	
+	@Override
+	public DiagnosticReport findByOrder(@Nonnull Order order) {
+		FhirDiagnosticReportExt diagnosticReportExt = diagnosticReportDao.findByOrder(order);
+		if (diagnosticReportExt == null) {
+			return null;
+		}
+		return diagnosticReportTranslator.toFhirResource(diagnosticReportExt);
 	}
 	
 }

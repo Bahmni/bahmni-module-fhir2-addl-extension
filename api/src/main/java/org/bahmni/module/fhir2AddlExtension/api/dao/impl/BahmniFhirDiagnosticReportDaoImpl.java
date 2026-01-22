@@ -8,10 +8,12 @@ import org.bahmni.module.fhir2AddlExtension.api.model.FhirDiagnosticReportExt;
 import org.hibernate.Criteria;
 import org.hibernate.criterion.Restrictions;
 import org.openmrs.module.fhir2.FhirConstants;
+import org.openmrs.Order;
 import org.openmrs.module.fhir2.api.dao.impl.BaseFhirDao;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Nonnull;
 import java.util.Optional;
 
 import static org.hibernate.criterion.Restrictions.eq;
@@ -97,4 +99,14 @@ public class BahmniFhirDiagnosticReportDaoImpl extends BaseFhirDao<FhirDiagnosti
         }
 
     }
+
+	@Override
+	public FhirDiagnosticReportExt findByOrder(@Nonnull Order order) {
+		Criteria criteria = getSessionFactory().getCurrentSession().createCriteria(typeToken.getRawType());
+		criteria.createAlias("orders", "o");
+		criteria.add(Restrictions.eq("o.orderId", order.getOrderId()));
+		criteria.add(Restrictions.eq("retired", false));
+
+		return (FhirDiagnosticReportExt) criteria.uniqueResult();
+	}
 }
