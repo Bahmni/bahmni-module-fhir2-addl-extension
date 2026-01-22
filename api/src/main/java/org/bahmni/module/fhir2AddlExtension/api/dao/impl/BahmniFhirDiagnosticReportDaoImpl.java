@@ -7,6 +7,7 @@ import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirDiagnosticReportDa
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDiagnosticReportExt;
 import org.hibernate.Criteria;
 import org.hibernate.criterion.Restrictions;
+import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.dao.impl.BaseFhirDao;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.springframework.stereotype.Component;
@@ -20,32 +21,32 @@ public class BahmniFhirDiagnosticReportDaoImpl extends BaseFhirDao<FhirDiagnosti
     protected void setupSearchParams(Criteria criteria, SearchParameterMap theParams) {
         theParams.getParameters().forEach((entry) -> {
             switch (entry.getKey()) {
-                case "encounter.reference.search.handler":
+                case FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER:
                     entry.getValue().forEach((param) -> {
                         this.handleEncounterReference(criteria, (ReferenceAndListParam)param.getParam(), "e");
                     });
                     break;
-                case "patient.reference.search.handler":
+                case FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER:
                     entry.getValue().forEach((param) -> {
                         this.handlePatientReference(criteria, (ReferenceAndListParam)param.getParam(), "subject");
                     });
                     break;
-                case "coded.search.handler":
+                case FhirConstants.CODED_SEARCH_HANDLER:
                     entry.getValue().forEach((param) -> {
                         this.handleCodedConcept(criteria, (TokenAndListParam)param.getParam());
                     });
                     break;
-                case "date.range.search.handler":
+                case FhirConstants.DATE_RANGE_SEARCH_HANDLER:
                     entry.getValue().forEach((param) -> {
                         this.handleDateRange("issued", (DateRangeParam)param.getParam()).ifPresent(criteria::add);
                     });
                     break;
-                case "result.search.handler":
+                case FhirConstants.RESULT_SEARCH_HANDLER:
                     entry.getValue().forEach((param) -> {
                         this.handleObservationReference(criteria, (ReferenceAndListParam)param.getParam());
                     });
                     break;
-                case "common.search.handler":
+                case FhirConstants.COMMON_SEARCH_HANDLER:
                     this.handleCommonSearchParameters(entry.getValue()).ifPresent(criteria::add);
             }
 
