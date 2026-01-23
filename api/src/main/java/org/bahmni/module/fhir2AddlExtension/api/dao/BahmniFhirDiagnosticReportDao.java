@@ -18,4 +18,7 @@ public interface BahmniFhirDiagnosticReportDao extends FhirDao<FhirDiagnosticRep
 	@Authorized(BahmniPrivilegeConstants.DELETE_DIAGNOSTIC_REPORT)
 	FhirDiagnosticReportExt delete(@Nonnull String uuid);
 	
+	@Authorized({ BahmniPrivilegeConstants.GET_DIAGNOSTIC_REPORT, PrivilegeConstants.GET_OBS })
+	FhirDiagnosticReportExt findByOrderUuid(@Nonnull String orderUuid);
+	
 }

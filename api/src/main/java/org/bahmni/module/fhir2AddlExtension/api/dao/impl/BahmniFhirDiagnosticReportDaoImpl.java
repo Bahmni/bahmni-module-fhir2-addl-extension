@@ -6,12 +6,19 @@ import ca.uhn.fhir.rest.param.TokenAndListParam;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirDiagnosticReportDao;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDiagnosticReportExt;
 import org.hibernate.Criteria;
+import org.hibernate.Session;
 import org.hibernate.criterion.Restrictions;
 import org.openmrs.module.fhir2.FhirConstants;
+import org.openmrs.Order;
 import org.openmrs.module.fhir2.api.dao.impl.BaseFhirDao;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Nonnull;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Join;
+import javax.persistence.criteria.Root;
 import java.util.Optional;
 
 import static org.hibernate.criterion.Restrictions.eq;
@@ -97,4 +104,16 @@ public class BahmniFhirDiagnosticReportDaoImpl extends BaseFhirDao<FhirDiagnosti
         }
 
     }
+	
+	@Override
+	public FhirDiagnosticReportExt findByOrderUuid(@Nonnull String orderUuid) {
+		Session currentSession = getSessionFactory().getCurrentSession();
+		CriteriaBuilder cb = currentSession.getCriteriaBuilder();
+		CriteriaQuery<FhirDiagnosticReportExt> cq = cb.createQuery(FhirDiagnosticReportExt.class);
+		Root<FhirDiagnosticReportExt> root = cq.from(FhirDiagnosticReportExt.class);
+		Join<FhirDiagnosticReportExt, Order> ordersJoin = root.join("orders");
+		cq.select(root).where(cb.equal(ordersJoin.get("uuid"), orderUuid), cb.equal(root.get("voided"), false));
+		FhirDiagnosticReportExt result = currentSession.createQuery(cq).uniqueResult();
+		return result == null ? null : deproxyResult(result);
+	}
 }
