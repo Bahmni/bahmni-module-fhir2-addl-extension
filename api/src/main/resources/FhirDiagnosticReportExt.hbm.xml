@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC
+        "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+
+<hibernate-mapping package="org.bahmni.module.fhir2AddlExtension.api.model">
+    <!--
+    This HBM file is created as for some reason, OpenMRS does not seem to load both from HBM and JPA entities.
+    packagesToScan directive on config.xml to scan for JPA entities, does not seem to work in combination with HBM.
+    To investigate further later
+    -->
+    <class name="org.bahmni.module.fhir2AddlExtension.api.model.FhirDiagnosticReportExt" table="fhir_diagnostic_report">
+
+        <!-- Primary Key -->
+        <id name="id" column="diagnostic_report_id" type="integer">
+            <generator class="native"/>
+        </id>
+
+        <!-- Properties from BaseOpenmrsData -->
+        <property name="uuid" type="string" column="uuid" length="38" unique="true" not-null="true"/>
+        <many-to-one name="creator" class="org.openmrs.User" column="creator" not-null="true"/>
+        <property name="dateCreated" type="java.util.Date" column="date_created" not-null="true"/>
+        <many-to-one name="changedBy" class="org.openmrs.User" column="changed_by"/>
+        <property name="dateChanged" type="java.util.Date" column="date_changed"/>
+        <property name="voided" type="boolean" column="voided" not-null="true"/>
+        <many-to-one name="voidedBy" class="org.openmrs.User" column="voided_by"/>
+        <property name="dateVoided" type="java.util.Date" column="date_voided"/>
+        <property name="voidReason" type="string" column="void_reason" length="255"/>
+
+        <!-- Status - Enumerated type -->
+        <property name="status" column="status" not-null="true">
+            <type name="org.hibernate.type.EnumType">
+                <param name="enumClass">org.openmrs.module.fhir2.model.FhirDiagnosticReport$DiagnosticReportStatus</param>
+                <param name="useNamed">true</param>
+            </type>
+        </property>
+
+        <!-- Code - OneToOne with Concept -->
+        <many-to-one name="code"
+                     class="org.openmrs.Concept"
+                     column="concept_id"
+                     not-null="true"/>
+
+        <!-- Subject - OneToOne with Patient -->
+        <many-to-one name="subject" class="org.openmrs.Patient" column="subject_id"/>
+
+        <!-- Encounter - OneToOne with Encounter -->
+        <many-to-one name="encounter" class="org.openmrs.Encounter" column="encounter_id"/>
+
+        <!-- Issued date -->
+        <property name="issued" type="java.util.Date" column="issued"/>
+
+        <!-- Conclusion -->
+        <property name="conclusion" type="string" column="conclusion" length="1024"/>
+
+        <!-- Performers - Many-to-Many with Provider through join table -->
+        <set name="performers" table="fhir_diagnostic_report_performers" cascade="none" lazy="true">
+            <key column="diagnostic_report_id"/>
+            <many-to-many class="org.openmrs.Provider" column="provider_id"/>
+        </set>
+
+        <!-- Results - Many-to-Many with Obs through join table -->
+        <set name="results" table="fhir_diagnostic_report_results" cascade="none" lazy="true">
+            <key column="diagnostic_report_id"/>
+            <many-to-many class="org.openmrs.Obs" column="obs_id"/>
+        </set>
+
+        <!-- Orders (Service Requests) - Many-to-Many with Order through join table -->
+        <set name="orders" table="fhir_diagnostic_report_service_request" cascade="persist,merge" lazy="true">
+            <key column="diagnostic_report_id" />
+            <many-to-many class="org.openmrs.Order" column="order_id"/>
+        </set>
+
+        <set name="presentedForms" table="fhir_diagnostic_report_presented_form" cascade="save-update" lazy="true">
+            <key column="diagnostic_report_id" />
+            <many-to-many class="org.bahmni.module.fhir2AddlExtension.api.model.Attachment" column="document_attachment_id"/>
+        </set>
+
+    </class>
+
+</hibernate-mapping>

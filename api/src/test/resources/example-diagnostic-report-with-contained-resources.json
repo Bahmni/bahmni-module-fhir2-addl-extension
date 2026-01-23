@@ -1,0 +1,219 @@
+{
+  "resourceType": "DiagnosticReport",
+  "status": "final",
+  "code": {
+    "coding": [
+      {
+        "code": "161437AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "display": "Anemia panel"
+      }
+    ]
+  },
+  "subject": {
+    "reference": "Patient/f8d2fe8b-283e-4446-a395-782c4dfa4d0b"
+  },
+  "issued": "2026-01-08T18:30:00.000Z",
+  "contained": [
+    {
+      "resourceType": "Observation",
+      "id": "lab-test-result1",
+      "status": "final",
+      "code": {
+        "coding": [
+          {
+            "code": "21AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "display": "Haemoglobin"
+          }
+        ]
+      },
+      "subject": {
+        "reference": "Patient/f8d2fe8b-283e-4446-a395-782c4dfa4d0b"
+      },
+      "valueQuantity": {
+        "value": "16"
+      },
+      "effectiveDateTime": "2026-01-08T18:30:00.000Z"
+    },
+    {
+      "resourceType": "Observation",
+      "id": "lab-test-result2",
+      "status": "final",
+      "code": {
+        "coding": [
+          {
+            "code": "1015AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "display": "Hematocrit"
+          }
+        ]
+      },
+      "subject": {
+        "reference": "Patient/f8d2fe8b-283e-4446-a395-782c4dfa4d0b"
+      },
+      "interpretation": [
+        {
+          "coding": [
+            {
+              "code": "A"
+            }
+          ]
+        }
+      ],
+      "valueQuantity": {
+        "value": "58"
+      },
+      "effectiveDateTime": "2026-01-08T18:30:00.000Z"
+    },
+    {
+      "resourceType": "Observation",
+      "id": "lab-test-result3",
+      "status": "final",
+      "code": {
+        "coding": [
+          {
+            "code": "161423AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "display": "Peripheral smear for RBC morphology"
+          }
+        ]
+      },
+      "subject": {
+        "reference": "Patient/f8d2fe8b-283e-4446-a395-782c4dfa4d0b"
+      },
+      "valueString": "12",
+      "effectiveDateTime": "2026-01-08T18:30:00.000Z"
+    },
+    {
+      "resourceType": "Observation",
+      "id": "lab-test-result4",
+      "status": "final",
+      "code": {
+        "coding": [
+          {
+            "code": "160225AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "display": "Sickle cell screening test"
+          }
+        ]
+      },
+      "subject": {
+        "reference": "Patient/f8d2fe8b-283e-4446-a395-782c4dfa4d0b"
+      },
+      "valueCodeableConcept": {
+        "coding": [
+          {
+            "code": "664AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "display": "Negative"
+          }
+        ]
+      },
+      "effectiveDateTime": "2026-01-08T18:30:00.000Z"
+    },
+    {
+      "resourceType": "Observation",
+      "id": "lab-test-result5",
+      "status": "final",
+      "code": {
+        "coding": [
+          {
+            "code": "1327AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "display": "Reticulocytes (%)"
+          }
+        ]
+      },
+      "subject": {
+        "reference": "Patient/f8d2fe8b-283e-4446-a395-782c4dfa4d0b"
+      },
+      "valueQuantity": {
+        "value": "12"
+      },
+      "effectiveDateTime": "2026-01-08T18:30:00.000Z"
+    },
+    {
+      "resourceType": "Observation",
+      "id": "lab-test-result6",
+      "status": "final",
+      "code": {
+        "coding": [
+          {
+            "code": "161421AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "display": "Hemoglobin electrophoresis"
+          }
+        ]
+      },
+      "subject": {
+        "reference": "Patient/f8d2fe8b-283e-4446-a395-782c4dfa4d0b"
+      },
+      "valueString": "12",
+      "effectiveDateTime": "2026-01-08T18:30:00.000Z"
+    },
+    {
+      "resourceType": "Observation",
+      "id": "lab-test-result7",
+      "status": "final",
+      "code": {
+        "coding": [
+          {
+            "code": "729AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "display": "Platelets"
+          }
+        ]
+      },
+      "subject": {
+        "reference": "Patient/f8d2fe8b-283e-4446-a395-782c4dfa4d0b"
+      },
+      "interpretation": [
+        {
+          "coding": [
+            {
+              "code": "A"
+            }
+          ]
+        }
+      ],
+      "valueQuantity": {
+        "value": "120"
+      },
+      "effectiveDateTime": "2026-01-08T18:30:00.000Z"
+    }
+  ],
+  "result": [
+    {
+      "reference": "#lab-test-result1",
+      "type": "Observation"
+    },
+    {
+      "reference": "#lab-test-result2",
+      "type": "Observation"
+    },
+    {
+      "reference": "#lab-test-result3",
+      "type": "Observation"
+    },
+    {
+      "reference": "#lab-test-result4",
+      "type": "Observation"
+    },
+    {
+      "reference": "#lab-test-result5",
+      "type": "Observation"
+    },
+    {
+      "reference": "#lab-test-result6",
+      "type": "Observation"
+    },
+    {
+      "reference": "#lab-test-result7",
+      "type": "Observation"
+    }
+  ],
+  "conclusion": "Low platelet",
+  "basedOn": [
+    {
+      "reference": "ServiceRequest/0137d86f-e27b-4f3b-a701-5f3ca9a6756f",
+      "display": "Anemia panel"
+    }
+  ],
+  "performer": [
+    {
+      "reference": "Practitioner/444a609f-263f-11ee-8e08-02d2d2293862"
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.api.AdministrationService;
+import org.openmrs.api.EncounterService;
 
 import java.util.Map;
 
@@ -15,13 +16,16 @@ import static org.mockito.Mockito.when;
 public class OpenmrsAppContextTest {
 	
 	@Mock
-	AdministrationService adminService;
+	private AdministrationService adminService;
+	
+	@Mock
+	private EncounterService encounterService;
 	
 	@Test
 	public void shouldGetReferralLocationAttributeNameForOrderType() {
 		when(adminService.getGlobalProperty(OpenmrsAppContext.PROP_ORDER_TYPE_TO_LOCATION_ATTR_NAME_MAP, "")).thenReturn(
 		    "Radiology Order:REFERRAL_RADIOLOGY_CENTER; Surgical Order : Referral Surgical Center");
-		Map<String, String> orderTypeToLocationAttributeNameMap = new OpenmrsAppContext(adminService)
+		Map<String, String> orderTypeToLocationAttributeNameMap = new OpenmrsAppContext(adminService, encounterService)
 		        .getOrderTypeToLocationAttributeNameMap();
 		Assert.assertEquals("REFERRAL_RADIOLOGY_CENTER", orderTypeToLocationAttributeNameMap.get("Radiology Order"));
 		Assert.assertEquals("Referral Surgical Center", orderTypeToLocationAttributeNameMap.get("Surgical Order"));
@@ -32,7 +36,7 @@ public class OpenmrsAppContextTest {
 	public void shouldRedactErrorsInOrderTypeToAttributeMap() {
 		when(adminService.getGlobalProperty(OpenmrsAppContext.PROP_ORDER_TYPE_TO_LOCATION_ATTR_NAME_MAP, "")).thenReturn(
 		    "Radiology Order:REFERRAL_RADIOLOGY_CENTER;1: ; :LAB ORDER; Surgical Order : Referral Surgical Center");
-		Map<String, String> orderTypeToLocationAttributeNameMap = new OpenmrsAppContext(adminService)
+		Map<String, String> orderTypeToLocationAttributeNameMap = new OpenmrsAppContext(adminService, encounterService)
 		        .getOrderTypeToLocationAttributeNameMap();
 		Assert.assertEquals(2, orderTypeToLocationAttributeNameMap.size());
 	}

@@ -2,21 +2,22 @@ package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
 
 import lombok.AccessLevel;
 import lombok.Setter;
-import org.apache.commons.lang3.StringUtils;
+import org.bahmni.module.fhir2AddlExtension.api.translator.ComplexObsDataTranslator;
 import org.hibernate.proxy.HibernateProxy;
+import org.hl7.fhir.r4.model.Annotation;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.Type;
 import org.openmrs.Concept;
+import org.openmrs.ConceptDatatype;
 import org.openmrs.ConceptNumeric;
 import org.openmrs.Encounter;
 import org.openmrs.Obs;
 import org.openmrs.Patient;
 import org.openmrs.Person;
 import org.openmrs.api.db.hibernate.HibernateUtil;
-import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
 import org.openmrs.module.fhir2.api.translators.EncounterReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.ObservationBasedOnReferenceTranslator;
@@ -32,19 +33,22 @@ import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import javax.annotation.Nonnull;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static org.apache.commons.lang3.Validate.notNull;
 import static org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants.FHIR_EXT_OBSERVATION_FORM_NAMESPACE_PATH;
 import static org.openmrs.module.fhir2.api.translators.impl.FhirTranslatorUtils.getLastUpdated;
 import static org.openmrs.module.fhir2.api.translators.impl.FhirTranslatorUtils.getVersionId;
-import static org.openmrs.module.fhir2.api.translators.impl.ReferenceHandlingTranslator.createLocationReferenceByUuid;
 
 /**
  * Note, besides mapping the formNamespaceAndPath extension, this overloaded class fixes the obs
@@ -53,11 +57,16 @@ import static org.openmrs.module.fhir2.api.translators.impl.ReferenceHandlingTra
  * when obs.addGroupMember() tries to set the member obs' group, causing Hibernate to throw for
  * attached transient group. Once we resolve the issue with OpenMRS, then the overridden
  * toOpenmrsType(Obs obs, Observation resource, Supplier<Obs> groupedObsFactory) should be removed.
+ * Other improvements - overridden behavior of sending obs.valueText as reference to location if
+ * comment is org.openmrs.location - set obs.comments as notes - handle complex obs
  */
 @Component
 @Primary
 @Setter(AccessLevel.PROTECTED)
 public class BahmniObservationTranslatorImpl implements ObservationTranslator {
+	
+	private static final List<ComplexObsDataTranslator> complexDataTranslators = Arrays.asList(
+	    new AttachmentObsDataTranslator(), new LocationObsDataTranslator());
 	
 	@Autowired
 	private ObservationStatusTranslator observationStatusTranslator;
@@ -105,6 +114,20 @@ public class BahmniObservationTranslatorImpl implements ObservationTranslator {
 		Concept concept = conceptTranslator.toOpenmrsType(resource.getCode());
 		obs.setConcept(concept);
 		observationValueTranslator.toOpenmrsType(obs, resource.getValue());
+		if (isComplexData(concept)) {
+			mapExtensionToOpenmrsData(concept, resource).ifPresent(value -> {
+				obs.setValueText(null);
+				obs.setValueComplex(value);
+			});
+		}
+
+		if (resource.hasNote()) {
+			String notes = resource.getNote().stream()
+					.map(Annotation::getText)
+					.filter(Objects::nonNull)
+					.collect(Collectors.joining(" | "));
+			obs.setComment(notes);
+		}
 
 		Set<Obs> members = new HashSet<>();
 		for (Reference reference : resource.getHasMember()) {
@@ -130,19 +153,7 @@ public class BahmniObservationTranslatorImpl implements ObservationTranslator {
 	@Override
 	public Obs toOpenmrsType(@Nonnull Observation resource) {
 		notNull(resource, "The Observation object should not be null");
-		Obs obs = toOpenmrsType(new Obs(), resource);
-		obs.setFormNamespaceAndPath(mapFormNamespacePathExtension(resource));
-		return obs;
-	}
-	
-	private String mapFormNamespacePathExtension(Observation fhirObservation) {
-		List<Extension> extensions = fhirObservation.getExtensionsByUrl(FHIR_EXT_OBSERVATION_FORM_NAMESPACE_PATH);
-		if (!extensions.isEmpty()) {
-			Extension formNameSpacePathExtn = extensions.get(0);
-			Type formNameSpacePathExtnValue = formNameSpacePathExtn.getValue();
-			return formNameSpacePathExtnValue.primitiveValue();
-		}
-		return null;
+		return toOpenmrsType(new Obs(), resource);
 	}
 	
 	@Override
@@ -168,19 +179,12 @@ public class BahmniObservationTranslatorImpl implements ObservationTranslator {
 
         resource.setCode(conceptTranslator.toFhirResource(obs.getConcept()));
         resource.addCategory(categoryTranslator.toFhirResource(obs.getConcept()));
+		resource.addInterpretation(interpretationTranslator.toFhirResource(obs));
 
-        if (obs.isObsGrouping()) {
-            for (Obs groupObs : obs.getGroupMembers()) {
-                if (!groupObs.getVoided()) {
-                    resource.addHasMember(observationReferenceTranslator.toFhirResource(groupObs));
-                }
-            }
-        }
-
-        resource.setValue(observationValueTranslator.toFhirResource(obs));
-
-        resource.addInterpretation(interpretationTranslator.toFhirResource(obs));
-
+		resource.setValue(observationValueTranslator.toFhirResource(obs));
+		if (isComplexData(obs.getConcept())) {
+			mapComplexDataToFhirExtension(obs).ifPresent(resource::addExtension);
+		}
         if (obs.getValueNumeric() != null) {
             Concept concept = obs.getConcept();
             if (concept instanceof ConceptNumeric) {
@@ -188,10 +192,13 @@ public class BahmniObservationTranslatorImpl implements ObservationTranslator {
             }
         }
 
-        if (obs.getValueText() != null && StringUtils.equals(obs.getComment(), "org.openmrs.Location")) {
-            resource.addExtension(FhirConstants.OPENMRS_FHIR_EXT_OBS_LOCATION_VALUE,
-                    createLocationReferenceByUuid(obs.getValueText()));
-        }
+		if (obs.isObsGrouping()) {
+			for (Obs member : obs.getGroupMembers()) {
+				if (!member.getVoided()) {
+					resource.addHasMember(observationReferenceTranslator.toFhirResource(member));
+				}
+			}
+		}
 
         resource.setIssued(obs.getDateCreated());
         resource.setEffective(datetimeTranslator.toFhirResource(obs));
@@ -204,6 +211,67 @@ public class BahmniObservationTranslatorImpl implements ObservationTranslator {
             Optional.ofNullable(obs.getFormNamespaceAndPath())
                .ifPresent(value -> resource.addExtension(FHIR_EXT_OBSERVATION_FORM_NAMESPACE_PATH, new StringType(value)));
         }
+		if (!StringUtils.isEmpty(obs.getComment())) {
+			resource.addNote().setText(obs.getComment());
+		}
         return resource;
     }
+	
+	private String mapFormNamespacePathExtension(Observation fhirObservation) {
+		List<Extension> extensions = fhirObservation.getExtensionsByUrl(FHIR_EXT_OBSERVATION_FORM_NAMESPACE_PATH);
+		if (!extensions.isEmpty()) {
+			Extension formNameSpacePathExtn = extensions.get(0);
+			Type formNameSpacePathExtnValue = formNameSpacePathExtn.getValue();
+			return formNameSpacePathExtnValue.primitiveValue();
+		}
+		return null;
+	}
+	
+	private Optional<String> mapExtensionToOpenmrsData(Concept concept, Observation observation) {
+		for (ComplexObsDataTranslator complexDataTranslator : complexDataTranslators) {
+			if (complexDataTranslator.supports(concept)) {
+				String complexData = complexDataTranslator.toOpenmrsType(observation);
+				if (complexData != null) {
+					return Optional.of(complexData);
+				}
+			}
+		}
+		return Optional.empty();
+	}
+	
+	/**
+	 * Default OMRS ObservationTranslatorImpl does not handle complex obs. The following also
+	 * overrides openmrs default ObservationTranslatorImpl of supporting location captured as value
+	 * in Obs. > return hasTextValue && StringUtils.equals(obs.getComment(), "org.openmrs.Location")
+	 * ? Optional.of(obs.getValueText()) : Optional.empty(); The above is presumably a temporary
+	 * hack, as it does not work as obs.comments should really capture Obervation.note, and also how
+	 * Bahmni interprets Bahmni does allow storing observation as obs, but it's done through concept
+	 * type = complex, which allows custom datatypes to be stored against observation and also
+	 * leverage support of data type handlers to get/save data. TODO: propose change of
+	 * interpretation implementation or provide a hook for impl to OMRS The following code uses a
+	 * simple strategy (ComplexDataTranslator) below and for now these are internal In future, the
+	 * may allow exposing ComplexDataTranslator and allowing implementations to provide custom
+	 * implementations, without having to completely implement obsValueTranslators and also
+	 * observation translator
+	 */
+	private Optional<Extension> mapComplexDataToFhirExtension(Obs obs) {
+		if (obs.getValueComplex() == null) {
+			return Optional.empty();
+		}
+		
+		for (ComplexObsDataTranslator complexDataTranslator : complexDataTranslators) {
+			if (complexDataTranslator.supports(obs.getConcept())) {
+				Extension result = complexDataTranslator.toFhirResource(obs);
+				if (result != null) {
+					return Optional.of(result);
+				}
+			}
+		}
+		return Optional.empty();
+	}
+	
+	private boolean isComplexData(Concept concept) {
+		return concept.getDatatype().getUuid().equals(ConceptDatatype.COMPLEX_UUID);
+	}
+	
 }

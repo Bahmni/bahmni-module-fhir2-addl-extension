@@ -372,6 +372,7 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
 			existingContent.setContentType(resourceContent.getAttachment().getContentType());
 			existingContent.setContentUrl(resourceContent.getAttachment().getUrl());
 		}
+		//TODO format is removed in R6 spec
 		if (resourceContent.hasFormat()) {
 			existingContent.setContentFormat(resourceContent.getFormat().getCode());
 		}
@@ -387,6 +388,7 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
 			        "Invalid document attachment. Please ensure attachment has valid content-type and url");
 		}
 		FhirDocumentReferenceContent documentReferenceContent = new FhirDocumentReferenceContent();
+		//TODO format is removed in R6 spec
 		if (contentComponent.hasFormat()) {
 			documentReferenceContent.setContentFormat(contentComponent.getFormat().getCode());
 		}

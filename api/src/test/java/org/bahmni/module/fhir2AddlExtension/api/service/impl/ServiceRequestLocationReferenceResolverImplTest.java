@@ -2,6 +2,7 @@ package org.bahmni.module.fhir2AddlExtension.api.service.impl;
 
 import org.bahmni.module.fhir2AddlExtension.api.context.AppContext;
 import org.bahmni.module.fhir2AddlExtension.api.dao.OrderAttributeTypeDao;
+import org.hl7.fhir.r4.model.DiagnosticReport;
 import org.hl7.fhir.r4.model.Reference;
 import org.junit.Assert;
 import org.junit.Before;

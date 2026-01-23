@@ -26,13 +26,13 @@ public class OrderAttributeTypeDaoImpl implements OrderAttributeTypeDao {
 	}
 	
 	@Override
-	@Cacheable(value = "fhir2extensionOrderAttributeType")
+	@Cacheable(value = "fhir2addlextensionOrderAttributeType")
 	public List<OrderAttributeType> getOrderAttributeTypes(boolean includeRetired) {
 		return filterAttributeTypes(orderDao.getAllOrderAttributeTypes(), includeRetired);
 	}
 	
 	@Override
-	@Cacheable(value = "fhir2extensionOrderGroupAttributeType")
+	@Cacheable(value = "fhir2addlextensionOrderGroupAttributeType")
 	public List<OrderGroupAttributeType> getOrderGroupAttributeTypes(boolean includeRetired) {
 		return filterAttributeTypes(orderDao.getAllOrderGroupAttributeTypes(), includeRetired);
 	}

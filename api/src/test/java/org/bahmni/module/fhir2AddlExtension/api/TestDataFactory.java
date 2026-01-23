@@ -2,11 +2,14 @@ package org.bahmni.module.fhir2AddlExtension.api;
 
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.parser.IParser;
+import org.bahmni.module.fhir2AddlExtension.api.domain.DiagnosticReportBundle;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttributeType;
 import org.hl7.fhir.instance.model.api.IBaseResource;
+import org.hl7.fhir.r4.model.Bundle;
 import org.openmrs.Concept;
 import org.openmrs.ConceptName;
 import org.openmrs.Provider;
+import org.springframework.beans.BeanUtils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -71,5 +74,16 @@ public class TestDataFactory {
 			resource = r4ResourceParser.parseResource(reader);
 		}
 		return resource;
+	}
+	
+	public static DiagnosticReportBundle loadDiagnosticReportBundle(String filename) throws IOException {
+		Bundle baseBundle = (Bundle) loadResourceFromFile(filename);
+		DiagnosticReportBundle reportBundle = new DiagnosticReportBundle();
+		BeanUtils.copyProperties(baseBundle, reportBundle);
+		return reportBundle;
+	}
+	
+	public static IBaseResource getResourceFromString(String resourceString) {
+		return r4ResourceParser.parseResource(resourceString);
 	}
 }

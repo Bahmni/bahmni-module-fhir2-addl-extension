@@ -114,6 +114,8 @@
 		DocumentReferenceAttributeType.hbm.xml
         ImagingStudy.hbm.xml
         ImagingStudyNotes.hbm.xml
+		DocumentAttachment.hbm.xml
+		FhirDiagnosticReportExt.hbm.xml
 	</mappingFiles>
 
 	<messages>

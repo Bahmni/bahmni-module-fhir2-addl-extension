@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 public class FhirResourceHandlerTest {
 	
@@ -78,33 +77,27 @@ public class FhirResourceHandlerTest {
 			
 			@Override
 			public Encounter get(@Nonnull String s) {
-				System.out.println("FhirEncounterService.get(). params: " + s);
 				return mockEncounter;
 			}
 			
 			@Override
 			public List<Encounter> get(@Nonnull Collection<String> collection) {
-				System.out.println("FhirEncounterService.get(). collection: "
-				        + collection.stream().collect(Collectors.joining(",")));
 				return Arrays.asList(mockEncounter);
 			}
 			
 			@Override
 			public Encounter create(@Nonnull Encounter encounter) {
-				System.out.println("FhirEncounterService.create(). encounter= " + encounter);
 				return mockEncounter;
 			}
 			
 			@Override
 			public Encounter update(@Nonnull String s, @Nonnull Encounter toUpdate) {
-				System.out.println("FhirEncounterService.update(). encounter: " + toUpdate);
 				return toUpdate;
 			}
 			
 			@Override
 			public Encounter patch(@Nonnull String s, @Nonnull PatchTypeEnum patchTypeEnum, @Nonnull String s1,
 			        RequestDetails requestDetails) {
-				System.out.println("FhirEncounterService.patch()");
 				return null;
 			}
 			
