@@ -8,7 +8,6 @@ import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirDiagnosticRepo
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirDiagnosticReportTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.validators.DiagnosticReportValidator;
 import org.hl7.fhir.r4.model.DiagnosticReport;
-import org.openmrs.Order;
 import org.openmrs.module.fhir2.api.dao.FhirDao;
 import org.openmrs.module.fhir2.api.impl.BaseFhirService;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
