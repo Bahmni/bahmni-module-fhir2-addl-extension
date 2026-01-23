@@ -165,7 +165,7 @@ public class BahmniFhirDiagnosticReportServiceTest {
 		
 		when(bahmniFhirDiagnosticReportDao.findByOrder(specificOrder)).thenReturn(daoResult);
 		when(diagnosticReportTranslator.toFhirResource(daoResult)).thenReturn(translatedResult);
-
+		
 		DiagnosticReport result = diagnosticReportService.findByOrder(specificOrder);
 		
 		Assert.assertNotNull("Should return translated result", result);

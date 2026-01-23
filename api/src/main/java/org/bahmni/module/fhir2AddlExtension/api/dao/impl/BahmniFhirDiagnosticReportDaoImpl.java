@@ -112,7 +112,7 @@ public class BahmniFhirDiagnosticReportDaoImpl extends BaseFhirDao<FhirDiagnosti
 		CriteriaQuery<FhirDiagnosticReportExt> cq = cb.createQuery(FhirDiagnosticReportExt.class);
 		Root<FhirDiagnosticReportExt> root = cq.from(FhirDiagnosticReportExt.class);
 		Join<FhirDiagnosticReportExt, Order> ordersJoin = root.join("orders");
-		cq.select(root).where(cb.equal(ordersJoin.get("orderId"), order.getOrderId()), cb.equal(root.get("retired"), false));
+		cq.select(root).where(cb.equal(ordersJoin.get("orderId"), order.getOrderId()), cb.equal(root.get("voided"), false));
 		FhirDiagnosticReportExt result = currentSession.createQuery(cq).uniqueResult();
 		return result == null ? null : deproxyResult(result);
 	}

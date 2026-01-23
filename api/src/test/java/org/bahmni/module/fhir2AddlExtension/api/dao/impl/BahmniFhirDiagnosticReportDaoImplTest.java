@@ -7,11 +7,10 @@ import org.hibernate.query.Query;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Order;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
@@ -22,11 +21,10 @@ import javax.persistence.criteria.Root;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -61,7 +59,7 @@ public class BahmniFhirDiagnosticReportDaoImplTest {
 	private Path orderIdPath;
 	
 	@Mock
-	private Path retiredPath;
+	private Path voidedPath;
 	
 	@Mock
 	private Query<FhirDiagnosticReportExt> query;
@@ -70,9 +68,9 @@ public class BahmniFhirDiagnosticReportDaoImplTest {
 	private Predicate orderIdPredicate;
 	
 	@Mock
-	private Predicate retiredPredicate;
+	private Predicate voidedPredicate;
 	
-	@InjectMocks
+	@Spy
 	private BahmniFhirDiagnosticReportDaoImpl diagnosticReportDao;
 	
 	private Order order;
@@ -88,7 +86,7 @@ public class BahmniFhirDiagnosticReportDaoImplTest {
 		diagnosticReportExt = new FhirDiagnosticReportExt();
 		diagnosticReportExt.setUuid(DIAGNOSTIC_REPORT_UUID);
 		
-		ReflectionTestUtils.setField(diagnosticReportDao, "sessionFactory", sessionFactory);
+		doReturn(sessionFactory).when(diagnosticReportDao).getSessionFactory();
 	}
 	
 	private void setupJpaCriteriaMocks() {
@@ -98,11 +96,11 @@ public class BahmniFhirDiagnosticReportDaoImplTest {
 		when(criteriaQuery.from(FhirDiagnosticReportExt.class)).thenReturn(root);
 		when(root.join("orders")).thenReturn(ordersJoin);
 		when(ordersJoin.get("orderId")).thenReturn(orderIdPath);
-		when(root.get("retired")).thenReturn(retiredPath);
+		when(root.get("voided")).thenReturn(voidedPath);
 		when(criteriaBuilder.equal(orderIdPath, order.getOrderId())).thenReturn(orderIdPredicate);
-		when(criteriaBuilder.equal(retiredPath, false)).thenReturn(retiredPredicate);
+		when(criteriaBuilder.equal(voidedPath, false)).thenReturn(voidedPredicate);
 		when(criteriaQuery.select(root)).thenReturn(criteriaQuery);
-		when(criteriaQuery.where(orderIdPredicate, retiredPredicate)).thenReturn(criteriaQuery);
+		when(criteriaQuery.where(orderIdPredicate, voidedPredicate)).thenReturn(criteriaQuery);
 		when(session.createQuery(criteriaQuery)).thenReturn(query);
 	}
 	
@@ -155,7 +153,7 @@ public class BahmniFhirDiagnosticReportDaoImplTest {
 		diagnosticReportDao.findByOrder(specificOrder);
 		
 		verify(criteriaBuilder).equal(orderIdPath, specificOrder.getOrderId());
-		verify(criteriaBuilder).equal(retiredPath, false);
+		verify(criteriaBuilder).equal(voidedPath, false);
 	}
 	
 	@Test
@@ -169,13 +167,13 @@ public class BahmniFhirDiagnosticReportDaoImplTest {
 	}
 	
 	@Test
-	public void findByOrder_shouldAddRetiredFalseRestriction() {
+	public void findByOrder_shouldAddVoidedFalseRestriction() {
 		setupJpaCriteriaMocks();
 		when(query.uniqueResult()).thenReturn(diagnosticReportExt);
 		
 		diagnosticReportDao.findByOrder(order);
 		
-		verify(criteriaBuilder).equal(retiredPath, false);
+		verify(criteriaBuilder).equal(voidedPath, false);
 	}
 	
 	@Test
@@ -201,7 +199,7 @@ public class BahmniFhirDiagnosticReportDaoImplTest {
 		when(criteriaQuery.from(FhirDiagnosticReportExt.class)).thenReturn(root);
 		when(root.join("orders")).thenReturn(ordersJoin);
 		when(ordersJoin.get("orderId")).thenReturn(orderIdPath);
-		when(root.get("retired")).thenReturn(retiredPath);
+		when(root.get("voided")).thenReturn(voidedPath);
 		when(criteriaQuery.select(root)).thenReturn(criteriaQuery);
 		when(criteriaQuery.where(any(), any())).thenReturn(criteriaQuery);
 		when(session.createQuery(criteriaQuery)).thenReturn(query);
@@ -210,12 +208,11 @@ public class BahmniFhirDiagnosticReportDaoImplTest {
 		FhirDiagnosticReportExt result = diagnosticReportDao.findByOrder(orderWithNullId);
 		
 		assertNull("Should handle order with null orderId gracefully", result);
-		// Verify the essential behavior - that the method handles null orderId without throwing exception
 		verify(query).uniqueResult();
 	}
 	
 	@Test
-	public void findByOrder_shouldReturnExactDiagnosticReportFromQuery() {
+	public void findByOrder_shouldReturnDeproxiedDiagnosticReportFromQuery() {
 		setupJpaCriteriaMocks();
 		FhirDiagnosticReportExt specificReport = new FhirDiagnosticReportExt();
 		specificReport.setUuid("specific-uuid-456");
@@ -225,7 +222,6 @@ public class BahmniFhirDiagnosticReportDaoImplTest {
 		
 		assertNotNull("Should return diagnostic report", result);
 		assertThat(result.getUuid(), equalTo("specific-uuid-456"));
-		assertEquals("Should return the exact object from query", specificReport, result);
 	}
 	
 	@Test
@@ -242,7 +238,9 @@ public class BahmniFhirDiagnosticReportDaoImplTest {
 			assertNotNull("Should return result for order ID: " + testOrder.getOrderId(), result);
 			
 			org.mockito.Mockito.reset(sessionFactory, session, criteriaBuilder, criteriaQuery, root, ordersJoin,
-			    orderIdPath, retiredPath, query, orderIdPredicate, retiredPredicate);
+			    orderIdPath, voidedPath, query, orderIdPredicate, voidedPredicate);
+			// Re-setup the spy after reset
+			doReturn(sessionFactory).when(diagnosticReportDao).getSessionFactory();
 		}
 	}
 	
