@@ -14,5 +14,4 @@ public interface BahmniFhirDiagnosticReportService extends FhirService<Diagnosti
 	
 	IBundleProvider searchForDiagnosticReports(DiagnosticReportSearchParams diagnosticReportSearchParams);
 	
-	DiagnosticReport findByOrder(@Nonnull Order order);
 }

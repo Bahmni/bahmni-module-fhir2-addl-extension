@@ -81,13 +81,4 @@ public class BahmniFhirDiagnosticReportServiceImpl extends BaseFhirService<Diagn
 		return getTranslator().toFhirResource(getDao().createOrUpdate(openmrsReport));
 	}
 	
-	@Override
-	public DiagnosticReport findByOrder(@Nonnull Order order) {
-		FhirDiagnosticReportExt diagnosticReportExt = diagnosticReportDao.findByOrder(order);
-		if (diagnosticReportExt == null) {
-			return null;
-		}
-		return diagnosticReportTranslator.toFhirResource(diagnosticReportExt);
-	}
-	
 }
