@@ -2,7 +2,6 @@ package org.bahmni.module.fhir2AddlExtension.api.dao;
 
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDiagnosticReportExt;
 import org.bahmni.module.fhir2AddlExtension.api.utils.BahmniPrivilegeConstants;
-import org.openmrs.Order;
 import org.openmrs.annotation.Authorized;
 import org.openmrs.module.fhir2.api.dao.FhirDao;
 import org.openmrs.util.PrivilegeConstants;
@@ -19,7 +18,7 @@ public interface BahmniFhirDiagnosticReportDao extends FhirDao<FhirDiagnosticRep
 	@Authorized(BahmniPrivilegeConstants.DELETE_DIAGNOSTIC_REPORT)
 	FhirDiagnosticReportExt delete(@Nonnull String uuid);
 	
-	@Authorized(PrivilegeConstants.GET_OBS)
-	FhirDiagnosticReportExt findByOrder(@Nonnull Order order);
-
+	@Authorized(BahmniPrivilegeConstants.GET_DIAGNOSTIC_REPORT)
+	FhirDiagnosticReportExt findByOrderUuid(@Nonnull String orderUuid);
+	
 }

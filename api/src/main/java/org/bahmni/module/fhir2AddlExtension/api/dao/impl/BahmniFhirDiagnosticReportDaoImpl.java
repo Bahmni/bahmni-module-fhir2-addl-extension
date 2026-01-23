@@ -106,13 +106,13 @@ public class BahmniFhirDiagnosticReportDaoImpl extends BaseFhirDao<FhirDiagnosti
     }
 	
 	@Override
-	public FhirDiagnosticReportExt findByOrder(@Nonnull Order order) {
+	public FhirDiagnosticReportExt findByOrderUuid(@Nonnull String orderUuid) {
 		Session currentSession = getSessionFactory().getCurrentSession();
 		CriteriaBuilder cb = currentSession.getCriteriaBuilder();
 		CriteriaQuery<FhirDiagnosticReportExt> cq = cb.createQuery(FhirDiagnosticReportExt.class);
 		Root<FhirDiagnosticReportExt> root = cq.from(FhirDiagnosticReportExt.class);
 		Join<FhirDiagnosticReportExt, Order> ordersJoin = root.join("orders");
-		cq.select(root).where(cb.equal(ordersJoin.get("orderId"), order.getOrderId()), cb.equal(root.get("voided"), false));
+		cq.select(root).where(cb.equal(ordersJoin.get("uuid"), orderUuid), cb.equal(root.get("voided"), false));
 		FhirDiagnosticReportExt result = currentSession.createQuery(cq).uniqueResult();
 		return result == null ? null : deproxyResult(result);
 	}
