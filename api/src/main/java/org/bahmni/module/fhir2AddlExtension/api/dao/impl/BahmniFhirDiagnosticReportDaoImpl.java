@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
-@Component
+@Component("bahmniFhirDiagnosticReportDao")
 public class BahmniFhirDiagnosticReportDaoImpl extends BaseFhirDao<FhirDiagnosticReportExt> implements BahmniFhirDiagnosticReportDao {
 	
 	@Override

@@ -71,7 +71,7 @@
             <many-to-many class="org.openmrs.Order" column="order_id"/>
         </set>
 
-        <set name="presentedForms" table="fhir_diagnostic_report_presented_form" cascade="persist,merge" lazy="true">
+        <set name="presentedForms" table="fhir_diagnostic_report_presented_form" cascade="save-update" lazy="true">
             <key column="diagnostic_report_id" />
             <many-to-many class="org.bahmni.module.fhir2AddlExtension.api.model.Attachment" column="document_attachment_id"/>
         </set>
