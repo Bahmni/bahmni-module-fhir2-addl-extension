@@ -62,8 +62,7 @@ public class BahmniFhirDiagnosticReportBundleTranslatorImpl implements BahmniFhi
 		resultEntry.setResource(observation);
 		return resultEntry;
 	}
-
-
+	
 	private String getFullUrlForEntry(Resource resource, String fhirServerBase) {
 		String serverBase = fhirServerBase != null && !fhirServerBase.isEmpty() ? fhirServerBase.concat("/") : "urn:uuid:";
 		return serverBase.concat(resource.getResourceType().name()).concat("/").concat(resource.getId());
