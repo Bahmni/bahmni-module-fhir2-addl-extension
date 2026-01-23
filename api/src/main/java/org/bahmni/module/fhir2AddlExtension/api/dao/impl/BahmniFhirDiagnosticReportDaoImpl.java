@@ -104,7 +104,7 @@ public class BahmniFhirDiagnosticReportDaoImpl extends BaseFhirDao<FhirDiagnosti
         }
 
     }
-
+	
 	@Override
 	public FhirDiagnosticReportExt findByOrder(@Nonnull Order order) {
 		Session currentSession = getSessionFactory().getCurrentSession();
