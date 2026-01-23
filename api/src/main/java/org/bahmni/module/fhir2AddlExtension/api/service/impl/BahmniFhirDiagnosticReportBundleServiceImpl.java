@@ -52,13 +52,19 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 	public static final String BUNDLE_MUST_HAVE_DIAGNOSTIC_REPORT = "A bundle containing Diagnostic Report must be supplied";
 	
 	public static final String REPORT_MUST_HAVE_VALID_PATIENT_REFERENCE = "Diagnostic Report must have valid patient reference";
+	
 	public static final String INVALID_ENCOUNTER_REFERENCE = "Invalid encounter reference for Diagnostic Report";
+	
 	public static final String INVALID_SERVICE_REQUEST_REFERENCE = "Invalid Service Request Reference for Diagnostic Report";
+	
 	public static final String RESULT_OR_PRESENTED_FORM_REQUIRED = "Diagnostic Report can not be created without any result or presented form";
+	
 	public static final String INVALID_RESULT_OBSERVATION_REFERENCE = "Invalid result observation reference in Diagnostic Report bundle.";
+	
 	public static final String INVALID_REFERENCED_OBSERVATION_RESOURCE = "Can not identify referenced observation resource";
+	
 	public static final String INVALID_REFERENCES_TO_PATIENT = "Diagnostic Report has invalid result references to patient";
-
+	
 	private final BahmniFhirDiagnosticReportDao dao;
 	
 	private final BahmniFhirDiagnosticReportBundleTranslator translator;
@@ -106,14 +112,6 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 	}
 	
 	/**
-	 * TODO 1. validate in the bundle, - presence of a diagnostic report - presence of orders (based
-	 * on service request) if present - set of observations in the bundle unless status is draft
-	 * (registered, partial, null) - either a report.encounter reference or a ref to existing
-	 * encounter, in absence of which a lab results encounter will be created 2. order of processing
-	 * - save in order: encounter => observations > reports => attachments 3. Processing
-	 * observations - process child members first or as together with parent - obs encounter and
-	 * order id (if present) set - abstract out saving of attachments
-	 * 
 	 * @param bundle containing diagnostic report and result observations
 	 * @return created bundle containing diagnostic report and result observations
 	 */
@@ -139,7 +137,7 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		//TODO match observation code with order code to identify the right order, as a diagnostic report may submit for multiple order
 		Optional<Map.Entry<Reference, Order>> orderReferenceMap = getServiceRequest(identifyOrders(report.get()));
 		Reference encounterReference = resolveEncounter(report.get(), omrsPatient.get(), orderReferenceMap.map(entry -> entry.getValue()));
-		//since diagnostic report supports submission for multiple orders,
+		// TODO: since diagnostic report supports submission for multiple orders,
 		// we need to pass all the order references and resolve the observation to order relation by looking up the concept
 		// there is a chance that observation.code does not map to order concept (e.g. panel, panel member, or individual test)
 		// and in that case we do not set order reference

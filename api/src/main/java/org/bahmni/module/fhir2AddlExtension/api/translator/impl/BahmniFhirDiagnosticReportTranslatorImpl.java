@@ -51,6 +51,9 @@ public class BahmniFhirDiagnosticReportTranslatorImpl implements BahmniFhirDiagn
                 .forEach(order -> diagnosticReport.addBasedOn(serviceRequestReferenceTranslator.toFhirResource(order)));
         }
 
+        fhirDiagnosticReportExt.getPerformers()
+                .forEach(provider -> diagnosticReport.addPerformer(providerReferenceTranslator.toFhirResource(provider)));
+
         if (fhirDiagnosticReportExt.getPresentedForms() != null) {
             fhirDiagnosticReportExt.getPresentedForms().forEach(pf -> {
                 org.hl7.fhir.r4.model.Attachment attachment = new org.hl7.fhir.r4.model.Attachment();

@@ -24,7 +24,7 @@ import javax.annotation.Nonnull;
 @Component("bahmniFhirDiagnosticReportServiceImpl")
 @Primary
 public class BahmniFhirDiagnosticReportServiceImpl extends BaseFhirService<DiagnosticReport, FhirDiagnosticReportExt> implements BahmniFhirDiagnosticReportService {
-
+	
 	private BahmniFhirDiagnosticReportDao diagnosticReportDao;
 	
 	private DiagnosticReportValidator validator;

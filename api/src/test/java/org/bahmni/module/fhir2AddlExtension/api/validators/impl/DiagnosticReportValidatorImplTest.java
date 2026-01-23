@@ -71,7 +71,6 @@ public class DiagnosticReportValidatorImplTest {
 		diagnosticReport.setPresentedForm(Collections.singletonList(new Attachment()));
 		diagnosticReportValidator.validate(diagnosticReport);
 	}
-
 	
 	@Test
 	public void shouldNotThrowExceptionWhenReferencesHaveRespectiveResources() {

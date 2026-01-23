@@ -5,7 +5,6 @@ import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.AccessLevel;
 import lombok.Setter;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttributeType;
 import org.hibernate.Criteria;
 import org.hibernate.Session;
 import org.hibernate.criterion.Criterion;
@@ -20,9 +19,9 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
-import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Join;
 import javax.persistence.criteria.Root;
 import java.util.Collection;
 import java.util.List;
@@ -51,22 +50,19 @@ public class BahmniFhirServiceRequestDaoImpl extends BahmniBaseFhirDao<Order> im
 		Session currentSession = getSessionFactory().getCurrentSession();
 		CriteriaBuilder cb = currentSession.getCriteriaBuilder();
 		CriteriaQuery<Order> cq = cb.createQuery(Order.class);
-		Root<Order> criteriaRoot = cq.from(Order.class);
-		cq.select(criteriaRoot).where(cb.equal(criteriaRoot.get("uuid"), uuid));
+		Root<Order> root = cq.from(Order.class);
+		Join<Order, OrderType> orderTypeJoin = root.join("orderType");
+		cq.select(root).where(cb.equal(root.get("uuid"), uuid),
+		    cb.notEqual(orderTypeJoin.get("uuid"), OrderType.DRUG_ORDER_TYPE_UUID));
 		Order order = currentSession.createQuery(cq).uniqueResult();
 		return order == null ? null : deproxyResult(order);
-		//		Criteria criteria = super.getSessionFactory().getCurrentSession().createCriteria(Order.class);
-		//		criteria.add(eq("uuid", uuid));
-		//		addCriteriaForDrugOrderFilter(criteria);
-		//		Order result = (Order) criteria.uniqueResult();
-		//		return result == null ? null : deproxyResult(result);
 	}
 	
 	@Override
     public List<Order> get(@Nonnull Collection<String> uuids) {
         Criteria criteria = super.getSessionFactory().getCurrentSession().createCriteria(this.typeToken.getRawType());
         criteria.add(Restrictions.in("uuid", uuids));
-        addCriteriaForDrugOrderFilter(criteria);
+        excludeDrugOrder(criteria);
         handleVoidable(criteria);
 
         List<Order> results = criteria.list();
@@ -88,7 +84,7 @@ public class BahmniFhirServiceRequestDaoImpl extends BahmniBaseFhirDao<Order> im
 	
 	@Override
 	   protected void setupSearchParams(Criteria criteria, SearchParameterMap theParams) {
-	       addCriteriaForDrugOrderFilter(criteria);
+	       excludeDrugOrder(criteria);
 	       theParams.getParameters().forEach(entry -> {
 	           switch (entry.getKey()) {
                 case FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER:
@@ -152,7 +148,7 @@ public class BahmniFhirServiceRequestDaoImpl extends BahmniBaseFhirDao<Order> im
 
     }
 	
-	private void addCriteriaForDrugOrderFilter(Criteria criteria) {
+	private void excludeDrugOrder(Criteria criteria) {
 		if (lacksAlias(criteria, "ot")) {
 			criteria.createAlias("orderType", "ot");
 		}
