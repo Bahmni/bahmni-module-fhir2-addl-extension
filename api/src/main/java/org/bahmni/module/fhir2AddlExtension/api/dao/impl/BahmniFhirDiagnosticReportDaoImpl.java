@@ -14,6 +14,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
+import static org.hibernate.criterion.Restrictions.eq;
+
 @Component("bahmniFhirDiagnosticReportDao")
 public class BahmniFhirDiagnosticReportDaoImpl extends BaseFhirDao<FhirDiagnosticReportExt> implements BahmniFhirDiagnosticReportDao {
 	
@@ -48,9 +50,29 @@ public class BahmniFhirDiagnosticReportDaoImpl extends BaseFhirDao<FhirDiagnosti
                     break;
                 case FhirConstants.COMMON_SEARCH_HANDLER:
                     this.handleCommonSearchParameters(entry.getValue()).ifPresent(criteria::add);
+                    break;
+                case FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER:
+                    entry.getValue().forEach((param) -> {
+                        this.handleBasedOnReference(criteria, (ReferenceAndListParam) param.getParam(), "orders");
+                    });
+                    break;
             }
 
         });
+    }
+	
+	private void handleBasedOnReference(Criteria criteria, ReferenceAndListParam basedOnReference, String associationPath) {
+        if (basedOnReference == null) {
+            return;
+        }
+
+        if (lacksAlias(criteria, associationPath)) {
+            criteria.createAlias(associationPath, "ro");
+        }
+
+        handleAndListParam(basedOnReference, token -> {
+            return Optional.of(eq("ro.uuid", token.getIdPart()));
+        }).ifPresent(criteria::add);
     }
 	
 	private void handleCodedConcept(Criteria criteria, TokenAndListParam code) {

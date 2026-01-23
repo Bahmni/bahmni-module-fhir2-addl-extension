@@ -25,6 +25,7 @@ import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
+import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniDiagnosticReportSearchParams;
 import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirDiagnosticReportService;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.DiagnosticReport;
@@ -32,8 +33,8 @@ import org.hl7.fhir.r4.model.Encounter;
 import org.hl7.fhir.r4.model.IdType;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.Patient;
+import org.hl7.fhir.r4.model.ServiceRequest;
 import org.openmrs.module.fhir2.api.annotations.R4Provider;
-import org.openmrs.module.fhir2.api.search.param.DiagnosticReportSearchParams;
 import org.openmrs.module.fhir2.providers.util.FhirProviderUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -116,6 +117,7 @@ public class BahmniDiagnosticReportFhirR4Provider implements IResourceProvider {
 	        @OptionalParam(name = DiagnosticReport.SP_CODE) TokenAndListParam code,
 	        @OptionalParam(name = DiagnosticReport.SP_RESULT) ReferenceAndListParam result,
 	        @OptionalParam(name = DiagnosticReport.SP_RES_ID) TokenAndListParam id,
+	        @OptionalParam(name = DiagnosticReport.SP_BASED_ON, chainWhitelist = { "" }, targetTypes = ServiceRequest.class) ReferenceAndListParam basedOnReference,
 	        @OptionalParam(name = "_lastUpdated") DateRangeParam lastUpdated, @Sort SortSpec sort, @IncludeParam(allow = {
 	                "DiagnosticReport:" + DiagnosticReport.SP_ENCOUNTER, "DiagnosticReport:" + DiagnosticReport.SP_PATIENT,
 	                "DiagnosticReport:" + DiagnosticReport.SP_RESULT }) HashSet<Include> includes) {
@@ -127,8 +129,8 @@ public class BahmniDiagnosticReportFhirR4Provider implements IResourceProvider {
 			includes = null;
 		}
 		
-		return diagnosticReportService.searchForDiagnosticReports(new DiagnosticReportSearchParams(encounterReference,
-		        patientReference, issueDate, code, result, id, lastUpdated, sort, includes));
+		return diagnosticReportService.searchForDiagnosticReports(new BahmniDiagnosticReportSearchParams(encounterReference,
+		        patientReference, basedOnReference, issueDate, code, result, id, lastUpdated, sort, includes));
 	}
 	
 	@Override
