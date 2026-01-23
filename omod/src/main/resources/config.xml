@@ -56,7 +56,7 @@
 		<description>Allows user to view and search imaging study resources</description>
 	</privilege>
 	<privilege>
-		<name>Create Imaging Study</name>
+		<name>Add Imaging Study</name>
 		<description>Allows user to create new imaging study resources</description>
 	</privilege>
 	<privilege>
@@ -67,6 +67,22 @@
         <name>Delete Imaging Study</name>
         <description>Allows user to delete existing imaging study resources</description>
     </privilege>
+	<privilege>
+		<name>Get Diagnostic Report</name>
+		<description>Allows user to view and search Diagnostic Report resources</description>
+	</privilege>
+	<privilege>
+		<name>Add Diagnostic Report</name>
+		<description>Allows user to create new Diagnostic Report resources</description>
+	</privilege>
+	<privilege>
+		<name>Edit Diagnostic Report</name>
+		<description>Allows user to edit existing Diagnostic Report resources</description>
+	</privilege>
+	<privilege>
+		<name>Delete Diagnostic Report</name>
+		<description>Allows user to delete existing Diagnostic Report resources</description>
+	</privilege>
 
 	<!-- Required Global Properties -->
 	<globalProperty>

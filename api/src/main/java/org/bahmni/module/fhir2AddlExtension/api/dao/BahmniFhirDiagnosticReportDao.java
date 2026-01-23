@@ -1,6 +1,7 @@
 package org.bahmni.module.fhir2AddlExtension.api.dao;
 
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDiagnosticReportExt;
+import org.bahmni.module.fhir2AddlExtension.api.utils.BahmniPrivilegeConstants;
 import org.openmrs.annotation.Authorized;
 import org.openmrs.module.fhir2.api.dao.FhirDao;
 import org.openmrs.util.PrivilegeConstants;
@@ -10,11 +11,11 @@ import javax.annotation.Nonnull;
 public interface BahmniFhirDiagnosticReportDao extends FhirDao<FhirDiagnosticReportExt> {
 	
 	@Override
-	@Authorized(PrivilegeConstants.GET_OBS)
+	@Authorized({ BahmniPrivilegeConstants.GET_DIAGNOSTIC_REPORT, PrivilegeConstants.GET_OBS })
 	FhirDiagnosticReportExt get(@Nonnull String uuid);
 	
 	@Override
-	@Authorized(PrivilegeConstants.DELETE_OBS)
+	@Authorized(BahmniPrivilegeConstants.DELETE_DIAGNOSTIC_REPORT)
 	FhirDiagnosticReportExt delete(@Nonnull String uuid);
 	
 }
