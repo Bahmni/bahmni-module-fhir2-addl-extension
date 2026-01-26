@@ -9,7 +9,7 @@ import org.bahmni.module.fhir2AddlExtension.api.model.FhirDiagnosticReportExt;
 import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirDiagnosticReportBundleService;
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirDiagnosticReportBundleTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirDiagnosticReportTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniServiceRequestReferenceTranslator;
+import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.utils.BahmniFhirUtils;
 import org.bahmni.module.fhir2AddlExtension.api.validators.impl.DiagnosticReportValidatorImpl;
 import org.hl7.fhir.r4.model.DiagnosticReport;
@@ -80,7 +80,7 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 	BahmniFhirDiagnosticReportTranslator diagnosticReportTranslator;
 	
 	@Mock
-	private BahmniServiceRequestReferenceTranslator serviceRequestReferenceTranslator;
+	private BahmniOrderReferenceTranslator serviceRequestReferenceTranslator;
 	
 	@Mock
 	private PatientReferenceTranslator patientReferenceTranslator;
@@ -215,7 +215,7 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 		when(diagnosticReportTranslator.toOpenmrsType(any(DiagnosticReport.class))).thenReturn(mockedReport);
 
 		//copy over and return the encounter resource with changed uuid, to assert observations are created with new encounter
-		org.hl7.fhir.r4.model.Encounter bundledEncounter = BahmniFhirUtils.findResourceOfTypeInBundle(reportBundle, FhirConstants.ENCOUNTER, org.hl7.fhir.r4.model.Encounter.class).get();
+		org.hl7.fhir.r4.model.Encounter bundledEncounter = BahmniFhirUtils.findResourcesOfTypeInBundle(reportBundle, org.hl7.fhir.r4.model.Encounter.class).get(0);
 		org.hl7.fhir.r4.model.Encounter encounterResource = new org.hl7.fhir.r4.model.Encounter();
 		BeanUtils.copyProperties(bundledEncounter, encounterResource);
 		encounterResource.setId("newly-created-encounter-uuid");

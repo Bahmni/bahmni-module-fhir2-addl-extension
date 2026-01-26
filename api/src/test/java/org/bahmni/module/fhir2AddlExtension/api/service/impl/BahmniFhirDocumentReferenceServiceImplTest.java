@@ -6,7 +6,7 @@ import org.bahmni.module.fhir2AddlExtension.api.dao.DocumentReferenceAttributeTy
 import org.bahmni.module.fhir2AddlExtension.api.dao.DocumentReferenceDao;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReference;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttributeType;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniServiceRequestReferenceTranslator;
+import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceExtensionTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceStatusTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceTranslator;
@@ -82,7 +82,7 @@ public class BahmniFhirDocumentReferenceServiceImplTest {
 	private SearchQueryInclude<DocumentReference> searchQueryInclude;
 	
 	@Mock
-	private BahmniServiceRequestReferenceTranslator basedOnReferenceTranslator;
+	private BahmniOrderReferenceTranslator basedOnReferenceTranslator;
 	
 	private DocumentReferenceTranslator translator;
 	

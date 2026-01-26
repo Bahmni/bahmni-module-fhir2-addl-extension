@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirImagingStudy;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirImagingStudyNote;
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirImagingStudyTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniServiceRequestReferenceTranslator;
+import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
 import org.hl7.fhir.r4.model.Annotation;
 import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.Extension;
@@ -47,7 +47,7 @@ public class BahmniFhirImagingStudyTranslatorImpl implements BahmniFhirImagingSt
 	
 	public static final String INVALID_PERFORMER_FOR_IMAGING_STUDY = "Invalid performer for Imaging Study";
 	
-	private final BahmniServiceRequestReferenceTranslator basedOnReferenceTranslator;
+	private final BahmniOrderReferenceTranslator basedOnReferenceTranslator;
 	
 	private final PatientReferenceTranslator patientReferenceTranslator;
 	
@@ -56,7 +56,7 @@ public class BahmniFhirImagingStudyTranslatorImpl implements BahmniFhirImagingSt
 	private final PractitionerReferenceTranslator<Provider> practitionerReferenceTranslator;
 	
 	@Autowired
-	public BahmniFhirImagingStudyTranslatorImpl(BahmniServiceRequestReferenceTranslator basedOnReferenceTranslator,
+	public BahmniFhirImagingStudyTranslatorImpl(BahmniOrderReferenceTranslator basedOnReferenceTranslator,
 	    PatientReferenceTranslator patientReferenceTranslator, LocationReferenceTranslator locationReferenceTranslator,
 	    PractitionerReferenceTranslator<Provider> practitionerReferenceTranslator) {
 		this.basedOnReferenceTranslator = basedOnReferenceTranslator;

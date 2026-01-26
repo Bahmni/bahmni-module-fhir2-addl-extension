@@ -1,20 +1,17 @@
 package org.bahmni.module.fhir2AddlExtension.api.service.impl;
 
-import org.bahmni.module.fhir2AddlExtension.api.TestUtils;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirDiagnosticReportDao;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDiagnosticReportExt;
 import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirDiagnosticReportService;
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirDiagnosticReportTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniServiceRequestReferenceTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.impl.BahmniFhirDiagnosticReportTranslatorImpl;
+import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.validators.impl.DiagnosticReportValidatorImpl;
 import org.hl7.fhir.r4.model.DiagnosticReport;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Encounter;
@@ -27,14 +24,12 @@ import org.openmrs.module.fhir2.api.translators.EncounterReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.ObservationReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
-import org.openmrs.module.fhir2.api.translators.impl.DiagnosticReportTranslatorImpl;
 
 import java.io.IOException;
 
 import static org.bahmni.module.fhir2AddlExtension.api.TestDataFactory.loadResourceFromFile;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -62,7 +57,7 @@ public class BahmniFhirDiagnosticReportServiceTest {
 	private PatientReferenceTranslator patientReferenceTranslator;
 	
 	@Mock
-	private BahmniServiceRequestReferenceTranslator serviceRequestReferenceTranslator;
+	private BahmniOrderReferenceTranslator serviceRequestReferenceTranslator;
 	
 	@Mock
 	private BahmniFhirDiagnosticReportTranslator diagnosticReportTranslator;

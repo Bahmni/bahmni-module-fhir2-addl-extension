@@ -3,25 +3,27 @@ package org.bahmni.module.fhir2AddlExtension.api.utils;
 import org.hl7.fhir.r4.model.Bundle;
 import org.openmrs.module.fhir2.api.util.FhirUtils;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class BahmniFhirUtils {
 	
-	public static <T> Optional<T> findResourceOfTypeInBundle(Bundle bundle, String resourceType, Class<T> type) {
-        return bundle.getEntry().stream()
-                .filter(entry -> entry.getResource().getResourceType().name().equals(resourceType))
-                .findFirst().map(entry -> (T) entry.getResource());
-    }
+	public static <T> List<T> findResourcesOfTypeInBundle(Bundle bundle, Class<T> targetClass) {
+		return bundle.getEntry().stream()
+				.filter(entry -> targetClass.isInstance (entry.getResource()))
+				.map(entry -> targetClass.cast(entry.getResource()))
+				.collect(Collectors.toList());
+	}
 	
-	public static <T> Optional<T> findResourceInBundle(Bundle bundle, String resourceId, Class<T> targetClass) {
+	public static <T> Optional<T> findResourceInBundle(Bundle bundle, String idParam, Class<T> targetClass) {
         return bundle.getEntry().stream()
-                .map(entry -> entry.getResource())
+                .map(Bundle.BundleEntryComponent::getResource)
                 .filter(resource -> {
-                    String idPart = resource.getIdElement().getIdPart();
-                    String extractIdPart = extractId(idPart);
-                    return resourceId.equals(extractIdPart) && targetClass.isInstance(resource);
+					String extractIdPart = extractId(resource.getIdElement().getIdPart());
+                    return idParam.equals(extractIdPart) && targetClass.isInstance(resource);
                 })
-                .map(resource -> targetClass.cast(resource))
+                .map(targetClass::cast)
                 .findFirst();
     }
 	

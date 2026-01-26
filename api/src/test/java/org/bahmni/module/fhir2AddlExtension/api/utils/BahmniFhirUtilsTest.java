@@ -1,12 +1,12 @@
 package org.bahmni.module.fhir2AddlExtension.api.utils;
 
-import org.bahmni.module.fhir2AddlExtension.api.TestDataFactory;
 import org.bahmni.module.fhir2AddlExtension.api.domain.DiagnosticReportBundle;
 import org.hl7.fhir.r4.model.Observation;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
 
 import static org.bahmni.module.fhir2AddlExtension.api.TestDataFactory.loadDiagnosticReportBundle;
@@ -46,5 +46,12 @@ public class BahmniFhirUtilsTest {
 		    "49a86246-4004-42eb-9bdc-f542f93f9228", Observation.class);
 		Assert.assertTrue(observation.isPresent());
 		Assert.assertEquals("1331AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", observation.get().getCode().getCoding().get(0).getCode());
+	}
+	
+	@Test
+	public void shouldFindResourceOfTypeInBundle() throws IOException {
+		DiagnosticReportBundle reportBundle = loadDiagnosticReportBundle("example-diagnostic-report-bundle-with-encounter-reference.json");
+		List<Observation> observations = BahmniFhirUtils.findResourcesOfTypeInBundle(reportBundle, Observation.class);
+		Assert.assertEquals(2, observations.size());
 	}
 }

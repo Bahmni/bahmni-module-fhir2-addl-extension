@@ -2,10 +2,9 @@ package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
 
 import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniServiceRequestReferenceTranslator;
+import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
 import org.hl7.fhir.r4.model.Reference;
 import org.openmrs.DrugOrder;
 import org.openmrs.Order;
@@ -23,7 +22,7 @@ import static org.openmrs.module.fhir2.api.translators.impl.ReferenceHandlingTra
 
 @Slf4j
 @Component
-public class BahmniServiceRequestReferenceTranslatorImpl implements BahmniServiceRequestReferenceTranslator {
+public class BahmniOrderReferenceTranslatorImpl implements BahmniOrderReferenceTranslator {
 	
 	@Getter(value = AccessLevel.PROTECTED)
 	private BahmniFhirServiceRequestDao<Order> serviceRequestDao;
@@ -32,7 +31,7 @@ public class BahmniServiceRequestReferenceTranslatorImpl implements BahmniServic
 	private FhirMedicationRequestDao medicationRequestDao;
 	
 	@Autowired
-	public BahmniServiceRequestReferenceTranslatorImpl(BahmniFhirServiceRequestDao<Order> serviceRequestDao,
+	public BahmniOrderReferenceTranslatorImpl(BahmniFhirServiceRequestDao<Order> serviceRequestDao,
 	    FhirMedicationRequestDao medicationRequestDao) {
 		this.serviceRequestDao = serviceRequestDao;
 		this.medicationRequestDao = medicationRequestDao;
@@ -43,19 +42,15 @@ public class BahmniServiceRequestReferenceTranslatorImpl implements BahmniServic
 		if (order == null) {
 			return null;
 		}
-		return createServiceRequestReference(order);
+		return createRequestReference(order);
 	}
 	
-	private Reference createServiceRequestReference(Order order) {
-		if (order instanceof Order) {
-			return new Reference().setReference(FhirConstants.SERVICE_REQUEST + "/" + order.getUuid()).setType(
-			    FhirConstants.SERVICE_REQUEST);
-		} else if (order instanceof DrugOrder) {
+	private Reference createRequestReference(Order order) {
+		if (order instanceof DrugOrder) {
 			return ReferenceHandlingTranslator.createDrugOrderReference((DrugOrder) order);
-		} else {
-			log.warn("Could not determine order type for order {}", order);
-			return null;
 		}
+		return new Reference().setReference(FhirConstants.SERVICE_REQUEST + "/" + order.getUuid()).setType(
+		    FhirConstants.SERVICE_REQUEST);
 	}
 	
 	@Override

@@ -1,6 +1,7 @@
 package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
 
 import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
 import org.hl7.fhir.r4.model.Attachment;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Observation;
@@ -22,7 +23,6 @@ import org.openmrs.Obs;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
 import org.openmrs.module.fhir2.api.translators.EncounterReferenceTranslator;
-import org.openmrs.module.fhir2.api.translators.ObservationBasedOnReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.ObservationCategoryTranslator;
 import org.openmrs.module.fhir2.api.translators.ObservationEffectiveDatetimeTranslator;
 import org.openmrs.module.fhir2.api.translators.ObservationInterpretationTranslator;
@@ -68,7 +68,7 @@ public class BahmniObservationTranslatorImplTest {
 	private ObservationReferenceRangeTranslator referenceRangeTranslator;
 	
 	@Mock
-	private ObservationBasedOnReferenceTranslator basedOnReferenceTranslator;
+	private BahmniOrderReferenceTranslator basedOnReferenceTranslator;
 	
 	@Mock
 	private ObservationEffectiveDatetimeTranslator datetimeTranslator;
