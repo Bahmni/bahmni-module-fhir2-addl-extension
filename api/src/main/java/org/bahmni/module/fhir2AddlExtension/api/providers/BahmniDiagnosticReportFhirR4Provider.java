@@ -67,16 +67,8 @@ public class BahmniDiagnosticReportFhirR4Provider implements IResourceProvider {
 	
 	@Create
 	public MethodOutcome createDiagnosticReport(@ResourceParam DiagnosticReport diagnosticReport) {
-		boolean legacy = isLegacy(diagnosticReport);
 		DiagnosticReport resource = diagnosticReportService.create(diagnosticReport);
 		return FhirProviderUtils.buildCreate(resource);
-	}
-	
-	private boolean isLegacy(DiagnosticReport diagnosticReport) {
-		//TODO
-		//use diagnostic.report.meta.profile or use diagnostic.report.meta.tag to check whether this is
-		//legacy DiagnosticReport or not
-		return false;
 	}
 	
 	@Update

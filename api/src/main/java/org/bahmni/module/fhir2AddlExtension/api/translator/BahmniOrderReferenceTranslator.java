@@ -11,7 +11,7 @@ import javax.annotation.Nonnull;
  * of https://github.com/openmrs/openmrs-module-fhir2/pull/583/files and upgrade to fhir2 module
  * where the above PR is reflected
  */
-public interface BahmniServiceRequestReferenceTranslator extends OpenmrsFhirTranslator<Order, Reference> {
+public interface BahmniOrderReferenceTranslator extends OpenmrsFhirTranslator<Order, Reference> {
 	
 	/**
 	 * Maps an {@link Order} to an {@link org.hl7.fhir.r4.model.Reference}

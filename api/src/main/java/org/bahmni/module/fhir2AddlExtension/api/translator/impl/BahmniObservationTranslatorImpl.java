@@ -2,6 +2,7 @@ package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
 
 import lombok.AccessLevel;
 import lombok.Setter;
+import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.ComplexObsDataTranslator;
 import org.hibernate.proxy.HibernateProxy;
 import org.hl7.fhir.r4.model.Annotation;
@@ -20,7 +21,6 @@ import org.openmrs.Person;
 import org.openmrs.api.db.hibernate.HibernateUtil;
 import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
 import org.openmrs.module.fhir2.api.translators.EncounterReferenceTranslator;
-import org.openmrs.module.fhir2.api.translators.ObservationBasedOnReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.ObservationCategoryTranslator;
 import org.openmrs.module.fhir2.api.translators.ObservationEffectiveDatetimeTranslator;
 import org.openmrs.module.fhir2.api.translators.ObservationInterpretationTranslator;
@@ -96,7 +96,7 @@ public class BahmniObservationTranslatorImpl implements ObservationTranslator {
 	private ObservationReferenceRangeTranslator referenceRangeTranslator;
 	
 	@Autowired
-	private ObservationBasedOnReferenceTranslator basedOnReferenceTranslator;
+	private BahmniOrderReferenceTranslator basedOnReferenceTranslator;
 	
 	@Autowired
 	private ObservationEffectiveDatetimeTranslator datetimeTranslator;

@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2AddlExtension.api.model.Attachment;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDiagnosticReportExt;
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirDiagnosticReportTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniServiceRequestReferenceTranslator;
+import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
 import org.hl7.fhir.r4.model.DiagnosticReport;
 import org.openmrs.Order;
 import org.openmrs.Provider;
@@ -29,13 +29,13 @@ public class BahmniFhirDiagnosticReportTranslatorImpl implements BahmniFhirDiagn
 	//using openmrs fhir diagnostic report translator to delegate calls.
 	private DiagnosticReportTranslator diagnosticReportTranslator;
 	
-	private BahmniServiceRequestReferenceTranslator serviceRequestReferenceTranslator;
+	private BahmniOrderReferenceTranslator serviceRequestReferenceTranslator;
 	
 	private PractitionerReferenceTranslator<Provider> providerReferenceTranslator;
 	
 	@Autowired
 	public BahmniFhirDiagnosticReportTranslatorImpl(DiagnosticReportTranslator diagnosticReportTranslator,
-	    BahmniServiceRequestReferenceTranslator serviceRequestReferenceTranslator,
+	    BahmniOrderReferenceTranslator serviceRequestReferenceTranslator,
 	    PractitionerReferenceTranslator<Provider> providerReferenceTranslator) {
 		this.diagnosticReportTranslator = diagnosticReportTranslator;
 		this.serviceRequestReferenceTranslator = serviceRequestReferenceTranslator;

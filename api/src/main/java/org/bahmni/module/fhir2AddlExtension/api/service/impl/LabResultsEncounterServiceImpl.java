@@ -89,12 +89,13 @@ public class LabResultsEncounterServiceImpl implements LabResultsEncounterServic
 			throw new InvalidRequestException(UNABLE_TO_PROCESS_DIAGNOSTIC_REPORT);
 		}
 		
-		org.openmrs.Encounter encounter = encounterService.saveEncounter(newInstance(visit, encounterType, location));
+		org.openmrs.Encounter encounter = encounterService
+		        .saveEncounter(newEncounterInstance(visit, encounterType, location));
 		return new Reference().setReference(FhirConstants.ENCOUNTER + "/" + encounter.getUuid()).setType(
 		    FhirConstants.ENCOUNTER);
 	}
 	
-	private Encounter newInstance(Visit visit, EncounterType encounterType, Location location) {
+	private Encounter newEncounterInstance(Visit visit, EncounterType encounterType, Location location) {
         User authenticatedUser = Context.getAuthenticatedUser();
 
         Optional<Provider> provider = providerService.getProvidersByPerson(authenticatedUser.getPerson(), false).stream().findFirst();

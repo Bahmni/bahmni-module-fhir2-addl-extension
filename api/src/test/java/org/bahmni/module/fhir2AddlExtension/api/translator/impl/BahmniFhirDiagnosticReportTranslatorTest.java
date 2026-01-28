@@ -3,7 +3,7 @@ package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
 import org.bahmni.module.fhir2AddlExtension.api.TestUtils;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDiagnosticReportExt;
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirDiagnosticReportTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniServiceRequestReferenceTranslator;
+import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
 import org.hl7.fhir.r4.model.DiagnosticReport;
 import org.junit.Before;
 import org.junit.Test;
@@ -59,7 +59,7 @@ public class BahmniFhirDiagnosticReportTranslatorTest {
 	private PatientReferenceTranslator patientReferenceTranslator;
 	
 	@Mock
-	private BahmniServiceRequestReferenceTranslator serviceRequestReferenceTranslator;
+	private BahmniOrderReferenceTranslator serviceRequestReferenceTranslator;
 	
 	@Mock
 	private PractitionerReferenceTranslator<Provider> providerReferenceTranslator;

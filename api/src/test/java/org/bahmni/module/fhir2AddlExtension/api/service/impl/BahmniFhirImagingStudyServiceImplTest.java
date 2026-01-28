@@ -14,7 +14,7 @@ import org.bahmni.module.fhir2AddlExtension.api.model.FhirImagingStudy;
 import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniImagingStudySearchParams;
 import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirImagingStudyService;
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirImagingStudyTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniServiceRequestReferenceTranslator;
+import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.impl.BahmniFhirImagingStudyTranslatorImpl;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Extension;
@@ -81,7 +81,7 @@ public class BahmniFhirImagingStudyServiceImplTest {
 	private BahmniFhirImagingStudyDao imagingStudyDao;
 	
 	@Mock
-	private BahmniServiceRequestReferenceTranslator basedOnReferenceTranslator;
+	private BahmniOrderReferenceTranslator basedOnReferenceTranslator;
 	
 	@Mock
 	private PatientReferenceTranslator patientReferenceTranslator;
