@@ -1,6 +1,10 @@
 package org.bahmni.module.fhir2AddlExtension.api.service.impl;
 
+import ca.uhn.fhir.context.FhirContext;
+import ca.uhn.fhir.rest.api.PatchTypeEnum;
+import ca.uhn.fhir.rest.api.server.RequestDetails;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
+import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirDiagnosticReportDao;
 import org.bahmni.module.fhir2AddlExtension.api.domain.DiagnosticReportBundle;
 import org.bahmni.module.fhir2AddlExtension.api.helper.ConsultationBundleEntriesHelper;
@@ -11,6 +15,7 @@ import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirDiagnosticR
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirDiagnosticReportTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.utils.BahmniFhirUtils;
+import org.bahmni.module.fhir2AddlExtension.api.validators.DiagnosticReportBundlePatchValidator;
 import org.bahmni.module.fhir2AddlExtension.api.validators.DiagnosticReportValidator;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.DiagnosticReport;
@@ -79,6 +84,8 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 	
 	private final DiagnosticReportValidator diagnosticReportValidator;
 	
+	private final DiagnosticReportBundlePatchValidator diagnosticReportBundlePatchValidator;
+	
 	private final BahmniFhirDiagnosticReportTranslator diagnosticReportTranslator;
 	
 	private final BahmniOrderReferenceTranslator serviceRequestReferenceTranslator;
@@ -98,6 +105,7 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 	    SearchQueryInclude<DiagnosticReport> searchQueryInclude,
 	    SearchQuery<FhirDiagnosticReportExt, DiagnosticReportBundle, BahmniFhirDiagnosticReportDao, BahmniFhirDiagnosticReportBundleTranslator, SearchQueryInclude<DiagnosticReportBundle>> searchQuery,
 	    DiagnosticReportValidator diagnosticReportValidator,
+	    DiagnosticReportBundlePatchValidator diagnosticReportBundlePatchValidator,
 	    BahmniFhirDiagnosticReportTranslator diagnosticReportTranslator,
 	    BahmniOrderReferenceTranslator serviceRequestReferenceTranslator,
 	    PatientReferenceTranslator patientReferenceTranslator, FhirObservationService fhirObservationService,
@@ -107,6 +115,7 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		this.searchQueryInclude = searchQueryInclude;
 		this.searchQuery = searchQuery;
 		this.diagnosticReportValidator = diagnosticReportValidator;
+		this.diagnosticReportBundlePatchValidator = diagnosticReportBundlePatchValidator;
 		this.diagnosticReportTranslator = diagnosticReportTranslator;
 		this.serviceRequestReferenceTranslator = serviceRequestReferenceTranslator;
 		this.patientReferenceTranslator = patientReferenceTranslator;
@@ -344,6 +353,140 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		if (!sameRef) {
 			log.error(INVALID_REFERENCES_TO_PATIENT);
 			throw new InvalidRequestException(INVALID_REFERENCES_TO_PATIENT);
+		}
+	}
+	
+	/**
+	 * Patches a DiagnosticReportBundle
+	 * 
+	 * @param uuid the UUID of the bundle to patch
+	 * @param patchType the type of patch (only JSON_PATCH supported)
+	 * @param body the JSON patch body
+	 * @param requestDetails the request details
+	 * @return the patched DiagnosticReportBundle
+	 */
+	@Override
+	public DiagnosticReportBundle patch(@Nonnull String uuid, @Nonnull PatchTypeEnum patchType, 
+	                                     @Nonnull String body, RequestDetails requestDetails) {
+		// Only JSON Patch is supported
+		if (patchType != PatchTypeEnum.JSON_PATCH) {
+			throw new InvalidRequestException("Only JSON Patch is supported for DiagnosticReportBundle");
+		}
+		
+		// Step 1: Retrieve existing bundle
+		DiagnosticReportBundle existingBundle = get(uuid);
+		if (existingBundle == null) {
+			throw new ResourceNotFoundException("DiagnosticReportBundle with UUID " + uuid + " not found");
+		}
+		
+		DiagnosticReport existingReport = getReportFromBundle(existingBundle);
+		
+		// Step 2: Validate current state (not in terminal state)
+		diagnosticReportBundlePatchValidator.validateNotInTerminalState(existingReport);
+		
+		// Step 3: Apply JSON Patch to the bundle
+		DiagnosticReportBundle patchedBundle = applyJsonPatchToBundle(existingBundle, body, requestDetails);
+		
+		// Step 4: Extract patched report from bundle
+		DiagnosticReport patchedReport = getReportFromBundle(patchedBundle);
+		
+		// Step 5: Validate patch changes (immutability rules)
+		diagnosticReportBundlePatchValidator.validatePatchChanges(existingReport, patchedReport);
+		
+		// Step 6: Identify basedOn orders
+		List<Order> basedOnOrders = identifyOrders(patchedReport);
+		
+		// Step 7: Identify and handle new observations
+		List<Reference> newResultRefs = identifyNewResultReferences(existingReport, patchedReport);
+		
+		if (!newResultRefs.isEmpty()) {
+			Function<String, Optional<Observation>> obsLocator = 
+				referenceId -> BahmniFhirUtils.findResourceInBundle(patchedBundle, referenceId, Observation.class);
+			
+			// Validate new observations
+			validateNewResults(patchedReport, newResultRefs, obsLocator);
+			
+			// Step 8: Create new observations
+			Map<String, Reference> newObsReferenceMap = createResultObservations(
+				patchedReport,
+				patchedReport.getEncounter(), // Encounter is immutable
+				obsLocator,
+				basedOnOrders
+			);
+			
+			// Step 9: Update report with actual observation references
+			updateReportResultReferences(patchedReport, newObsReferenceMap);
+		}
+		
+		// Step 10: Validate and save updated report
+		diagnosticReportValidator.validate(patchedReport);
+		FhirDiagnosticReportExt diagnosticReportExt = diagnosticReportTranslator.toOpenmrsType(patchedReport);
+		
+		return getTranslator().toFhirResource(getDao().createOrUpdate(diagnosticReportExt));
+	}
+	
+	/**
+	 * Applies JSON Patch to a bundle using openmrs fhir2 JsonPatchUtils
+	 */
+	private DiagnosticReportBundle applyJsonPatchToBundle(DiagnosticReportBundle existingBundle, String patchBody,
+	        RequestDetails requestDetails) {
+		try {
+			FhirContext ctx = requestDetails.getFhirContext();
+			// Use openmrs fhir2 JsonPatchUtils static method
+			return (DiagnosticReportBundle) org.openmrs.module.fhir2.api.util.JsonPatchUtils.applyJsonPatch(ctx,
+			    existingBundle, patchBody);
+		}
+		catch (Exception e) {
+			log.error("Error applying JSON patch to DiagnosticReportBundle", e);
+			throw new InvalidRequestException("Invalid JSON patch: " + e.getMessage(), e);
+		}
+	}
+	
+	/**
+	 * Identifies new result references that were added in the patch
+	 */
+	private List<Reference> identifyNewResultReferences(DiagnosticReport original, DiagnosticReport patched) {
+		java.util.Set<String> originalRefs = original.getResult().stream()
+			.map(Reference::getReference)
+			.filter(ref -> ref != null)
+			.collect(Collectors.toSet());
+		
+		return patched.getResult().stream()
+			.filter(ref -> ref.getReference() != null && !originalRefs.contains(ref.getReference()))
+			.collect(Collectors.toList());
+	}
+	
+	/**
+	 * Validates new result observations added via patch
+	 */
+	private void validateNewResults(DiagnosticReport patchedReport, List<Reference> newResultRefs,
+	        Function<String, Optional<Observation>> obsLocator) {
+		for (Reference newRef : newResultRefs) {
+			Optional<String> refId = BahmniFhirUtils.referenceToId(newRef.getReference());
+			if (!refId.isPresent()) {
+				throw new InvalidRequestException("Invalid result reference: " + newRef.getReference());
+			}
+			
+			Observation obs = obsLocator.apply(refId.get()).orElse(null);
+			if (obs == null) {
+				throw new InvalidRequestException("New result observation not found in bundle: " + refId.get());
+			}
+			
+			// Validate patient reference matches
+			validatePatientReference(patchedReport.getSubject(), obs);
+		}
+	}
+	
+	/**
+	 * Updates report references after creating observations
+	 */
+	private void updateReportResultReferences(DiagnosticReport report, Map<String, Reference> newObsReferenceMap) {
+		for (Reference resultRef : report.getResult()) {
+			Optional<String> refId = BahmniFhirUtils.referenceToId(resultRef.getReference());
+			if (refId.isPresent() && newObsReferenceMap.containsKey(refId.get())) {
+				Reference savedRef = newObsReferenceMap.get(refId.get());
+				resultRef.setReference(savedRef.getReference());
+			}
 		}
 	}
 	

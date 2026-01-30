@@ -1,6 +1,10 @@
 package org.bahmni.module.fhir2AddlExtension.api.service.impl;
 
+import ca.uhn.fhir.context.FhirContext;
+import ca.uhn.fhir.rest.api.PatchTypeEnum;
+import ca.uhn.fhir.rest.api.server.RequestDetails;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
+import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import org.bahmni.module.fhir2AddlExtension.api.context.AppContext;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirDiagnosticReportDao;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
@@ -11,9 +15,12 @@ import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirDiagnosticR
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirDiagnosticReportTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.utils.BahmniFhirUtils;
+import org.bahmni.module.fhir2AddlExtension.api.validators.DiagnosticReportBundlePatchValidator;
 import org.bahmni.module.fhir2AddlExtension.api.validators.impl.DiagnosticReportValidatorImpl;
+import org.hl7.fhir.r4.model.Attachment;
 import org.hl7.fhir.r4.model.DiagnosticReport;
 import org.hl7.fhir.r4.model.Observation;
+import org.hl7.fhir.r4.model.Parameters;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -40,10 +47,17 @@ import org.openmrs.module.fhir2.api.FhirObservationService;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
 import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
+import org.openmrs.module.fhir2.api.util.JsonPatchUtils;
 import org.springframework.beans.BeanUtils;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.Scanner;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.bahmni.module.fhir2AddlExtension.api.TestDataFactory.loadDiagnosticReportBundle;
 import static org.junit.Assert.*;
@@ -106,6 +120,9 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 	@Mock
 	private EncounterService encounterService;
 	
+	@Mock
+	private DiagnosticReportBundlePatchValidator diagnosticReportBundlePatchValidator;
+	
 	@Before
 	public void setUp() throws Exception {
 		//when(userContext.getAuthenticatedUser()).thenReturn(user);
@@ -118,9 +135,9 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 		
 		diagnosticReportBundleService = new BahmniFhirDiagnosticReportBundleServiceImpl(bahmniFhirDiagnosticReportDao,
 		        bahmniFhirDiagnosticReportBundleTranslator, searchQueryInclude, searchQuery,
-		        new DiagnosticReportValidatorImpl(serviceRequestDao), diagnosticReportTranslator,
-		        serviceRequestReferenceTranslator, patientReferenceTranslator, observationService, fhirEncounterService,
-		        labEncounterService);
+		        new DiagnosticReportValidatorImpl(serviceRequestDao), diagnosticReportBundlePatchValidator,
+		        diagnosticReportTranslator, serviceRequestReferenceTranslator, patientReferenceTranslator,
+		        observationService, fhirEncounterService, labEncounterService);
 	}
 	
 	@Test
@@ -268,6 +285,301 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 		when(fhirEncounterService.get("a60c4455-b27a-4704-a6ea-3354081d269c")).thenReturn(exampleFhirEncounterResource(encounter.getUuid()));
 		diagnosticReportBundleService.create(reportBundle);
 		verify(bahmniFhirDiagnosticReportDao, times(1)).createOrUpdate(any(FhirDiagnosticReportExt.class));
+	}
+	
+	@Test
+	public void shouldTestPatchForBundle() throws IOException {
+		// Load patch
+		//		DiagnosticReportBundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
+		//		List<DiagnosticReport> reports = BahmniFhirUtils.findResourcesOfTypeInBundle(existingBundle, DiagnosticReport.class);
+		//		System.out.println(reports.get(0).hasPresentedForm());
+		//		if (!reports.get(0).hasPresentedForm()) {
+		//			reports.get(0).setPresentedForm(new ArrayList<>());
+		//		}
+		////		String patchBody = loadPatchJson("patch-diagnostic-bundle-add-observation.json");
+		//		String patchBody = loadPatchJson("patch-diagnostic-bundle-add-attachment.json");
+		//		//patch-diagnostic-bundle-add-attachment-fhir-path
+		//		RequestDetails requestDetails = mock(RequestDetails.class);
+		//		when(requestDetails.getFhirContext()).thenReturn(ca.uhn.fhir.context.FhirContext.forR4());
+		//
+		//
+		//		FhirContext ctx = requestDetails.getFhirContext();
+		//		// Use openmrs fhir2 JsonPatchUtils static method
+		//		DiagnosticReportBundle patchedBundle = JsonPatchUtils.applyJsonPatch(ctx, existingBundle, patchBody);
+		//		System.out.println(existingBundle.getId());
+		//		System.out.println(patchedBundle.getId());
+		
+		DiagnosticReportBundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
+		String patchBody = loadPatchJson("patch-diagnostic-bundle-add-attachment-fhir-path.json");
+		FhirContext ctx = ca.uhn.fhir.context.FhirContext.forR4();
+		Parameters patch = ctx.newJsonParser().parseResource(Parameters.class, patchBody);
+		
+		List<DiagnosticReport> reports = BahmniFhirUtils.findResourcesOfTypeInBundle(existingBundle, DiagnosticReport.class);
+		
+		for (Parameters.ParametersParameterComponent op : patch.getParameter()) {
+			if ("operation".equals(op.getName())) {
+				
+				// Extract values (simplified for this example)
+				String type = op.fhirType();
+				
+				if ("add".equals(type)) {
+					// 2. Create the attachment using HAPI POJOs
+					Attachment newForm = new Attachment();
+					newForm.setContentType("application/pdf");
+					newForm.setUrl("https://example.org/report.pdf");
+					
+					// 3. This ALWAYS works even if the list was empty!
+					reports.get(0).addPresentedForm(newForm);
+				}
+			}
+		}
+		//FhirPatch patcher = new FhirPatch(ctx);
+		
+		// 3. Apply the patch to your existing resource
+		// Note: This modifies 'existingReport' in-place
+		//patcher.apply(existingReport, patchResource);
+	}
+	
+	// ========== ⌄ DIAGNOSTIC REPORT PATCH TESTS ⌄ ==========
+	
+	@Test
+	public void shouldSuccessfullyPatchDiagnosticReportBundleWithNewObservation() throws IOException {
+		// Setup: Existing bundle
+		DiagnosticReportBundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
+		String bundleUuid = "report-bundle-123";
+		FhirDiagnosticReportExt existingReport = new FhirDiagnosticReportExt();
+		existingReport.setUuid(bundleUuid);
+		when(bahmniFhirDiagnosticReportDao.get(bundleUuid)).thenReturn(existingReport);
+		
+		// Load patch
+		String patchBody = loadPatchJson("patch-diagnostic-bundle-add-observation.json");
+		
+		// Mock get to return existing bundle
+		when(bahmniFhirDiagnosticReportBundleTranslator.toFhirResource(any(FhirDiagnosticReportExt.class)))
+				.thenReturn(existingBundle);
+		
+		// Mock dependencies
+		org.openmrs.Patient patient = examplePatient("patient-uuid-1");
+		Encounter encounter = exampleEncounter("encounter-uuid-1", patient);
+		Order order = exampleOrder("order-uuid-1", patient, encounter);
+		
+		when(serviceRequestReferenceTranslator.toOpenmrsType(
+				argThat(ref -> ref.getReference().equals("ServiceRequest/order-uuid-1"))
+		)).thenReturn(order);
+		
+		// Mock observation creation
+		AtomicReference<Integer> counter = new AtomicReference<>(0);
+		when(observationService.create(any(Observation.class))).thenAnswer(invocation -> {
+			Observation obs = new Observation();
+			counter.set(counter.get() + 1);
+			obs.setId("new-obs-uuid-" + counter);
+			return obs;
+		});
+		
+		FhirDiagnosticReportExt updatedReport = new FhirDiagnosticReportExt();
+		updatedReport.setUuid(bundleUuid);
+		when(bahmniFhirDiagnosticReportDao.createOrUpdate(any(FhirDiagnosticReportExt.class))).thenReturn(updatedReport);
+		when(diagnosticReportTranslator.toOpenmrsType(any(DiagnosticReport.class))).thenReturn(updatedReport);
+		
+		RequestDetails requestDetails = mock(RequestDetails.class);
+		when(requestDetails.getFhirContext()).thenReturn(ca.uhn.fhir.context.FhirContext.forR4());
+		
+		// Execute patch
+		DiagnosticReportBundle result = diagnosticReportBundleService.patch(bundleUuid, PatchTypeEnum.JSON_PATCH, 
+				patchBody, requestDetails);
+		
+		// Verify
+		assertNotNull(result);
+		verify(diagnosticReportBundlePatchValidator, times(1)).validateNotInTerminalState(any(DiagnosticReport.class));
+		verify(diagnosticReportBundlePatchValidator, times(1)).validatePatchChanges(any(DiagnosticReport.class), any(DiagnosticReport.class));
+		verify(observationService, times(1)).create(any(Observation.class));
+		verify(bahmniFhirDiagnosticReportDao, times(1)).createOrUpdate(any(FhirDiagnosticReportExt.class));
+	}
+	
+	@Test
+	public void shouldSuccessfullyPatchDiagnosticReportBundleWithPresentedForm() throws IOException {
+		// Setup: Existing bundle
+		DiagnosticReportBundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
+		String bundleUuid = "report-bundle-123";
+		
+		// Load patch
+		String patchBody = loadPatchJson("patch-diagnostic-bundle-add-attachment.json");
+		FhirDiagnosticReportExt existingReport = new FhirDiagnosticReportExt();
+		existingReport.setUuid(bundleUuid);
+		when(bahmniFhirDiagnosticReportDao.get(bundleUuid)).thenReturn(existingReport);
+		// Mock get to return existing bundle
+		when(bahmniFhirDiagnosticReportBundleTranslator.toFhirResource(any(FhirDiagnosticReportExt.class)))
+				.thenReturn(existingBundle);
+		
+		// Mock dependencies
+		org.openmrs.Patient patient = examplePatient("patient-uuid-1");
+		Encounter encounter = exampleEncounter("encounter-uuid-1", patient);
+		Order order = exampleOrder("order-uuid-1", patient, encounter);
+		
+		when(serviceRequestReferenceTranslator.toOpenmrsType(
+				argThat(ref -> ref.getReference().equals("ServiceRequest/order-uuid-1"))
+		)).thenReturn(order);
+		
+		FhirDiagnosticReportExt updatedReport = new FhirDiagnosticReportExt();
+		updatedReport.setUuid(bundleUuid);
+		List<FhirDiagnosticReportExt> capturedArgs = new ArrayList<>();
+		when(bahmniFhirDiagnosticReportDao.createOrUpdate(any(FhirDiagnosticReportExt.class))).
+				thenAnswer(invocationOnMock -> {
+					capturedArgs.add(invocationOnMock.getArgument(0));
+					return updatedReport;
+				});
+
+
+		when(diagnosticReportTranslator.toOpenmrsType(any(DiagnosticReport.class))).thenReturn(updatedReport);
+		
+		RequestDetails requestDetails = mock(RequestDetails.class);
+		when(requestDetails.getFhirContext()).thenReturn(ca.uhn.fhir.context.FhirContext.forR4());
+		
+		// Execute patch
+		DiagnosticReportBundle result = diagnosticReportBundleService.patch(bundleUuid, PatchTypeEnum.JSON_PATCH, 
+				patchBody, requestDetails);
+		
+		// Verify
+		assertNotNull(result);
+		verify(diagnosticReportBundlePatchValidator, times(1)).validateNotInTerminalState(any(DiagnosticReport.class));
+		verify(diagnosticReportBundlePatchValidator, times(1)).validatePatchChanges(any(DiagnosticReport.class), any(DiagnosticReport.class));
+		// No new observations should be created
+		verify(observationService, never()).create(any(Observation.class));
+		verify(bahmniFhirDiagnosticReportDao, times(1)).createOrUpdate(any(FhirDiagnosticReportExt.class));
+		Assert.assertEquals(1, capturedArgs.size());
+	}
+	
+	@Test
+	public void shouldRejectPatchWithInvalidPatientChange() throws IOException {
+		// Setup: Existing bundle
+		DiagnosticReportBundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
+		String bundleUuid = "report-bundle-123";
+		
+		// Load patch that attempts to change patient
+		String patchBody = loadPatchJson("patch-diagnostic-bundle-invalid-patient-change.json");
+		
+		// Mock get to return existing bundle
+		when(bahmniFhirDiagnosticReportBundleTranslator.toFhirResource(any(FhirDiagnosticReportExt.class)))
+				.thenReturn(existingBundle);
+		
+		// Mock validator to throw exception
+		doThrow(new InvalidRequestException("Cannot change patient reference in DiagnosticReport"))
+				.when(diagnosticReportBundlePatchValidator).validatePatchChanges(any(DiagnosticReport.class), any(DiagnosticReport.class));
+		
+		RequestDetails requestDetails = mock(RequestDetails.class);
+		when(requestDetails.getFhirContext()).thenReturn(ca.uhn.fhir.context.FhirContext.forR4());
+		
+		// Execute and verify exception
+		InvalidRequestException exception = assertThrows(InvalidRequestException.class, 
+				() -> diagnosticReportBundleService.patch(bundleUuid, PatchTypeEnum.JSON_PATCH, patchBody, requestDetails));
+		
+		assertTrue(exception.getMessage().contains("Cannot change patient reference"));
+		verify(diagnosticReportBundlePatchValidator, times(1)).validateNotInTerminalState(any(DiagnosticReport.class));
+		verify(diagnosticReportBundlePatchValidator, times(1)).validatePatchChanges(any(DiagnosticReport.class), any(DiagnosticReport.class));
+		verify(bahmniFhirDiagnosticReportDao, never()).createOrUpdate(any(FhirDiagnosticReportExt.class));
+	}
+	
+	@Test
+	public void shouldRejectPatchWithInvalidBasedOnRemoval() throws IOException {
+		// Setup: Existing bundle
+		DiagnosticReportBundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
+		String bundleUuid = "report-bundle-123";
+		
+		// Load patch that attempts to remove basedOn
+		String patchBody = loadPatchJson("patch-diagnostic-bundle-invalid-remove-basedon.json");
+		
+		// Mock get to return existing bundle
+		when(bahmniFhirDiagnosticReportBundleTranslator.toFhirResource(any(FhirDiagnosticReportExt.class)))
+				.thenReturn(existingBundle);
+		
+		// Mock validator to throw exception
+		doThrow(new InvalidRequestException("Cannot remove basedOn reference from DiagnosticReport"))
+				.when(diagnosticReportBundlePatchValidator).validatePatchChanges(any(DiagnosticReport.class), any(DiagnosticReport.class));
+		
+		RequestDetails requestDetails = mock(RequestDetails.class);
+		when(requestDetails.getFhirContext()).thenReturn(ca.uhn.fhir.context.FhirContext.forR4());
+		
+		// Execute and verify exception
+			InvalidRequestException exception = assertThrows(InvalidRequestException.class,
+				() -> diagnosticReportBundleService.patch(bundleUuid, PatchTypeEnum.JSON_PATCH, patchBody, requestDetails));
+		
+		assertTrue(exception.getMessage().contains("Cannot remove basedOn reference"));
+		verify(diagnosticReportBundlePatchValidator, times(1)).validateNotInTerminalState(any(DiagnosticReport.class));
+		verify(diagnosticReportBundlePatchValidator, times(1)).validatePatchChanges(any(DiagnosticReport.class), any(DiagnosticReport.class));
+		verify(bahmniFhirDiagnosticReportDao, never()).createOrUpdate(any(FhirDiagnosticReportExt.class));
+	}
+	
+	@Test
+	public void shouldRejectPatchForReportInTerminalState() throws IOException {
+		// Setup: Existing bundle with final status
+		DiagnosticReportBundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
+		DiagnosticReport report = BahmniFhirUtils.findResourcesOfTypeInBundle(existingBundle, DiagnosticReport.class).get(0);
+		report.setStatus(DiagnosticReport.DiagnosticReportStatus.FINAL);
+		
+		String bundleUuid = "report-bundle-123";
+		String patchBody = loadPatchJson("patch-diagnostic-bundle-add-observation.json");
+		
+		// Mock get to return existing bundle
+		when(bahmniFhirDiagnosticReportBundleTranslator.toFhirResource(any(FhirDiagnosticReportExt.class)))
+				.thenReturn(existingBundle);
+		
+		// Mock validator to throw exception for terminal state
+		doThrow(new InvalidRequestException("Cannot patch DiagnosticReport in terminal state: final"))
+				.when(diagnosticReportBundlePatchValidator).validateNotInTerminalState(any(DiagnosticReport.class));
+		
+		RequestDetails requestDetails = mock(RequestDetails.class);
+		when(requestDetails.getFhirContext()).thenReturn(ca.uhn.fhir.context.FhirContext.forR4());
+		
+		// Execute and verify exception
+			InvalidRequestException exception = assertThrows(InvalidRequestException.class,
+				() -> diagnosticReportBundleService.patch(bundleUuid, PatchTypeEnum.JSON_PATCH, patchBody, requestDetails));
+		
+		assertTrue(exception.getMessage().contains("Cannot patch DiagnosticReport in terminal state"));
+		verify(diagnosticReportBundlePatchValidator, times(1)).validateNotInTerminalState(any(DiagnosticReport.class));
+		verify(diagnosticReportBundlePatchValidator, never()).validatePatchChanges(any(DiagnosticReport.class), any(DiagnosticReport.class));
+		verify(bahmniFhirDiagnosticReportDao, never()).createOrUpdate(any(FhirDiagnosticReportExt.class));
+	}
+	
+	@Test
+	public void shouldThrowResourceNotFoundWhenPatchingNonExistentBundle() {
+		String bundleUuid = "non-existent-uuid";
+		String patchBody = "[]";
+		
+		// Mock get to return null
+		when(bahmniFhirDiagnosticReportBundleTranslator.toFhirResource(any())).thenReturn(null);
+		
+		RequestDetails requestDetails = mock(RequestDetails.class);
+		when(requestDetails.getFhirContext()).thenReturn(ca.uhn.fhir.context.FhirContext.forR4());
+		
+		// Execute and verify exception
+		ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, 
+				() -> diagnosticReportBundleService.patch(bundleUuid, PatchTypeEnum.JSON_PATCH, patchBody, requestDetails));
+		
+		assertTrue(exception.getMessage().contains("not found"));
+		verify(bahmniFhirDiagnosticReportDao, never()).createOrUpdate(any(FhirDiagnosticReportExt.class));
+	}
+	
+	@Test
+	public void shouldRejectNonJsonPatchType() {
+		String bundleUuid = "report-bundle-123";
+		String patchBody = "some xml patch";
+		
+		RequestDetails requestDetails = mock(RequestDetails.class);
+		
+		// Execute and verify exception
+		InvalidRequestException exception = assertThrows(InvalidRequestException.class, 
+				() -> diagnosticReportBundleService.patch(bundleUuid, PatchTypeEnum.XML_PATCH, patchBody, requestDetails));
+		
+		assertEquals("Only JSON Patch is supported for DiagnosticReportBundle", exception.getMessage());
+		verify(bahmniFhirDiagnosticReportDao, never()).createOrUpdate(any(FhirDiagnosticReportExt.class));
+	}
+	
+	// ========== ^ PATCH TESTS ^ ==========
+	
+	private String loadPatchJson(String filename) throws IOException {
+		InputStream inputStream = getClass().getClassLoader().getResourceAsStream(filename);
+		Scanner scanner = new Scanner(inputStream, StandardCharsets.UTF_8.name()).useDelimiter("\\A");
+		return scanner.hasNext() ? scanner.next() : "";
 	}
 	
 	private org.hl7.fhir.r4.model.Encounter exampleFhirEncounterResource(String uuid) {
