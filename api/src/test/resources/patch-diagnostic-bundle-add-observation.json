@@ -1,0 +1,38 @@
+[
+  {
+    "op": "add",
+    "path": "/entry/-",
+    "value": {
+      "fullUrl": "urn:uuid:new-obs-2",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "new-obs-2",
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "code": "679AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "display": "Red blood cells"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/patient-uuid-1"
+        },
+        "valueQuantity": {
+          "value": 5.2,
+          "unit": "x10*12/L",
+          "system": "http://unitsofmeasure.org",
+          "code": "10*12/L"
+        }
+      }
+    }
+  },
+  {
+    "op": "add",
+    "path": "/entry/0/resource/result/-",
+    "value": {
+      "reference": "urn:uuid:new-obs-2"
+    }
+  }
+]

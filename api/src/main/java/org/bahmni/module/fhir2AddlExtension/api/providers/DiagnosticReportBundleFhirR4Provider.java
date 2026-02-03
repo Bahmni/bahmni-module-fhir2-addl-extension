@@ -4,6 +4,7 @@ import ca.uhn.fhir.rest.annotation.Create;
 import ca.uhn.fhir.rest.annotation.IdParam;
 import ca.uhn.fhir.rest.annotation.Read;
 import ca.uhn.fhir.rest.annotation.ResourceParam;
+import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.server.RequestDetails;
 import ca.uhn.fhir.rest.server.IResourceProvider;
@@ -47,6 +48,14 @@ public class DiagnosticReportBundleFhirR4Provider implements IResourceProvider {
 	public MethodOutcome createDiagnosticReport(@ResourceParam DiagnosticReportBundle reportBundle) {
 		DiagnosticReportBundle resource = fhirDiagnosticReportBundleService.create(reportBundle);
 		return FhirProviderUtils.buildCreate(resource);
+	}
+	
+	@Update
+	public MethodOutcome updateDiagnosticReport(@IdParam @Nonnull IdType id,
+	        @ResourceParam DiagnosticReportBundle reportBundle, RequestDetails theRequestDetails) {
+		RequestContextHolder.setValue(theRequestDetails.getFhirServerBase());
+		DiagnosticReportBundle resource = fhirDiagnosticReportBundleService.update(id.getIdPart(), reportBundle);
+		return FhirProviderUtils.buildUpdate(resource);
 	}
 	
 }

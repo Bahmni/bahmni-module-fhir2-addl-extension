@@ -16,6 +16,7 @@ import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirDiagnosticR
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.utils.BahmniFhirUtils;
 import org.bahmni.module.fhir2AddlExtension.api.validators.DiagnosticReportBundlePatchValidator;
+import org.bahmni.module.fhir2AddlExtension.api.validators.DiagnosticReportBundleUpdateValidator;
 import org.bahmni.module.fhir2AddlExtension.api.validators.DiagnosticReportValidator;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.DiagnosticReport;
@@ -86,6 +87,8 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 	
 	private final DiagnosticReportBundlePatchValidator diagnosticReportBundlePatchValidator;
 	
+	private final DiagnosticReportBundleUpdateValidator diagnosticReportBundleUpdateValidator;
+	
 	private final BahmniFhirDiagnosticReportTranslator diagnosticReportTranslator;
 	
 	private final BahmniOrderReferenceTranslator serviceRequestReferenceTranslator;
@@ -106,6 +109,7 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 	    SearchQuery<FhirDiagnosticReportExt, DiagnosticReportBundle, BahmniFhirDiagnosticReportDao, BahmniFhirDiagnosticReportBundleTranslator, SearchQueryInclude<DiagnosticReportBundle>> searchQuery,
 	    DiagnosticReportValidator diagnosticReportValidator,
 	    DiagnosticReportBundlePatchValidator diagnosticReportBundlePatchValidator,
+	    DiagnosticReportBundleUpdateValidator diagnosticReportBundleUpdateValidator,
 	    BahmniFhirDiagnosticReportTranslator diagnosticReportTranslator,
 	    BahmniOrderReferenceTranslator serviceRequestReferenceTranslator,
 	    PatientReferenceTranslator patientReferenceTranslator, FhirObservationService fhirObservationService,
@@ -116,6 +120,7 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		this.searchQuery = searchQuery;
 		this.diagnosticReportValidator = diagnosticReportValidator;
 		this.diagnosticReportBundlePatchValidator = diagnosticReportBundlePatchValidator;
+		this.diagnosticReportBundleUpdateValidator = diagnosticReportBundleUpdateValidator;
 		this.diagnosticReportTranslator = diagnosticReportTranslator;
 		this.serviceRequestReferenceTranslator = serviceRequestReferenceTranslator;
 		this.patientReferenceTranslator = patientReferenceTranslator;
@@ -488,6 +493,136 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 				resultRef.setReference(savedRef.getReference());
 			}
 		}
+	}
+	
+	/**
+	 * Updates a DiagnosticReportBundle using PUT semantics (complete replacement) All mutable
+	 * fields are replaced with new values Immutable fields: patient reference, encounter reference
+	 * 
+	 * @param uuid the UUID of the bundle to update
+	 * @param bundle the complete replacement bundle
+	 * @return the updated DiagnosticReportBundle
+	 */
+	@Override
+	public DiagnosticReportBundle update(@Nonnull String uuid, @Nonnull DiagnosticReportBundle bundle) {
+		if (bundle == null) {
+			log.error(BUNDLE_MUST_HAVE_DIAGNOSTIC_REPORT);
+			throw new InvalidRequestException(BUNDLE_MUST_HAVE_DIAGNOSTIC_REPORT);
+		}
+		
+		// Step 1-2: Retrieve existing bundle and extract report
+		DiagnosticReportBundle existingBundle = get(uuid);
+		if (existingBundle == null) {
+			throw new ResourceNotFoundException("DiagnosticReportBundle with UUID " + uuid + " not found");
+		}
+		DiagnosticReport existingReport = getReportFromBundle(existingBundle);
+		
+		// Step 3: Validate terminal state
+		diagnosticReportBundleUpdateValidator.validateNotInTerminalState(existingReport);
+		
+		// Step 4: Extract new report from incoming bundle
+		DiagnosticReport newReport = getReportFromBundle(bundle);
+		
+		// Step 5: Validate immutability rules (only patient and encounter)
+		diagnosticReportBundleUpdateValidator.validateUpdateChanges(existingReport, newReport);
+		
+		// Step 6-8: PURGE existing data
+		FhirDiagnosticReportExt existingEntity = dao.get(uuid);
+		purgeExistingResults(existingEntity);
+		purgeExistingAttachments(existingEntity);
+		purgeExistingBasedOn(existingEntity);
+		dao.createOrUpdate(existingEntity);
+
+		// Step 11-15: UPDATE with new data
+		// Preserve encounter (immutable)
+		newReport.setEncounter(existingReport.getEncounter());
+		
+		// Identify and set new basedOn orders
+		List<Order> basedOnOrders = identifyOrders(newReport);
+		
+		// Create new result observations
+		Function<String, Optional<Observation>> obsLocator = 
+			referenceId -> BahmniFhirUtils.findResourceInBundle(bundle, referenceId, Observation.class);
+		validateResults(newReport, newReport.getSubject(), obsLocator);
+		
+		Map<String, Reference> obsReferenceMap = createResultObservations(
+			newReport,
+			existingReport.getEncounter(), // Use existing (immutable) encounter
+			obsLocator,
+			basedOnOrders
+		);
+		
+		// Update result references in new report
+		for (Reference resultRef : newReport.getResult()) {
+			Optional<Reference> obsRef = BahmniFhirUtils.referenceToId(resultRef.getReference())
+				.map(obsReferenceMap::get);
+			if (obsRef.isPresent()) {
+				log.debug(String.format("resolving report.result references: %s => %s%n", 
+					resultRef.getReference(), obsRef.get().getReference()));
+				resultRef.setReference(obsRef.get().getReference());
+			}
+		}
+		
+		// Step 16: Validate complete report
+		diagnosticReportValidator.validate(newReport);
+		
+		// Step 17: Convert to OpenMRS entity and save (reusing existing UUID and ID)
+		FhirDiagnosticReportExt updatedEntity = diagnosticReportTranslator.toOpenmrsType(existingEntity, newReport);
+//		updatedEntity.setUuid(uuid); // Preserve UUID for update
+//		updatedEntity.setId(existingEntity.getId()); // Preserve DB ID
+
+		return getTranslator().toFhirResource(dao.createOrUpdate(updatedEntity));
+	}
+	
+	private void purgeExistingBasedOn(FhirDiagnosticReportExt existingEntity) {
+		//		if (existingReport.hasBasedOn()) {
+		//			existingReport.getBasedOn().clear();
+		//		}
+		existingEntity.getOrders().clear();
+	}
+	
+	/**
+	 * Voids all existing result observations and clears references
+	 */
+	private void purgeExistingResults(FhirDiagnosticReportExt existingEntity) {
+//		List<String> resultUuids = existingReport.getResult().stream()
+//			.map(ref -> FhirUtils.referenceToId(ref.getReference()).orElse(null))
+//			.filter(Objects::nonNull)
+//			.collect(Collectors.toList());
+
+		existingEntity.getResults().forEach(obs -> {
+			fhirObservationService.delete(obs.getUuid());
+		});
+		existingEntity.getResults().clear();
+		
+//		// Void each observation (soft delete for audit trail)
+//		for (String obsUuid : resultUuids) {
+//			try {
+//				fhirObservationService.delete(obsUuid);
+//				log.debug("Voided observation: {}", obsUuid);
+//			} catch (Exception e) {
+//				log.error("Failed to void observation: {}", obsUuid, e);
+//				throw new InvalidRequestException("Failed to purge existing result observation: " + obsUuid, e);
+//			}
+//		}
+//
+//		// Clear result references from report
+//		existingReport.getResult().clear();
+	}
+	
+	/**
+	 * Deletes existing attachment metadata (hard delete)
+	 */
+	private void purgeExistingAttachments(FhirDiagnosticReportExt existingEntity) {
+		// Clear presentedForm attachments
+		// Note: Actual deletion logic depends on how attachments are implemented
+		// This should hard delete from document_attachment table
+		//		if (existingReport.hasPresentedForm()) {
+		//			existingReport.getPresentedForm().clear();
+		//		}
+		// TODO: Implement actual deletion from document_attachment table via DAO when attachment feature is implemented
+		// In actual operation, the attachment deletion may be handled in backoffice process.
+		existingEntity.getPresentedForms().clear();
 	}
 	
 	@Override

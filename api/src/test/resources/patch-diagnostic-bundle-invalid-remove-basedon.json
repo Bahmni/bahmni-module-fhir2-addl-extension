@@ -1,0 +1,6 @@
+[
+  {
+    "op": "remove",
+    "path": "/entry/0/resource/basedOn/0"
+  }
+]

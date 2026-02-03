@@ -1,0 +1,63 @@
+{
+  "resourceType": "Bundle",
+  "id": "report-bundle-123",
+  "type": "transaction",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:report-1",
+      "resource": {
+        "resourceType": "DiagnosticReport",
+        "id": "report-1",
+        "status": "final",
+        "basedOn": [
+          {
+            "reference": "ServiceRequest/order-uuid-1"
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "code": "1019AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "display": "Complete blood count"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/DIFFERENT-patient-uuid-999"
+        },
+        "encounter": {
+          "reference": "Encounter/encounter-uuid-1"
+        },
+        "effectiveDateTime": "2026-02-03",
+        "result": [
+          {
+            "reference": "urn:uuid:obs-1"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:obs-1",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-1",
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "code": "21AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "display": "Hemoglobin"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/DIFFERENT-patient-uuid-999"
+        },
+        "valueQuantity": {
+          "value": 15.5,
+          "unit": "g/dL"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "resourceType": "Bundle",
+  "id": "report-bundle-123",
+  "type": "collection",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:report-1",
+      "resource": {
+        "resourceType": "DiagnosticReport",
+        "id": "report-1",
+        "status": "partial",
+        "basedOn": [
+          {
+            "reference": "ServiceRequest/order-uuid-1"
+          }
+        ],
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/v2-0074",
+                "code": "LAB"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "code": "1019AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "display": "Complete blood count"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/patient-uuid-1"
+        },
+        "encounter": {
+          "reference": "Encounter/encounter-uuid-1"
+        },
+        "effectiveDateTime": "2026-01-26",
+        "issued": "2026-01-26T10:00:00Z",
+        "performer": [
+          {
+            "reference": "Practitioner/practitioner-uuid-1"
+          }
+        ],
+        "result": [
+          {
+            "reference": "urn:uuid:obs-1"
+          }
+        ],
+        "presentedForm": [
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:obs-1",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-1",
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "code": "21AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "display": "Hemoglobin"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/patient-uuid-1"
+        },
+        "valueQuantity": {
+          "value": 15.5,
+          "unit": "g/dL",
+          "system": "http://unitsofmeasure.org",
+          "code": "g/dL"
+        }
+      }
+    }
+  ]
+}

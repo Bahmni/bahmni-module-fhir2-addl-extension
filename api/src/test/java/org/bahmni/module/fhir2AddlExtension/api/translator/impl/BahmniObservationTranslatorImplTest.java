@@ -1,6 +1,7 @@
 package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
 
 import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2AddlExtension.api.TestUtils;
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
 import org.hl7.fhir.r4.model.Attachment;
 import org.hl7.fhir.r4.model.CodeableConcept;
@@ -32,6 +33,9 @@ import org.openmrs.module.fhir2.api.translators.ObservationStatusTranslator;
 import org.openmrs.module.fhir2.api.translators.ObservationValueTranslator;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.impl.ObservationInterpretationTranslatorImpl;
+import org.openmrs.module.fhir2.api.translators.impl.ObservationQuantityCodingTranslatorImpl;
+
+import java.util.ArrayList;
 
 import static org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants.FHIR_EXT_OBSERVATION_FORM_NAMESPACE_PATH;
 import static org.mockito.Mockito.when;
@@ -90,6 +94,9 @@ public class BahmniObservationTranslatorImplTest {
 		observationTranslator.setReferenceRangeTranslator(referenceRangeTranslator);
 		observationTranslator.setBasedOnReferenceTranslator(basedOnReferenceTranslator);
 		observationTranslator.setDatetimeTranslator(datetimeTranslator);
+		ObservationQuantityCodingTranslatorImpl quantityCodingTranslator = new ObservationQuantityCodingTranslatorImpl();
+		TestUtils.setPropertyOnObject(quantityCodingTranslator, "ucumServices", new ArrayList<>());
+		observationTranslator.setQuantityCodingTranslator(quantityCodingTranslator);
 	}
 	
 	@Test

@@ -2,7 +2,6 @@ package org.bahmni.module.fhir2AddlExtension.api.utils;
 
 import org.hl7.fhir.r4.model.Bundle;
 import org.openmrs.module.fhir2.api.util.FhirUtils;
-import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,20 +17,14 @@ public class BahmniFhirUtils {
 	}
 	
 	public static <T> Optional<T> findResourceInBundle(Bundle bundle, String idParam, Class<T> targetClass) {
-		return bundle.getEntry().stream()
-				.map(Bundle.BundleEntryComponent::getResource)
-				.filter(resource -> {
-					if (!targetClass.isInstance(resource)) {
-						return false;
-					}
-					Boolean result = Optional.ofNullable(resource.getIdElement()).map(idType -> {
-						return !StringUtils.isEmpty(idType.getIdPart()) ? idType.getIdPart() : idType.getValue();
-					}).map(resourceId -> idParam.equals(extractId(resourceId))).orElse(false);
-					System.out.println(String.format("Searching for resource in bundle with id [%s], class:[%s]. Found resource = " + result, idParam, targetClass.getName()));
-					return result;
-				})
-				.map(targetClass::cast)
-				.findFirst();
+        return bundle.getEntry().stream()
+                .map(Bundle.BundleEntryComponent::getResource)
+                .filter(resource -> {
+					String extractIdPart = extractId(resource.getIdElement().getIdPart());
+                    return idParam.equals(extractIdPart) && targetClass.isInstance(resource);
+                })
+                .map(targetClass::cast)
+                .findFirst();
     }
 	
 	public static Optional<String> referenceToId(String reference) {

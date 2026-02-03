@@ -6,8 +6,10 @@ import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceT
 import org.bahmni.module.fhir2AddlExtension.api.translator.ComplexObsDataTranslator;
 import org.hibernate.proxy.HibernateProxy;
 import org.hl7.fhir.r4.model.Annotation;
+import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Observation;
+import org.hl7.fhir.r4.model.Quantity;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.Type;
@@ -30,6 +32,7 @@ import org.openmrs.module.fhir2.api.translators.ObservationStatusTranslator;
 import org.openmrs.module.fhir2.api.translators.ObservationTranslator;
 import org.openmrs.module.fhir2.api.translators.ObservationValueTranslator;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
+import org.openmrs.module.fhir2.api.translators.impl.ObservationQuantityCodingTranslatorImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
@@ -47,6 +50,7 @@ import java.util.stream.Collectors;
 
 import static org.apache.commons.lang3.Validate.notNull;
 import static org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants.FHIR_EXT_OBSERVATION_FORM_NAMESPACE_PATH;
+import static org.openmrs.module.fhir2.FhirConstants.UCUM_SYSTEM_URI;
 import static org.openmrs.module.fhir2.api.translators.impl.FhirTranslatorUtils.getLastUpdated;
 import static org.openmrs.module.fhir2.api.translators.impl.FhirTranslatorUtils.getVersionId;
 
@@ -100,6 +104,9 @@ public class BahmniObservationTranslatorImpl implements ObservationTranslator {
 	
 	@Autowired
 	private ObservationEffectiveDatetimeTranslator datetimeTranslator;
+	
+	@Autowired
+	private ObservationQuantityCodingTranslatorImpl quantityCodingTranslator;
 	
 	@Override
 	public Obs toOpenmrsType(Obs obs, Observation resource, Supplier<Obs> groupedObsFactory) {
@@ -182,14 +189,14 @@ public class BahmniObservationTranslatorImpl implements ObservationTranslator {
 		resource.addInterpretation(interpretationTranslator.toFhirResource(obs));
 
 		resource.setValue(observationValueTranslator.toFhirResource(obs));
+		mapObservationValueQuantity(obs, resource);
+
+
 		if (isComplexData(obs.getConcept())) {
 			mapComplexDataToFhirExtension(obs).ifPresent(resource::addExtension);
 		}
         if (obs.getValueNumeric() != null) {
-            Concept concept = obs.getConcept();
-            if (concept instanceof ConceptNumeric) {
-                resource.setReferenceRange(referenceRangeTranslator.toFhirResource(obs));
-            }
+			mapObservationReferenceRange(obs, resource);
         }
 
 		if (obs.isObsGrouping()) {
@@ -216,6 +223,79 @@ public class BahmniObservationTranslatorImpl implements ObservationTranslator {
 		}
         return resource;
     }
+	
+	private void mapObservationReferenceRange(Obs obs, Observation resource) {
+		if (!obs.getConcept().isNumeric()) {
+			return;
+		}
+		
+		if (resource.hasReferenceRange()) {
+			return;
+		}
+		
+		Concept concept = deProxyConcept(obs.getConcept());
+		if (concept instanceof ConceptNumeric) {
+			NumericObs numericObs = new NumericObs((ConceptNumeric) concept);
+			resource.setReferenceRange(referenceRangeTranslator.toFhirResource(numericObs));
+		}
+	}
+	
+	/**
+	 * This is done because of Obs.concept are not deproxied, and as a result checks done in Openmrs
+	 * fhir2 ObservationTranslatorImpl for value and reference ranges, where it checks the type of
+	 * obs.concept - e.g. concept instanceof ConceptNumeric, ConceptComplex While the Openmrs
+	 * translator implementation works fine with Default ObservationValueTranslator when queries
+	 * through the obs root, and Hibernate seems to have enough context to instantiate the specific
+	 * subclass for obs.concept into Concept. But when navigating through a Set in Observations,
+	 * loaded through a different root, e.g. Diagnostic Report, because of lazy-loading proxy for
+	 * the collection elements, obs.concept does not "transform" into the subclass (ConceptNumeric),
+	 * which breaks the instanceof check.
+	 * 
+	 * @param obs
+	 * @param resource
+	 */
+	private void mapObservationValueQuantity(Obs obs, Observation resource) {
+		if (!obs.getConcept().isNumeric()) {
+			return;
+		}
+		
+		if (resource.hasValue()) {
+			if (resource.getValue() instanceof Quantity) {
+				Quantity value = (Quantity) resource.getValue();
+				if (value.hasUnit() || value.hasCode()) {
+					return;
+				}
+			}
+		}
+		
+		Concept concept = deProxyConcept(obs.getConcept());
+		if (concept instanceof ConceptNumeric) {
+			Double value = obs.getValueNumeric();
+			Quantity result = resource.hasValue() ? (Quantity) resource.getValue() : new Quantity();
+			ConceptNumeric cn = (ConceptNumeric) concept;
+			if (cn.getAllowDecimal()) {
+				result.setValue(value);
+			} else {
+				result.setValue(value.longValue());
+			}
+			result.setUnit(cn.getUnits());
+			// only set the coding system if unit conforms to UCUM standard
+			Coding coding = quantityCodingTranslator.toFhirResource(cn);
+			if (coding != null && coding.hasSystem() && coding.getSystem().equals(UCUM_SYSTEM_URI)) {
+				result.setCode(coding.getCode());
+				result.setSystem(coding.getSystem());
+			}
+			resource.setValue(result);
+		}
+	}
+	
+	private Concept deProxyConcept(Concept concept) {
+		if (concept instanceof HibernateProxy) {
+			return (Concept) ((HibernateProxy) concept).getHibernateLazyInitializer().getImplementation();
+		} else {
+			return concept;
+		}
+	}
 	
 	private String mapFormNamespacePathExtension(Observation fhirObservation) {
 		List<Extension> extensions = fhirObservation.getExtensionsByUrl(FHIR_EXT_OBSERVATION_FORM_NAMESPACE_PATH);
@@ -272,6 +352,20 @@ public class BahmniObservationTranslatorImpl implements ObservationTranslator {
 	
 	private boolean isComplexData(Concept concept) {
 		return concept.getDatatype().getUuid().equals(ConceptDatatype.COMPLEX_UUID);
+	}
+	
+	private class NumericObs extends Obs {
+		
+		private ConceptNumeric concept;
+		
+		public NumericObs(ConceptNumeric concept) {
+			this.concept = concept;
+		}
+		
+		@Override
+		public Concept getConcept() {
+			return this.concept;
+		}
 	}
 	
 }

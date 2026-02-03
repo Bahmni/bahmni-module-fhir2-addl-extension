@@ -26,6 +26,7 @@ import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.impl.OrderIdentifierTranslatorImpl;
 import org.openmrs.order.OrderUtilTest;
+import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
 
 import java.lang.reflect.Field;
 import java.util.*;
@@ -98,6 +99,9 @@ public class BahmniServiceRequestTranslatorImplTest {
 	@Mock
 	AppContext appContext;
 	
+	@Mock
+	BahmniOrderReferenceTranslator bahmniOrderReferenceTranslator;
+	
 	private Order discontinuedOrder;
 	
 	private Order order;
@@ -130,6 +134,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 		translator.setServiceRequestPriorityTranslator(serviceRequestPriorityTranslator);
 		translator.setServiceRequestValidator(serviceRequestValidator);
 		translator.setOrderService(orderService);
+		translator.setBahmniOrderReferenceTranslator(bahmniOrderReferenceTranslator);
 		
 		ServiceRequestLocationReferenceResolverImpl orderLocationReferenceResolver = new ServiceRequestLocationReferenceResolverImpl(
 		        locationReferenceTranslator, orderAttributeTypeDao, appContext);
@@ -254,6 +259,33 @@ public class BahmniServiceRequestTranslatorImplTest {
 		assertThat(result.getId(), equalTo(DISCONTINUED_ORDER_UUID));
 		assertThat(result.getBasedOn().get(0).getReference(), equalTo(PRIOR_SERVICE_REQUEST_REFERENCE));
 		assertThat(result.getBasedOn().get(0).getIdentifier().getValue(), equalTo(ORDER_NUMBER));
+	}
+	
+	@Test
+	public void toFhirResource_shouldTranslateToFhirResourceWithBasedOnFieldGivenNewOrderWithPreviousOrder() {
+		String linkedOrderUuid = "test-linked-order-uuid";
+		Order linkedOrder = new Order();
+		linkedOrder.setUuid(linkedOrderUuid);
+		linkedOrder.setAction(Order.Action.NEW);
+		linkedOrder.setConcept(testConcept);
+		linkedOrder.setPreviousOrder(order);
+		
+		ServiceRequest result = translator.toFhirResource(linkedOrder);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getId(), notNullValue());
+		assertThat(result.getId(), equalTo(linkedOrderUuid));
+		assertThat(result.getBasedOn().get(0).getReference(), equalTo(PRIOR_SERVICE_REQUEST_REFERENCE));
+		assertThat(result.getBasedOn().get(0).getIdentifier().getValue(), equalTo(ORDER_NUMBER));
+	}
+	
+	@Test
+	public void toFhirResource_shouldNotSetBasedOnFieldWhenNewOrderHasNoPreviousOrder() {
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getBasedOn(), empty());
 	}
 	
 	@Test
@@ -1147,5 +1179,78 @@ public class BahmniServiceRequestTranslatorImplTest {
 		
 		assertThat(result, notNullValue());
 		assertThat(result.getNote(), empty());
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldSetPreviousOrderWhenBasedOnIsPresent() {
+		
+		Reference basedOnRef = new Reference();
+		basedOnRef.setReference("ServiceRequest/previous-order-uuid");
+		basedOnRef.setType("ServiceRequest");
+		serviceRequest.addBasedOn(basedOnRef);
+		
+		Order previousOrder = new Order();
+		previousOrder.setUuid("previous-order-uuid");
+		
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		when(bahmniOrderReferenceTranslator.toOpenmrsType(basedOnRef)).thenReturn(previousOrder);
+		
+		Order result = translator.toOpenmrsType(serviceRequest);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getPreviousOrder(), notNullValue());
+		assertThat(result.getPreviousOrder(), equalTo(previousOrder));
+		verify(bahmniOrderReferenceTranslator).toOpenmrsType(basedOnRef);
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldNotSetPreviousOrderWhenBasedOnIsEmpty() {
+		serviceRequest.setBasedOn(new ArrayList<>());
+
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+
+		Order result = translator.toOpenmrsType(serviceRequest);
+
+		assertThat(result, notNullValue());
+		assertThat(result.getPreviousOrder(), nullValue());
+		verifyNoInteractions(bahmniOrderReferenceTranslator);
+	}
+	
+	@Test(expected = InvalidRequestException.class)
+	public void toOpenmrsType_shouldThrowExceptionWhenMultipleBasedOnReferencesArePresent() {
+		Reference basedOnRef1 = new Reference();
+		basedOnRef1.setReference("ServiceRequest/previous-order-uuid-1");
+		basedOnRef1.setType("ServiceRequest");
+		serviceRequest.addBasedOn(basedOnRef1);
+		
+		Reference basedOnRef2 = new Reference();
+		basedOnRef2.setReference("ServiceRequest/previous-order-uuid-2");
+		basedOnRef2.setType("ServiceRequest");
+		serviceRequest.addBasedOn(basedOnRef2);
+		
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		
+		translator.toOpenmrsType(serviceRequest);
 	}
 }
