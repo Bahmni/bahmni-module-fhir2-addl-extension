@@ -12,6 +12,7 @@ import org.hibernate.criterion.Restrictions;
 import org.openmrs.Order;
 import org.openmrs.OrderType;
 import org.openmrs.api.OrderService;
+import org.openmrs.api.context.Context;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,10 +24,8 @@ import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Join;
 import javax.persistence.criteria.Root;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.lang.reflect.Field;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -72,9 +71,64 @@ public class BahmniFhirServiceRequestDaoImpl extends BahmniBaseFhirDao<Order> im
 	
 	@Override
 	public Order createOrUpdate(@Nonnull Order newEntry) {
-		if (newEntry.getOrderType().getUuid().equals(OrderType.DRUG_ORDER_TYPE_UUID))
-			throw new InvalidRequestException("Drug Orders cannot be submitted through ServiceRequest ");
+		if (newEntry.getOrderType().getUuid().equals(OrderType.DRUG_ORDER_TYPE_UUID)) {
+			throw new InvalidRequestException("Drug Orders cannot be submitted through ServiceRequest");
+		}
+		
+		if (isAdditionalViewOrder(newEntry)) {
+			populateRequiredOrderFields(newEntry);
+			return super.createOrUpdate(newEntry);
+		}
+		
 		return orderService.saveOrder(newEntry, null);
+	}
+	
+	private boolean isAdditionalViewOrder(Order order) {
+		if (order.getPreviousOrder() == null) {
+			return false;
+		}
+		return !order.getConcept().equals(order.getPreviousOrder().getConcept());
+	}
+	
+	private void populateRequiredOrderFields(Order order) {
+		Date now = new Date();
+		
+		if (order.getOrderNumber() == null) {
+			String orderNumber = "ORD-" + orderService.getNextOrderNumberSeedSequenceValue().toString();
+			setOrderNumberViaReflection(order, orderNumber);
+		}
+		
+		if (order.getDateActivated() == null) {
+			order.setDateActivated(now);
+		}
+		
+		if (order.getUuid() == null) {
+			order.setUuid(UUID.randomUUID().toString());
+		}
+		
+		if (order.getCreator() == null) {
+			order.setCreator(Context.getAuthenticatedUser());
+		}
+		if (order.getDateCreated() == null) {
+			order.setDateCreated(now);
+		}
+	}
+	
+	private void setOrderNumberViaReflection(Order order, String orderNumber) {
+		try {
+			Field orderNumberField = Order.class.getDeclaredField("orderNumber");
+			boolean wasAccessible = orderNumberField.isAccessible();
+			
+			try {
+				orderNumberField.setAccessible(true);
+				orderNumberField.set(order, orderNumber);
+			} finally {
+				orderNumberField.setAccessible(wasAccessible);
+			}
+			
+		} catch (NoSuchFieldException | IllegalAccessException e) {
+			throw new InvalidRequestException("Failed to set order number: " + e.getMessage());
+		}
 	}
 	
 	@Override
