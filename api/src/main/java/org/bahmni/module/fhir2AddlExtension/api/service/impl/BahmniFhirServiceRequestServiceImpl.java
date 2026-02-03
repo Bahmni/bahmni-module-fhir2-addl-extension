@@ -16,6 +16,8 @@ import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.ServiceRequest;
 import org.openmrs.Location;
 import org.openmrs.Order;
+import org.openmrs.api.OrderService;
+import org.openmrs.api.context.Context;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.dao.FhirServiceRequestDao;
 import org.openmrs.module.fhir2.api.impl.BaseFhirService;
@@ -29,7 +31,10 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
+import java.lang.reflect.Field;
+import java.util.Date;
 import java.util.HashSet;
+import java.util.UUID;
 
 @Component
 @Primary
@@ -51,6 +56,9 @@ public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<Service
 	
 	@Setter(value = AccessLevel.PACKAGE, onMethod_ = @Autowired)
 	private SearchQuery<Order, ServiceRequest, FhirServiceRequestDao<Order>, ServiceRequestTranslator<Order>, SearchQueryInclude<ServiceRequest>> searchQuery;
+	
+	@Setter(value = AccessLevel.PACKAGE, onMethod_ = @Autowired)
+	private OrderService orderService;
 	
 	@Override
 	public IBundleProvider searchForServiceRequests(ReferenceAndListParam patientReference, TokenAndListParam code,
@@ -122,7 +130,15 @@ public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<Service
 			order.setUuid(FhirUtils.newUuid());
 		}
 		
-		return getTranslator().toFhirResource(getDao().createOrUpdate(order));
+		Order savedOrder;
+		if (hasConceptChanged(order)) {
+			populateRequiredOrderFields(order);
+			savedOrder = dao.saveOrderDirectly(order);
+		} else {
+			savedOrder = dao.createOrUpdate(order);
+		}
+		
+		return getTranslator().toFhirResource(savedOrder);
 	}
 	
 	@Override
@@ -173,5 +189,53 @@ public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<Service
 		        .addParameter(FhirConstants.COMMON_SEARCH_HANDLER, FhirConstants.LAST_UPDATED_PROPERTY, lastUpdated)
 		        .addParameter(FhirConstants.INCLUDE_SEARCH_HANDLER, includes)
 		        .addParameter(FhirConstants.REVERSE_INCLUDE_SEARCH_HANDLER, revIncludes);
+	}
+	
+	protected boolean hasConceptChanged(Order order) {
+		if (order.getPreviousOrder() == null) {
+			return false;
+		}
+		return !order.getConcept().equals(order.getPreviousOrder().getConcept());
+	}
+	
+	protected void populateRequiredOrderFields(Order order) {
+		Date now = new Date();
+		
+		if (order.getOrderNumber() == null) {
+			String orderNumber = "ORD-" + orderService.getNextOrderNumberSeedSequenceValue().toString();
+			setOrderNumberViaReflection(order, orderNumber);
+		}
+		
+		if (order.getDateActivated() == null) {
+			order.setDateActivated(now);
+		}
+		
+		if (order.getUuid() == null) {
+			order.setUuid(UUID.randomUUID().toString());
+		}
+		
+		if (order.getCreator() == null) {
+			order.setCreator(Context.getAuthenticatedUser());
+		}
+		if (order.getDateCreated() == null) {
+			order.setDateCreated(now);
+		}
+	}
+	
+	private void setOrderNumberViaReflection(Order order, String orderNumber) {
+		try {
+			Field orderNumberField = Order.class.getDeclaredField("orderNumber");
+			boolean wasAccessible = orderNumberField.isAccessible();
+			
+			try {
+				orderNumberField.setAccessible(true);
+				orderNumberField.set(order, orderNumber);
+			} finally {
+				orderNumberField.setAccessible(wasAccessible);
+			}
+			
+		} catch (NoSuchFieldException | IllegalAccessException e) {
+			throw new InvalidRequestException("Failed to set order number: " + e.getMessage());
+		}
 	}
 }
