@@ -83,6 +83,10 @@
 		<name>Delete Diagnostic Report</name>
 		<description>Allows user to delete existing Diagnostic Report resources</description>
 	</privilege>
+	<privilege>
+		<name>Get Appointments</name>
+		<description>Allows user to view and search appointment resources</description>
+	</privilege>
 
 	<!-- Required Global Properties -->
 	<globalProperty>
@@ -118,6 +122,7 @@
 		<require_module>org.openmrs.module.fhir2</require_module>
 		<require_module>org.openmrs.module.webservices.rest</require_module>
 		<require_module>org.openmrs.module.episodes</require_module>
+		<require_module>org.bahmni.module.appointments</require_module>
 		<require_module>org.ict4h.openmrs.openmrs-atomfeed</require_module>
 	</require_modules>
 
