@@ -57,4 +57,5 @@ public final class BahmniFhirConstants {
 	public static final String FHIR_EXT_OBSERVATION_ATTACHMENT_VALUE = EXTENSION_PREFIX + "/observation/obs-value-attachment";
 	public static final String INCLUDE_BASED_ON_PARAM = "basedon";
 	public static final String IMAGING_STUDY = "ImagingStudy";
+	public static final String APPOINTMENT = "Appointment";
 }

@@ -33,10 +33,11 @@
 			<openmrs.fhir2.version>2.5.0</openmrs.fhir2.version>
 			<web.services.version>2.44.0</web.services.version>
 			<junitVersion>4.13.1</junitVersion>
-			<lombokVersion>1.18.16</lombokVersion>
+			<lombokVersion>1.18.30</lombokVersion>
 			<mockitoVersion>3.5.11</mockitoVersion>
 			<powerMockVersion>2.0.9</powerMockVersion>
 			<episodes.version>1.3.0-SNAPSHOT</episodes.version>
+		<appointments.version>1.2.0</appointments.version>
 			<openmrsAtomfeedVersion>2.6.2</openmrsAtomfeedVersion>
 			<atomfeed.version>1.10.1</atomfeed.version>
     </properties>
