@@ -2,7 +2,9 @@ package org.bahmni.module.fhir2AddlExtension.api.dao.impl;
 
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirAppointmentDao;
 import org.hibernate.Criteria;
+import org.hibernate.criterion.Restrictions;
 import org.openmrs.module.appointments.model.Appointment;
+import org.openmrs.module.appointments.model.AppointmentStatus;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.dao.impl.BaseFhirDao;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
@@ -11,6 +13,8 @@ import org.springframework.stereotype.Component;
 import ca.uhn.fhir.rest.param.DateRangeParam;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.TokenAndListParam;
+
+import java.util.Optional;
 
 @Component
 public class BahmniFhirAppointmentDaoImpl extends BaseFhirDao<Appointment> implements BahmniFhirAppointmentDao {
@@ -43,11 +47,13 @@ public class BahmniFhirAppointmentDaoImpl extends BaseFhirDao<Appointment> imple
 		if (status != null) {
 			handleAndListParam(status, token -> {
 				if (token.getValue() != null) {
-					// Map FHIR status string to Bahmni AppointmentStatus
-					String bahmniStatus = mapFhirStatusToBahmni(token.getValue());
-					return propertyLike("status", bahmniStatus);
+					// Map FHIR status string to Bahmni AppointmentStatus enum
+					AppointmentStatus bahmniStatus = mapFhirStatusToBahmni(token.getValue());
+					if (bahmniStatus != null) {
+						return Optional.of(Restrictions.eq("status", bahmniStatus));
+					}
 				}
-				return null;
+				return Optional.empty();
 			}).ifPresent(criteria::add);
 		}
 	}
@@ -58,25 +64,29 @@ public class BahmniFhirAppointmentDaoImpl extends BaseFhirDao<Appointment> imple
 		}
 	}
 	
-	private String mapFhirStatusToBahmni(String fhirStatus) {
-		// Map FHIR AppointmentStatus codes to Bahmni AppointmentStatus enum names
+	private AppointmentStatus mapFhirStatusToBahmni(String fhirStatus) {
+		// Map FHIR AppointmentStatus codes to Bahmni AppointmentStatus enum
 		switch (fhirStatus.toLowerCase()) {
 			case "booked":
-				return "Scheduled";
+				return AppointmentStatus.Scheduled;
 			case "fulfilled":
-				return "Completed";
+				return AppointmentStatus.Completed;
 			case "cancelled":
-				return "Cancelled";
+				return AppointmentStatus.Cancelled;
 			case "noshow":
-				return "Missed";
+				return AppointmentStatus.Missed;
 			case "checkedin":
-				return "CheckedIn";
+				return AppointmentStatus.CheckedIn;
 			case "pending":
-				return "Requested";
-			case "waitlist":
-				return "WaitList";
+				return AppointmentStatus.Requested;
 			default:
-				return fhirStatus;
+				// Try to parse directly as enum name
+				try {
+					return AppointmentStatus.valueOf(fhirStatus);
+				}
+				catch (IllegalArgumentException e) {
+					return null;
+				}
 		}
 	}
 }
