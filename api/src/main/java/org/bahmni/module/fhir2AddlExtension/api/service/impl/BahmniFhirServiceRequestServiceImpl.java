@@ -11,6 +11,7 @@ import lombok.Setter;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
 import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirServiceRequestService;
 import org.bahmni.module.fhir2AddlExtension.api.service.ServiceRequestLocationReferenceResolver;
+import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.utils.ModuleUtils;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.ServiceRequest;
@@ -30,6 +31,7 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
 import java.util.HashSet;
+import java.util.List;
 
 @Component
 @Primary
@@ -48,6 +50,9 @@ public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<Service
 	
 	@Setter(value = AccessLevel.PACKAGE, onMethod_ = @Autowired)
 	private ServiceRequestLocationReferenceResolver locationReferenceResolver;
+	
+	@Setter(value = AccessLevel.PACKAGE, onMethod_ = @Autowired)
+	private BahmniOrderReferenceTranslator bahmniOrderReferenceTranslator;
 	
 	@Setter(value = AccessLevel.PACKAGE, onMethod_ = @Autowired)
 	private SearchQuery<Order, ServiceRequest, FhirServiceRequestDao<Order>, ServiceRequestTranslator<Order>, SearchQueryInclude<ServiceRequest>> searchQuery;
@@ -121,8 +126,19 @@ public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<Service
 		if (order.getUuid() == null) {
 			order.setUuid(FhirUtils.newUuid());
 		}
+		Order processedOrder = getDao().createOrUpdate(order);
+		/*
+			 TODO:This needs to be moved to translator once the OpenMRS Core issue is resolved and Bahmni distro is upgraded
+			 Reference: https://talk.openmrs.org/t/issue-with-creating-linked-orders-in-openmrs/48198
+			 * Links an order to its previous order using native SQL. Native SQL is used to bypass OpenMRS
+			 * Order validation that prevents setting previousOrder directly on new orders with different concepts during the save
+			 * operation.
+		 */
+		if (newResource.hasBasedOn()) {
+			processedOrder = processLinkedOrder(processedOrder, newResource);
+		}
 		
-		return getTranslator().toFhirResource(getDao().createOrUpdate(order));
+		return getTranslator().toFhirResource(processedOrder);
 	}
 	
 	@Override
@@ -173,5 +189,33 @@ public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<Service
 		        .addParameter(FhirConstants.COMMON_SEARCH_HANDLER, FhirConstants.LAST_UPDATED_PROPERTY, lastUpdated)
 		        .addParameter(FhirConstants.INCLUDE_SEARCH_HANDLER, includes)
 		        .addParameter(FhirConstants.REVERSE_INCLUDE_SEARCH_HANDLER, revIncludes);
+	}
+	
+	/*
+	 TODO: Remove this method once the openmrs validation for linked orders is fixed and Bahmni is upgraded
+	 Reference: https://talk.openmrs.org/t/issue-with-creating-linked-orders-in-openmrs/48198
+	 * Links an order to its previous order using native SQL. Native SQL is used to bypass OpenMRS
+	 * Order validation that prevents setting previousOrder directly on new orders with different concepts during the save
+	 * operation.
+	 */
+	private Order processLinkedOrder(Order order, ServiceRequest newResource) {
+		if (order == null || !newResource.hasBasedOn()) {
+			throw new InvalidRequestException("Unable to process linked order");
+		}
+		List<Reference> basedOnReferences = newResource.getBasedOn();
+		if (basedOnReferences.size() != 1) {
+			throw new InvalidRequestException("Only one based on the resource should be supplied");
+		}
+		Reference reference = basedOnReferences.get(0);
+		Order previousOrder = bahmniOrderReferenceTranslator.toOpenmrsType(reference);
+		
+		if (previousOrder == null) {
+			throw new InvalidRequestException("Unable to find the referenced order");
+		}
+		if (!previousOrder.getOrderType().equals(order.getOrderType())) {
+			throw new InvalidRequestException("The order type is not the same as the previous order type");
+		}
+		dao.linkOrder(order, previousOrder);
+		return order;
 	}
 }

@@ -1,12 +1,10 @@
 package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
 
-import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.AccessLevel;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
 import org.bahmni.module.fhir2AddlExtension.api.service.ServiceRequestLocationReferenceResolver;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.OrderTypeTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.ServiceRequestPriorityTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.validators.ServiceRequestValidator;
@@ -25,7 +23,6 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.Date;
-import java.util.List;
 import java.util.Optional;
 
 import static org.apache.commons.lang3.Validate.notNull;
@@ -68,9 +65,6 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 	
 	@Autowired
 	private ServiceRequestLocationReferenceResolver locationReferenceResolver;
-	
-	@Autowired
-	private BahmniOrderReferenceTranslator bahmniOrderReferenceTranslator;
 	
 	@Override
 	public ServiceRequest toFhirResource(@Nonnull Order order) {
@@ -150,16 +144,6 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 				order.setCommentToFulfiller(firstNote.getText());
 			}
 		}
-		
-		// TODO: Handle cases for revise and renew orders
-		if (resource.hasBasedOn() && !resource.getBasedOn().isEmpty()) {
-			List<Reference> basedOnReferences = resource.getBasedOn();
-			if (basedOnReferences.size() > 1)
-				throw new InvalidRequestException("Multiple basedOn reference is not allowed");
-			Order previousOrder = bahmniOrderReferenceTranslator.toOpenmrsType(basedOnReferences.get(0));
-			order.setPreviousOrder(previousOrder);
-		}
-		
 		return order;
 	}
 	
