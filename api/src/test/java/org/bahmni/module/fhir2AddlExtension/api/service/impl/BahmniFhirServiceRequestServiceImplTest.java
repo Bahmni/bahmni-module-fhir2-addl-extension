@@ -773,7 +773,6 @@ public class BahmniFhirServiceRequestServiceImplTest {
         order.setOrderType(orderType);
 
         when(translator.toOpenmrsType(serviceRequest)).thenReturn(order);
-        when(orderAttributeTypeDao.getOrderAttributeTypes(false)).thenReturn(Collections.emptyList());
 
         serviceRequestService.create(serviceRequest);
 

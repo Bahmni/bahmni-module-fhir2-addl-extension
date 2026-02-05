@@ -66,7 +66,7 @@ public class BahmniFhirServiceRequestDaoImpl extends BahmniBaseFhirDao<Order> im
 	public Order createOrUpdate(@Nonnull Order newEntry) {
 		if (newEntry.getOrderType().getUuid().equals(OrderType.DRUG_ORDER_TYPE_UUID))
 			throw new InvalidRequestException("Drug Orders cannot be submitted through ServiceRequest ");
-
+		
 		/*
 		 * TODO: Revert this back to use orderService.saveOrder once this JIRA changes are backported into 2.5.x and 2.6.x on OpenMRS Core
 		 * JIRA: https://openmrs.atlassian.net/browse/TRUNK-6534

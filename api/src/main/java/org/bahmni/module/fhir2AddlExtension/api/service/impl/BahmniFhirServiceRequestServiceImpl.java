@@ -114,7 +114,7 @@ public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<Service
 		}
 		
 		Order order = getTranslator().toOpenmrsType(newResource);
-
+		
 		/*
 		 * TODO: Remove the below extension method once this JIRA changes are backported into 2.5.x and 2.6.x on OpenMRS Core
 		 * JIRA: https://openmrs.atlassian.net/browse/TRUNK-6534
@@ -122,7 +122,7 @@ public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<Service
 		 * This has been done to support creation of linked orders
 		 */
 		order = openMRSOrderServiceExtension.validateAndSetMissingFields(order, null);
-
+		
 		if (newResource.hasLocationReference()) {
 			setRequestedLocationOnOrder(newResource.getLocationReference().get(0), order);
 		} else {
