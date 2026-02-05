@@ -14,6 +14,7 @@ import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.bahmni.module.fhir2AddlExtension.api.context.AppContext;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
 import org.bahmni.module.fhir2AddlExtension.api.dao.OrderAttributeTypeDao;
+import org.bahmni.module.fhir2AddlExtension.api.service.OpenMRSOrderServiceExtension;
 import org.hamcrest.Matchers;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.CodeableConcept;
@@ -64,6 +65,7 @@ import static org.hamcrest.Matchers.*;
 import static org.hl7.fhir.r4.model.Patient.SP_GIVEN;
 import static org.hl7.fhir.r4.model.Practitioner.SP_IDENTIFIER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.AdditionalAnswers.returnsFirstArg;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.eq;
@@ -125,6 +127,9 @@ public class BahmniFhirServiceRequestServiceImplTest {
 
     @Mock
     AppContext appContext;
+
+    @Mock
+    OpenMRSOrderServiceExtension openMRSOrderServiceExtension;
 	
 	private BahmniFhirServiceRequestServiceImpl serviceRequestService;
 	
@@ -157,6 +162,7 @@ public class BahmniFhirServiceRequestServiceImplTest {
 		serviceRequestService.setTranslator(translator);
 		serviceRequestService.setSearchQuery(searchQuery);
 		serviceRequestService.setSearchQueryInclude(searchQueryInclude);
+        serviceRequestService.setOpenMRSOrderServiceExtension(openMRSOrderServiceExtension);
 		user = exampleUser();
 
         when(appContext.getCurrentUser()).thenReturn(user);
@@ -172,6 +178,8 @@ public class BahmniFhirServiceRequestServiceImplTest {
 		fhirServiceRequest.setId(SERVICE_REQUEST_UUID);
 		fhirServiceRequest.setStatus(STATUS);
 		fhirServiceRequest.setPriority(PRIORITY);
+        when(openMRSOrderServiceExtension.validateAndSetMissingFields(any(Order.class), ArgumentMatchers.isNull()))
+                .thenAnswer(returnsFirstArg());
 	}
 	
 	private List<IBaseResource> get(IBundleProvider results) {
@@ -753,6 +761,23 @@ public class BahmniFhirServiceRequestServiceImplTest {
         ServiceRequest updatedResource = serviceRequestService.create(serviceRequest);
         Assert.assertEquals(1, order.getActiveAttributes().size());
         Assert.assertEquals(clinic, order.getActiveAttributes().iterator().next().getValue());
+    }
+
+    @Test
+    public void shouldInvokeOpenMRSOrderServiceExtensionValidationWhenCreatingServiceRequest() {
+        ServiceRequest serviceRequest = exampleServiceRequest();
+
+        OrderType orderType = new OrderType();
+        orderType.setName("Lab Order");
+        Order order = new Order();
+        order.setOrderType(orderType);
+
+        when(translator.toOpenmrsType(serviceRequest)).thenReturn(order);
+        when(orderAttributeTypeDao.getOrderAttributeTypes(false)).thenReturn(Collections.emptyList());
+
+        serviceRequestService.create(serviceRequest);
+
+        verify(openMRSOrderServiceExtension).validateAndSetMissingFields(eq(order), ArgumentMatchers.isNull());
     }
 	
 	private ServiceRequest exampleServiceRequest() {

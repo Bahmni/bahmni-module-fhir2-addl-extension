@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
 import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirServiceRequestService;
+import org.bahmni.module.fhir2AddlExtension.api.service.OpenMRSOrderServiceExtension;
 import org.bahmni.module.fhir2AddlExtension.api.service.ServiceRequestLocationReferenceResolver;
 import org.bahmni.module.fhir2AddlExtension.api.utils.ModuleUtils;
 import org.hl7.fhir.r4.model.Reference;
@@ -51,6 +52,9 @@ public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<Service
 	
 	@Setter(value = AccessLevel.PACKAGE, onMethod_ = @Autowired)
 	private SearchQuery<Order, ServiceRequest, FhirServiceRequestDao<Order>, ServiceRequestTranslator<Order>, SearchQueryInclude<ServiceRequest>> searchQuery;
+	
+	@Setter(value = AccessLevel.PACKAGE, onMethod_ = @Autowired)
+	private OpenMRSOrderServiceExtension openMRSOrderServiceExtension;
 	
 	@Override
 	public IBundleProvider searchForServiceRequests(ReferenceAndListParam patientReference, TokenAndListParam code,
@@ -110,6 +114,15 @@ public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<Service
 		}
 		
 		Order order = getTranslator().toOpenmrsType(newResource);
+
+		/*
+		 * TODO: Remove the below extension method once this JIRA changes are backported into 2.5.x and 2.6.x on OpenMRS Core
+		 * JIRA: https://openmrs.atlassian.net/browse/TRUNK-6534
+		 * Core PR: https://github.com/openmrs/openmrs-core/pull/5736
+		 * This has been done to support creation of linked orders
+		 */
+		order = openMRSOrderServiceExtension.validateAndSetMissingFields(order, null);
+
 		if (newResource.hasLocationReference()) {
 			setRequestedLocationOnOrder(newResource.getLocationReference().get(0), order);
 		} else {

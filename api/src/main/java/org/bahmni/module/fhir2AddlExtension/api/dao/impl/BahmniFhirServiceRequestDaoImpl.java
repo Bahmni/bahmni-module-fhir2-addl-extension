@@ -2,8 +2,6 @@ package org.bahmni.module.fhir2AddlExtension.api.dao.impl;
 
 import ca.uhn.fhir.rest.param.*;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
-import lombok.AccessLevel;
-import lombok.Setter;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
 import org.hibernate.Criteria;
 import org.hibernate.Session;
@@ -11,10 +9,8 @@ import org.hibernate.criterion.Criterion;
 import org.hibernate.criterion.Restrictions;
 import org.openmrs.Order;
 import org.openmrs.OrderType;
-import org.openmrs.api.OrderService;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
@@ -35,10 +31,6 @@ import static org.hibernate.criterion.Restrictions.*;
 @Component
 @Primary
 public class BahmniFhirServiceRequestDaoImpl extends BahmniBaseFhirDao<Order> implements BahmniFhirServiceRequestDao<Order> {
-	
-	@Autowired
-	@Setter(value = AccessLevel.PACKAGE)
-	private OrderService orderService;
 	
 	@Override
 	public boolean hasDistinctResults() {
@@ -74,7 +66,14 @@ public class BahmniFhirServiceRequestDaoImpl extends BahmniBaseFhirDao<Order> im
 	public Order createOrUpdate(@Nonnull Order newEntry) {
 		if (newEntry.getOrderType().getUuid().equals(OrderType.DRUG_ORDER_TYPE_UUID))
 			throw new InvalidRequestException("Drug Orders cannot be submitted through ServiceRequest ");
-		return orderService.saveOrder(newEntry, null);
+
+		/*
+		 * TODO: Revert this back to use orderService.saveOrder once this JIRA changes are backported into 2.5.x and 2.6.x on OpenMRS Core
+		 * JIRA: https://openmrs.atlassian.net/browse/TRUNK-6534
+		 * Core PR: https://github.com/openmrs/openmrs-core/pull/5736
+		 * This has been done to support creation of linked orders
+		 */
+		return super.createOrUpdate(newEntry);
 	}
 	
 	@Override
