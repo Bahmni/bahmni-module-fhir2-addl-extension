@@ -17,4 +17,7 @@ public interface BahmniFhirServiceRequestDao<T extends OpenmrsObject & Auditable
 	@Authorized({ "Edit Orders" })
 	T updateOrder(T order);
 	
+	@Authorized({ "Add Orders", "Edit Orders" })
+	void linkOrder(T order, T previousOrder);
+	
 }
