@@ -6,19 +6,20 @@ import org.hl7.fhir.r4.model.Appointment;
 import org.hl7.fhir.r4.model.Appointment.AppointmentParticipantComponent;
 import org.hl7.fhir.r4.model.Appointment.ParticipationStatus;
 import org.openmrs.module.fhir2.api.translators.LocationReferenceTranslator;
+import org.openmrs.Provider;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
 import static org.apache.commons.lang3.Validate.notNull;
-import static org.openmrs.module.fhir2.api.translators.impl.FhirTranslatorUtils.getLastUpdated;
-import static org.openmrs.module.fhir2.api.translators.impl.FhirTranslatorUtils.getVersionId;
 
 @Component
 public class BahmniFhirAppointmentTranslatorImpl implements BahmniFhirAppointmentTranslator {
@@ -27,7 +28,8 @@ public class BahmniFhirAppointmentTranslatorImpl implements BahmniFhirAppointmen
 	private PatientReferenceTranslator patientReferenceTranslator;
 	
 	@Autowired
-	private PractitionerReferenceTranslator practitionerReferenceTranslator;
+	@Qualifier("practitionerReferenceTranslatorProviderImpl")
+	private PractitionerReferenceTranslator<Provider> practitionerReferenceTranslator;
 	
 	@Autowired
 	private LocationReferenceTranslator locationReferenceTranslator;
@@ -77,9 +79,13 @@ public class BahmniFhirAppointmentTranslatorImpl implements BahmniFhirAppointmen
 
 		fhirAppointment.setParticipant(participants);
 
-		// Metadata
-		fhirAppointment.getMeta().setLastUpdated(getLastUpdated(bahmniAppointment));
-		fhirAppointment.getMeta().setVersionId(getVersionId(bahmniAppointment));
+		// Metadata - handle safely without relying on Auditable interface
+		Date lastUpdated = bahmniAppointment.getDateChanged() != null
+			? bahmniAppointment.getDateChanged()
+			: bahmniAppointment.getDateCreated();
+		if (lastUpdated != null) {
+			fhirAppointment.getMeta().setLastUpdated(lastUpdated);
+		}
 
 		return fhirAppointment;
 	}
