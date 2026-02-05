@@ -9,6 +9,8 @@ import org.openmrs.module.fhir2.api.translators.LocationReferenceTranslator;
 import org.openmrs.Provider;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
+import org.openmrs.module.appointments.model.AppointmentProvider;
+import org.openmrs.module.appointments.model.AppointmentProviderResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -61,13 +63,33 @@ public class BahmniFhirAppointmentTranslatorImpl implements BahmniFhirAppointmen
 			participants.add(patientParticipant);
 		});
 
-		// Provider/Practitioner participant
-		Optional.ofNullable(bahmniAppointment.getProvider()).ifPresent(provider -> {
-			AppointmentParticipantComponent practitionerParticipant = new AppointmentParticipantComponent();
-			practitionerParticipant.setActor(practitionerReferenceTranslator.toFhirResource(provider));
-			practitionerParticipant.setStatus(ParticipationStatus.ACCEPTED);
-			participants.add(practitionerParticipant);
-		});
+		// Provider/Practitioner participants - handle multiple providers (current approach)
+		Optional.ofNullable(bahmniAppointment.getProviders())
+			.filter(providers -> !providers.isEmpty())
+			.ifPresent(appointmentProviders -> {
+				appointmentProviders.stream()
+					.filter(ap -> ap != null && ap.getProvider() != null)
+					.forEach(appointmentProvider -> {
+						AppointmentParticipantComponent practitionerParticipant = new AppointmentParticipantComponent();
+						practitionerParticipant.setActor(
+							practitionerReferenceTranslator.toFhirResource(appointmentProvider.getProvider())
+						);
+						practitionerParticipant.setStatus(
+							mapProviderResponseToParticipationStatus(appointmentProvider.getResponse())
+						);
+						participants.add(practitionerParticipant);
+					});
+			});
+
+		// Fallback to single provider (legacy) if no providers were added
+		if (participants.stream().noneMatch(p -> p.getActor() != null && "Practitioner".equals(p.getActor().getType()))) {
+			Optional.ofNullable(bahmniAppointment.getProvider()).ifPresent(provider -> {
+				AppointmentParticipantComponent practitionerParticipant = new AppointmentParticipantComponent();
+				practitionerParticipant.setActor(practitionerReferenceTranslator.toFhirResource(provider));
+				practitionerParticipant.setStatus(ParticipationStatus.ACCEPTED);
+				participants.add(practitionerParticipant);
+			});
+		}
 
 		// Location participant
 		Optional.ofNullable(bahmniAppointment.getLocation()).ifPresent(location -> {
@@ -93,5 +115,21 @@ public class BahmniFhirAppointmentTranslatorImpl implements BahmniFhirAppointmen
 	@Override
 	public org.openmrs.module.appointments.model.Appointment toOpenmrsType(@Nonnull Appointment fhirAppointment) {
 		throw new UnsupportedOperationException("Appointment resource is read-only via FHIR API");
+	}
+	
+	private ParticipationStatus mapProviderResponseToParticipationStatus(AppointmentProviderResponse response) {
+		if (response == null) {
+			return ParticipationStatus.NEEDSACTION;
+		}
+		switch (response) {
+			case ACCEPTED:
+				return ParticipationStatus.ACCEPTED;
+			case CANCELLED:
+			case REJECTED:
+				return ParticipationStatus.DECLINED;
+			case AWAITING:
+			default:
+				return ParticipationStatus.NEEDSACTION;
+		}
 	}
 }
