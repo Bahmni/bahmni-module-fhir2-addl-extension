@@ -40,6 +40,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Nonnull;
+import java.io.Serializable;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -48,6 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -146,7 +149,7 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 			throw new InvalidRequestException(REPORT_MUST_HAVE_VALID_PATIENT_REFERENCE);
 		}
 		Function<String, Optional<Observation>> obsLocator = referenceId -> BahmniFhirUtils.findResourceInBundle(bundle, referenceId, Observation.class);
-		validateResults(report, report.getSubject(), obsLocator);
+		//validateResults(report, report.getSubject(), obsLocator);
 
 		List<Order> basedOnOrders = identifyOrders(report);
 		Function<String, Optional<Encounter>> bundleEncounterLocator = referenceId -> BahmniFhirUtils.findResourceInBundle(bundle, referenceId, Encounter.class);
@@ -208,26 +211,57 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		}
 		return encounter;
 	}
-	
+
+	/**
+	 * This method validates all report.result observations.
+	 * The validation includes checking the presence of the observation resource in the bundle or the system,
+	 * and validating the patient reference in the observation matches with the report's subject reference.
+	 * @param diagnosticReport
+	 * @param encounterReference
+	 * @param bundledObsLocator
+	 * @param basedOnOrders
+	 * @return
+	 */
 	private Map<String, Reference> createResultObservations(DiagnosticReport diagnosticReport,
 															Reference encounterReference,
-															Function<String, Optional<Observation>> obsLocator,
+															Function<String, Optional<Observation>> bundledObsLocator,
 															List<Order> basedOnOrders) {
-		List<Observation> resultResources = diagnosticReport.getResult().stream().map(reference -> {
-			IBaseResource res = reference.getResource();
-			if (res != null) {
-				return (Observation) res;
+		Map<Observation, String> resultObservationReferenceMap = new HashMap<>();
+		List<String> preExistingObservationIds = new ArrayList<>();
+		diagnosticReport.getResult().forEach(result -> {
+			IBaseResource res = result.getResource();
+			Optional<String> refResultId = BahmniFhirUtils.referenceToId(result.getReference());
+			if (!refResultId.isPresent()) {
+				throw new InvalidRequestException(INVALID_RESULT_OBSERVATION_REFERENCE);
 			}
-			Optional<String> refResultId = BahmniFhirUtils.referenceToId(reference.getReference());
-			return obsLocator.apply(refResultId.get()).orElse(null);
-		}).filter(Objects::nonNull).collect(Collectors.toList());
+			Observation existing = findExistingObservation(refResultId.get());
+			if (existing != null) {
+				preExistingObservationIds.add(existing.getId());
+			}
+			if (res != null) {
+				resultObservationReferenceMap.put((Observation) res, refResultId.get());
+				validatePatientReference(diagnosticReport.getSubject(), (Observation) res);
+			} else {
+				// the report.result reference may be an existing observation that is not part of the bundle,
+				// or a new observation that is part of the bundle. We need to check both places before erroring out
+				Observation resource = bundledObsLocator.apply(refResultId.get()).orElse(existing);
+				if (resource == null) {
+					log.error(INVALID_REFERENCED_OBSERVATION_RESOURCE);
+					System.out.println(INVALID_REFERENCED_OBSERVATION_RESOURCE);
+				}
+				validatePatientReference(diagnosticReport.getSubject(), resource);
+				resultObservationReferenceMap.put(resource, refResultId.orElse(null));
+			}
+		});
+		List<Observation> resultResources = new ArrayList<>(resultObservationReferenceMap.keySet());
 
 		Function<String, Optional<Order>> orderReferenceLocator = orderUuid -> basedOnOrders.stream().filter(order -> order.getUuid().equals(orderUuid)).findFirst();
 
 		List<Observation> sortedObservations = ConsultationBundleEntriesHelper.sortObservationsByDepth(resultResources);
 		Map<String, Reference> observationsReferenceMap = new HashMap<>();
 		for (Observation observation : sortedObservations) {
-			String obsEntryId = BahmniFhirUtils.extractId(observation.getIdElement().getValue());
+			String resourceId = Optional.ofNullable(observation.getIdElement().getValue()).orElseGet(() -> resultObservationReferenceMap.get(observation));
+			String obsEntryId = BahmniFhirUtils.extractId(resourceId);
 			observation.setEncounter(encounterReference);
 			if (observation.hasBasedOn()) {
 				Optional<Order> applicableOrder = orderReferenceLocator.apply(FhirUtils.referenceToId(observation.getBasedOnFirstRep().getReference()).orElse(""));
@@ -248,12 +282,26 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 					}
 				}
 			});
-			Observation newObservation = fhirObservationService.create(observation);
-			Reference newObsReference = new Reference().setReference(FhirConstants.OBSERVATION + "/" + newObservation.getId()).setType(FhirConstants.OBSERVATION);
-			newObsReference.setResource(newObservation);
-			observationsReferenceMap.put(obsEntryId, newObsReference);
+
+			Observation persistedObservation = preExistingObservationIds.contains(obsEntryId)
+					? fhirObservationService.update(obsEntryId, observation)
+					: fhirObservationService.create(observation);
+			Reference persistedObsReference = new Reference().setReference(FhirConstants.OBSERVATION + "/" + persistedObservation.getId()).setType(FhirConstants.OBSERVATION);
+			persistedObsReference.setResource(persistedObservation);
+			observationsReferenceMap.put(obsEntryId, persistedObsReference);
 		}
 		return observationsReferenceMap;
+	}
+	
+	private Observation findExistingObservation(String uuid) {
+		try {
+			return fhirObservationService.get(uuid);
+		}
+		catch (ResourceNotFoundException e) {
+			// No existing observation found, will create a new one
+			log.debug("No existing observation found with UUID: " + uuid);
+		}
+		return null;
 	}
 	
 	private Reference findOrCreateReferencedEncounterResource(DiagnosticReport diagnosticReport, Function<String, Optional<Encounter>> encounterLocator) {
@@ -320,39 +368,7 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		});
 		return serviceRequests;
 	}
-	
-	private void validateResults(DiagnosticReport diagnosticReport, Reference patientReference, Function<String, Optional<Observation>> bundledObservationLocator) {
-		if (!diagnosticReport.hasPresentedForm()
-				&& !diagnosticReport.hasResult()
-				&& !DiagnosticReportValidator.DIAGNOSTIC_REPORT_DRAFT_STATES.contains(diagnosticReport.getStatus())) {
-			log.error(RESULT_OR_PRESENTED_FORM_REQUIRED);
-			throw new InvalidRequestException(RESULT_OR_PRESENTED_FORM_REQUIRED);
-		}
-		if (diagnosticReport.hasResult()) {
-			diagnosticReport.getResult().forEach(resultRef -> {
-				Observation referencedResource = (Observation) resultRef.getResource();
-				if (referencedResource != null) {
-					validatePatientReference(patientReference, referencedResource);
-					return;
-				}
-				Optional<String> refResultId = BahmniFhirUtils.referenceToId(resultRef.getReference());
-				if (!refResultId.isPresent()) {
-					throw new InvalidRequestException(INVALID_RESULT_OBSERVATION_REFERENCE);
-				}
 
-				referencedResource = bundledObservationLocator
-						.apply(refResultId.get())
-						.orElseGet(() -> fhirObservationService.get(refResultId.get()));
-
-				if (referencedResource == null) {
-					log.error(INVALID_REFERENCED_OBSERVATION_RESOURCE);
-					System.out.println(INVALID_REFERENCED_OBSERVATION_RESOURCE);
-				}
-				validatePatientReference(patientReference, referencedResource);
-			});
-		}
-	}
-	
 	private void validatePatientReference(Reference patientReference, Observation observation) {
 		boolean sameRef = observation.getSubject().getReference().equals(patientReference.getReference());
 		if (!sameRef) {
@@ -362,7 +378,19 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 	}
 	
 	/**
-	 * Patches a DiagnosticReportBundle
+	 * Patches a DiagnosticReportBundle The "temporaryIds" to insert reference array elements and
+	 * subsequently removing them post applying patch is done to resolve array element patch error
+	 * while applying JSON PATCH, and erroring with "parent of node to add does not exist" This
+	 * happens when the patch process can't find a array key in the resource to begin with, so it
+	 * doesn't know where to "hang" the new array element. In FHIR, if a field is empty, it is
+	 * typically omitted from the JSON representation entirely. JSON Patch (RFC 6902) requires that
+	 * the parent object of the target must exist for an add operation to work on a specific index
+	 * or the - (end of list) character. In HAPI FHIR (and the FHIR specification in general), if a
+	 * list is empty, the HAPI serializers treat it as non-existent. When HAPI converts your
+	 * DiagnosticReport POJO to a JSON string or a parse-tree to apply that patch, it skips any
+	 * field where isEmpty() is true. Even if we do report.setPresentedForm(new ArrayList<>()), the
+	 * resulting JSON will not contain a "presentedForm": [] key. Consequently, the JSON Patch
+	 * engine sees a missing node and throws the "parent of node to add does not exist" error.
 	 * 
 	 * @param uuid the UUID of the bundle to patch
 	 * @param patchType the type of patch (only JSON_PATCH supported)
@@ -390,11 +418,12 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		diagnosticReportBundlePatchValidator.validateNotInTerminalState(existingReport);
 		
 		// Step 3: Apply JSON Patch to the bundle
+		List<String> tempUuidList = addTemporaryArrayElementsIfEmpty(existingReport);
 		DiagnosticReportBundle patchedBundle = applyJsonPatchToBundle(existingBundle, body, requestDetails);
-		
 		// Step 4: Extract patched report from bundle
 		DiagnosticReport patchedReport = getReportFromBundle(patchedBundle);
-		
+		removeTemporaryArrayElements(tempUuidList, patchedReport);
+
 		// Step 5: Validate patch changes (immutability rules)
 		diagnosticReportBundlePatchValidator.validatePatchChanges(existingReport, patchedReport);
 		
@@ -428,6 +457,53 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		FhirDiagnosticReportExt diagnosticReportExt = diagnosticReportTranslator.toOpenmrsType(patchedReport);
 		
 		return getTranslator().toFhirResource(getDao().createOrUpdate(diagnosticReportExt));
+	}
+	
+	private void removeTemporaryArrayElements(List<String> tempUuidList, DiagnosticReport patchedReport) {
+		if (patchedReport.hasBasedOn()) {
+			// Remove temporary basedOn reference if it exists
+			patchedReport.getBasedOn().removeIf(ref -> tempUuidList.contains(ref.getReference()));
+		}
+		if (patchedReport.hasResult()) {
+			// Remove temporary result reference if it exists
+			patchedReport.getResult().removeIf(ref -> tempUuidList.contains(ref.getReference()));
+		}
+		if (patchedReport.hasPresentedForm()) {
+			// Remove temporary presented form if it exists
+			patchedReport.getPresentedForm().removeIf(attachment -> tempUuidList.contains(attachment.getUrl()));
+		}
+		if (patchedReport.hasPerformer()) {
+			// Remove temporary performer reference if it exists
+			patchedReport.getPerformer().removeIf(ref -> tempUuidList.contains(ref.getReference()));
+		}
+	}
+	
+	private List<String> addTemporaryArrayElementsIfEmpty(DiagnosticReport existingReport) {
+		List<String> tempUuidList = new ArrayList<>();
+		if (!existingReport.hasBasedOn()) {
+			String tempBasedOnId = UUID.randomUUID().toString();
+			existingReport.addBasedOn().setReference("ServiceRequest/" + tempBasedOnId);
+			tempUuidList.add("ServiceRequest/" + tempBasedOnId);
+		}
+
+		if (!existingReport.hasResult()) {
+			String tempResultObsRef = "Observation/" + UUID.randomUUID().toString();
+			existingReport.addResult(new Reference(tempResultObsRef));
+			tempUuidList.add(tempResultObsRef);
+		}
+
+		if (!existingReport.hasPresentedForm()) {
+			String tempPresentedFormId = UUID.randomUUID().toString();
+			existingReport.addPresentedForm().setUrl("urn:uuid:" + tempPresentedFormId);
+			tempUuidList.add("urn:uuid:" + tempPresentedFormId);
+		}
+
+		if (!existingReport.hasPerformer()) {
+			String tempPerformerId = UUID.randomUUID().toString();
+			existingReport.addPerformer().setReference("Practitioner/" + tempPerformerId);
+			tempUuidList.add("Practitioner/" + tempPerformerId);
+		}
+		return tempUuidList;
 	}
 	
 	/**
@@ -543,8 +619,7 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		// Create new result observations
 		Function<String, Optional<Observation>> obsLocator = 
 			referenceId -> BahmniFhirUtils.findResourceInBundle(bundle, referenceId, Observation.class);
-		validateResults(newReport, newReport.getSubject(), obsLocator);
-		
+
 		Map<String, Reference> obsReferenceMap = createResultObservations(
 			newReport,
 			existingReport.getEncounter(), // Use existing (immutable) encounter
@@ -568,16 +643,10 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		
 		// Step 17: Convert to OpenMRS entity and save (reusing existing UUID and ID)
 		FhirDiagnosticReportExt updatedEntity = diagnosticReportTranslator.toOpenmrsType(existingEntity, newReport);
-//		updatedEntity.setUuid(uuid); // Preserve UUID for update
-//		updatedEntity.setId(existingEntity.getId()); // Preserve DB ID
-
 		return getTranslator().toFhirResource(dao.createOrUpdate(updatedEntity));
 	}
 	
 	private void purgeExistingBasedOn(FhirDiagnosticReportExt existingEntity) {
-		//		if (existingReport.hasBasedOn()) {
-		//			existingReport.getBasedOn().clear();
-		//		}
 		existingEntity.getOrders().clear();
 	}
 	
@@ -585,29 +654,10 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 	 * Voids all existing result observations and clears references
 	 */
 	private void purgeExistingResults(FhirDiagnosticReportExt existingEntity) {
-//		List<String> resultUuids = existingReport.getResult().stream()
-//			.map(ref -> FhirUtils.referenceToId(ref.getReference()).orElse(null))
-//			.filter(Objects::nonNull)
-//			.collect(Collectors.toList());
-
 		existingEntity.getResults().forEach(obs -> {
 			fhirObservationService.delete(obs.getUuid());
 		});
 		existingEntity.getResults().clear();
-		
-//		// Void each observation (soft delete for audit trail)
-//		for (String obsUuid : resultUuids) {
-//			try {
-//				fhirObservationService.delete(obsUuid);
-//				log.debug("Voided observation: {}", obsUuid);
-//			} catch (Exception e) {
-//				log.error("Failed to void observation: {}", obsUuid, e);
-//				throw new InvalidRequestException("Failed to purge existing result observation: " + obsUuid, e);
-//			}
-//		}
-//
-//		// Clear result references from report
-//		existingReport.getResult().clear();
 	}
 	
 	/**
@@ -615,13 +665,10 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 	 */
 	private void purgeExistingAttachments(FhirDiagnosticReportExt existingEntity) {
 		// Clear presentedForm attachments
-		// Note: Actual deletion logic depends on how attachments are implemented
-		// This should hard delete from document_attachment table
-		//		if (existingReport.hasPresentedForm()) {
-		//			existingReport.getPresentedForm().clear();
-		//		}
 		// TODO: Implement actual deletion from document_attachment table via DAO when attachment feature is implemented
-		// In actual operation, the attachment deletion may be handled in backoffice process.
+		// Note, in actual operation, the attachment deletion may be handled in backoffice process, and the attachment
+		// records may be retained for audit/history purposes with a voided flag, rather than hard deleted.
+		// This is a design decision to be made.
 		existingEntity.getPresentedForms().clear();
 	}
 	

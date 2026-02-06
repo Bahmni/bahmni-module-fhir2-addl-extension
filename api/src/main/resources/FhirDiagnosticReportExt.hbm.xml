@@ -30,7 +30,7 @@
         <!-- Status - Enumerated type -->
         <property name="status" column="status" not-null="true">
             <type name="org.hibernate.type.EnumType">
-                <param name="enumClass">org.openmrs.module.fhir2.model.FhirDiagnosticReport$DiagnosticReportStatus</param>
+                <param name="enumClass">org.bahmni.module.fhir2AddlExtension.api.model.FhirDiagnosticReportExt$DiagnosticReportStatusExt</param>
                 <param name="useNamed">true</param>
             </type>
         </property>
