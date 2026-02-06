@@ -2,6 +2,7 @@ package org.bahmni.module.fhir2AddlExtension.api.dao.impl;
 
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirAppointmentDao;
 import org.hibernate.Criteria;
+import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Restrictions;
 import org.openmrs.module.appointments.model.Appointment;
 import org.openmrs.module.appointments.model.AppointmentStatus;
@@ -10,6 +11,8 @@ import org.openmrs.module.fhir2.api.dao.impl.BaseFhirDao;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.springframework.stereotype.Component;
 
+import ca.uhn.fhir.rest.api.SortOrderEnum;
+import ca.uhn.fhir.rest.api.SortSpec;
 import ca.uhn.fhir.rest.param.DateRangeParam;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.TokenAndListParam;
@@ -87,6 +90,47 @@ public class BahmniFhirAppointmentDaoImpl extends BaseFhirDao<Appointment> imple
 				catch (IllegalArgumentException e) {
 					return null;
 				}
+		}
+	}
+	
+	@Override
+	protected void handleSort(Criteria criteria, SortSpec sortSpec) {
+		if (sortSpec == null) {
+			return;
+		}
+		
+		for (SortSpec sort = sortSpec; sort != null; sort = sort.getChain()) {
+			String paramName = sort.getParamName();
+			
+			// Map FHIR sort parameter name to Appointment property name
+			String propertyName = mapSortParamToProperty(paramName);
+			
+			if (propertyName != null) {
+				if (SortOrderEnum.DESC.equals(sort.getOrder())) {
+					criteria.addOrder(Order.desc(propertyName));
+				} else {
+					// Default to ascending order
+					criteria.addOrder(Order.asc(propertyName));
+				}
+			}
+		}
+	}
+	
+	private String mapSortParamToProperty(String paramName) {
+		// Map FHIR sort parameter names to Appointment entity property names
+		if (paramName == null) {
+			return null;
+		}
+		
+		switch (paramName) {
+			case "date":
+				return "startDateTime";
+			case "status":
+				return "status";
+			case "patient":
+				return "patient";
+			default:
+				return null;
 		}
 	}
 }
