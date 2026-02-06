@@ -5,6 +5,9 @@ import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirAppointment
 import org.hl7.fhir.r4.model.Appointment;
 import org.hl7.fhir.r4.model.Appointment.AppointmentParticipantComponent;
 import org.hl7.fhir.r4.model.Appointment.ParticipationStatus;
+import org.hl7.fhir.r4.model.CodeableConcept;
+import org.hl7.fhir.r4.model.Coding;
+import org.hl7.fhir.r4.model.Identifier;
 import org.openmrs.module.fhir2.api.translators.LocationReferenceTranslator;
 import org.openmrs.Provider;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
@@ -50,7 +53,43 @@ public class BahmniFhirAppointmentTranslatorImpl implements BahmniFhirAppointmen
 		fhirAppointment.setStatus(appointmentStatusTranslator.toFhirResource(bahmniAppointment.getStatus()));
 		fhirAppointment.setStart(bahmniAppointment.getStartDateTime());
 		fhirAppointment.setEnd(bahmniAppointment.getEndDateTime());
-		fhirAppointment.setDescription(bahmniAppointment.getComments());
+
+		// Appointment identifier/number
+		Optional.ofNullable(bahmniAppointment.getAppointmentNumber()).ifPresent(appointmentNumber -> {
+			fhirAppointment.addIdentifier()
+				.setSystem("urn:system:bahmni:appointments")
+				.setValue(appointmentNumber);
+		});
+
+		// Comments mapped to comment field (FHIR R4 Appointment - for additional comments/notes)
+		Optional.ofNullable(bahmniAppointment.getComments()).ifPresent(fhirAppointment::setComment);
+
+		// Service Type mapping
+		Optional.ofNullable(bahmniAppointment.getService()).ifPresent(service -> {
+			CodeableConcept serviceType = new CodeableConcept();
+			// Add the service name as text display
+			serviceType.setText(service.getName());
+			// Add coding with custom system for Bahmni services
+			Coding serviceCoding = new Coding()
+				.setSystem("urn:system:bahmni:appointment-services")
+				.setCode(service.getName())
+				.setDisplay(service.getName());
+			serviceType.addCoding(serviceCoding);
+			fhirAppointment.addServiceType(serviceType);
+
+			// If service has a specific service type, add it as additional coding
+			Optional.ofNullable(service.getServiceTypes()).ifPresent(serviceTypes -> {
+				if (!serviceTypes.isEmpty()) {
+					serviceTypes.stream().findFirst().ifPresent(serviceTypeObj -> {
+						Coding serviceTypeCoding = new Coding()
+							.setSystem("urn:system:bahmni:appointment-service-types")
+							.setCode(serviceTypeObj.getName())
+							.setDisplay(serviceTypeObj.getName());
+						serviceType.addCoding(serviceTypeCoding);
+					});
+				}
+			});
+		});
 
 		// Participants
 		List<AppointmentParticipantComponent> participants = new ArrayList<>();
