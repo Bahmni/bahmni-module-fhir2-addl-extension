@@ -9,7 +9,6 @@ import org.hibernate.Criteria;
 import org.hibernate.Session;
 import org.hibernate.criterion.Criterion;
 import org.hibernate.criterion.Restrictions;
-import org.hibernate.query.Query;
 import org.openmrs.Order;
 import org.openmrs.OrderType;
 import org.openmrs.api.OrderService;
@@ -81,26 +80,6 @@ public class BahmniFhirServiceRequestDaoImpl extends BahmniBaseFhirDao<Order> im
 	@Override
 	public Order updateOrder(Order order) {
 		return (Order) getSessionFactory().getCurrentSession().merge(order);
-	}
-	
-	/*
-	 TODO: Remove this method once the openmrs validation for linked orders is fixed and Bahmni is upgraded
-	 Reference: https://talk.openmrs.org/t/issue-with-creating-linked-orders-in-openmrs/48198
-	 * Links an order to its previous order using HQL. This bypasses OpenMRS Order validation that
-	 * prevents setting previousOrder directly on new orders during the save operation.
-	 */
-	@Override
-	public void linkOrder(Order order, Order previousOrder) {
-		if (order == null || previousOrder == null) {
-			return;
-		}
-		Session currentSession = getSessionFactory().getCurrentSession();
-		Query<?> query = currentSession.createQuery("UPDATE Order SET previousOrder = :previousOrder WHERE id = :orderId");
-		query.setParameter("previousOrder", previousOrder);
-		query.setParameter("orderId", order.getOrderId());
-		query.executeUpdate();
-		//This is needed to update hibernate cache so that the order translation to fhir resource sends the basedon reference
-		currentSession.refresh(order);
 	}
 	
 	@Override

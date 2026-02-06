@@ -14,7 +14,6 @@ import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.bahmni.module.fhir2AddlExtension.api.context.AppContext;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
 import org.bahmni.module.fhir2AddlExtension.api.dao.OrderAttributeTypeDao;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
 import org.hamcrest.Matchers;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.CodeableConcept;
@@ -126,10 +125,7 @@ public class BahmniFhirServiceRequestServiceImplTest {
 
     @Mock
     AppContext appContext;
-
-	@Mock
-	BahmniOrderReferenceTranslator bahmniOrderReferenceTranslator;
-
+	
 	private BahmniFhirServiceRequestServiceImpl serviceRequestService;
 	
 	private ServiceRequest fhirServiceRequest;
@@ -161,7 +157,6 @@ public class BahmniFhirServiceRequestServiceImplTest {
 		serviceRequestService.setTranslator(translator);
 		serviceRequestService.setSearchQuery(searchQuery);
 		serviceRequestService.setSearchQueryInclude(searchQueryInclude);
-		serviceRequestService.setBahmniOrderReferenceTranslator(bahmniOrderReferenceTranslator);
 		user = exampleUser();
 
         when(appContext.getCurrentUser()).thenReturn(user);
@@ -848,140 +843,5 @@ public class BahmniFhirServiceRequestServiceImplTest {
 		SearchParameterMap actualMap = mapCaptor.getValue();
 		Object revIncludesParam = actualMap.getParameters(FhirConstants.REVERSE_INCLUDE_SEARCH_HANDLER);
 		assertThat(revIncludesParam, anyOf(nullValue(), equalTo(Collections.emptyList())));
-	}
-
-	@Test
-	public void createServiceRequest_shouldLinkOrderWhenBasedOnIsPresent() {
-		OrderType labOrderType = new OrderType();
-		labOrderType.setUuid("lab-order-type-uuid");
-		labOrderType.setName("Lab Order");
-
-		Order order = new Order();
-		order.setUuid(SERVICE_REQUEST_UUID);
-		order.setOrderType(labOrderType);
-
-		Order previousOrder = new Order();
-		previousOrder.setUuid("previous-order-uuid");
-		previousOrder.setOrderType(labOrderType);
-
-		ServiceRequest serviceRequest = exampleServiceRequest();
-		Reference basedOnRef = new Reference();
-		basedOnRef.setReference("ServiceRequest/previous-order-uuid");
-		basedOnRef.setType("ServiceRequest");
-		serviceRequest.addBasedOn(basedOnRef);
-
-		when(translator.toOpenmrsType(serviceRequest)).thenReturn(order);
-		when(dao.createOrUpdate(order)).thenReturn(order);
-		when(bahmniOrderReferenceTranslator.toOpenmrsType(basedOnRef)).thenReturn(previousOrder);
-		when(translator.toFhirResource(order)).thenReturn(fhirServiceRequest);
-
-		ServiceRequest result = serviceRequestService.create(serviceRequest);
-
-		assertThat(result, notNullValue());
-		verify(dao).linkOrder(order, previousOrder);
-	}
-
-	@Test(expected = InvalidRequestException.class)
-	public void createServiceRequest_shouldThrowExceptionWhenMultipleBasedOnReferencesArePresent() {
-		OrderType labOrderType = new OrderType();
-		labOrderType.setUuid("lab-order-type-uuid");
-		labOrderType.setName("Lab Order");
-
-		Order order = new Order();
-		order.setUuid(SERVICE_REQUEST_UUID);
-		order.setOrderType(labOrderType);
-
-		ServiceRequest serviceRequest = exampleServiceRequest();
-		Reference basedOnRef1 = new Reference();
-		basedOnRef1.setReference("ServiceRequest/previous-order-uuid-1");
-		basedOnRef1.setType("ServiceRequest");
-		serviceRequest.addBasedOn(basedOnRef1);
-
-		Reference basedOnRef2 = new Reference();
-		basedOnRef2.setReference("ServiceRequest/previous-order-uuid-2");
-		basedOnRef2.setType("ServiceRequest");
-		serviceRequest.addBasedOn(basedOnRef2);
-
-		when(translator.toOpenmrsType(serviceRequest)).thenReturn(order);
-		when(dao.createOrUpdate(order)).thenReturn(order);
-
-		serviceRequestService.create(serviceRequest);
-	}
-
-	@Test(expected = InvalidRequestException.class)
-	public void createServiceRequest_shouldThrowExceptionWhenReferencedOrderNotFound() {
-		OrderType labOrderType = new OrderType();
-		labOrderType.setUuid("lab-order-type-uuid");
-		labOrderType.setName("Lab Order");
-
-		Order order = new Order();
-		order.setUuid(SERVICE_REQUEST_UUID);
-		order.setOrderType(labOrderType);
-
-		ServiceRequest serviceRequest = exampleServiceRequest();
-		Reference basedOnRef = new Reference();
-		basedOnRef.setReference("ServiceRequest/non-existent-order-uuid");
-		basedOnRef.setType("ServiceRequest");
-		serviceRequest.addBasedOn(basedOnRef);
-
-		when(translator.toOpenmrsType(serviceRequest)).thenReturn(order);
-		when(dao.createOrUpdate(order)).thenReturn(order);
-		when(bahmniOrderReferenceTranslator.toOpenmrsType(basedOnRef)).thenReturn(null);
-
-		serviceRequestService.create(serviceRequest);
-	}
-
-	@Test(expected = InvalidRequestException.class)
-	public void createServiceRequest_shouldThrowExceptionWhenOrderTypesDoNotMatch() {
-		OrderType labOrderType = new OrderType();
-		labOrderType.setUuid("lab-order-type-uuid");
-		labOrderType.setName("Lab Order");
-
-		OrderType radiologyOrderType = new OrderType();
-		radiologyOrderType.setUuid("radiology-order-type-uuid");
-		radiologyOrderType.setName("Radiology Order");
-
-		Order order = new Order();
-		order.setUuid(SERVICE_REQUEST_UUID);
-		order.setOrderType(labOrderType);
-
-		Order previousOrder = new Order();
-		previousOrder.setUuid("previous-order-uuid");
-		previousOrder.setOrderType(radiologyOrderType);
-
-		ServiceRequest serviceRequest = exampleServiceRequest();
-		Reference basedOnRef = new Reference();
-		basedOnRef.setReference("ServiceRequest/previous-order-uuid");
-		basedOnRef.setType("ServiceRequest");
-		serviceRequest.addBasedOn(basedOnRef);
-
-		when(translator.toOpenmrsType(serviceRequest)).thenReturn(order);
-		when(dao.createOrUpdate(order)).thenReturn(order);
-		when(bahmniOrderReferenceTranslator.toOpenmrsType(basedOnRef)).thenReturn(previousOrder);
-
-		serviceRequestService.create(serviceRequest);
-	}
-
-	@Test
-	public void createServiceRequest_shouldNotLinkOrderWhenBasedOnIsEmpty() {
-		OrderType labOrderType = new OrderType();
-		labOrderType.setUuid("lab-order-type-uuid");
-		labOrderType.setName("Lab Order");
-
-		Order order = new Order();
-		order.setUuid(SERVICE_REQUEST_UUID);
-		order.setOrderType(labOrderType);
-
-		ServiceRequest serviceRequest = exampleServiceRequest();
-		// No basedOn reference set
-
-		when(translator.toOpenmrsType(serviceRequest)).thenReturn(order);
-		when(dao.createOrUpdate(order)).thenReturn(order);
-		when(translator.toFhirResource(order)).thenReturn(fhirServiceRequest);
-
-		ServiceRequest result = serviceRequestService.create(serviceRequest);
-
-		assertThat(result, notNullValue());
-		verify(dao, times(0)).linkOrder(any(), any());
 	}
 }
