@@ -99,6 +99,11 @@ public class BahmniFhirAppointmentDaoImpl extends BaseFhirDao<Appointment> imple
 			return;
 		}
 		
+		// FHIR Sort Convention:
+		// _sort=date     → Ascending order (earliest first)
+		// _sort=-date    → Descending order (latest first)
+		// Prefix "-" indicates descending/reverse order
+		
 		for (SortSpec sort = sortSpec; sort != null; sort = sort.getChain()) {
 			String paramName = sort.getParamName();
 			
@@ -107,9 +112,10 @@ public class BahmniFhirAppointmentDaoImpl extends BaseFhirDao<Appointment> imple
 			
 			if (propertyName != null) {
 				if (SortOrderEnum.DESC.equals(sort.getOrder())) {
+					// "-" prefix means descending order
 					criteria.addOrder(Order.desc(propertyName));
 				} else {
-					// Default to ascending order
+					// Default to ascending order (no prefix or "+" prefix)
 					criteria.addOrder(Order.asc(propertyName));
 				}
 			}
