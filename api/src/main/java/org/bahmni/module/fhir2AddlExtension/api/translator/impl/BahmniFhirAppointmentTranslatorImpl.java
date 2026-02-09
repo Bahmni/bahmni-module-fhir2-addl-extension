@@ -15,7 +15,6 @@ import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 import org.openmrs.module.appointments.model.AppointmentProvider;
 import org.openmrs.module.appointments.model.AppointmentProviderResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
@@ -29,18 +28,23 @@ import static org.apache.commons.lang3.Validate.notNull;
 @Component
 public class BahmniFhirAppointmentTranslatorImpl implements BahmniFhirAppointmentTranslator {
 	
-	@Autowired
-	private PatientReferenceTranslator patientReferenceTranslator;
+	private final PatientReferenceTranslator patientReferenceTranslator;
+	
+	private final PractitionerReferenceTranslator<Provider> practitionerReferenceTranslator;
+	
+	private final LocationReferenceTranslator locationReferenceTranslator;
+	
+	private final AppointmentStatusTranslator appointmentStatusTranslator;
 	
 	@Autowired
-	@Qualifier("practitionerReferenceTranslatorProviderImpl")
-	private PractitionerReferenceTranslator<Provider> practitionerReferenceTranslator;
-	
-	@Autowired
-	private LocationReferenceTranslator locationReferenceTranslator;
-	
-	@Autowired
-	private AppointmentStatusTranslator appointmentStatusTranslator;
+	public BahmniFhirAppointmentTranslatorImpl(PatientReferenceTranslator patientReferenceTranslator,
+	    PractitionerReferenceTranslator<Provider> practitionerReferenceTranslator,
+	    LocationReferenceTranslator locationReferenceTranslator, AppointmentStatusTranslator appointmentStatusTranslator) {
+		this.patientReferenceTranslator = patientReferenceTranslator;
+		this.practitionerReferenceTranslator = practitionerReferenceTranslator;
+		this.locationReferenceTranslator = locationReferenceTranslator;
+		this.appointmentStatusTranslator = appointmentStatusTranslator;
+	}
 	
 	@Override
 	public Appointment toFhirResource(@Nonnull org.openmrs.module.appointments.model.Appointment bahmniAppointment) {
