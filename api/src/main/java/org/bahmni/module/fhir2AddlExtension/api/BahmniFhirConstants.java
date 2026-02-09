@@ -58,4 +58,9 @@ public final class BahmniFhirConstants {
 	public static final String INCLUDE_BASED_ON_PARAM = "basedon";
 	public static final String IMAGING_STUDY = "ImagingStudy";
 	public static final String APPOINTMENT = "Appointment";
+
+	// Appointment System URIs
+	public static final String BAHMNI_APPOINTMENT_SYSTEM = "urn:system:bahmni:appointments";
+	public static final String BAHMNI_APPOINTMENT_SERVICE_SYSTEM = "urn:system:bahmni:appointment-services";
+	public static final String BAHMNI_APPOINTMENT_SERVICE_TYPE_SYSTEM = "urn:system:bahmni:appointment-service-types";
 }

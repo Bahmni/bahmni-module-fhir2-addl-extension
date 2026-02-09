@@ -1,5 +1,6 @@
 package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
 
+import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
 import org.bahmni.module.fhir2AddlExtension.api.translator.AppointmentStatusTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirAppointmentTranslator;
 import org.hl7.fhir.r4.model.Appointment;
@@ -61,7 +62,7 @@ public class BahmniFhirAppointmentTranslatorImpl implements BahmniFhirAppointmen
 		// Appointment identifier/number
 		Optional.ofNullable(bahmniAppointment.getAppointmentNumber()).ifPresent(appointmentNumber -> {
 			fhirAppointment.addIdentifier()
-				.setSystem("urn:system:bahmni:appointments")
+				.setSystem(BahmniFhirConstants.BAHMNI_APPOINTMENT_SYSTEM)
 				.setValue(appointmentNumber);
 		});
 
@@ -75,7 +76,7 @@ public class BahmniFhirAppointmentTranslatorImpl implements BahmniFhirAppointmen
 			serviceType.setText(service.getName());
 			// Add coding with custom system for Bahmni services
 			Coding serviceCoding = new Coding()
-				.setSystem("urn:system:bahmni:appointment-services")
+				.setSystem(BahmniFhirConstants.BAHMNI_APPOINTMENT_SERVICE_SYSTEM)
 				.setCode(service.getName())
 				.setDisplay(service.getName());
 			serviceType.addCoding(serviceCoding);
@@ -86,7 +87,7 @@ public class BahmniFhirAppointmentTranslatorImpl implements BahmniFhirAppointmen
 				if (!serviceTypes.isEmpty()) {
 					serviceTypes.stream().findFirst().ifPresent(serviceTypeObj -> {
 						Coding serviceTypeCoding = new Coding()
-							.setSystem("urn:system:bahmni:appointment-service-types")
+							.setSystem(BahmniFhirConstants.BAHMNI_APPOINTMENT_SERVICE_TYPE_SYSTEM)
 							.setCode(serviceTypeObj.getName())
 							.setDisplay(serviceTypeObj.getName());
 						serviceType.addCoding(serviceTypeCoding);

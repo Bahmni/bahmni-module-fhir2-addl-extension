@@ -5,13 +5,11 @@ import org.hl7.fhir.r4.model.Appointment;
 import org.openmrs.module.appointments.model.AppointmentStatus;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Nonnull;
-
 @Component
 public class AppointmentStatusTranslatorImpl implements AppointmentStatusTranslator {
 	
 	@Override
-	public Appointment.AppointmentStatus toFhirResource(@Nonnull AppointmentStatus bahmniStatus) {
+	public Appointment.AppointmentStatus toFhirResource(AppointmentStatus bahmniStatus) {
 		if (bahmniStatus == null) {
 			return Appointment.AppointmentStatus.PENDING;
 		}
@@ -34,7 +32,7 @@ public class AppointmentStatusTranslatorImpl implements AppointmentStatusTransla
 	}
 	
 	@Override
-	public AppointmentStatus toOpenmrsType(@Nonnull Appointment.AppointmentStatus fhirStatus) {
+	public AppointmentStatus toOpenmrsType(Appointment.AppointmentStatus fhirStatus) {
 		if (fhirStatus == null) {
 			return AppointmentStatus.Requested;
 		}
