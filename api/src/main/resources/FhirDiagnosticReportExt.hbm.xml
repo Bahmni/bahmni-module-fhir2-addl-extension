@@ -28,7 +28,7 @@
         <property name="voidReason" type="string" column="void_reason" length="255"/>
 
         <!-- Status - Enumerated type -->
-        <property name="status" column="status" not-null="true">
+        <property name="statusExt" column="status" not-null="true">
             <type name="org.hibernate.type.EnumType">
                 <param name="enumClass">org.bahmni.module.fhir2AddlExtension.api.model.FhirDiagnosticReportExt$DiagnosticReportStatusExt</param>
                 <param name="useNamed">true</param>

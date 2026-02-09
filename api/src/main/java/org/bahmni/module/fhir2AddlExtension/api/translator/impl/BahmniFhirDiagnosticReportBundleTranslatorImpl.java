@@ -7,8 +7,10 @@ import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirDiagnosticR
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirDiagnosticReportTranslator;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.DiagnosticReport;
+import org.hl7.fhir.r4.model.Meta;
 import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Resource;
+import org.hl7.fhir.r4.model.StringType;
 import org.openmrs.Obs;
 import org.openmrs.Provider;
 import org.openmrs.module.fhir2.api.translators.ObservationTranslator;
@@ -36,9 +38,14 @@ public class BahmniFhirDiagnosticReportBundleTranslatorImpl implements BahmniFhi
 	}
 	
 	@Override
-	public DiagnosticReportBundle toFhirResource(@Nonnull FhirDiagnosticReportExt report) {
+	public Bundle toFhirResource(@Nonnull FhirDiagnosticReportExt report) {
 		String fhirServerBase = RequestContextHolder.getValue();
-		DiagnosticReportBundle reportBundle = new DiagnosticReportBundle();
+		Bundle reportBundle = new Bundle();
+		reportBundle.setId(report.getUuid());
+		reportBundle.setMeta(new Meta());
+		reportBundle.getMeta().setLastUpdated(report.getDateChanged());
+		reportBundle.setType(Bundle.BundleType.COLLECTION);
+
 		DiagnosticReport diagnosticReport = diagnosticReportTranslator.toFhirResource(report);
 
 		Bundle.BundleEntryComponent reportEntry = new Bundle.BundleEntryComponent();
@@ -64,18 +71,20 @@ public class BahmniFhirDiagnosticReportBundleTranslatorImpl implements BahmniFhi
 	}
 	
 	private String getFullUrlForEntry(Resource resource, String fhirServerBase) {
-		String serverBase = fhirServerBase != null && !fhirServerBase.isEmpty() ? fhirServerBase.concat("/") : "urn:uuid:";
-		return serverBase.concat(resource.getResourceType().name()).concat("/").concat(resource.getId());
+		if (fhirServerBase != null && !fhirServerBase.isEmpty()) {
+			return fhirServerBase.concat("/").concat(resource.getResourceType().name()).concat("/").concat(resource.getId());
+		} else {
+			return "urn:uuid:".concat(resource.getId());
+		}
 	}
 	
 	@Override
-	public FhirDiagnosticReportExt toOpenmrsType(@Nonnull DiagnosticReportBundle resource) {
+	public FhirDiagnosticReportExt toOpenmrsType(@Nonnull Bundle resource) {
 		return null;
 	}
 	
 	@Override
-	public FhirDiagnosticReportExt toOpenmrsType(@Nonnull FhirDiagnosticReportExt existingObject,
-	        @Nonnull DiagnosticReportBundle resource) {
+	public FhirDiagnosticReportExt toOpenmrsType(@Nonnull FhirDiagnosticReportExt existingObject, @Nonnull Bundle resource) {
 		return null;
 	}
 }

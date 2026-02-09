@@ -3,11 +3,12 @@ package org.bahmni.module.fhir2AddlExtension.api.service;
 import ca.uhn.fhir.rest.api.PatchTypeEnum;
 import ca.uhn.fhir.rest.api.server.RequestDetails;
 import org.bahmni.module.fhir2AddlExtension.api.domain.DiagnosticReportBundle;
+import org.hl7.fhir.r4.model.Bundle;
 import org.openmrs.module.fhir2.api.FhirService;
 
 import javax.annotation.Nonnull;
 
-public interface BahmniFhirDiagnosticReportBundleService extends FhirService<DiagnosticReportBundle> {
+public interface BahmniFhirDiagnosticReportBundleService extends FhirService<Bundle> {
 	
 	/**
 	 * Patches a DiagnosticReportBundle
@@ -18,8 +19,7 @@ public interface BahmniFhirDiagnosticReportBundleService extends FhirService<Dia
 	 * @param requestDetails the request details
 	 * @return the patched DiagnosticReportBundle
 	 */
-	DiagnosticReportBundle patch(@Nonnull String uuid, @Nonnull PatchTypeEnum patchType, @Nonnull String body,
-	        RequestDetails requestDetails);
+	Bundle patch(@Nonnull String uuid, @Nonnull PatchTypeEnum patchType, @Nonnull String body, RequestDetails requestDetails);
 	
 	/**
 	 * Updates a DiagnosticReportBundle using PUT semantics (complete replacement) All mutable
@@ -32,5 +32,5 @@ public interface BahmniFhirDiagnosticReportBundleService extends FhirService<Dia
 	 * @param bundle the complete replacement bundle
 	 * @return the updated DiagnosticReportBundle
 	 */
-	DiagnosticReportBundle update(@Nonnull String uuid, @Nonnull DiagnosticReportBundle bundle);
+	Bundle update(@Nonnull String uuid, @Nonnull Bundle bundle);
 }

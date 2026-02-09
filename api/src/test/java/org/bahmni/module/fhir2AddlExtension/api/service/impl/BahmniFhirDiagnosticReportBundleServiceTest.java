@@ -18,7 +18,6 @@ import com.github.fge.jsonpatch.JsonPatchException;
 import org.bahmni.module.fhir2AddlExtension.api.context.AppContext;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirDiagnosticReportDao;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
-import org.bahmni.module.fhir2AddlExtension.api.domain.DiagnosticReportBundle;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDiagnosticReportExt;
 import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirDiagnosticReportBundleService;
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirDiagnosticReportBundleTranslator;
@@ -30,6 +29,7 @@ import org.bahmni.module.fhir2AddlExtension.api.validators.impl.DiagnosticReport
 import org.bahmni.module.fhir2AddlExtension.api.validators.impl.DiagnosticReportValidatorImpl;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Attachment;
+import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.DiagnosticReport;
 import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Parameters;
@@ -109,7 +109,7 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 	SearchQueryInclude<DiagnosticReport> searchQueryInclude;
 	
 	@Mock
-	SearchQuery<FhirDiagnosticReportExt, DiagnosticReportBundle, BahmniFhirDiagnosticReportDao, BahmniFhirDiagnosticReportBundleTranslator, SearchQueryInclude<DiagnosticReportBundle>> searchQuery;
+	SearchQuery<FhirDiagnosticReportExt, Bundle, BahmniFhirDiagnosticReportDao, BahmniFhirDiagnosticReportBundleTranslator, SearchQueryInclude<Bundle>> searchQuery;
 	
 	@Mock
 	BahmniFhirServiceRequestDao<Order> serviceRequestDao;
@@ -175,14 +175,14 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 	
 	@Test
     public void shouldNotCreateReportWithMissingPatientReference() throws IOException {
-        DiagnosticReportBundle reportBundle = loadDiagnosticReportWithEncounterReference();
+        Bundle reportBundle = loadDiagnosticReportWithEncounterReference();
         InvalidRequestException exception = assertThrows(InvalidRequestException.class, () -> diagnosticReportBundleService.create(reportBundle));
         assertEquals("Diagnostic Report must have valid patient reference", exception.getMessage());
     }
 	
 	@Test
     public void shouldNotCreateReportWithMissingServiceRequestReference() throws IOException {
-        DiagnosticReportBundle reportBundle = loadDiagnosticReportWithEncounterReference();
+        Bundle reportBundle = loadDiagnosticReportWithEncounterReference();
         org.openmrs.Patient patient = examplePatient("fa2a71fd-895d-428f-8245-dcb4f0664b60");
         when(patientReferenceTranslator.toOpenmrsType(
                 argThat(reference -> reference.getReference().equals("Patient/fa2a71fd-895d-428f-8245-dcb4f0664b60"))
@@ -193,7 +193,7 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 	
 	@Test
     public void shouldNotCreateReportWithNonExistentEncounterReference() throws IOException {
-        DiagnosticReportBundle reportBundle = loadDiagnosticReportWithEncounterReference();
+        Bundle reportBundle = loadDiagnosticReportWithEncounterReference();
         org.openmrs.Patient patient = examplePatient("fa2a71fd-895d-428f-8245-dcb4f0664b60");
         when(patientReferenceTranslator.toOpenmrsType(
                 argThat(reference -> reference.getReference().equals("Patient/fa2a71fd-895d-428f-8245-dcb4f0664b60"))
@@ -209,7 +209,7 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 	
 	@Test
     public void shouldResolveResultObservationAndCreateReport() throws IOException {
-        DiagnosticReportBundle reportBundle = loadDiagnosticReportBundle("example-diagnostic-report-bundle-with-encounter-reference-nested-results.json");
+        Bundle reportBundle = loadDiagnosticReportBundle("example-diagnostic-report-bundle-with-encounter-reference-nested-results.json");
         org.openmrs.Patient patient = examplePatient("fa2a71fd-895d-428f-8245-dcb4f0664b60");
         Encounter encounter = exampleEncounter("81db700c-93f5-4b04-b9ae-d162a775da84", patient);
         when(patientReferenceTranslator.toOpenmrsType(
@@ -241,7 +241,7 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 	
 	@Test
 	public void shouldCreateReportWithBundledEncounterResourceAndUpdateObservationEncounterReference() throws IOException {
-		DiagnosticReportBundle reportBundle = loadDiagnosticReportBundle("example-diagnostic-report-bundle-with-encounter-resource.json");
+		Bundle reportBundle = loadDiagnosticReportBundle("example-diagnostic-report-bundle-with-encounter-resource.json");
 		org.openmrs.Patient patient = examplePatient("fa2a71fd-895d-428f-8245-dcb4f0664b60");
 		Encounter encounter = exampleEncounter("81db700c-93f5-4b04-b9ae-d162a775da84", patient);
 		when(patientReferenceTranslator.toOpenmrsType(
@@ -292,7 +292,7 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 	
 	@Test
 	public void shouldCreateValidateObservationReferenceInDiagnosticReport() throws IOException {
-		DiagnosticReportBundle reportBundle = loadDiagnosticReportBundle("example-diagnostic-report-with-encounter-and-service-request-reference-and-result-observation.json");
+		Bundle reportBundle = loadDiagnosticReportBundle("example-diagnostic-report-with-encounter-and-service-request-reference-and-result-observation.json");
 		org.openmrs.Patient patient = examplePatient("23a8371b-df7a-47c7-a015-b24198392cfa");
 		Encounter encounter = exampleEncounter("a60c4455-b27a-4704-a6ea-3354081d269c", patient);
 		when(patientReferenceTranslator.toOpenmrsType(
@@ -321,13 +321,13 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 	}
 	
 	/**
-	 * experiment with using FHIRPath to apply a patch to a DiagnosticReport Bundle resource, as an
-	 * alternative to JSON Patch
+	 * TODO remove experiment with using FHIRPath to apply a patch to a DiagnosticReport Bundle
+	 * resource, as an alternative to JSON Patch
 	 * 
 	 * @throws IOException
 	 */
-	public void shouldTestFhirPathPatchForBundle() throws IOException {
-		DiagnosticReportBundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
+	public void debugTestFhirPathPatchForBundle() throws IOException {
+		Bundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
 		String patchBody = loadPatchJson("patch-diagnostic-bundle-add-attachment-fhir-path.json");
 		FhirContext ctx = ca.uhn.fhir.context.FhirContext.forR4();
 		Parameters patch = ctx.newJsonParser().parseResource(Parameters.class, patchBody);
@@ -360,19 +360,28 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 	
 	// ========== ⌄ DIAGNOSTIC REPORT PATCH TESTS ⌄ ==========
 	
+	//TODO remove
 	@Test
-	public void shouldApplyPatchOnDiagnosticReportWithJSONPatchRequest() throws IOException {
-		DiagnosticReportBundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
+	public void debugPatchOnDiagnosticReportWithJSONPatchRequest() throws IOException {
+		Bundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
 		String patchBody = loadPatchJson("patch-diagnostic-bundle-add-observation.json");
 		
 		// Use openmrs fhir2 JsonPatchUtils static method
-		DiagnosticReportBundle reportBundle = applyJsonPatch(fhirContext, existingBundle, patchBody);
+		Bundle reportBundle = applyJsonPatch(fhirContext, existingBundle, patchBody);
 		
 		List<DiagnosticReport> diagnosticReports = BahmniFhirUtils.findResourcesOfTypeInBundle(reportBundle,
 		    DiagnosticReport.class);
 		assertFalse(diagnosticReports.isEmpty());
 		System.out.println(reportBundle.getEntry().get(0).getFullUrl());
 		System.out.println(diagnosticReports.get(0).getIdElement());
+
+		BahmniFhirUtils.findResourcesOfTypeInBundle(reportBundle, Observation.class).forEach(observation -> {
+			System.out.println("Observation ID: " + observation.getIdElement());
+		});
+
+		reportBundle.getEntry().stream().filter(entry -> entry.getResource() instanceof Observation).forEach(entry -> {
+			System.out.println("Observation Entry Full URL: " + entry.getFullUrl());
+		});
 	}
 	
 	public static <T extends IBaseResource> T applyJsonPatch(FhirContext theCtx, T theResourceToUpdate,
@@ -428,7 +437,7 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 	@Test
 	public void shouldSuccessfullyPatchDiagnosticReportBundleWithNewObservation() throws IOException {
 		// Setup: Existing bundle
-		DiagnosticReportBundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
+		Bundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
 		String bundleUuid = "report-bundle-123";
 		FhirDiagnosticReportExt existingReportEntity = new FhirDiagnosticReportExt();
 		existingReportEntity.setUuid(bundleUuid);
@@ -478,7 +487,7 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 		when(observationService.update(eq("obs-1"), any(Observation.class))).thenReturn(preExistingResultObs);
 		
 		// Execute patch
-		DiagnosticReportBundle result = diagnosticReportBundleService.patch(bundleUuid, PatchTypeEnum.JSON_PATCH, 
+		Bundle result = diagnosticReportBundleService.patch(bundleUuid, PatchTypeEnum.JSON_PATCH,
 				patchBody, requestDetails);
 		
 		// Verify
@@ -491,7 +500,7 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 	@Test
 	public void shouldSuccessfullyPatchDiagnosticReportBundleWithPresentedForm() throws IOException {
 		// Setup: Existing bundle
-		DiagnosticReportBundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
+		Bundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
 		String bundleUuid = "report-bundle-123";
 		
 		// Load patch
@@ -528,7 +537,7 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 		when(requestDetails.getFhirContext()).thenReturn(ca.uhn.fhir.context.FhirContext.forR4());
 		
 		// Execute patch
-		DiagnosticReportBundle result = diagnosticReportBundleService.patch(bundleUuid, PatchTypeEnum.JSON_PATCH, 
+		Bundle result = diagnosticReportBundleService.patch(bundleUuid, PatchTypeEnum.JSON_PATCH,
 				patchBody, requestDetails);
 		
 		// Verify
@@ -542,7 +551,7 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 	@Test
 	public void shouldRejectPatchWithInvalidPatientChange() throws IOException {
 		// Setup: Existing bundle
-		DiagnosticReportBundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
+		Bundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
 		String bundleUuid = "report-bundle-123";
 		FhirDiagnosticReportExt existingReportEntity = new FhirDiagnosticReportExt();
 		existingReportEntity.setUuid(bundleUuid);
@@ -569,7 +578,7 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 	@Test
 	public void shouldRejectPatchWithInvalidBasedOnRemoval() throws IOException {
 		// Setup: Existing bundle
-		DiagnosticReportBundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
+		Bundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
 		String bundleUuid = "report-bundle-123";
 		FhirDiagnosticReportExt existingReportEntity = new FhirDiagnosticReportExt();
 		existingReportEntity.setUuid(bundleUuid);
@@ -596,7 +605,7 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 	@Test
 	public void shouldRejectPatchForReportInTerminalState() throws IOException {
 		// Setup: Existing bundle with final status
-		DiagnosticReportBundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
+		Bundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
 		DiagnosticReport report = BahmniFhirUtils.findResourcesOfTypeInBundle(existingBundle, DiagnosticReport.class).get(0);
 		report.setStatus(DiagnosticReport.DiagnosticReportStatus.CANCELLED);
 		
@@ -633,7 +642,7 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 		ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, 
 				() -> diagnosticReportBundleService.patch(bundleUuid, PatchTypeEnum.JSON_PATCH, patchBody, requestDetails));
 		
-		assertTrue(exception.getMessage().contains("Resource of type DiagnosticReportBundle with ID non-existent-uuid is not known"));
+		assertTrue(exception.getMessage().contains("Resource of type Bundle with ID non-existent-uuid is not known"));
 		verify(bahmniFhirDiagnosticReportDao, never()).createOrUpdate(any(FhirDiagnosticReportExt.class));
 	}
 	
@@ -659,11 +668,11 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 	@Test
 	public void shouldSuccessfullyUpdateDiagnosticReportBundleWithCompleteReplacement() throws IOException {
 		// Setup: Existing bundle
-		DiagnosticReportBundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
+		Bundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
 		String bundleUuid = "report-bundle-123";
 		
 		// Load updated bundle with completely new data
-		DiagnosticReportBundle updatedBundle = loadDiagnosticReportBundle("update-diagnostic-bundle-valid-replacement.json");
+		Bundle updatedBundle = loadDiagnosticReportBundle("update-diagnostic-bundle-valid-replacement.json");
 		
 		FhirDiagnosticReportExt existingReport = new FhirDiagnosticReportExt();
 		existingReport.setUuid(bundleUuid);
@@ -711,7 +720,7 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 		when(diagnosticReportTranslator.toOpenmrsType(any(FhirDiagnosticReportExt.class), any(DiagnosticReport.class))).thenReturn(savedReport);
 		
 		// Execute update
-		DiagnosticReportBundle result = diagnosticReportBundleService.update(bundleUuid, updatedBundle);
+		Bundle result = diagnosticReportBundleService.update(bundleUuid, updatedBundle);
 		
 		// Verify
 		assertNotNull(result);
@@ -730,11 +739,11 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 	@Test
 	public void shouldRejectUpdateWhenPatientReferenceChanges() throws IOException {
 		// Setup: Existing bundle
-		DiagnosticReportBundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
+		Bundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
 		String bundleUuid = "report-bundle-123";
 		
 		// Load bundle with different patient
-		DiagnosticReportBundle updatedBundle = loadDiagnosticReportBundle("update-diagnostic-bundle-invalid-patient-change.json");
+		Bundle updatedBundle = loadDiagnosticReportBundle("update-diagnostic-bundle-invalid-patient-change.json");
 		
 		FhirDiagnosticReportExt existingReport = new FhirDiagnosticReportExt();
 		existingReport.setUuid(bundleUuid);
@@ -757,11 +766,11 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 	@Test
 	public void shouldRejectUpdateWhenEncounterReferenceChanges() throws IOException {
 		// Setup: Existing bundle
-		DiagnosticReportBundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
+		Bundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
 		String bundleUuid = "report-bundle-123";
 		
 		// Load bundle with different encounter
-		DiagnosticReportBundle updatedBundle = loadDiagnosticReportBundle("update-diagnostic-bundle-invalid-encounter-change.json");
+		Bundle updatedBundle = loadDiagnosticReportBundle("update-diagnostic-bundle-invalid-encounter-change.json");
 		
 		FhirDiagnosticReportExt existingReport = new FhirDiagnosticReportExt();
 		existingReport.setUuid(bundleUuid);
@@ -784,12 +793,12 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 	@Test
 	public void shouldRejectUpdateForReportInTerminalState() throws IOException {
 		// Setup: Existing bundle with cancelled status
-		DiagnosticReportBundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
+		Bundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
 		DiagnosticReport report = BahmniFhirUtils.findResourcesOfTypeInBundle(existingBundle, DiagnosticReport.class).get(0);
 		report.setStatus(DiagnosticReport.DiagnosticReportStatus.CANCELLED);
 		
 		String bundleUuid = "report-bundle-123";
-		DiagnosticReportBundle updatedBundle = loadDiagnosticReportBundle("update-diagnostic-bundle-valid-replacement.json");
+		Bundle updatedBundle = loadDiagnosticReportBundle("update-diagnostic-bundle-valid-replacement.json");
 		
 		FhirDiagnosticReportExt existingReport = new FhirDiagnosticReportExt();
 		existingReport.setUuid(bundleUuid);
@@ -811,7 +820,7 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 	@Test
 	public void shouldThrowResourceNotFoundWhenUpdatingNonExistentBundle() throws IOException {
 		String bundleUuid = "non-existent-uuid";
-		DiagnosticReportBundle updatedBundle = loadDiagnosticReportBundle("update-diagnostic-bundle-valid-replacement.json");
+		Bundle updatedBundle = loadDiagnosticReportBundle("update-diagnostic-bundle-valid-replacement.json");
 		
 		// Mock get to return null
 		//when(bahmniFhirDiagnosticReportBundleTranslator.toFhirResource(any())).thenReturn(null);
@@ -827,10 +836,10 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 	@Test
 	public void shouldVoidOldObservationsWhenUpdating() throws IOException {
 		// Setup: Existing bundle with observations
-		DiagnosticReportBundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
+		Bundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
 		String bundleUuid = "report-bundle-123";
 		
-		DiagnosticReportBundle updatedBundle = loadDiagnosticReportBundle("update-diagnostic-bundle-valid-replacement.json");
+		Bundle updatedBundle = loadDiagnosticReportBundle("update-diagnostic-bundle-valid-replacement.json");
 		
 		FhirDiagnosticReportExt existingReport = new FhirDiagnosticReportExt();
 		existingReport.setUuid(bundleUuid);
@@ -874,11 +883,11 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 	@Test
 	public void shouldPreserveUuidAndIdWhenUpdating() throws IOException {
 		// Setup
-		DiagnosticReportBundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
+		Bundle existingBundle = loadDiagnosticReportBundle("diagnostic-report-bundle-for-patch-existing.json");
 		String bundleUuid = "report-bundle-123";
 		Integer existingDbId = 98765;
 		
-		DiagnosticReportBundle updatedBundle = loadDiagnosticReportBundle("update-diagnostic-bundle-valid-replacement.json");
+		Bundle updatedBundle = loadDiagnosticReportBundle("update-diagnostic-bundle-valid-replacement.json");
 		
 		FhirDiagnosticReportExt existingReport = new FhirDiagnosticReportExt();
 		existingReport.setUuid(bundleUuid);
@@ -964,8 +973,8 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 		return existingEncounter;
 	}
 	
-	private DiagnosticReportBundle loadDiagnosticReportWithEncounterReference() throws IOException {
-		DiagnosticReportBundle reportBundle = loadDiagnosticReportBundle("example-diagnostic-report-bundle-with-encounter-reference.json");
+	private Bundle loadDiagnosticReportWithEncounterReference() throws IOException {
+		Bundle reportBundle = loadDiagnosticReportBundle("example-diagnostic-report-bundle-with-encounter-reference.json");
 		Optional<DiagnosticReport> diagnosticReport = findFirstResourceOfTypeInBundle(reportBundle,
 		    FhirConstants.DIAGNOSTIC_REPORT);
 		assertTrue(diagnosticReport.isPresent());
@@ -973,7 +982,7 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 		return reportBundle;
 	}
 	
-	private <T> Optional<T> findFirstResourceOfTypeInBundle(DiagnosticReportBundle bundle, String resourceType) {
+	private <T> Optional<T> findFirstResourceOfTypeInBundle(Bundle bundle, String resourceType) {
         return bundle.getEntry().stream()
                 .filter(entry -> entry.getResource().getResourceType().name().equals(resourceType))
                 .findFirst().map(entry -> (T) entry.getResource());

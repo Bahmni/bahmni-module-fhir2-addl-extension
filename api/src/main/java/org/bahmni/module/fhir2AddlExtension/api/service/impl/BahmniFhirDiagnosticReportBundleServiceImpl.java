@@ -6,7 +6,6 @@ import ca.uhn.fhir.rest.api.server.RequestDetails;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirDiagnosticReportDao;
-import org.bahmni.module.fhir2AddlExtension.api.domain.DiagnosticReportBundle;
 import org.bahmni.module.fhir2AddlExtension.api.helper.ConsultationBundleEntriesHelper;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDiagnosticReportExt;
 import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirDiagnosticReportBundleService;
@@ -19,6 +18,7 @@ import org.bahmni.module.fhir2AddlExtension.api.validators.DiagnosticReportBundl
 import org.bahmni.module.fhir2AddlExtension.api.validators.DiagnosticReportBundleUpdateValidator;
 import org.bahmni.module.fhir2AddlExtension.api.validators.DiagnosticReportValidator;
 import org.hl7.fhir.instance.model.api.IBaseResource;
+import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.DiagnosticReport;
 import org.hl7.fhir.r4.model.Encounter;
 import org.hl7.fhir.r4.model.Observation;
@@ -40,15 +40,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Nonnull;
-import java.io.Serializable;
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
@@ -56,7 +53,7 @@ import java.util.stream.Collectors;
 
 @Component
 @Transactional
-public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService<DiagnosticReportBundle, FhirDiagnosticReportExt> implements BahmniFhirDiagnosticReportBundleService {
+public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService<Bundle, FhirDiagnosticReportExt> implements BahmniFhirDiagnosticReportBundleService {
 	
 	public static final String BUNDLE_MUST_HAVE_DIAGNOSTIC_REPORT = "A bundle containing Diagnostic Report must be supplied";
 	
@@ -84,7 +81,7 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 	
 	private final SearchQueryInclude<DiagnosticReport> searchQueryInclude;
 	
-	private final SearchQuery<FhirDiagnosticReportExt, DiagnosticReportBundle, BahmniFhirDiagnosticReportDao, BahmniFhirDiagnosticReportBundleTranslator, SearchQueryInclude<DiagnosticReportBundle>> searchQuery;
+	private final SearchQuery<FhirDiagnosticReportExt, Bundle, BahmniFhirDiagnosticReportDao, BahmniFhirDiagnosticReportBundleTranslator, SearchQueryInclude<Bundle>> searchQuery;
 	
 	private final DiagnosticReportValidator diagnosticReportValidator;
 	
@@ -109,7 +106,7 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 	    BahmniFhirDiagnosticReportDao dao,
 	    BahmniFhirDiagnosticReportBundleTranslator translator,
 	    SearchQueryInclude<DiagnosticReport> searchQueryInclude,
-	    SearchQuery<FhirDiagnosticReportExt, DiagnosticReportBundle, BahmniFhirDiagnosticReportDao, BahmniFhirDiagnosticReportBundleTranslator, SearchQueryInclude<DiagnosticReportBundle>> searchQuery,
+	    SearchQuery<FhirDiagnosticReportExt, Bundle, BahmniFhirDiagnosticReportDao, BahmniFhirDiagnosticReportBundleTranslator, SearchQueryInclude<Bundle>> searchQuery,
 	    DiagnosticReportValidator diagnosticReportValidator,
 	    DiagnosticReportBundlePatchValidator diagnosticReportBundlePatchValidator,
 	    DiagnosticReportBundleUpdateValidator diagnosticReportBundleUpdateValidator,
@@ -137,7 +134,7 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 	 * @return created bundle containing diagnostic report and result observations
 	 */
 	@Override
-	public DiagnosticReportBundle create(@Nonnull DiagnosticReportBundle bundle) {
+	public Bundle create(@Nonnull Bundle bundle) {
 		if (bundle == null) {
 			log.error(BUNDLE_MUST_HAVE_DIAGNOSTIC_REPORT);
 			throw new InvalidRequestException(BUNDLE_MUST_HAVE_DIAGNOSTIC_REPORT);
@@ -177,7 +174,7 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 	 * @return identified report from entries
 	 * @throws InvalidRequestException if there are no report or more than 1 in the bundle
 	 */
-	private DiagnosticReport getReportFromBundle(DiagnosticReportBundle bundle) throws InvalidRequestException {
+	private DiagnosticReport getReportFromBundle(Bundle bundle) throws InvalidRequestException {
 		List<DiagnosticReport> reportsInBundle = BahmniFhirUtils.findResourcesOfTypeInBundle(bundle, DiagnosticReport.class);
 		if (reportsInBundle == null || reportsInBundle.isEmpty()) {
 			log.error(BUNDLE_MUST_HAVE_DIAGNOSTIC_REPORT);
@@ -211,11 +208,12 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		}
 		return encounter;
 	}
-
+	
 	/**
-	 * This method validates all report.result observations.
-	 * The validation includes checking the presence of the observation resource in the bundle or the system,
-	 * and validating the patient reference in the observation matches with the report's subject reference.
+	 * This method validates all report.result observations. The validation includes checking the
+	 * presence of the observation resource in the bundle or the system, and validating the patient
+	 * reference in the observation matches with the report's subject reference.
+	 * 
 	 * @param diagnosticReport
 	 * @param encounterReference
 	 * @param bundledObsLocator
@@ -368,7 +366,7 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		});
 		return serviceRequests;
 	}
-
+	
 	private void validatePatientReference(Reference patientReference, Observation observation) {
 		boolean sameRef = observation.getSubject().getReference().equals(patientReference.getReference());
 		if (!sameRef) {
@@ -399,7 +397,7 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 	 * @return the patched DiagnosticReportBundle
 	 */
 	@Override
-	public DiagnosticReportBundle patch(@Nonnull String uuid, @Nonnull PatchTypeEnum patchType, 
+	public Bundle patch(@Nonnull String uuid, @Nonnull PatchTypeEnum patchType,
 	                                     @Nonnull String body, RequestDetails requestDetails) {
 		// Only JSON Patch is supported
 		if (patchType != PatchTypeEnum.JSON_PATCH) {
@@ -407,7 +405,7 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		}
 		
 		// Step 1: Retrieve existing bundle
-		DiagnosticReportBundle existingBundle = get(uuid);
+		Bundle existingBundle = get(uuid);
 		if (existingBundle == null) {
 			throw new ResourceNotFoundException("DiagnosticReportBundle with UUID " + uuid + " not found");
 		}
@@ -419,7 +417,7 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		
 		// Step 3: Apply JSON Patch to the bundle
 		List<String> tempUuidList = addTemporaryArrayElementsIfEmpty(existingReport);
-		DiagnosticReportBundle patchedBundle = applyJsonPatchToBundle(existingBundle, body, requestDetails);
+		Bundle patchedBundle = applyJsonPatchToBundle(existingBundle, body, requestDetails);
 		// Step 4: Extract patched report from bundle
 		DiagnosticReport patchedReport = getReportFromBundle(patchedBundle);
 		removeTemporaryArrayElements(tempUuidList, patchedReport);
@@ -453,6 +451,7 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		}
 		
 		// Step 10: Validate and save updated report
+		patchedReport.setId(existingReport.getId());
 		diagnosticReportValidator.validate(patchedReport);
 		FhirDiagnosticReportExt diagnosticReportExt = diagnosticReportTranslator.toOpenmrsType(patchedReport);
 		
@@ -509,13 +508,11 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 	/**
 	 * Applies JSON Patch to a bundle using openmrs fhir2 JsonPatchUtils
 	 */
-	private DiagnosticReportBundle applyJsonPatchToBundle(DiagnosticReportBundle existingBundle, String patchBody,
-	        RequestDetails requestDetails) {
+	private Bundle applyJsonPatchToBundle(Bundle existingBundle, String patchBody, RequestDetails requestDetails) {
 		try {
 			FhirContext ctx = requestDetails.getFhirContext();
 			// Use openmrs fhir2 JsonPatchUtils static method
-			return (DiagnosticReportBundle) org.openmrs.module.fhir2.api.util.JsonPatchUtils.applyJsonPatch(ctx,
-			    existingBundle, patchBody);
+			return (Bundle) org.openmrs.module.fhir2.api.util.JsonPatchUtils.applyJsonPatch(ctx, existingBundle, patchBody);
 		}
 		catch (Exception e) {
 			log.error("Error applying JSON patch to DiagnosticReportBundle", e);
@@ -580,14 +577,14 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 	 * @return the updated DiagnosticReportBundle
 	 */
 	@Override
-	public DiagnosticReportBundle update(@Nonnull String uuid, @Nonnull DiagnosticReportBundle bundle) {
+	public Bundle update(@Nonnull String uuid, @Nonnull Bundle bundle) {
 		if (bundle == null) {
 			log.error(BUNDLE_MUST_HAVE_DIAGNOSTIC_REPORT);
 			throw new InvalidRequestException(BUNDLE_MUST_HAVE_DIAGNOSTIC_REPORT);
 		}
 		
 		// Step 1-2: Retrieve existing bundle and extract report
-		DiagnosticReportBundle existingBundle = get(uuid);
+		Bundle existingBundle = get(uuid);
 		if (existingBundle == null) {
 			throw new ResourceNotFoundException("DiagnosticReportBundle with UUID " + uuid + " not found");
 		}
@@ -603,11 +600,11 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		diagnosticReportBundleUpdateValidator.validateUpdateChanges(existingReport, newReport);
 		
 		// Step 6-8: PURGE existing data
-		FhirDiagnosticReportExt existingEntity = dao.get(uuid);
+		FhirDiagnosticReportExt existingEntity = getDao().get(uuid);
 		purgeExistingResults(existingEntity);
 		purgeExistingAttachments(existingEntity);
 		purgeExistingBasedOn(existingEntity);
-		dao.createOrUpdate(existingEntity);
+		getDao().createOrUpdate(existingEntity);
 
 		// Step 11-15: UPDATE with new data
 		// Preserve encounter (immutable)
@@ -643,7 +640,7 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		
 		// Step 17: Convert to OpenMRS entity and save (reusing existing UUID and ID)
 		FhirDiagnosticReportExt updatedEntity = diagnosticReportTranslator.toOpenmrsType(existingEntity, newReport);
-		return getTranslator().toFhirResource(dao.createOrUpdate(updatedEntity));
+		return getTranslator().toFhirResource(getDao().createOrUpdate(updatedEntity));
 	}
 	
 	private void purgeExistingBasedOn(FhirDiagnosticReportExt existingEntity) {
@@ -678,7 +675,7 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 	}
 	
 	@Override
-	protected OpenmrsFhirTranslator<FhirDiagnosticReportExt, DiagnosticReportBundle> getTranslator() {
+	protected OpenmrsFhirTranslator<FhirDiagnosticReportExt, Bundle> getTranslator() {
 		return translator;
 	}
 	

@@ -2,9 +2,6 @@ package org.bahmni.module.fhir2AddlExtension.api.helper;
 
 import ca.uhn.fhir.rest.server.exceptions.InternalErrorException;
 import org.bahmni.module.fhir2AddlExtension.api.TestDataFactory;
-import org.bahmni.module.fhir2AddlExtension.api.domain.DiagnosticReportBundle;
-import org.bahmni.module.fhir2AddlExtension.api.utils.BahmniFhirUtils;
-import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.*;
 import org.junit.Assert;
 import org.junit.Before;
@@ -16,8 +13,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.*;
@@ -454,7 +449,7 @@ public class ConsultationBundleEntriesHelperTest {
 		//29b5f5c4-b256-4f8f-809b-f87d8384b5cb
 		//49a86246-4004-42eb-9bdc-f542f93f9228
 		//60613a43-c4cb-4502-b3e2-cf9215feaa70
-		DiagnosticReportBundle reportBundle = TestDataFactory.loadDiagnosticReportBundle("example-diagnostic-report-bundle-with-encounter-reference-nested-results.json");
+		Bundle reportBundle = TestDataFactory.loadDiagnosticReportBundle("example-diagnostic-report-bundle-with-encounter-reference-nested-results.json");
 		List<Observation> observations = reportBundle.getEntry().stream()
 				.map(Bundle.BundleEntryComponent::getResource)
 				.filter(resource -> resource != null && resource.getResourceType().name().equals("Observation"))
