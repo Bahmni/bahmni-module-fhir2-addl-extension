@@ -156,4 +156,18 @@ public class BahmniAppointmentSearchParamsTest {
 		searchParams.setStatus(status);
 		assertTrue("Should return true with multiple status values", searchParams.hasStatus());
 	}
+	
+	@Test
+	public void shouldReturnTrueWhenDateWithLowerBoundOnly() {
+		DateRangeParam date = new DateRangeParam("2026-01-01", null);
+		searchParams.setDate(date);
+		assertTrue("Should return true when date with lower bound only is provided", searchParams.hasDate());
+	}
+	
+	@Test
+	public void shouldReturnTrueWhenDateWithUpperBoundOnly() {
+		DateRangeParam date = new DateRangeParam(null, "2026-12-31");
+		searchParams.setDate(date);
+		assertTrue("Should return true when date with upper bound only is provided", searchParams.hasDate());
+	}
 }

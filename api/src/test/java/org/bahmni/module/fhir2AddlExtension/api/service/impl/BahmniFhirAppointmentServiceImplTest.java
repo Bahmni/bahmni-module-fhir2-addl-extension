@@ -1,5 +1,13 @@
 package org.bahmni.module.fhir2AddlExtension.api.service.impl;
 
+import ca.uhn.fhir.rest.api.server.IBundleProvider;
+import ca.uhn.fhir.rest.param.DateRangeParam;
+import ca.uhn.fhir.rest.param.ReferenceAndListParam;
+import ca.uhn.fhir.rest.param.ReferenceOrListParam;
+import ca.uhn.fhir.rest.param.ReferenceParam;
+import ca.uhn.fhir.rest.param.TokenAndListParam;
+import ca.uhn.fhir.rest.param.TokenOrListParam;
+import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirAppointmentDao;
 import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniAppointmentSearchParams;
@@ -14,6 +22,8 @@ import org.openmrs.module.fhir2.api.search.SearchQuery;
 import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
 
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BahmniFhirAppointmentServiceImplTest {
@@ -73,5 +83,61 @@ public class BahmniFhirAppointmentServiceImplTest {
 		assertThrows(UnsupportedOperationException.class, () -> {
 			appointmentService.patch("test-uuid", null, "", null);
 		});
+	}
+	
+	@Test
+	public void shouldSearchAppointmentsWithValidPatientReference() {
+		BahmniAppointmentSearchParams validSearchParams = new BahmniAppointmentSearchParams();
+		ReferenceAndListParam patientRef = new ReferenceAndListParam();
+		ReferenceOrListParam orListParam = new ReferenceOrListParam();
+		orListParam.add(new ReferenceParam("Patient", "patient-uuid"));
+		patientRef.addAnd(orListParam);
+		validSearchParams.setPatientReference(patientRef);
+		
+		IBundleProvider expectedResult = null;
+		
+		when(
+		    searchQuery.getQueryResults(validSearchParams.toSearchParameterMap(), appointmentDao, appointmentTranslator,
+		        searchQueryInclude)).thenReturn(expectedResult);
+		
+		IBundleProvider result = appointmentService.searchAppointments(validSearchParams);
+		
+		assertEquals("Should return result from searchQuery", expectedResult, result);
+	}
+	
+	@Test
+	public void shouldSearchAppointmentsWithValidStatus() {
+		BahmniAppointmentSearchParams validSearchParams = new BahmniAppointmentSearchParams();
+		TokenAndListParam status = new TokenAndListParam();
+		TokenOrListParam orListParam = new TokenOrListParam();
+		orListParam.add(new TokenParam("booked"));
+		status.addAnd(orListParam);
+		validSearchParams.setStatus(status);
+		
+		IBundleProvider expectedResult = null;
+		
+		when(
+		    searchQuery.getQueryResults(validSearchParams.toSearchParameterMap(), appointmentDao, appointmentTranslator,
+		        searchQueryInclude)).thenReturn(expectedResult);
+		
+		IBundleProvider result = appointmentService.searchAppointments(validSearchParams);
+		
+		assertEquals("Should return result from searchQuery", expectedResult, result);
+	}
+	
+	@Test
+	public void shouldSearchAppointmentsWithValidDateRange() {
+		BahmniAppointmentSearchParams validSearchParams = new BahmniAppointmentSearchParams();
+		validSearchParams.setDate(new DateRangeParam("2026-01-01", "2026-12-31"));
+		
+		IBundleProvider expectedResult = null;
+		
+		when(
+		    searchQuery.getQueryResults(validSearchParams.toSearchParameterMap(), appointmentDao, appointmentTranslator,
+		        searchQueryInclude)).thenReturn(expectedResult);
+		
+		IBundleProvider result = appointmentService.searchAppointments(validSearchParams);
+		
+		assertEquals("Should return result from searchQuery", expectedResult, result);
 	}
 }
