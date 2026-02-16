@@ -146,7 +146,6 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 			throw new InvalidRequestException(REPORT_MUST_HAVE_VALID_PATIENT_REFERENCE);
 		}
 		Function<String, Optional<Observation>> obsLocator = referenceId -> BahmniFhirUtils.findResourceInBundle(bundle, referenceId, Observation.class);
-		//validateResults(report, report.getSubject(), obsLocator);
 
 		List<Order> basedOnOrders = identifyOrders(report);
 		Function<String, Optional<Encounter>> bundleEncounterLocator = referenceId -> BahmniFhirUtils.findResourceInBundle(bundle, referenceId, Encounter.class);
@@ -404,7 +403,6 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 			throw new InvalidRequestException("Only JSON Patch is supported for DiagnosticReportBundle");
 		}
 		
-		// Step 1: Retrieve existing bundle
 		Bundle existingBundle = get(uuid);
 		if (existingBundle == null) {
 			throw new ResourceNotFoundException("DiagnosticReportBundle with UUID " + uuid + " not found");
@@ -412,33 +410,25 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		
 		DiagnosticReport existingReport = getReportFromBundle(existingBundle);
 		
-		// Step 2: Validate current state (not in terminal state)
 		diagnosticReportBundlePatchValidator.validateNotInTerminalState(existingReport);
 		
-		// Step 3: Apply JSON Patch to the bundle
 		List<String> tempUuidList = addTemporaryArrayElementsIfEmpty(existingReport);
 		Bundle patchedBundle = applyJsonPatchToBundle(existingBundle, body, requestDetails);
-		// Step 4: Extract patched report from bundle
 		DiagnosticReport patchedReport = getReportFromBundle(patchedBundle);
 		removeTemporaryArrayElements(tempUuidList, patchedReport);
 
-		// Step 5: Validate patch changes (immutability rules)
 		diagnosticReportBundlePatchValidator.validatePatchChanges(existingReport, patchedReport);
 		
-		// Step 6: Identify basedOn orders
 		List<Order> basedOnOrders = identifyOrders(patchedReport);
 		
-		// Step 7: Identify and handle new observations
 		List<Reference> newResultRefs = identifyNewResultReferences(existingReport, patchedReport);
 		
 		if (!newResultRefs.isEmpty()) {
 			Function<String, Optional<Observation>> obsLocator = 
 				referenceId -> BahmniFhirUtils.findResourceInBundle(patchedBundle, referenceId, Observation.class);
 			
-			// Validate new observations
 			validateNewResults(patchedReport, newResultRefs, obsLocator);
 			
-			// Step 8: Create new observations
 			Map<String, Reference> newObsReferenceMap = createResultObservations(
 				patchedReport,
 				patchedReport.getEncounter(), // Encounter is immutable
@@ -446,11 +436,9 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 				basedOnOrders
 			);
 			
-			// Step 9: Update report with actual observation references
 			updateReportResultReferences(patchedReport, newObsReferenceMap);
 		}
 		
-		// Step 10: Validate and save updated report
 		patchedReport.setId(existingReport.getId());
 		diagnosticReportValidator.validate(patchedReport);
 		FhirDiagnosticReportExt diagnosticReportExt = diagnosticReportTranslator.toOpenmrsType(patchedReport);
@@ -460,19 +448,15 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 	
 	private void removeTemporaryArrayElements(List<String> tempUuidList, DiagnosticReport patchedReport) {
 		if (patchedReport.hasBasedOn()) {
-			// Remove temporary basedOn reference if it exists
 			patchedReport.getBasedOn().removeIf(ref -> tempUuidList.contains(ref.getReference()));
 		}
 		if (patchedReport.hasResult()) {
-			// Remove temporary result reference if it exists
 			patchedReport.getResult().removeIf(ref -> tempUuidList.contains(ref.getReference()));
 		}
 		if (patchedReport.hasPresentedForm()) {
-			// Remove temporary presented form if it exists
 			patchedReport.getPresentedForm().removeIf(attachment -> tempUuidList.contains(attachment.getUrl()));
 		}
 		if (patchedReport.hasPerformer()) {
-			// Remove temporary performer reference if it exists
 			patchedReport.getPerformer().removeIf(ref -> tempUuidList.contains(ref.getReference()));
 		}
 	}
@@ -499,8 +483,9 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 
 		if (!existingReport.hasPerformer()) {
 			String tempPerformerId = UUID.randomUUID().toString();
-			existingReport.addPerformer().setReference("Practitioner/" + tempPerformerId);
-			tempUuidList.add("Practitioner/" + tempPerformerId);
+			String ref = FhirConstants.PRACTITIONER.concat("/").concat(tempPerformerId);
+			existingReport.addPerformer().setReference(ref);
+			tempUuidList.add(ref);
 		}
 		return tempUuidList;
 	}
@@ -511,7 +496,6 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 	private Bundle applyJsonPatchToBundle(Bundle existingBundle, String patchBody, RequestDetails requestDetails) {
 		try {
 			FhirContext ctx = requestDetails.getFhirContext();
-			// Use openmrs fhir2 JsonPatchUtils static method
 			return (Bundle) org.openmrs.module.fhir2.api.util.JsonPatchUtils.applyJsonPatch(ctx, existingBundle, patchBody);
 		}
 		catch (Exception e) {
@@ -583,43 +567,34 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 			throw new InvalidRequestException(BUNDLE_MUST_HAVE_DIAGNOSTIC_REPORT);
 		}
 		
-		// Step 1-2: Retrieve existing bundle and extract report
 		Bundle existingBundle = get(uuid);
 		if (existingBundle == null) {
 			throw new ResourceNotFoundException("DiagnosticReportBundle with UUID " + uuid + " not found");
 		}
 		DiagnosticReport existingReport = getReportFromBundle(existingBundle);
 		
-		// Step 3: Validate terminal state
 		diagnosticReportBundleUpdateValidator.validateNotInTerminalState(existingReport);
 		
-		// Step 4: Extract new report from incoming bundle
 		DiagnosticReport newReport = getReportFromBundle(bundle);
 		
-		// Step 5: Validate immutability rules (only patient and encounter)
 		diagnosticReportBundleUpdateValidator.validateUpdateChanges(existingReport, newReport);
 		
-		// Step 6-8: PURGE existing data
 		FhirDiagnosticReportExt existingEntity = getDao().get(uuid);
 		purgeExistingResults(existingEntity);
 		purgeExistingAttachments(existingEntity);
 		purgeExistingBasedOn(existingEntity);
 		getDao().createOrUpdate(existingEntity);
 
-		// Step 11-15: UPDATE with new data
-		// Preserve encounter (immutable)
 		newReport.setEncounter(existingReport.getEncounter());
 		
-		// Identify and set new basedOn orders
 		List<Order> basedOnOrders = identifyOrders(newReport);
 		
-		// Create new result observations
-		Function<String, Optional<Observation>> obsLocator = 
+		Function<String, Optional<Observation>> obsLocator =
 			referenceId -> BahmniFhirUtils.findResourceInBundle(bundle, referenceId, Observation.class);
 
 		Map<String, Reference> obsReferenceMap = createResultObservations(
 			newReport,
-			existingReport.getEncounter(), // Use existing (immutable) encounter
+			existingReport.getEncounter(),
 			obsLocator,
 			basedOnOrders
 		);
@@ -635,10 +610,7 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 			}
 		}
 		
-		// Step 16: Validate complete report
 		diagnosticReportValidator.validate(newReport);
-		
-		// Step 17: Convert to OpenMRS entity and save (reusing existing UUID and ID)
 		FhirDiagnosticReportExt updatedEntity = diagnosticReportTranslator.toOpenmrsType(existingEntity, newReport);
 		return getTranslator().toFhirResource(getDao().createOrUpdate(updatedEntity));
 	}
