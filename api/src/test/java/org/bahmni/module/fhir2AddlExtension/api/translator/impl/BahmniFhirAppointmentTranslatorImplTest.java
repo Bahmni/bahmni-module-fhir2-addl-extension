@@ -84,6 +84,7 @@ public class BahmniFhirAppointmentTranslatorImplTest {
 		bahmniAppointment.setEndDateTime(new Date());
 		
 		AppointmentServiceDefinition service = new AppointmentServiceDefinition();
+		service.setUuid("service-uuid-123");
 		service.setName("General Consultation");
 		bahmniAppointment.setService(service);
 		
@@ -94,7 +95,8 @@ public class BahmniFhirAppointmentTranslatorImplTest {
 		
 		assertEquals(1, fhirAppointment.getServiceType().size());
 		assertEquals("General Consultation", fhirAppointment.getServiceType().get(0).getText());
-		assertEquals("General Consultation", fhirAppointment.getServiceType().get(0).getCoding().get(0).getCode());
+		assertEquals("service-uuid-123", fhirAppointment.getServiceType().get(0).getCoding().get(0).getCode());
+		assertEquals("General Consultation", fhirAppointment.getServiceType().get(0).getCoding().get(0).getDisplay());
 	}
 	
 	@Test
@@ -201,6 +203,7 @@ public class BahmniFhirAppointmentTranslatorImplTest {
 		bahmniAppointment.setAppointmentNumber("APT-2026-00456");
 		
 		AppointmentServiceDefinition service = new AppointmentServiceDefinition();
+		service.setUuid("cardiology-service-uuid");
 		service.setName("Cardiology");
 		bahmniAppointment.setService(service);
 		
@@ -538,9 +541,11 @@ public class BahmniFhirAppointmentTranslatorImplTest {
 		bahmniAppointment.setEndDateTime(new Date());
 
 		AppointmentServiceDefinition service = new AppointmentServiceDefinition();
+		service.setUuid("service-uuid-456");
 		service.setName("Consultation");
 
 		AppointmentServiceType serviceType = new AppointmentServiceType();
+		serviceType.setUuid("service-type-uuid-789");
 		serviceType.setName("Follow-up");
 
 		HashSet<AppointmentServiceType> serviceTypes = new HashSet<>();

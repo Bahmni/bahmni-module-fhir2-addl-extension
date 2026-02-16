@@ -25,7 +25,8 @@ public class AppointmentStatusTranslatorImpl implements AppointmentStatusTransla
 				return Appointment.AppointmentStatus.NOSHOW;
 			case CheckedIn:
 				return Appointment.AppointmentStatus.CHECKEDIN;
-			case Requested:
+			case WaitList:
+				return Appointment.AppointmentStatus.WAITLIST;
 			default:
 				return Appointment.AppointmentStatus.PENDING;
 		}
@@ -48,7 +49,8 @@ public class AppointmentStatusTranslatorImpl implements AppointmentStatusTransla
 				return AppointmentStatus.Missed;
 			case CHECKEDIN:
 				return AppointmentStatus.CheckedIn;
-			case PENDING:
+			case WAITLIST:
+				return AppointmentStatus.WaitList;
 			default:
 				return AppointmentStatus.Requested;
 		}

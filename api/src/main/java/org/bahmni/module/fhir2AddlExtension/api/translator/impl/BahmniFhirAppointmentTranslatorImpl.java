@@ -77,7 +77,7 @@ public class BahmniFhirAppointmentTranslatorImpl implements BahmniFhirAppointmen
 			// Add coding with custom system for Bahmni services
 			Coding serviceCoding = new Coding()
 				.setSystem(BahmniFhirConstants.BAHMNI_APPOINTMENT_SERVICE_SYSTEM)
-				.setCode(service.getName())
+				.setCode(service.getUuid())
 				.setDisplay(service.getName());
 			serviceType.addCoding(serviceCoding);
 			fhirAppointment.addServiceType(serviceType);
@@ -88,7 +88,7 @@ public class BahmniFhirAppointmentTranslatorImpl implements BahmniFhirAppointmen
 					serviceTypes.stream().findFirst().ifPresent(serviceTypeObj -> {
 						Coding serviceTypeCoding = new Coding()
 							.setSystem(BahmniFhirConstants.BAHMNI_APPOINTMENT_SERVICE_TYPE_SYSTEM)
-							.setCode(serviceTypeObj.getName())
+							.setCode(serviceTypeObj.getUuid())
 							.setDisplay(serviceTypeObj.getName());
 						serviceType.addCoding(serviceTypeCoding);
 					});
