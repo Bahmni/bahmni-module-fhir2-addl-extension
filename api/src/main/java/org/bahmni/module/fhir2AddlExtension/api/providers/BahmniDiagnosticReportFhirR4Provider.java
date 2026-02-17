@@ -1,10 +1,13 @@
 package org.bahmni.module.fhir2AddlExtension.api.providers;
 
 import ca.uhn.fhir.model.api.Include;
+import ca.uhn.fhir.model.api.annotation.Description;
 import ca.uhn.fhir.rest.annotation.Create;
 import ca.uhn.fhir.rest.annotation.Delete;
 import ca.uhn.fhir.rest.annotation.IdParam;
 import ca.uhn.fhir.rest.annotation.IncludeParam;
+import ca.uhn.fhir.rest.annotation.Operation;
+import ca.uhn.fhir.rest.annotation.OperationParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
 import ca.uhn.fhir.rest.annotation.Patch;
 import ca.uhn.fhir.rest.annotation.Read;
@@ -25,9 +28,12 @@ import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
+import org.bahmni.module.fhir2AddlExtension.api.context.RequestContextHolder;
 import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniDiagnosticReportSearchParams;
+import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirDiagnosticReportBundleService;
 import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirDiagnosticReportService;
 import org.hl7.fhir.instance.model.api.IBaseResource;
+import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.DiagnosticReport;
 import org.hl7.fhir.r4.model.Encounter;
 import org.hl7.fhir.r4.model.IdType;
@@ -50,10 +56,14 @@ public class BahmniDiagnosticReportFhirR4Provider implements IResourceProvider {
 	
 	private BahmniFhirDiagnosticReportService diagnosticReportService;
 	
+	private BahmniFhirDiagnosticReportBundleService fhirDiagnosticReportBundleService;
+	
 	@Autowired
 	public BahmniDiagnosticReportFhirR4Provider(
-	    @Qualifier("bahmniFhirDiagnosticReportServiceImpl") BahmniFhirDiagnosticReportService diagnosticReportService) {
+	    @Qualifier("bahmniFhirDiagnosticReportServiceImpl") BahmniFhirDiagnosticReportService diagnosticReportService,
+	    BahmniFhirDiagnosticReportBundleService fhirDiagnosticReportBundleService) {
 		this.diagnosticReportService = diagnosticReportService;
+		this.fhirDiagnosticReportBundleService = fhirDiagnosticReportBundleService;
 	}
 	
 	@Read
@@ -128,5 +138,31 @@ public class BahmniDiagnosticReportFhirR4Provider implements IResourceProvider {
 	@Override
 	public Class<? extends IBaseResource> getResourceType() {
 		return DiagnosticReport.class;
+	}
+	
+	@Description(shortDefinition = "Retrieves a DiagnosticReport as Bundle", value = "This operation gathers the DiagnosticReport, all linked Observations, and the associated Encounter into a single Collection Bundle.")
+	@Operation(name = "$fetch-bundle", idempotent = true, type = DiagnosticReport.class, returnParameters = { @OperationParam(name = "return", type = Bundle.class, min = 1, max = 1) })
+	public Bundle fetchDiagnosticReportBundle(@IdParam @Nonnull IdType id, RequestDetails theRequestDetails) {
+		RequestContextHolder.setValue(theRequestDetails.getFhirServerBase());
+		return fhirDiagnosticReportBundleService.get(id.getIdPart());
+	}
+	
+	@Description(shortDefinition = "Creates a DiagnosticReport as Bundle", value = "This operation creates a DiagnosticReport (equivalent of HTTP POST), with all linked Observations, sent as a single Collection Bundle.")
+	@Operation(name = "$submit-bundle", type = DiagnosticReport.class, returnParameters = { @OperationParam(name = "return", type = Bundle.class, min = 1, max = 1) })
+	public Bundle saveDiagnosticReportBundle(@OperationParam(name = "input", min = 1, max = 1) Bundle theInput,
+	        RequestDetails requestDetails) {
+		Bundle resource = (Bundle) theInput;
+		RequestContextHolder.setValue(requestDetails.getFhirServerBase());
+		Bundle reportBundle = fhirDiagnosticReportBundleService.create(resource);
+		return reportBundle;
+	}
+	
+	@Description(shortDefinition = "Updates a DiagnosticReport as Bundle", value = "This operation updates an existing DiagnosticReport (equivalent of HTTP PUT), with all linked Observations, sent as a single Collection Bundle.")
+	@Operation(name = "$update-bundle", type = DiagnosticReport.class, returnParameters = { @OperationParam(name = "return", type = Bundle.class, min = 1, max = 1) })
+	public Bundle updateDiagnosticReportBundle(@IdParam @Nonnull IdType id,
+	        @OperationParam(name = "input", min = 1, max = 1) Bundle updateBundle, RequestDetails requestDetails) {
+		RequestContextHolder.setValue(requestDetails.getFhirServerBase());
+		Bundle resource = fhirDiagnosticReportBundleService.update(id.getIdPart(), updateBundle);
+		return resource;
 	}
 }

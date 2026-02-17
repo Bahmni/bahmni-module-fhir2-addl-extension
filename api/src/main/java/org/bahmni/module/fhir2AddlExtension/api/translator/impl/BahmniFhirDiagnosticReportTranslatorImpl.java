@@ -11,6 +11,7 @@ import org.openmrs.Order;
 import org.openmrs.Provider;
 import org.openmrs.module.fhir2.api.translators.DiagnosticReportTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
+import org.openmrs.module.fhir2.model.FhirDiagnosticReport;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -45,6 +46,17 @@ public class BahmniFhirDiagnosticReportTranslatorImpl implements BahmniFhirDiagn
 	@Override
     public DiagnosticReport toFhirResource(@Nonnull FhirDiagnosticReportExt fhirDiagnosticReportExt) {
         DiagnosticReport diagnosticReport = diagnosticReportTranslator.toFhirResource(fhirDiagnosticReportExt);
+        if (fhirDiagnosticReportExt.getStatusExt() != null) {
+            try {
+                diagnosticReport.setStatus(
+                        DiagnosticReport.DiagnosticReportStatus.valueOf(fhirDiagnosticReportExt.getStatusExt().toString()));
+            }
+            catch (IllegalArgumentException e) {
+                diagnosticReport.setStatus(DiagnosticReport.DiagnosticReportStatus.UNKNOWN);
+            }
+        } else {
+            diagnosticReport.setStatus(DiagnosticReport.DiagnosticReportStatus.UNKNOWN);
+        }
         diagnosticReport.setConclusion(fhirDiagnosticReportExt.getConclusion());
         if (fhirDiagnosticReportExt.getOrders() != null) {
             fhirDiagnosticReportExt.getOrders()
@@ -82,6 +94,16 @@ public class BahmniFhirDiagnosticReportTranslatorImpl implements BahmniFhirDiagn
 	@Override
     public FhirDiagnosticReportExt toOpenmrsType(@Nonnull FhirDiagnosticReportExt existingObject, @Nonnull DiagnosticReport resource) {
         FhirDiagnosticReportExt reportExt = (FhirDiagnosticReportExt) diagnosticReportTranslator.toOpenmrsType(existingObject, resource);
+        if (resource.hasStatus()) {
+            FhirDiagnosticReportExt.DiagnosticReportStatusExt status;
+            try {
+                status = FhirDiagnosticReportExt.DiagnosticReportStatusExt.valueOf(resource.getStatus().toString());
+            }
+            catch (IllegalArgumentException | NullPointerException ignored) {
+                status = FhirDiagnosticReportExt.DiagnosticReportStatusExt.UNKNOWN;
+            }
+            existingObject.setStatusExt(status);
+        }
         if (resource.hasConclusion()) {
             existingObject.setConclusion(resource.getConclusion());
         }

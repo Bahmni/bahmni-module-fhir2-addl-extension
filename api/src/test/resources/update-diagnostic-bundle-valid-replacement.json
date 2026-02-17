@@ -1,0 +1,116 @@
+{
+  "resourceType": "Bundle",
+  "id": "report-bundle-123",
+  "type": "transaction",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:report-1",
+      "resource": {
+        "resourceType": "DiagnosticReport",
+        "id": "report-1",
+        "status": "final",
+        "basedOn": [
+          {
+            "reference": "ServiceRequest/new-order-uuid-1"
+          }
+        ],
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/v2-0074",
+                "code": "LAB"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "code": "1019AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "display": "Complete blood count - Updated"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/patient-uuid-1"
+        },
+        "encounter": {
+          "reference": "Encounter/encounter-uuid-1"
+        },
+        "effectiveDateTime": "2026-02-03",
+        "issued": "2026-02-03T10:00:00Z",
+        "performer": [
+          {
+            "reference": "Practitioner/new-practitioner-uuid-1"
+          }
+        ],
+        "result": [
+          {
+            "reference": "urn:uuid:new-obs-1"
+          },
+          {
+            "reference": "urn:uuid:new-obs-2"
+          }
+        ],
+        "presentedForm": [
+          {
+            "contentType": "application/pdf",
+            "url": "https://example.org/new-report.pdf",
+            "title": "Updated Report"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:new-obs-1",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "new-obs-1",
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "code": "21AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "display": "Hemoglobin - New Test"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/patient-uuid-1"
+        },
+        "valueQuantity": {
+          "value": 16.5,
+          "unit": "g/dL",
+          "system": "http://unitsofmeasure.org",
+          "code": "g/dL"
+        }
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:new-obs-2",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "new-obs-2",
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "code": "22AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "display": "White Blood Cell Count - New Test"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/patient-uuid-1"
+        },
+        "valueQuantity": {
+          "value": 8000,
+          "unit": "cells/uL",
+          "system": "http://unitsofmeasure.org",
+          "code": "cells/uL"
+        }
+      }
+    }
+  ]
+}

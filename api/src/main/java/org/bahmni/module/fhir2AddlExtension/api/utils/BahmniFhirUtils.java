@@ -3,6 +3,7 @@ package org.bahmni.module.fhir2AddlExtension.api.utils;
 import org.hl7.fhir.r4.model.Bundle;
 import org.openmrs.module.fhir2.api.util.FhirUtils;
 
+import java.util.AbstractMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -18,11 +19,13 @@ public class BahmniFhirUtils {
 	
 	public static <T> Optional<T> findResourceInBundle(Bundle bundle, String idParam, Class<T> targetClass) {
         return bundle.getEntry().stream()
-                .map(Bundle.BundleEntryComponent::getResource)
-                .filter(resource -> {
-					String extractIdPart = extractId(resource.getIdElement().getIdPart());
-                    return idParam.equals(extractIdPart) && targetClass.isInstance(resource);
+				.map(entry -> new AbstractMap.SimpleEntry<>(entry.getFullUrl(), entry.getResource()))
+                .filter(resourceEntry -> {
+					String idPart = Optional.ofNullable(resourceEntry.getValue().getIdElement().getIdPart()).orElse(resourceEntry.getKey());
+					String extractIdPart = extractId(idPart);
+                    return idParam.equals(extractIdPart) && targetClass.isInstance(resourceEntry.getValue());
                 })
+				.map(AbstractMap.SimpleEntry::getValue)
                 .map(targetClass::cast)
                 .findFirst();
     }
