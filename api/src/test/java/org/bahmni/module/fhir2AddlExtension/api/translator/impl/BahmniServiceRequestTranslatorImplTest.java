@@ -298,6 +298,18 @@ public class BahmniServiceRequestTranslatorImplTest {
 	}
 	
 	@Test
+	public void toFhirResource_shouldAddIdentifierToServiceRequest() {
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getIdentifier(), notNullValue());
+		assertThat(result.getIdentifier(), not(empty()));
+		assertThat(result.getIdentifier().size(), greaterThanOrEqualTo(1));
+		assertThat(result.getIdentifier().get(0).getValue(), equalTo(ORDER_NUMBER));
+	}
+	
+	@Test
 	public void toFhirResource_shouldTranslateOrderFromOnlyDateActivatedToActiveServiceRequest() {
 		
 		Calendar activationDate = Calendar.getInstance();

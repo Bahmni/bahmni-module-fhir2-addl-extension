@@ -97,6 +97,8 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 		serviceRequest.setOccurrence(new Period().setStart(order.getEffectiveStartDate()).setEnd(
 		    order.getEffectiveStopDate()));
 
+        serviceRequest.addIdentifier(orderIdentifierTranslator.toFhirResource(order));
+
 		if (order.getPreviousOrder() != null
 		        && (order.getAction() == Order.Action.DISCONTINUE || order.getAction() == Order.Action.REVISE)) {
 			serviceRequest.setReplaces((Collections.singletonList(createOrderReferenceInternal(order.getPreviousOrder())
