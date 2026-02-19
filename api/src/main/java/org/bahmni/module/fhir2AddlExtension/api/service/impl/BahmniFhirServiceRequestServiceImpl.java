@@ -9,6 +9,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
+import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniServiceRequestSearchParams;
 import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirServiceRequestService;
 import org.bahmni.module.fhir2AddlExtension.api.service.ServiceRequestLocationReferenceResolver;
 import org.bahmni.module.fhir2AddlExtension.api.utils.ModuleUtils;
@@ -64,13 +65,8 @@ public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<Service
 	}
 	
 	@Override
-	public IBundleProvider searchForServiceRequestsWithCategory(ReferenceAndListParam patientReference,
-	        TokenAndListParam code, ReferenceAndListParam encounterReference, ReferenceAndListParam participantReference,
-	        ReferenceAndListParam category, DateRangeParam occurrence, TokenAndListParam uuid, DateRangeParam lastUpdated,
-	        HashSet<Include> includes, HashSet<Include> revIncludes) {
-		SearchParameterMap theParams = getSearchParameterMap(patientReference, code, encounterReference,
-		    participantReference, occurrence, uuid, lastUpdated, includes, revIncludes);
-		theParams.addParameter(FhirConstants.CATEGORY_SEARCH_HANDLER, category);
+	public IBundleProvider searchForServiceRequestsWithCategory(BahmniServiceRequestSearchParams searchParams) {
+		SearchParameterMap theParams = searchParams.toSearchParameterMap();
 		return searchQuery.getQueryResults(theParams, dao, translator, searchQueryInclude);
 	}
 	

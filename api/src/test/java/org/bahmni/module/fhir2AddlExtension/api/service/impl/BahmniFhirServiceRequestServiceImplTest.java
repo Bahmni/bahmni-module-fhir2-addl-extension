@@ -14,6 +14,7 @@ import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.bahmni.module.fhir2AddlExtension.api.context.AppContext;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
 import org.bahmni.module.fhir2AddlExtension.api.dao.OrderAttributeTypeDao;
+import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniServiceRequestSearchParams;
 import org.hamcrest.Matchers;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.CodeableConcept;
@@ -79,6 +80,7 @@ import static org.openmrs.module.fhir2.FhirConstants.ID_PROPERTY;
 import static org.openmrs.module.fhir2.FhirConstants.INCLUDE_SEARCH_HANDLER;
 import static org.openmrs.module.fhir2.FhirConstants.LAST_UPDATED_PROPERTY;
 import static org.openmrs.module.fhir2.FhirConstants.PARTICIPANT_REFERENCE_SEARCH_HANDLER;
+import static org.openmrs.module.fhir2.FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER;
 import static org.openmrs.module.fhir2.FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -498,10 +500,11 @@ public class BahmniFhirServiceRequestServiceImplTest {
         HashSet<Include> includes = new HashSet<>();
         includes.add(new Include("ServiceRequest:patient"));
 
-        // Call the service method with all parameters including category
-        IBundleProvider results = serviceRequestService.searchForServiceRequestsWithCategory(
-                patientReference, code, encounterReference, participantReference,
-                category, occurrence, uuid, lastUpdated, includes, null);
+        BahmniServiceRequestSearchParams searchParams = new BahmniServiceRequestSearchParams(patientReference, code,
+            encounterReference, participantReference, category, null, occurrence, uuid, lastUpdated, includes, null);
+
+        // Call the service method with search params
+        IBundleProvider results = serviceRequestService.searchForServiceRequestsWithCategory(searchParams);
 
         // Capture the actual SearchParameterMap passed to searchQuery.getQueryResults
         ArgumentCaptor<SearchParameterMap> mapCaptor = ArgumentCaptor.forClass(SearchParameterMap.class);
@@ -809,8 +812,10 @@ public class BahmniFhirServiceRequestServiceImplTest {
 		        new SearchQueryBundleProvider<>(new SearchParameterMap(), dao, translator, globalPropertyService,
 		                searchQueryInclude));
 
-		IBundleProvider results = serviceRequestService.searchForServiceRequestsWithCategory(patientReference, null, null,
-		    null, category, null, null, null, null, revIncludes);
+		BahmniServiceRequestSearchParams searchParams = new BahmniServiceRequestSearchParams(patientReference, null,
+		    null, null, category, null, null, null, null, null, revIncludes);
+
+		IBundleProvider results = serviceRequestService.searchForServiceRequestsWithCategory(searchParams);
 
 		assertThat(results, notNullValue());
 
@@ -832,8 +837,10 @@ public class BahmniFhirServiceRequestServiceImplTest {
 		        new SearchQueryBundleProvider<>(new SearchParameterMap(), dao, translator, globalPropertyService,
 		                searchQueryInclude));
 
-		IBundleProvider results = serviceRequestService.searchForServiceRequestsWithCategory(patientReference, null, null,
-		    null, category, null, null, null, null, null);
+		BahmniServiceRequestSearchParams searchParams = new BahmniServiceRequestSearchParams(patientReference, null,
+		    null, null, category, null, null, null, null, null, null);
+
+		IBundleProvider results = serviceRequestService.searchForServiceRequestsWithCategory(searchParams);
 
 		assertThat(results, notNullValue());
 
@@ -843,5 +850,30 @@ public class BahmniFhirServiceRequestServiceImplTest {
 		SearchParameterMap actualMap = mapCaptor.getValue();
 		Object revIncludesParam = actualMap.getParameters(FhirConstants.REVERSE_INCLUDE_SEARCH_HANDLER);
 		assertThat(revIncludesParam, anyOf(nullValue(), equalTo(Collections.emptyList())));
+	}
+
+	@Test
+	public void searchForServiceRequestsWithCategory_shouldIncludeBasedOnReferenceInSearchParamMap() {
+		ReferenceAndListParam patientReference = createReferenceParam(PATIENT_GIVEN_NAME, SP_GIVEN);
+		ReferenceAndListParam basedOnReference = createReferenceParam("previous-order-uuid", null);
+
+		when(searchQuery.getQueryResults(any(), any(), any(), any())).thenReturn(
+		        new SearchQueryBundleProvider<>(new SearchParameterMap(), dao, translator, globalPropertyService,
+		                searchQueryInclude));
+
+		BahmniServiceRequestSearchParams searchParams = new BahmniServiceRequestSearchParams(patientReference, null,
+		    null, null, null, basedOnReference, null, null, null, null, null);
+
+		IBundleProvider results = serviceRequestService.searchForServiceRequestsWithCategory(searchParams);
+
+		assertThat(results, notNullValue());
+
+		ArgumentCaptor<SearchParameterMap> mapCaptor = ArgumentCaptor.forClass(SearchParameterMap.class);
+		verify(searchQuery).getQueryResults(mapCaptor.capture(), eq(dao), eq(translator), eq(searchQueryInclude));
+
+		SearchParameterMap actualMap = mapCaptor.getValue();
+		assertThat(actualMap.getParameters(BASED_ON_REFERENCE_SEARCH_HANDLER), notNullValue());
+		assertEquals(basedOnReference,
+		    actualMap.getParameters(BASED_ON_REFERENCE_SEARCH_HANDLER).get(0).getParam());
 	}
 }

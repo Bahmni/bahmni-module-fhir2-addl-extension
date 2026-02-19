@@ -109,6 +109,10 @@ public class BahmniFhirServiceRequestDaoImpl extends BahmniBaseFhirDao<Order> im
                 case FhirConstants.CATEGORY_SEARCH_HANDLER:
                     entry.getValue().forEach(categoryReference -> handleCategoryReference(criteria, (ReferenceAndListParam) categoryReference.getParam()));
                     break;
+                case FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER:
+                    entry.getValue().forEach(basedOnRef -> handleBasedOnReference(criteria,
+                        (ReferenceAndListParam) basedOnRef.getParam()));
+                    break;
                 case FhirConstants.COMMON_SEARCH_HANDLER:
                     handleCommonSearchParameters(entry.getValue()).ifPresent(criteria::add);
                     break;
@@ -147,6 +151,17 @@ public class BahmniFhirServiceRequestDaoImpl extends BahmniBaseFhirDao<Order> im
         handleAndListParam(categoryReference, token -> propertyLike("ot.uuid", new StringParam(token.getValue(), true))).ifPresent(criteria::add);
 
     }
+	
+	private void handleBasedOnReference(Criteria criteria, ReferenceAndListParam basedOnReference) {
+		if (basedOnReference != null) {
+			if (lacksAlias(criteria, "po")) {
+				criteria.createAlias("previousOrder", "po");
+			}
+			handleAndListParam(basedOnReference, param ->
+			    Optional.of(eq("po.uuid", param.getValue())))
+			    .ifPresent(criteria::add);
+		}
+	}
 	
 	private void excludeDrugOrder(Criteria criteria) {
 		if (lacksAlias(criteria, "ot")) {
