@@ -62,5 +62,4 @@ public final class BahmniFhirConstants {
 	// Appointment System URIs
 	public static final String BAHMNI_APPOINTMENT_SYSTEM = "urn:system:bahmni:appointments";
 	public static final String BAHMNI_APPOINTMENT_SERVICE_SYSTEM = "urn:system:bahmni:appointment-services";
-	public static final String BAHMNI_APPOINTMENT_SERVICE_TYPE_SYSTEM = "urn:system:bahmni:appointment-service-types";
 }

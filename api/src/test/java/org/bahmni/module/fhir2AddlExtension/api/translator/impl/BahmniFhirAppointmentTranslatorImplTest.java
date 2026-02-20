@@ -560,6 +560,6 @@ public class BahmniFhirAppointmentTranslatorImplTest {
 		Appointment fhirAppointment = translator.toFhirResource(bahmniAppointment);
 
 		assertEquals(1, fhirAppointment.getServiceType().size());
-		assertEquals(2, fhirAppointment.getServiceType().get(0).getCoding().size());
+		assertEquals(1, fhirAppointment.getServiceType().get(0).getCoding().size());
 	}
 }

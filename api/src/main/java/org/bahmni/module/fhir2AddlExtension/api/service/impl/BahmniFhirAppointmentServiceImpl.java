@@ -16,7 +16,6 @@ import org.openmrs.module.fhir2.api.search.SearchQuery;
 import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
 import org.openmrs.module.fhir2.api.translators.OpenmrsFhirTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,7 +24,6 @@ import java.util.Collection;
 import java.util.List;
 
 @Component
-@Primary
 @Transactional
 @Slf4j
 public class BahmniFhirAppointmentServiceImpl extends BaseFhirService<Appointment, org.openmrs.module.appointments.model.Appointment> implements BahmniFhirAppointmentService {
@@ -53,11 +51,13 @@ public class BahmniFhirAppointmentServiceImpl extends BaseFhirService<Appointmen
 	}
 	
 	@Override
+	@Transactional(readOnly = true)
 	public Appointment get(@Nonnull String uuid) {
 		return super.get(uuid);
 	}
 	
 	@Override
+	@Transactional(readOnly = true)
 	public List<Appointment> get(@Nonnull Collection<String> uuids) {
 		return super.get(uuids);
 	}

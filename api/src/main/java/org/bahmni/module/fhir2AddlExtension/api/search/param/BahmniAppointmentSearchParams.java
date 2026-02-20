@@ -63,6 +63,7 @@ public class BahmniAppointmentSearchParams extends BaseResourceSearchParams {
 				continue;
 			}
 			hasParam = true;
+            break;
 		}
 		return hasParam;
 	}

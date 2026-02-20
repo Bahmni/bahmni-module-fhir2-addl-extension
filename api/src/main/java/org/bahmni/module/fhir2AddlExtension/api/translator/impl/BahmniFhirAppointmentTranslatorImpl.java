@@ -82,18 +82,6 @@ public class BahmniFhirAppointmentTranslatorImpl implements BahmniFhirAppointmen
 			serviceType.addCoding(serviceCoding);
 			fhirAppointment.addServiceType(serviceType);
 
-			// If service has a specific service type, add it as additional coding
-			Optional.ofNullable(service.getServiceTypes()).ifPresent(serviceTypes -> {
-				if (!serviceTypes.isEmpty()) {
-					serviceTypes.stream().findFirst().ifPresent(serviceTypeObj -> {
-						Coding serviceTypeCoding = new Coding()
-							.setSystem(BahmniFhirConstants.BAHMNI_APPOINTMENT_SERVICE_TYPE_SYSTEM)
-							.setCode(serviceTypeObj.getUuid())
-							.setDisplay(serviceTypeObj.getName());
-						serviceType.addCoding(serviceTypeCoding);
-					});
-				}
-			});
 		});
 
 		// Participants
@@ -126,14 +114,16 @@ public class BahmniFhirAppointmentTranslatorImpl implements BahmniFhirAppointmen
 			});
 
 		// Fallback to single provider (legacy) if no providers were added
-		if (participants.stream().noneMatch(p -> p.getActor() != null && "Practitioner".equals(p.getActor().getType()))) {
-			Optional.ofNullable(bahmniAppointment.getProvider()).ifPresent(provider -> {
-				AppointmentParticipantComponent practitionerParticipant = new AppointmentParticipantComponent();
-				practitionerParticipant.setActor(practitionerReferenceTranslator.toFhirResource(provider));
-				practitionerParticipant.setStatus(ParticipationStatus.ACCEPTED);
-				participants.add(practitionerParticipant);
-			});
-		}
+        if (participants.stream().noneMatch(p -> p.getActor() != null
+                && p.getActor().getType() != null
+                && "Practitioner".equals(p.getActor().getType()))) {
+            Optional.ofNullable(bahmniAppointment.getProvider()).ifPresent(provider -> {
+                AppointmentParticipantComponent practitionerParticipant = new AppointmentParticipantComponent();
+                practitionerParticipant.setActor(practitionerReferenceTranslator.toFhirResource(provider));
+                practitionerParticipant.setStatus(ParticipationStatus.ACCEPTED);
+                participants.add(practitionerParticipant);
+            });
+        }
 
 		// Location participant
 		Optional.ofNullable(bahmniAppointment.getLocation()).ifPresent(location -> {

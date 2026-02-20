@@ -3,13 +3,18 @@ package org.bahmni.module.fhir2AddlExtension.api.dao.impl;
 import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirAppointmentDao;
 import org.bahmni.module.fhir2AddlExtension.api.translator.AppointmentStatusTranslator;
 import org.hibernate.Criteria;
+import org.hibernate.FetchMode;
+import org.hibernate.criterion.CriteriaSpecification;
 import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Restrictions;
+import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.r4.model.Appointment;
 import org.openmrs.module.appointments.model.AppointmentStatus;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.dao.impl.BaseFhirDao;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -25,6 +30,8 @@ import java.util.Optional;
 @Component
 public class BahmniFhirAppointmentDaoImpl extends BaseFhirDao<org.openmrs.module.appointments.model.Appointment> implements BahmniFhirAppointmentDao {
 	
+	private static final Logger log = LoggerFactory.getLogger(BahmniFhirAppointmentDaoImpl.class);
+	
 	private final AppointmentStatusTranslator statusTranslator;
 	
 	@Autowired
@@ -35,6 +42,12 @@ public class BahmniFhirAppointmentDaoImpl extends BaseFhirDao<org.openmrs.module
 	@Override
 	protected void setupSearchParams(Criteria criteria, SearchParameterMap theParams) {
 		super.setupSearchParams(criteria, theParams);
+
+		// Eager fetch the providers collection to avoid N+1 queries during translation
+		// Note: AppointmentServiceDefinition.serviceTypes is already lazy="false" (eager loaded)
+		criteria.setFetchMode("providers", FetchMode.JOIN);
+		criteria.setResultTransformer(CriteriaSpecification.DISTINCT_ROOT_ENTITY);
+
 		theParams.getParameters().forEach(param -> {
 			switch (param.getKey()) {
 				case FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER:
@@ -68,8 +81,9 @@ public class BahmniFhirAppointmentDaoImpl extends BaseFhirDao<org.openmrs.module
 						if (bahmniStatus != null) {
 							return Optional.of(Restrictions.eq("status", bahmniStatus));
 						}
-					} catch (Exception e) {
-						// Invalid status code, skip this filter
+					} catch (FHIRException | IllegalArgumentException e) {
+						// Invalid appointment status code provided in search parameters
+						log.debug("Invalid appointment status code: {}", token.getValue(), e);
 					}
 				}
 				return Optional.empty();
