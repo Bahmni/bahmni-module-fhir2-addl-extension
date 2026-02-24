@@ -167,22 +167,23 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 	
 	private ServiceRequest.ServiceRequestStatus determineServiceRequestStatus(Order order) {
 		
-		Date currentDate = new Date();
-		
-		boolean isCompeted = order.isActivated()
-		        && ((order.getDateStopped() != null && currentDate.after(order.getDateStopped())) || (order
-		                .getAutoExpireDate() != null && currentDate.after(order.getAutoExpireDate())));
-		boolean isDiscontinued = order.isActivated() && order.getAction() == Order.Action.DISCONTINUE;
-		
-		if ((isCompeted && isDiscontinued)) {
-			return ServiceRequest.ServiceRequestStatus.UNKNOWN;
-		} else if (isDiscontinued) {
-			return ServiceRequest.ServiceRequestStatus.REVOKED;
-		} else if (isCompeted) {
-			return ServiceRequest.ServiceRequestStatus.COMPLETED;
-		} else {
-			return ServiceRequest.ServiceRequestStatus.ACTIVE;
+		Order.FulfillerStatus fulfillerStatus = order.getFulfillerStatus();
+		if (fulfillerStatus == null) {
+			return ServiceRequest.ServiceRequestStatus.DRAFT;
 		}
+		if (Order.Action.DISCONTINUE.equals(order.getAction())) {
+			return ServiceRequest.ServiceRequestStatus.REVOKED;
+		}
+		switch (fulfillerStatus) {
+			case RECEIVED:
+			case IN_PROGRESS:
+				return ServiceRequest.ServiceRequestStatus.ACTIVE;
+			case COMPLETED:
+				return ServiceRequest.ServiceRequestStatus.COMPLETED;
+			case EXCEPTION:
+				return ServiceRequest.ServiceRequestStatus.ENTEREDINERROR;
+		}
+		return ServiceRequest.ServiceRequestStatus.UNKNOWN;
 	}
 	
 	private Reference createOrderReferenceInternal(Order order) {
