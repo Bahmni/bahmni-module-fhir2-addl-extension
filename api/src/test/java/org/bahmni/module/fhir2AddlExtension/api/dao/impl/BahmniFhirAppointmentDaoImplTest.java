@@ -30,8 +30,8 @@ public class BahmniFhirAppointmentDaoImplTest {
 	
 	@Test
 	public void testMapSortParamToPropertyWithDateParam() throws Exception {
-		// Test mapSortParamToProperty via reflection since it's private
-		Method method = BahmniFhirAppointmentDaoImpl.class.getDeclaredMethod("mapSortParamToProperty", String.class);
+		// Test paramToProp via reflection since it's protected
+		Method method = BahmniFhirAppointmentDaoImpl.class.getDeclaredMethod("paramToProp", String.class);
 		method.setAccessible(true);
 		
 		String result = (String) method.invoke(appointmentDao, "date");
@@ -40,7 +40,7 @@ public class BahmniFhirAppointmentDaoImplTest {
 	
 	@Test
 	public void testMapSortParamToPropertyWithStatusParam() throws Exception {
-		Method method = BahmniFhirAppointmentDaoImpl.class.getDeclaredMethod("mapSortParamToProperty", String.class);
+		Method method = BahmniFhirAppointmentDaoImpl.class.getDeclaredMethod("paramToProp", String.class);
 		method.setAccessible(true);
 		
 		String result = (String) method.invoke(appointmentDao, "status");
@@ -49,7 +49,7 @@ public class BahmniFhirAppointmentDaoImplTest {
 	
 	@Test
 	public void testMapSortParamToPropertyWithPatientParam() throws Exception {
-		Method method = BahmniFhirAppointmentDaoImpl.class.getDeclaredMethod("mapSortParamToProperty", String.class);
+		Method method = BahmniFhirAppointmentDaoImpl.class.getDeclaredMethod("paramToProp", String.class);
 		method.setAccessible(true);
 		
 		String result = (String) method.invoke(appointmentDao, "patient");
@@ -58,7 +58,7 @@ public class BahmniFhirAppointmentDaoImplTest {
 	
 	@Test
 	public void testMapSortParamToPropertyWithUnknownParam() throws Exception {
-		Method method = BahmniFhirAppointmentDaoImpl.class.getDeclaredMethod("mapSortParamToProperty", String.class);
+		Method method = BahmniFhirAppointmentDaoImpl.class.getDeclaredMethod("paramToProp", String.class);
 		method.setAccessible(true);
 		
 		String result = (String) method.invoke(appointmentDao, "unknownParam");
@@ -67,7 +67,7 @@ public class BahmniFhirAppointmentDaoImplTest {
 	
 	@Test
 	public void testMapSortParamToPropertyWithNullParam() throws Exception {
-		Method method = BahmniFhirAppointmentDaoImpl.class.getDeclaredMethod("mapSortParamToProperty", String.class);
+		Method method = BahmniFhirAppointmentDaoImpl.class.getDeclaredMethod("paramToProp", String.class);
 		method.setAccessible(true);
 		
 		String result = (String) method.invoke(appointmentDao, (String) null);

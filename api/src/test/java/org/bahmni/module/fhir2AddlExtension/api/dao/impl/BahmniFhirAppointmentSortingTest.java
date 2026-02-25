@@ -1,25 +1,15 @@
 package org.bahmni.module.fhir2AddlExtension.api.dao.impl;
 
-import ca.uhn.fhir.rest.api.SortOrderEnum;
-import ca.uhn.fhir.rest.api.SortSpec;
 import org.bahmni.module.fhir2AddlExtension.api.translator.AppointmentStatusTranslator;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.hibernate.Criteria;
-import org.hibernate.criterion.Order;
 
 import java.lang.reflect.Method;
-import java.util.List;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.times;
 
 /**
  * Test class to verify sorting behavior by date/time. ISSUE: When sorting by date, appointments on
@@ -35,12 +25,6 @@ public class BahmniFhirAppointmentSortingTest {
 	@Mock
 	private AppointmentStatusTranslator statusTranslator;
 	
-	@Mock
-	private Criteria criteria;
-	
-	@Captor
-	private ArgumentCaptor<Order> orderCaptor;
-	
 	private BahmniFhirAppointmentDaoImpl appointmentDao;
 	
 	@Before
@@ -54,8 +38,8 @@ public class BahmniFhirAppointmentSortingTest {
 	 */
 	@Test
 	public void testSortByDateIncludesTimeComponent() throws Exception {
-		// Verify the property mapping
-		Method mapMethod = BahmniFhirAppointmentDaoImpl.class.getDeclaredMethod("mapSortParamToProperty", String.class);
+		// Verify the property mapping via paramToProp
+		Method mapMethod = BahmniFhirAppointmentDaoImpl.class.getDeclaredMethod("paramToProp", String.class);
 		mapMethod.setAccessible(true);
 		
 		String result = (String) mapMethod.invoke(appointmentDao, "date");
@@ -69,70 +53,53 @@ public class BahmniFhirAppointmentSortingTest {
 	
 	/**
 	 * Test that ascending sort by date is applied correctly. _sort=date → earliest appointment
-	 * first (ascending by startDateTime)
+	 * first (ascending by startDateTime). Sorting is now delegated to BaseFhirDao.handleSort()
+	 * which calls paramToProp().
 	 */
 	@Test
 	public void testAscendingSortByDate() throws Exception {
-		// Create a sort spec for ascending date sort (_sort=date)
-		SortSpec sortSpec = new SortSpec();
-		sortSpec.setParamName("date");
-		sortSpec.setOrder(SortOrderEnum.ASC); // Default ordering is ascending
+		// Verify the parameter mapping is correct
+		Method mapMethod = BahmniFhirAppointmentDaoImpl.class.getDeclaredMethod("paramToProp", String.class);
+		mapMethod.setAccessible(true);
 		
-		// Call handleSort
-		Method handleSortMethod = BahmniFhirAppointmentDaoImpl.class.getDeclaredMethod("handleSort", Criteria.class,
-		    SortSpec.class);
-		handleSortMethod.setAccessible(true);
-		handleSortMethod.invoke(appointmentDao, criteria, sortSpec);
-		
-		// Verify that Order.asc("startDateTime") was added to criteria
-		verify(criteria, times(1)).addOrder(any(Order.class));
+		String result = (String) mapMethod.invoke(appointmentDao, "date");
+		assertEquals("startDateTime", result);
+		// BaseFhirDao.handleSort() will use this mapping to apply ORDER BY startDateTime ASC
 	}
 	
 	/**
 	 * Test that descending sort by date is applied correctly. _sort=-date → latest appointment
-	 * first (descending by startDateTime)
+	 * first (descending by startDateTime). Sorting is now delegated to BaseFhirDao.handleSort()
+	 * which calls paramToProp().
 	 */
 	@Test
 	public void testDescendingSortByDate() throws Exception {
-		// Create a sort spec for descending date sort (_sort=-date)
-		SortSpec sortSpec = new SortSpec();
-		sortSpec.setParamName("date");
-		sortSpec.setOrder(SortOrderEnum.DESC);
+		// Verify the parameter mapping is correct
+		Method mapMethod = BahmniFhirAppointmentDaoImpl.class.getDeclaredMethod("paramToProp", String.class);
+		mapMethod.setAccessible(true);
 		
-		// Call handleSort
-		Method handleSortMethod = BahmniFhirAppointmentDaoImpl.class.getDeclaredMethod("handleSort", Criteria.class,
-		    SortSpec.class);
-		handleSortMethod.setAccessible(true);
-		handleSortMethod.invoke(appointmentDao, criteria, sortSpec);
-		
-		// Verify that Order.desc("startDateTime") was added to criteria
-		verify(criteria, times(1)).addOrder(any(Order.class));
+		String result = (String) mapMethod.invoke(appointmentDao, "date");
+		assertEquals("startDateTime", result);
+		// BaseFhirDao.handleSort() will use this mapping to apply ORDER BY startDateTime DESC
 	}
 	
 	/**
 	 * Verifies that multiple sort parameters are handled correctly. Example: _sort=date,status →
-	 * first by date, then by status
+	 * first by date, then by status. Sorting is now delegated to BaseFhirDao.handleSort() which
+	 * calls paramToProp() for each parameter.
 	 */
 	@Test
 	public void testChainedSortByDateAndStatus() throws Exception {
-		// Create a chained sort spec: _sort=date,status
-		SortSpec dateSort = new SortSpec();
-		dateSort.setParamName("date");
-		dateSort.setOrder(SortOrderEnum.ASC);
+		// Verify the parameter mappings are correct
+		Method mapMethod = BahmniFhirAppointmentDaoImpl.class.getDeclaredMethod("paramToProp", String.class);
+		mapMethod.setAccessible(true);
 		
-		SortSpec statusSort = new SortSpec();
-		statusSort.setParamName("status");
-		statusSort.setOrder(SortOrderEnum.ASC);
-		dateSort.setChain(statusSort);
+		String dateResult = (String) mapMethod.invoke(appointmentDao, "date");
+		String statusResult = (String) mapMethod.invoke(appointmentDao, "status");
 		
-		// Call handleSort
-		Method handleSortMethod = BahmniFhirAppointmentDaoImpl.class.getDeclaredMethod("handleSort", Criteria.class,
-		    SortSpec.class);
-		handleSortMethod.setAccessible(true);
-		handleSortMethod.invoke(appointmentDao, criteria, dateSort);
-		
-		// Should have added 2 order clauses (one for date, one for status)
-		verify(criteria, times(2)).addOrder(any(Order.class));
+		assertEquals("startDateTime", dateResult);
+		assertEquals("status", statusResult);
+		// BaseFhirDao.handleSort() will use these mappings to apply chained ORDER BY clauses
 	}
 	
 	/**

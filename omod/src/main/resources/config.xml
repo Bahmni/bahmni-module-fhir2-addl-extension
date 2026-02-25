@@ -83,10 +83,6 @@
 		<name>Delete Diagnostic Report</name>
 		<description>Allows user to delete existing Diagnostic Report resources</description>
 	</privilege>
-	<privilege>
-		<name>Get Appointments</name>
-		<description>Allows user to view and search appointment resources</description>
-	</privilege>
 
 	<!-- Required Global Properties -->
 	<globalProperty>

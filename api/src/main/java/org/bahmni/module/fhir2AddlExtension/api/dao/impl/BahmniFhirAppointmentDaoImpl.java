@@ -5,7 +5,6 @@ import org.bahmni.module.fhir2AddlExtension.api.translator.AppointmentStatusTran
 import org.hibernate.Criteria;
 import org.hibernate.FetchMode;
 import org.hibernate.criterion.CriteriaSpecification;
-import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Restrictions;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.r4.model.Appointment;
@@ -18,8 +17,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import ca.uhn.fhir.rest.api.SortOrderEnum;
-import ca.uhn.fhir.rest.api.SortSpec;
 import ca.uhn.fhir.rest.param.DateRangeParam;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.TokenAndListParam;
@@ -98,36 +95,9 @@ public class BahmniFhirAppointmentDaoImpl extends BaseFhirDao<org.openmrs.module
 	}
 	
 	@Override
-	protected void handleSort(Criteria criteria, SortSpec sortSpec) {
-		if (sortSpec == null) {
-			return;
-		}
-		
-		// FHIR Sort Convention:
-		// _sort=date     → Ascending order (earliest first)
-		// _sort=-date    → Descending order (latest first)
-		// Prefix "-" indicates descending/reverse order
-		
-		for (SortSpec sort = sortSpec; sort != null; sort = sort.getChain()) {
-			String paramName = sort.getParamName();
-			
-			// Map FHIR sort parameter name to Appointment property name
-			String propertyName = mapSortParamToProperty(paramName);
-			
-			if (propertyName != null) {
-				if (SortOrderEnum.DESC.equals(sort.getOrder())) {
-					// "-" prefix means descending order
-					criteria.addOrder(Order.desc(propertyName));
-				} else {
-					// Default to ascending order (no prefix or "+" prefix)
-					criteria.addOrder(Order.asc(propertyName));
-				}
-			}
-		}
-	}
-	
-	private String mapSortParamToProperty(String paramName) {
+	protected String paramToProp(String paramName) {
 		// Map FHIR sort parameter names to Appointment entity property names
+		// This method is called by BaseFhirDao.handleSort() to resolve parameter names
 		if (paramName == null) {
 			return null;
 		}
