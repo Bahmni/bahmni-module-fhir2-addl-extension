@@ -182,9 +182,10 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 				return ServiceRequest.ServiceRequestStatus.COMPLETED;
 			case EXCEPTION:
 				return ServiceRequest.ServiceRequestStatus.ENTEREDINERROR;
+			default:
+				return ServiceRequest.ServiceRequestStatus.UNKNOWN;
 		}
-		return ServiceRequest.ServiceRequestStatus.UNKNOWN;
-	}
+    }
 	
 	private Reference createOrderReferenceInternal(Order order) {
 		Reference reference = createOrderReference(order);
