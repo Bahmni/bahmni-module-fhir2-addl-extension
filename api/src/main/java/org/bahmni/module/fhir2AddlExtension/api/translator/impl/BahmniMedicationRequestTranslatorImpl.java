@@ -26,7 +26,7 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 	
 	@Override
 	public DrugOrder toOpenmrsType(@Nonnull DrugOrder existingDrugOrder, @Nonnull MedicationRequest medicationRequest) {
-		DrugOrder drugOrder = superToOpenmrsType(existingDrugOrder, medicationRequest);
+		DrugOrder drugOrder = super.toOpenmrsType(existingDrugOrder, medicationRequest);
 		
 		//TODO: This should be translated based on an extension of MedicationRequest to set correct CareSetting
 		drugOrder.setCareSetting(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.name()));
@@ -49,13 +49,5 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 			drugOrder.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
 		}
 		return drugOrder;
-	}
-	
-	/**
-	 * Testability hook: delegates to super.toOpenmrsType so tests can stub this call without
-	 * needing to wire all parent dependencies.
-	 */
-	protected DrugOrder superToOpenmrsType(DrugOrder existingDrugOrder, MedicationRequest medicationRequest) {
-		return super.toOpenmrsType(existingDrugOrder, medicationRequest);
 	}
 }

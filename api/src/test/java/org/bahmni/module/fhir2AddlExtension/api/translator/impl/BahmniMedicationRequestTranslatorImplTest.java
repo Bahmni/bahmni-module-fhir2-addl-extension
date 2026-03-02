@@ -11,33 +11,50 @@ package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
 import java.util.Calendar;
 import java.util.Date;
 
+import org.hl7.fhir.r4.model.CodeableConcept;
+import org.hl7.fhir.r4.model.Dosage;
 import org.hl7.fhir.r4.model.MedicationRequest;
 import org.hl7.fhir.r4.model.Period;
 import org.hl7.fhir.r4.model.Timing;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.CareSetting;
 import org.openmrs.DrugOrder;
+import org.openmrs.Encounter;
 import org.openmrs.Order;
+import org.openmrs.Provider;
 import org.openmrs.api.OrderService;
+import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
+import org.openmrs.module.fhir2.api.translators.DosageTranslator;
+import org.openmrs.module.fhir2.api.translators.EncounterReferenceTranslator;
+import org.openmrs.module.fhir2.api.translators.MedicationReferenceTranslator;
+import org.openmrs.module.fhir2.api.translators.MedicationRequestDispenseRequestComponentTranslator;
+import org.openmrs.module.fhir2.api.translators.MedicationRequestPriorityTranslator;
+import org.openmrs.module.fhir2.api.translators.MedicationRequestReferenceTranslator;
+import org.openmrs.module.fhir2.api.translators.MedicationRequestStatusTranslator;
+import org.openmrs.module.fhir2.api.translators.OrderIdentifierTranslator;
+import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
+import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 
 /**
  * Unit tests for BahmniMedicationRequestTranslatorImpl. Verifies that STAT orders have
  * autoExpireDate set from timing.repeat.boundsPeriod.end, and that scheduled (non-STAT) orders have
- * urgency set to ON_SCHEDULED_DATE.
+ * urgency set to ON_SCHEDULED_DATE. Uses @InjectMocks so the real toOpenmrsType implementation runs
+ * end-to-end with all parent-class dependencies mocked. The dosageTranslator mock simulates the
+ * parent setting scheduledDate via doAnswer, since the parent calls dosageTranslator for its
+ * side-effect on the DrugOrder.
  */
 @RunWith(MockitoJUnitRunner.class)
 public class BahmniMedicationRequestTranslatorImplTest {
@@ -48,6 +65,41 @@ public class BahmniMedicationRequestTranslatorImplTest {
 	@Mock
 	private CareSetting outpatientCareSetting;
 	
+	// Parent class (MedicationRequestTranslatorImpl) dependencies injected via @InjectMocks
+	@Mock
+	private MedicationRequestPriorityTranslator medicationRequestPriorityTranslator;
+	
+	@Mock
+	private DosageTranslator dosageTranslator;
+	
+	@Mock
+	private ConceptTranslator conceptTranslator;
+	
+	@Mock
+	private MedicationReferenceTranslator medicationReferenceTranslator;
+	
+	@Mock
+	private MedicationRequestStatusTranslator statusTranslator;
+	
+	@Mock
+	private PractitionerReferenceTranslator<Provider> practitionerReferenceTranslator;
+	
+	@Mock
+	private EncounterReferenceTranslator<Encounter> encounterReferenceTranslator;
+	
+	@Mock
+	private PatientReferenceTranslator patientReferenceTranslator;
+	
+	@Mock
+	private OrderIdentifierTranslator orderIdentifierTranslator;
+	
+	@Mock
+	private MedicationRequestDispenseRequestComponentTranslator medicationRequestDispenseRequestComponentTranslator;
+	
+	@Mock
+	private MedicationRequestReferenceTranslator medicationRequestReferenceTranslator;
+	
+	@InjectMocks
 	private BahmniMedicationRequestTranslatorImpl translator;
 	
 	private Date today;
@@ -56,13 +108,11 @@ public class BahmniMedicationRequestTranslatorImplTest {
 	
 	@Before
 	public void setup() {
-		translator = spy(new BahmniMedicationRequestTranslatorImpl());
-		translator.setOrderService(orderService);
-		
 		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.name())).thenReturn(
 		    outpatientCareSetting);
 		
 		Calendar cal = Calendar.getInstance();
+		cal.set(Calendar.MILLISECOND, 0);
 		today = cal.getTime();
 		
 		cal.set(Calendar.HOUR_OF_DAY, 23);
@@ -75,50 +125,58 @@ public class BahmniMedicationRequestTranslatorImplTest {
 	
 	@Test
 	public void toOpenmrsType_givenStatOrderWithBoundsPeriod_shouldSetAutoExpireDate() {
-		// Given: A FHIR MedicationRequest with boundsPeriod.end set
+		// Given: priority translator maps STAT → STAT urgency
+		when(medicationRequestPriorityTranslator.toOpenmrsType(MedicationRequest.MedicationRequestPriority.STAT))
+		        .thenReturn(Order.Urgency.STAT);
+		// And: dosageTranslator simulates parent setting a scheduledDate (which STAT logic must clear)
+		doAnswer(inv -> {
+			((DrugOrder) inv.getArgument(0)).setScheduledDate(today);
+			return inv.getArgument(0);
+		}).when(dosageTranslator).toOpenmrsType(any(DrugOrder.class), any(Dosage.class));
+
 		MedicationRequest fhirRequest = buildStatRequestWithBoundsPeriod(today, endOfDay);
-		
-		// And: super call returns a STAT DrugOrder
-		DrugOrder statOrder = buildStatDrugOrder();
-		doReturn(statOrder).when(translator).superToOpenmrsType(any(DrugOrder.class), any(MedicationRequest.class));
-		
-		// When: translating
+
+		// When
 		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
-		
-		// Then: scheduledDate cleared and autoExpireDate set to boundsPeriod.end
+
+		// Then: scheduledDate is cleared and autoExpireDate is extracted from boundsPeriod.end
 		assertThat(result.getScheduledDate(), nullValue());
-		assertThat(result.getAutoExpireDate(), notNullValue());
 		assertThat(result.getAutoExpireDate(), equalTo(endOfDay));
 	}
 	
 	@Test
 	public void toOpenmrsType_givenStatOrderWithoutBoundsPeriod_shouldNotSetAutoExpireDate() {
-		// Given: A FHIR MedicationRequest with no dosage timing
-		MedicationRequest fhirRequest = new MedicationRequest();
-		
-		DrugOrder statOrder = buildStatDrugOrder();
-		doReturn(statOrder).when(translator).superToOpenmrsType(any(DrugOrder.class), any(MedicationRequest.class));
-		
-		// When: translating
+		when(medicationRequestPriorityTranslator.toOpenmrsType(MedicationRequest.MedicationRequestPriority.STAT))
+		        .thenReturn(Order.Urgency.STAT);
+		doAnswer(inv -> {
+			((DrugOrder) inv.getArgument(0)).setScheduledDate(today);
+			return inv.getArgument(0);
+		}).when(dosageTranslator).toOpenmrsType(any(DrugOrder.class), any(Dosage.class));
+
+		// No dosage instruction with boundsPeriod
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setPriority(MedicationRequest.MedicationRequestPriority.STAT);
+
 		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
-		
-		// Then: scheduledDate cleared but autoExpireDate remains null
+
 		assertThat(result.getScheduledDate(), nullValue());
 		assertThat(result.getAutoExpireDate(), nullValue());
 	}
 	
 	@Test
 	public void toOpenmrsType_givenStatOrderWithBoundsPeriodButNoEnd_shouldNotSetAutoExpireDate() {
-		// Given: boundsPeriod exists but has only a start, no end
+		when(medicationRequestPriorityTranslator.toOpenmrsType(MedicationRequest.MedicationRequestPriority.STAT))
+		        .thenReturn(Order.Urgency.STAT);
+		doAnswer(inv -> {
+			((DrugOrder) inv.getArgument(0)).setScheduledDate(today);
+			return inv.getArgument(0);
+		}).when(dosageTranslator).toOpenmrsType(any(DrugOrder.class), any(Dosage.class));
+
+		// boundsPeriod has only a start, no end
 		MedicationRequest fhirRequest = buildStatRequestWithBoundsPeriod(today, null);
-		
-		DrugOrder statOrder = buildStatDrugOrder();
-		doReturn(statOrder).when(translator).superToOpenmrsType(any(DrugOrder.class), any(MedicationRequest.class));
-		
-		// When: translating
+
 		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
-		
-		// Then: autoExpireDate is not set
+
 		assertThat(result.getScheduledDate(), nullValue());
 		assertThat(result.getAutoExpireDate(), nullValue());
 	}
@@ -127,45 +185,40 @@ public class BahmniMedicationRequestTranslatorImplTest {
 	
 	@Test
 	public void toOpenmrsType_givenScheduledOrder_shouldSetUrgencyToOnScheduledDate() {
-		// Given: A FHIR MedicationRequest that super translates with a future scheduledDate
-		MedicationRequest fhirRequest = new MedicationRequest();
-		
-		DrugOrder scheduledOrder = new DrugOrder();
-		scheduledOrder.setScheduledDate(endOfDay);
-		// urgency not yet set by super
-		doReturn(scheduledOrder).when(translator).superToOpenmrsType(any(DrugOrder.class), any(MedicationRequest.class));
-		
-		// When: translating
+		// dosageTranslator simulates parent setting a future scheduledDate
+		doAnswer(inv -> {
+			((DrugOrder) inv.getArgument(0)).setScheduledDate(endOfDay);
+			return inv.getArgument(0);
+		}).when(dosageTranslator).toOpenmrsType(any(DrugOrder.class), any(Dosage.class));
+
+		MedicationRequest fhirRequest = buildBaseRequest();
+
 		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
-		
-		// Then: urgency is set to ON_SCHEDULED_DATE
+
 		assertThat(result.getUrgency(), equalTo(Order.Urgency.ON_SCHEDULED_DATE));
 	}
 	
 	@Test
 	public void toOpenmrsType_givenOrderWithNoScheduledDateAndNoStat_shouldNotChangeUrgency() {
-		// Given: A regular order with no scheduledDate and no STAT urgency
-		MedicationRequest fhirRequest = new MedicationRequest();
+		when(medicationRequestPriorityTranslator.toOpenmrsType(MedicationRequest.MedicationRequestPriority.ROUTINE))
+		        .thenReturn(Order.Urgency.ROUTINE);
 		
-		DrugOrder regularOrder = new DrugOrder();
-		regularOrder.setUrgency(Order.Urgency.ROUTINE);
-		doReturn(regularOrder).when(translator).superToOpenmrsType(any(DrugOrder.class), any(MedicationRequest.class));
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setPriority(MedicationRequest.MedicationRequestPriority.ROUTINE);
 		
-		// When: translating
 		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
 		
-		// Then: urgency remains unchanged, scheduledDate remains null
 		assertThat(result.getUrgency(), equalTo(Order.Urgency.ROUTINE));
 		assertThat(result.getScheduledDate(), nullValue());
 	}
 	
 	// ========== HELPERS ==========
 	
-	private DrugOrder buildStatDrugOrder() {
-		DrugOrder order = new DrugOrder();
-		order.setUrgency(Order.Urgency.STAT);
-		order.setScheduledDate(today); // super would have set this; we expect it to be cleared
-		return order;
+	private MedicationRequest buildBaseRequest() {
+		MedicationRequest request = new MedicationRequest();
+		// Set an empty CodeableConcept to avoid NPE in parent's concept translation path
+		request.setMedication(new CodeableConcept());
+		return request;
 	}
 	
 	private MedicationRequest buildStatRequestWithBoundsPeriod(Date start, Date end) {
@@ -180,7 +233,9 @@ public class BahmniMedicationRequestTranslatorImplTest {
 		repeat.setBounds(boundsPeriod);
 		Timing timing = new Timing();
 		timing.setRepeat(repeat);
-		MedicationRequest request = new MedicationRequest();
+		
+		MedicationRequest request = buildBaseRequest();
+		request.setPriority(MedicationRequest.MedicationRequestPriority.STAT);
 		request.addDosageInstruction().setTiming(timing);
 		return request;
 	}
