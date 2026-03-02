@@ -15,16 +15,17 @@ import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 import org.openmrs.module.appointments.model.AppointmentProvider;
 import org.openmrs.module.appointments.model.AppointmentProviderResponse;
+import org.openmrs.module.appointments.model.AppointmentReason;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
 import static org.apache.commons.lang3.Validate.notNull;
+import static org.openmrs.module.fhir2.api.translators.impl.FhirTranslatorUtils.getLastUpdated;
 
 @Component
 public class BahmniFhirAppointmentTranslatorImpl implements BahmniFhirAppointmentTranslator {
@@ -53,41 +54,55 @@ public class BahmniFhirAppointmentTranslatorImpl implements BahmniFhirAppointmen
 
 		Appointment fhirAppointment = new Appointment();
 
-		// Basic fields
 		fhirAppointment.setId(bahmniAppointment.getUuid());
 		fhirAppointment.setStatus(appointmentStatusTranslator.toFhirResource(bahmniAppointment.getStatus()));
 		fhirAppointment.setStart(bahmniAppointment.getStartDateTime());
 		fhirAppointment.setEnd(bahmniAppointment.getEndDateTime());
 
-		// Appointment identifier/number
 		Optional.ofNullable(bahmniAppointment.getAppointmentNumber()).ifPresent(appointmentNumber -> {
 			fhirAppointment.addIdentifier()
 				.setSystem(BahmniFhirConstants.BAHMNI_APPOINTMENT_SYSTEM)
 				.setValue(appointmentNumber);
 		});
 
-		// Comments mapped to comment field (FHIR R4 Appointment - for additional comments/notes)
 		Optional.ofNullable(bahmniAppointment.getComments()).ifPresent(fhirAppointment::setComment);
 
-		// Service Type mapping
 		Optional.ofNullable(bahmniAppointment.getService()).ifPresent(service -> {
 			CodeableConcept serviceType = new CodeableConcept();
-			// Add the service name as text display
 			serviceType.setText(service.getName());
-			// Add coding with custom system for Bahmni services
 			Coding serviceCoding = new Coding()
 				.setSystem(BahmniFhirConstants.BAHMNI_APPOINTMENT_SERVICE_SYSTEM)
 				.setCode(service.getUuid())
 				.setDisplay(service.getName());
 			serviceType.addCoding(serviceCoding);
 			fhirAppointment.addServiceType(serviceType);
-
 		});
 
-		// Participants
+		Optional.ofNullable(bahmniAppointment.getReasons())
+			.filter(reasons -> !reasons.isEmpty())
+			.ifPresent(reasons -> {
+				reasons.stream()
+					.filter(reason -> reason != null && reason.getConcept() != null)
+					.forEach(reason -> {
+						fhirAppointment.addReasonCode(mapReasonToCodeableConcept(reason));
+					});
+			});
+
+		fhirAppointment.setParticipant(mapParticipants(bahmniAppointment));
+
+		fhirAppointment.getMeta().setLastUpdated(getLastUpdated(bahmniAppointment));
+
+		return fhirAppointment;
+	}
+	
+	@Override
+	public org.openmrs.module.appointments.model.Appointment toOpenmrsType(@Nonnull Appointment fhirAppointment) {
+		throw new UnsupportedOperationException("Appointment resource is read-only via FHIR API");
+	}
+	
+	private List<AppointmentParticipantComponent> mapParticipants(org.openmrs.module.appointments.model.Appointment bahmniAppointment) {
 		List<AppointmentParticipantComponent> participants = new ArrayList<>();
 
-		// Patient participant
 		Optional.ofNullable(bahmniAppointment.getPatient()).ifPresent(patient -> {
 			AppointmentParticipantComponent patientParticipant = new AppointmentParticipantComponent();
 			patientParticipant.setActor(patientReferenceTranslator.toFhirResource(patient));
@@ -95,7 +110,6 @@ public class BahmniFhirAppointmentTranslatorImpl implements BahmniFhirAppointmen
 			participants.add(patientParticipant);
 		});
 
-		// Provider/Practitioner participants - handle multiple providers (current approach)
 		Optional.ofNullable(bahmniAppointment.getProviders())
 			.filter(providers -> !providers.isEmpty())
 			.ifPresent(appointmentProviders -> {
@@ -113,8 +127,7 @@ public class BahmniFhirAppointmentTranslatorImpl implements BahmniFhirAppointmen
 					});
 			});
 
-		// Fallback to single provider (legacy) if no providers were added
-        if (participants.stream().noneMatch(p -> p.getActor() != null
+		if (participants.stream().noneMatch(p -> p.getActor() != null
                 && p.getActor().getType() != null
                 && "Practitioner".equals(p.getActor().getType()))) {
             Optional.ofNullable(bahmniAppointment.getProvider()).ifPresent(provider -> {
@@ -125,7 +138,6 @@ public class BahmniFhirAppointmentTranslatorImpl implements BahmniFhirAppointmen
             });
         }
 
-		// Location participant
 		Optional.ofNullable(bahmniAppointment.getLocation()).ifPresent(location -> {
 			AppointmentParticipantComponent locationParticipant = new AppointmentParticipantComponent();
 			locationParticipant.setActor(locationReferenceTranslator.toFhirResource(location));
@@ -133,22 +145,7 @@ public class BahmniFhirAppointmentTranslatorImpl implements BahmniFhirAppointmen
 			participants.add(locationParticipant);
 		});
 
-		fhirAppointment.setParticipant(participants);
-
-		// Metadata - handle safely without relying on Auditable interface
-		Date lastUpdated = bahmniAppointment.getDateChanged() != null
-			? bahmniAppointment.getDateChanged()
-			: bahmniAppointment.getDateCreated();
-		if (lastUpdated != null) {
-			fhirAppointment.getMeta().setLastUpdated(lastUpdated);
-		}
-
-		return fhirAppointment;
-	}
-	
-	@Override
-	public org.openmrs.module.appointments.model.Appointment toOpenmrsType(@Nonnull Appointment fhirAppointment) {
-		throw new UnsupportedOperationException("Appointment resource is read-only via FHIR API");
+		return participants;
 	}
 	
 	private ParticipationStatus mapProviderResponseToParticipationStatus(AppointmentProviderResponse response) {
@@ -165,5 +162,17 @@ public class BahmniFhirAppointmentTranslatorImpl implements BahmniFhirAppointmen
 			default:
 				return ParticipationStatus.NEEDSACTION;
 		}
+	}
+	
+	private CodeableConcept mapReasonToCodeableConcept(AppointmentReason appointmentReason) {
+		CodeableConcept reasonConcept = new CodeableConcept();
+		if (appointmentReason.getConcept() != null) {
+			reasonConcept.setText(appointmentReason.getConcept().getDisplayString());
+			Coding reasonCoding = new Coding().setSystem(BahmniFhirConstants.BAHMNI_APPOINTMENT_REASON_SYSTEM)
+			        .setCode(appointmentReason.getConcept().getUuid())
+			        .setDisplay(appointmentReason.getConcept().getDisplayString());
+			reasonConcept.addCoding(reasonCoding);
+		}
+		return reasonConcept;
 	}
 }

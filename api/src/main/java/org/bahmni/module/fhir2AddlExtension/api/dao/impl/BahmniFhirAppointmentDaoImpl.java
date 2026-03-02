@@ -40,8 +40,6 @@ public class BahmniFhirAppointmentDaoImpl extends BaseFhirDao<org.openmrs.module
 	protected void setupSearchParams(Criteria criteria, SearchParameterMap theParams) {
 		super.setupSearchParams(criteria, theParams);
 
-		// Eager fetch the providers collection to avoid N+1 queries during translation
-		// Note: AppointmentServiceDefinition.serviceTypes is already lazy="false" (eager loaded)
 		criteria.setFetchMode("providers", FetchMode.JOIN);
 		criteria.setResultTransformer(CriteriaSpecification.DISTINCT_ROOT_ENTITY);
 
@@ -71,7 +69,6 @@ public class BahmniFhirAppointmentDaoImpl extends BaseFhirDao<org.openmrs.module
 			handleAndListParam(status, token -> {
 				if (token.getValue() != null) {
 					try {
-						// Parse FHIR status string to enum and use translator to convert to Bahmni status
 						Appointment.AppointmentStatus fhirStatus =
 							Appointment.AppointmentStatus.fromCode(token.getValue().toLowerCase(Locale.ROOT));
 						AppointmentStatus bahmniStatus = statusTranslator.toOpenmrsType(fhirStatus);
@@ -79,7 +76,6 @@ public class BahmniFhirAppointmentDaoImpl extends BaseFhirDao<org.openmrs.module
 							return Optional.of(Restrictions.eq("status", bahmniStatus));
 						}
 					} catch (FHIRException | IllegalArgumentException e) {
-						// Invalid appointment status code provided in search parameters
 						log.debug("Invalid appointment status code: {}", token.getValue(), e);
 					}
 				}
@@ -96,8 +92,6 @@ public class BahmniFhirAppointmentDaoImpl extends BaseFhirDao<org.openmrs.module
 	
 	@Override
 	protected String paramToProp(String paramName) {
-		// Map FHIR sort parameter names to Appointment entity property names
-		// This method is called by BaseFhirDao.handleSort() to resolve parameter names
 		if (paramName == null) {
 			return null;
 		}

@@ -12,22 +12,26 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.module.appointments.model.AppointmentProvider;
 import org.openmrs.module.appointments.model.AppointmentProviderResponse;
+import org.openmrs.module.appointments.model.AppointmentReason;
 import org.openmrs.module.appointments.model.AppointmentServiceDefinition;
 import org.openmrs.module.appointments.model.AppointmentServiceType;
 import org.openmrs.module.appointments.model.AppointmentStatus;
 import org.openmrs.module.fhir2.api.translators.LocationReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
+import org.openmrs.Concept;
 import org.openmrs.Provider;
 import org.openmrs.Patient;
 import org.openmrs.Location;
 
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mock;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BahmniFhirAppointmentTranslatorImplTest {
@@ -561,5 +565,139 @@ public class BahmniFhirAppointmentTranslatorImplTest {
 
 		assertEquals(1, fhirAppointment.getServiceType().size());
 		assertEquals(1, fhirAppointment.getServiceType().get(0).getCoding().size());
+	}
+	
+	@Test
+	public void shouldMapSingleAppointmentReason() {
+		org.openmrs.module.appointments.model.Appointment bahmniAppointment =
+			new org.openmrs.module.appointments.model.Appointment();
+		bahmniAppointment.setUuid("test-uuid");
+		bahmniAppointment.setStatus(AppointmentStatus.Scheduled);
+		bahmniAppointment.setStartDateTime(new Date());
+		bahmniAppointment.setEndDateTime(new Date());
+
+		Concept reasonConcept = mock(Concept.class);
+		when(reasonConcept.getUuid()).thenReturn("reason-concept-uuid");
+		when(reasonConcept.getDisplayString()).thenReturn("Diabetes Consultation");
+
+		AppointmentReason reason = new AppointmentReason();
+		reason.setConcept(reasonConcept);
+
+		Set<AppointmentReason> reasons = new HashSet<>();
+		reasons.add(reason);
+		bahmniAppointment.setReasons(reasons);
+
+		when(appointmentStatusTranslator.toFhirResource(AppointmentStatus.Scheduled))
+			.thenReturn(Appointment.AppointmentStatus.BOOKED);
+
+		Appointment fhirAppointment = translator.toFhirResource(bahmniAppointment);
+
+		assertEquals("Should have 1 reason code", 1, fhirAppointment.getReasonCode().size());
+		assertEquals("Diabetes Consultation", fhirAppointment.getReasonCode().get(0).getText());
+		assertEquals("reason-concept-uuid", fhirAppointment.getReasonCode().get(0).getCoding().get(0).getCode());
+		assertEquals("Diabetes Consultation", fhirAppointment.getReasonCode().get(0).getCoding().get(0).getDisplay());
+	}
+	
+	@Test
+	public void shouldMapMultipleAppointmentReasons() {
+		org.openmrs.module.appointments.model.Appointment bahmniAppointment =
+			new org.openmrs.module.appointments.model.Appointment();
+		bahmniAppointment.setUuid("test-uuid");
+		bahmniAppointment.setStatus(AppointmentStatus.Scheduled);
+		bahmniAppointment.setStartDateTime(new Date());
+		bahmniAppointment.setEndDateTime(new Date());
+
+		Concept reasonConcept1 = mock(Concept.class);
+		when(reasonConcept1.getUuid()).thenReturn("reason-concept-uuid-1");
+		when(reasonConcept1.getDisplayString()).thenReturn("Checkup");
+
+		Concept reasonConcept2 = mock(Concept.class);
+		when(reasonConcept2.getUuid()).thenReturn("reason-concept-uuid-2");
+		when(reasonConcept2.getDisplayString()).thenReturn("Vaccination");
+
+		AppointmentReason reason1 = new AppointmentReason();
+		reason1.setConcept(reasonConcept1);
+
+		AppointmentReason reason2 = new AppointmentReason();
+		reason2.setConcept(reasonConcept2);
+
+		Set<AppointmentReason> reasons = new HashSet<>();
+		reasons.add(reason1);
+		reasons.add(reason2);
+		bahmniAppointment.setReasons(reasons);
+
+		when(appointmentStatusTranslator.toFhirResource(AppointmentStatus.Scheduled))
+			.thenReturn(Appointment.AppointmentStatus.BOOKED);
+
+		Appointment fhirAppointment = translator.toFhirResource(bahmniAppointment);
+
+		assertEquals("Should have 2 reason codes", 2, fhirAppointment.getReasonCode().size());
+	}
+	
+	@Test
+	public void shouldHandleNullReasons() {
+		org.openmrs.module.appointments.model.Appointment bahmniAppointment = new org.openmrs.module.appointments.model.Appointment();
+		bahmniAppointment.setUuid("test-uuid");
+		bahmniAppointment.setStatus(AppointmentStatus.Scheduled);
+		bahmniAppointment.setStartDateTime(new Date());
+		bahmniAppointment.setEndDateTime(new Date());
+		bahmniAppointment.setReasons(null);
+		
+		when(appointmentStatusTranslator.toFhirResource(AppointmentStatus.Scheduled)).thenReturn(
+		    Appointment.AppointmentStatus.BOOKED);
+		
+		Appointment fhirAppointment = translator.toFhirResource(bahmniAppointment);
+		
+		assertEquals("Should have 0 reason codes when reasons is null", 0, fhirAppointment.getReasonCode().size());
+	}
+	
+	@Test
+	public void shouldHandleEmptyReasons() {
+		org.openmrs.module.appointments.model.Appointment bahmniAppointment =
+			new org.openmrs.module.appointments.model.Appointment();
+		bahmniAppointment.setUuid("test-uuid");
+		bahmniAppointment.setStatus(AppointmentStatus.Scheduled);
+		bahmniAppointment.setStartDateTime(new Date());
+		bahmniAppointment.setEndDateTime(new Date());
+		bahmniAppointment.setReasons(new HashSet<>());
+
+		when(appointmentStatusTranslator.toFhirResource(AppointmentStatus.Scheduled))
+			.thenReturn(Appointment.AppointmentStatus.BOOKED);
+
+		Appointment fhirAppointment = translator.toFhirResource(bahmniAppointment);
+
+		assertEquals("Should have 0 reason codes when reasons set is empty", 0, fhirAppointment.getReasonCode().size());
+	}
+	
+	@Test
+	public void shouldHandleNullConceptInReason() {
+		org.openmrs.module.appointments.model.Appointment bahmniAppointment =
+			new org.openmrs.module.appointments.model.Appointment();
+		bahmniAppointment.setUuid("test-uuid");
+		bahmniAppointment.setStatus(AppointmentStatus.Scheduled);
+		bahmniAppointment.setStartDateTime(new Date());
+		bahmniAppointment.setEndDateTime(new Date());
+
+		AppointmentReason reasonWithNullConcept = new AppointmentReason();
+		reasonWithNullConcept.setConcept(null);
+
+		Concept validConcept = mock(Concept.class);
+		when(validConcept.getUuid()).thenReturn("valid-concept-uuid");
+		when(validConcept.getDisplayString()).thenReturn("Valid Reason");
+
+		AppointmentReason validReason = new AppointmentReason();
+		validReason.setConcept(validConcept);
+
+		Set<AppointmentReason> reasons = new HashSet<>();
+		reasons.add(reasonWithNullConcept);
+		reasons.add(validReason);
+		bahmniAppointment.setReasons(reasons);
+
+		when(appointmentStatusTranslator.toFhirResource(AppointmentStatus.Scheduled))
+			.thenReturn(Appointment.AppointmentStatus.BOOKED);
+
+		Appointment fhirAppointment = translator.toFhirResource(bahmniAppointment);
+
+		assertEquals("Should have 1 reason code (null concept filtered out)", 1, fhirAppointment.getReasonCode().size());
 	}
 }
