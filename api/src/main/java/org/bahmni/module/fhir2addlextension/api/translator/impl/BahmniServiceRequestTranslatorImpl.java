@@ -170,6 +170,9 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 					new DateTimeType(order.getDateChanged()));
 			}
 		}
+        if(order.getFulfillerStatus() != null) {
+            serviceRequest.addExtension(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_ORDER_STATUS, new StringType(order.getFulfillerStatus().name()));
+        }
 
 		mapTaskFields(serviceRequest, order.getUuid());
 
@@ -265,10 +268,6 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 			    new DateTimeType(task.getDateCreated()));
 		}
 		
-		if (task.getStatus() != null) {
-			serviceRequest.addExtension(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_TASK_STATUS, new StringType(task
-			        .getStatus().name()));
-		}
 		if (task.getCreator() != null) {
 			Reference creatorRef = userPractitionerReferenceTranslator.toFhirResource(task.getCreator());
 			if (creatorRef != null) {

@@ -77,7 +77,7 @@ public final class BahmniFhirConstants {
 
         public static final String FHIR_EXT_SERVICE_REQUEST_TASK_OWNER = EXTENSION_PREFIX + "/service-request/task-owner";
 	public static final String FHIR_EXT_SERVICE_REQUEST_TASK_CREATED_ON = EXTENSION_PREFIX + "/service-request/task-created-on";
-	public static final String FHIR_EXT_SERVICE_REQUEST_TASK_STATUS = EXTENSION_PREFIX + "/service-request/task-status";
+	public static final String FHIR_EXT_SERVICE_REQUEST_ORDER_STATUS = EXTENSION_PREFIX + "/service-request/order-status";
 	public static final String FHIR_EXT_SERVICE_REQUEST_CREATED_BY = EXTENSION_PREFIX + "/service-request/created-by";
 	public static final String FHIR_EXT_SERVICE_REQUEST_UPDATED_BY = EXTENSION_PREFIX + "/service-request/updated-by";
 	public static final String FHIR_EXT_SERVICE_REQUEST_UPDATED_ON = EXTENSION_PREFIX + "/service-request/updated-on";
