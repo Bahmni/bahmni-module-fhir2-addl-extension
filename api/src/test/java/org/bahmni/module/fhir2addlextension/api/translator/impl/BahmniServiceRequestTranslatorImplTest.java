@@ -3,6 +3,7 @@ package org.bahmni.module.fhir2addlextension.api.translator.impl;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
 import org.bahmni.module.fhir2addlextension.api.context.AppContext;
+import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirTaskDao;
 import org.bahmni.module.fhir2addlextension.api.dao.OrderAttributeTypeDao;
 import org.bahmni.module.fhir2addlextension.api.service.impl.ServiceRequestLocationReferenceResolverImpl;
 import org.bahmni.module.fhir2addlextension.api.translator.OrderTypeTranslator;
@@ -12,6 +13,7 @@ import org.bahmni.module.fhir2addlextension.api.validators.ServiceRequestValidat
 import org.hl7.fhir.r4.model.Annotation;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
+import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Period;
 import org.hl7.fhir.r4.model.Reference;
@@ -33,6 +35,7 @@ import org.openmrs.OrderAttributeType;
 import org.openmrs.OrderType;
 import org.openmrs.Patient;
 import org.openmrs.Provider;
+import org.openmrs.User;
 import org.openmrs.api.OrderService;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
@@ -41,6 +44,8 @@ import org.openmrs.module.fhir2.api.translators.LocationReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.impl.OrderIdentifierTranslatorImpl;
+import org.openmrs.module.fhir2.model.FhirReference;
+import org.openmrs.module.fhir2.model.FhirTask;
 import org.openmrs.order.OrderUtilTest;
 import org.bahmni.module.fhir2addlextension.api.translator.BahmniOrderReferenceTranslator;
 
@@ -64,6 +69,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasProperty;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -145,6 +151,12 @@ public class BahmniServiceRequestTranslatorImplTest {
 	
 	private ServiceRequestExtensionTranslator extensionTranslator;
 	
+	@Mock
+	private BahmniFhirTaskDao taskDao;
+	
+	@Mock
+	private PractitionerReferenceTranslator<User> userPractitionerReferenceTranslator;
+	
 	private Order discontinuedOrder;
 	
 	private Order order;
@@ -193,6 +205,8 @@ public class BahmniServiceRequestTranslatorImplTest {
 		        locationReferenceTranslator, orderAttributeTypeDao, appContext);
 		
 		translator.setLocationReferenceResolver(orderLocationReferenceResolver);
+		translator.setTaskDao(taskDao);
+		translator.setUserPractitionerReferenceTranslator(userPractitionerReferenceTranslator);
 		
 		orderConcept = new Concept();
 		ConceptClass cc = new ConceptClass();
@@ -1338,5 +1352,192 @@ public class BahmniServiceRequestTranslatorImplTest {
 		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
 		
 		translator.toOpenmrsType(serviceRequest);
+	}
+	
+	@Test
+	public void toFhirResource_shouldSetAuthoredOnFromDateActivated() {
+		Date dateActivated = new Date();
+		order.setDateActivated(dateActivated);
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getAuthoredOn(), equalTo(dateActivated));
+	}
+	
+	@Test
+	public void toFhirResource_shouldSetAuthoredOnFromDateCreatedWhenDateActivatedIsNull() {
+		Date dateCreated = new Date();
+		order.setDateCreated(dateCreated);
+		order.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
+		order.setScheduledDate(dateCreated);
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getAuthoredOn(), equalTo(dateCreated));
+	}
+	
+	@Test
+	public void toFhirResource_shouldAddFulfillerCommentAsNote() {
+		order.setDateActivated(new Date());
+		order.setFulfillerComment("Lab result reviewed");
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getNote(), hasSize(1));
+		assertThat(result.getNote().get(0).getText(), equalTo("Lab result reviewed"));
+	}
+	
+	@Test
+	public void toFhirResource_shouldNotAddFulfillerCommentNoteWhenNull() {
+		order.setDateActivated(new Date());
+		order.setFulfillerComment(null);
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getNote(), empty());
+	}
+	
+	@Test
+	public void toFhirResource_shouldMapChangedByToExtension() {
+		order.setDateActivated(new Date());
+		User changedBy = new User();
+		changedBy.setUuid("changed-by-uuid");
+		Date dateChanged = new Date();
+		order.setChangedBy(changedBy);
+		order.setDateChanged(dateChanged);
+		
+		Reference changedByRef = new Reference("Practitioner/changed-by-uuid");
+		when(userPractitionerReferenceTranslator.toFhirResource(changedBy)).thenReturn(changedByRef);
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		Extension updatedByExt = result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_UPDATED_BY);
+		assertThat(updatedByExt, notNullValue());
+		assertThat(((Reference) updatedByExt.getValue()).getReference(), equalTo("Practitioner/changed-by-uuid"));
+		
+		Extension updatedOnExt = result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_UPDATED_ON);
+		assertThat(updatedOnExt, notNullValue());
+		assertThat(((DateTimeType) updatedOnExt.getValue()).getValue(), equalTo(dateChanged));
+	}
+	
+	@Test
+	public void toFhirResource_shouldNotAddChangedByExtensionWhenNull() {
+		order.setDateActivated(new Date());
+		order.setChangedBy(null);
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_UPDATED_BY), nullValue());
+		assertThat(result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_UPDATED_ON), nullValue());
+	}
+	
+	@Test
+	public void toFhirResource_shouldMapTaskOwnerToExtension() {
+		order.setDateActivated(new Date());
+		FhirTask task = new FhirTask();
+		task.setStatus(FhirTask.TaskStatus.ACCEPTED);
+		FhirReference ownerRef = new FhirReference();
+		ownerRef.setReference("Practitioner/owner-uuid");
+		ownerRef.setType("Practitioner");
+		task.setOwnerReference(ownerRef);
+		task.setDateCreated(new Date());
+		
+		when(taskDao.getTaskByOrderUuid(SERVICE_REQUEST_UUID)).thenReturn(task);
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		Extension ext = result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_TASK_OWNER);
+		assertThat(ext, notNullValue());
+		assertThat(((Reference) ext.getValue()).getReference(), equalTo("Practitioner/owner-uuid"));
+		assertThat(((Reference) ext.getValue()).getType(), equalTo("Practitioner"));
+	}
+	
+	@Test
+	public void toFhirResource_shouldMapTaskCommentAsNote() {
+		order.setDateActivated(new Date());
+		FhirTask task = new FhirTask();
+		task.setStatus(FhirTask.TaskStatus.ACCEPTED);
+		task.setComment("Task comment");
+		task.setDateCreated(new Date());
+		
+		when(taskDao.getTaskByOrderUuid(SERVICE_REQUEST_UUID)).thenReturn(task);
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		Extension ext = result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_TASK_NOTE);
+		assertThat(ext, notNullValue());
+		assertThat(((Annotation) ext.getValue()).getText(), equalTo("Task comment"));
+	}
+	
+	@Test
+	public void toFhirResource_shouldMapTaskCreatedOnToExtension() {
+		order.setDateActivated(new Date());
+		FhirTask task = new FhirTask();
+		task.setStatus(FhirTask.TaskStatus.ACCEPTED);
+		Date taskCreatedDate = new Date();
+		task.setDateCreated(taskCreatedDate);
+		
+		when(taskDao.getTaskByOrderUuid(SERVICE_REQUEST_UUID)).thenReturn(task);
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		Extension ext = result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_TASK_CREATED_ON);
+		assertThat(ext, notNullValue());
+		assertThat(((DateTimeType) ext.getValue()).getValue(), equalTo(taskCreatedDate));
+	}
+	
+	@Test
+	public void toFhirResource_shouldMapTaskStatusToExtension() {
+		order.setDateActivated(new Date());
+		FhirTask task = new FhirTask();
+		task.setStatus(FhirTask.TaskStatus.ACCEPTED);
+		task.setDateCreated(new Date());
+		
+		when(taskDao.getTaskByOrderUuid(SERVICE_REQUEST_UUID)).thenReturn(task);
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		Extension ext = result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_TASK_STATUS);
+		assertThat(ext, notNullValue());
+		assertThat(((StringType) ext.getValue()).getValue(), equalTo("ACCEPTED"));
+	}
+	
+	@Test
+	public void toFhirResource_shouldNotAddTaskExtensionsWhenNoTaskExists() {
+		order.setDateActivated(new Date());
+		when(taskDao.getTaskByOrderUuid(SERVICE_REQUEST_UUID)).thenReturn(null);
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_TASK_OWNER), nullValue());
+		assertThat(result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_TASK_CREATED_ON), nullValue());
+		assertThat(result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_TASK_STATUS), nullValue());
+	}
+	
+	@Test
+	public void toFhirResource_shouldNotAddTaskOwnerExtensionWhenOwnerReferenceIsNull() {
+		order.setDateActivated(new Date());
+		FhirTask task = new FhirTask();
+		task.setStatus(FhirTask.TaskStatus.ACCEPTED);
+		task.setOwnerReference(null);
+		task.setDateCreated(new Date());
+		
+		when(taskDao.getTaskByOrderUuid(SERVICE_REQUEST_UUID)).thenReturn(task);
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_TASK_OWNER), nullValue());
 	}
 }

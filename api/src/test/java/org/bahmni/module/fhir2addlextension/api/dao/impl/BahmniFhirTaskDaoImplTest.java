@@ -3,6 +3,7 @@ package org.bahmni.module.fhir2addlextension.api.dao.impl;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -12,6 +13,7 @@ import java.lang.reflect.Field;
 import java.util.Collections;
 
 import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirServiceRequestDao;
+import org.hibernate.Criteria;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.junit.Before;
@@ -263,5 +265,39 @@ public class BahmniFhirTaskDaoImplTest {
 		FhirTask fhirTask = createFhirTaskWithBasedOn(status, orderUuid);
 		fhirTask.setComment(comment);
 		return fhirTask;
+	}
+	
+	@Test
+	public void getTaskByOrderUuid_shouldReturnTaskWhenFound() {
+		FhirTask expectedTask = createFhirTaskWithBasedOn(FhirTask.TaskStatus.ACCEPTED, ORDER_UUID);
+		Criteria criteria = org.mockito.Mockito.mock(Criteria.class);
+		
+		when(session.createCriteria(FhirTask.class)).thenReturn(criteria);
+		when(criteria.createAlias("basedOnReferences", "bor")).thenReturn(criteria);
+		when(criteria.add(any())).thenReturn(criteria);
+		when(criteria.addOrder(any(org.hibernate.criterion.Order.class))).thenReturn(criteria);
+		when(criteria.setMaxResults(1)).thenReturn(criteria);
+		when(criteria.uniqueResult()).thenReturn(expectedTask);
+		
+		FhirTask result = taskDao.getTaskByOrderUuid(ORDER_UUID);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getStatus(), equalTo(FhirTask.TaskStatus.ACCEPTED));
+	}
+	
+	@Test
+	public void getTaskByOrderUuid_shouldReturnNullWhenNoTaskFound() {
+		Criteria criteria = org.mockito.Mockito.mock(Criteria.class);
+		
+		when(session.createCriteria(FhirTask.class)).thenReturn(criteria);
+		when(criteria.createAlias("basedOnReferences", "bor")).thenReturn(criteria);
+		when(criteria.add(any())).thenReturn(criteria);
+		when(criteria.addOrder(any(org.hibernate.criterion.Order.class))).thenReturn(criteria);
+		when(criteria.setMaxResults(1)).thenReturn(criteria);
+		when(criteria.uniqueResult()).thenReturn(null);
+		
+		FhirTask result = taskDao.getTaskByOrderUuid(ORDER_UUID);
+		
+		assertThat(result, nullValue());
 	}
 }
