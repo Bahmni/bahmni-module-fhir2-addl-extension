@@ -57,4 +57,10 @@ public final class BahmniFhirConstants {
 	public static final String FHIR_EXT_OBSERVATION_ATTACHMENT_VALUE = EXTENSION_PREFIX + "/observation/obs-value-attachment";
 	public static final String INCLUDE_BASED_ON_PARAM = "basedon";
 	public static final String IMAGING_STUDY = "ImagingStudy";
+	public static final String APPOINTMENT = "Appointment";
+
+	// Appointment System URIs
+	public static final String BAHMNI_APPOINTMENT_SYSTEM = BAHMNI_CODE_SYSTEM_PREFIX + "/appointments";
+	public static final String BAHMNI_APPOINTMENT_SERVICE_SYSTEM = BAHMNI_CODE_SYSTEM_PREFIX + "/appointment-services";
+	public static final String BAHMNI_APPOINTMENT_REASON_SYSTEM = BAHMNI_CODE_SYSTEM_PREFIX + "/appointment-reasons";
 }

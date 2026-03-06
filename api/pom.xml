@@ -58,6 +58,12 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>org.bahmni.module</groupId>
+            <artifactId>appointments-api</artifactId>
+            <version>${appointments.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>org.ict4h.openmrs</groupId>
             <artifactId>openmrs-atomfeed-common</artifactId>
             <version>${openmrsAtomfeedVersion}</version>
@@ -87,6 +93,7 @@
         </testResources>
 
         <plugins>
+
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
