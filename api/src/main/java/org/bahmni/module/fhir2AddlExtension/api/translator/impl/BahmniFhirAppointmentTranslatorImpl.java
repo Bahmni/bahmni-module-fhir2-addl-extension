@@ -9,6 +9,7 @@ import org.hl7.fhir.r4.model.Appointment.ParticipationStatus;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.Identifier;
+import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
 import org.openmrs.module.fhir2.api.translators.LocationReferenceTranslator;
 import org.openmrs.Provider;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
@@ -38,14 +39,18 @@ public class BahmniFhirAppointmentTranslatorImpl implements BahmniFhirAppointmen
 	
 	private final AppointmentStatusTranslator appointmentStatusTranslator;
 	
+	private final ConceptTranslator conceptTranslator;
+	
 	@Autowired
 	public BahmniFhirAppointmentTranslatorImpl(PatientReferenceTranslator patientReferenceTranslator,
 	    PractitionerReferenceTranslator<Provider> practitionerReferenceTranslator,
-	    LocationReferenceTranslator locationReferenceTranslator, AppointmentStatusTranslator appointmentStatusTranslator) {
+	    LocationReferenceTranslator locationReferenceTranslator, AppointmentStatusTranslator appointmentStatusTranslator,
+	    ConceptTranslator conceptTranslator) {
 		this.patientReferenceTranslator = patientReferenceTranslator;
 		this.practitionerReferenceTranslator = practitionerReferenceTranslator;
 		this.locationReferenceTranslator = locationReferenceTranslator;
 		this.appointmentStatusTranslator = appointmentStatusTranslator;
+		this.conceptTranslator = conceptTranslator;
 	}
 	
 	@Override
@@ -84,7 +89,7 @@ public class BahmniFhirAppointmentTranslatorImpl implements BahmniFhirAppointmen
 				reasons.stream()
 					.filter(reason -> reason != null && reason.getConcept() != null)
 					.forEach(reason -> {
-						fhirAppointment.addReasonCode(mapReasonToCodeableConcept(reason));
+						fhirAppointment.addReasonCode(conceptTranslator.toFhirResource(reason.getConcept()));
 					});
 			});
 
@@ -164,15 +169,4 @@ public class BahmniFhirAppointmentTranslatorImpl implements BahmniFhirAppointmen
 		}
 	}
 	
-	private CodeableConcept mapReasonToCodeableConcept(AppointmentReason appointmentReason) {
-		CodeableConcept reasonConcept = new CodeableConcept();
-		if (appointmentReason.getConcept() != null) {
-			reasonConcept.setText(appointmentReason.getConcept().getDisplayString());
-			Coding reasonCoding = new Coding().setSystem(BahmniFhirConstants.BAHMNI_APPOINTMENT_REASON_SYSTEM)
-			        .setCode(appointmentReason.getConcept().getUuid())
-			        .setDisplay(appointmentReason.getConcept().getDisplayString());
-			reasonConcept.addCoding(reasonCoding);
-		}
-		return reasonConcept;
-	}
 }

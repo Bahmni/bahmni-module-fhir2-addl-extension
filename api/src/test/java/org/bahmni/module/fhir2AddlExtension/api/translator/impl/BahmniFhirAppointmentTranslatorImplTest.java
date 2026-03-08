@@ -16,6 +16,7 @@ import org.openmrs.module.appointments.model.AppointmentReason;
 import org.openmrs.module.appointments.model.AppointmentServiceDefinition;
 import org.openmrs.module.appointments.model.AppointmentServiceType;
 import org.openmrs.module.appointments.model.AppointmentStatus;
+import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
 import org.openmrs.module.fhir2.api.translators.LocationReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
@@ -48,12 +49,15 @@ public class BahmniFhirAppointmentTranslatorImplTest {
 	@Mock
 	private AppointmentStatusTranslator appointmentStatusTranslator;
 	
+	@Mock
+	private ConceptTranslator conceptTranslator;
+	
 	private BahmniFhirAppointmentTranslatorImpl translator;
 	
 	@Before
 	public void setUp() {
 		translator = new BahmniFhirAppointmentTranslatorImpl(patientReferenceTranslator, practitionerReferenceTranslator,
-		        locationReferenceTranslator, appointmentStatusTranslator);
+		        locationReferenceTranslator, appointmentStatusTranslator, conceptTranslator);
 	}
 	
 	@Test
@@ -577,8 +581,6 @@ public class BahmniFhirAppointmentTranslatorImplTest {
 		bahmniAppointment.setEndDateTime(new Date());
 
 		Concept reasonConcept = mock(Concept.class);
-		when(reasonConcept.getUuid()).thenReturn("reason-concept-uuid");
-		when(reasonConcept.getDisplayString()).thenReturn("Diabetes Consultation");
 
 		AppointmentReason reason = new AppointmentReason();
 		reason.setConcept(reasonConcept);
@@ -590,12 +592,14 @@ public class BahmniFhirAppointmentTranslatorImplTest {
 		when(appointmentStatusTranslator.toFhirResource(AppointmentStatus.Scheduled))
 			.thenReturn(Appointment.AppointmentStatus.BOOKED);
 
+		org.hl7.fhir.r4.model.CodeableConcept reasonCodeable = new org.hl7.fhir.r4.model.CodeableConcept();
+		reasonCodeable.setText("Diabetes Consultation");
+		when(conceptTranslator.toFhirResource(reasonConcept)).thenReturn(reasonCodeable);
+
 		Appointment fhirAppointment = translator.toFhirResource(bahmniAppointment);
 
 		assertEquals("Should have 1 reason code", 1, fhirAppointment.getReasonCode().size());
 		assertEquals("Diabetes Consultation", fhirAppointment.getReasonCode().get(0).getText());
-		assertEquals("reason-concept-uuid", fhirAppointment.getReasonCode().get(0).getCoding().get(0).getCode());
-		assertEquals("Diabetes Consultation", fhirAppointment.getReasonCode().get(0).getCoding().get(0).getDisplay());
 	}
 	
 	@Test
@@ -608,12 +612,8 @@ public class BahmniFhirAppointmentTranslatorImplTest {
 		bahmniAppointment.setEndDateTime(new Date());
 
 		Concept reasonConcept1 = mock(Concept.class);
-		when(reasonConcept1.getUuid()).thenReturn("reason-concept-uuid-1");
-		when(reasonConcept1.getDisplayString()).thenReturn("Checkup");
 
 		Concept reasonConcept2 = mock(Concept.class);
-		when(reasonConcept2.getUuid()).thenReturn("reason-concept-uuid-2");
-		when(reasonConcept2.getDisplayString()).thenReturn("Vaccination");
 
 		AppointmentReason reason1 = new AppointmentReason();
 		reason1.setConcept(reasonConcept1);
@@ -628,6 +628,13 @@ public class BahmniFhirAppointmentTranslatorImplTest {
 
 		when(appointmentStatusTranslator.toFhirResource(AppointmentStatus.Scheduled))
 			.thenReturn(Appointment.AppointmentStatus.BOOKED);
+
+		org.hl7.fhir.r4.model.CodeableConcept reasonCode1 = new org.hl7.fhir.r4.model.CodeableConcept();
+		reasonCode1.setText("Checkup");
+		org.hl7.fhir.r4.model.CodeableConcept reasonCode2 = new org.hl7.fhir.r4.model.CodeableConcept();
+		reasonCode2.setText("Vaccination");
+		when(conceptTranslator.toFhirResource(reasonConcept1)).thenReturn(reasonCode1);
+		when(conceptTranslator.toFhirResource(reasonConcept2)).thenReturn(reasonCode2);
 
 		Appointment fhirAppointment = translator.toFhirResource(bahmniAppointment);
 
@@ -682,8 +689,6 @@ public class BahmniFhirAppointmentTranslatorImplTest {
 		reasonWithNullConcept.setConcept(null);
 
 		Concept validConcept = mock(Concept.class);
-		when(validConcept.getUuid()).thenReturn("valid-concept-uuid");
-		when(validConcept.getDisplayString()).thenReturn("Valid Reason");
 
 		AppointmentReason validReason = new AppointmentReason();
 		validReason.setConcept(validConcept);
@@ -695,6 +700,10 @@ public class BahmniFhirAppointmentTranslatorImplTest {
 
 		when(appointmentStatusTranslator.toFhirResource(AppointmentStatus.Scheduled))
 			.thenReturn(Appointment.AppointmentStatus.BOOKED);
+
+		org.hl7.fhir.r4.model.CodeableConcept validReasonCode = new org.hl7.fhir.r4.model.CodeableConcept();
+		validReasonCode.setText("Valid Reason");
+		when(conceptTranslator.toFhirResource(validConcept)).thenReturn(validReasonCode);
 
 		Appointment fhirAppointment = translator.toFhirResource(bahmniAppointment);
 

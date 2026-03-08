@@ -51,21 +51,16 @@ public class BahmniAppointmentSearchParams extends BaseResourceSearchParams {
 		if ((patientReference == null) || patientReference.getValuesAsQueryTokens().isEmpty()) {
 			return false;
 		}
-		boolean hasParam = false;
-		for (ReferenceOrListParam referenceOrListParam : patientReference.getValuesAsQueryTokens()) {
-			if (referenceOrListParam.getValuesAsQueryTokens().isEmpty()) {
-				continue;
-			}
-			boolean match = referenceOrListParam.getValuesAsQueryTokens().stream().anyMatch(referenceParam -> {
-				return StringUtils.isEmpty(referenceParam.getValue());
-			});
-			if (match) {
-				continue;
-			}
-			hasParam = true;
-            break;
+		return patientReference.getValuesAsQueryTokens().stream()
+		    .anyMatch(this::isValidPatientReference);
+	}
+	
+	private boolean isValidPatientReference(ReferenceOrListParam referenceOrListParam) {
+		if (referenceOrListParam.getValuesAsQueryTokens().isEmpty()) {
+			return false;
 		}
-		return hasParam;
+		return referenceOrListParam.getValuesAsQueryTokens().stream()
+		    .noneMatch(referenceParam -> StringUtils.isEmpty(referenceParam.getValue()));
 	}
 	
 	public boolean hasStatus() {

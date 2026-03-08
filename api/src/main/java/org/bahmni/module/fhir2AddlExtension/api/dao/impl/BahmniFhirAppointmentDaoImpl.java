@@ -29,6 +29,14 @@ public class BahmniFhirAppointmentDaoImpl extends BaseFhirDao<org.openmrs.module
 	
 	private static final Logger log = LoggerFactory.getLogger(BahmniFhirAppointmentDaoImpl.class);
 	
+	private static final String STATUS_PROPERTY = "status";
+	
+	private static final String DATE_PARAM = "date";
+	
+	private static final String START_DATE_TIME_PROPERTY = "startDateTime";
+	
+	private static final String PATIENT_PARAM = "patient";
+	
 	private final AppointmentStatusTranslator statusTranslator;
 	
 	@Autowired
@@ -47,7 +55,7 @@ public class BahmniFhirAppointmentDaoImpl extends BaseFhirDao<org.openmrs.module
 			switch (param.getKey()) {
 				case FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER:
 					param.getValue().forEach(patientReference -> handlePatientReference(criteria,
-					    (ReferenceAndListParam) patientReference.getParam(), "patient"));
+					    (ReferenceAndListParam) patientReference.getParam(), PATIENT_PARAM));
 					break;
 				case FhirConstants.STATUS_SEARCH_HANDLER:
 					param.getValue()
@@ -73,7 +81,7 @@ public class BahmniFhirAppointmentDaoImpl extends BaseFhirDao<org.openmrs.module
 							Appointment.AppointmentStatus.fromCode(token.getValue().toLowerCase(Locale.ROOT));
 						AppointmentStatus bahmniStatus = statusTranslator.toOpenmrsType(fhirStatus);
 						if (bahmniStatus != null) {
-							return Optional.of(Restrictions.eq("status", bahmniStatus));
+							return Optional.of(Restrictions.eq(STATUS_PROPERTY, bahmniStatus));
 						}
 					} catch (FHIRException | IllegalArgumentException e) {
 						log.debug("Invalid appointment status code: {}", token.getValue(), e);
@@ -86,7 +94,7 @@ public class BahmniFhirAppointmentDaoImpl extends BaseFhirDao<org.openmrs.module
 	
 	private void handleDateRange(Criteria criteria, DateRangeParam dateRange) {
 		if (dateRange != null) {
-			handleDateRange("startDateTime", dateRange).ifPresent(criteria::add);
+			handleDateRange(START_DATE_TIME_PROPERTY, dateRange).ifPresent(criteria::add);
 		}
 	}
 	
@@ -97,12 +105,12 @@ public class BahmniFhirAppointmentDaoImpl extends BaseFhirDao<org.openmrs.module
 		}
 		
 		switch (paramName) {
-			case "date":
-				return "startDateTime";
-			case "status":
-				return "status";
-			case "patient":
-				return "patient";
+			case DATE_PARAM:
+				return START_DATE_TIME_PROPERTY;
+			case STATUS_PROPERTY:
+				return STATUS_PROPERTY;
+			case PATIENT_PARAM:
+				return PATIENT_PARAM;
 			default:
 				return null;
 		}

@@ -62,5 +62,4 @@ public final class BahmniFhirConstants {
 	// Appointment System URIs
 	public static final String BAHMNI_APPOINTMENT_SYSTEM = BAHMNI_CODE_SYSTEM_PREFIX + "/appointments";
 	public static final String BAHMNI_APPOINTMENT_SERVICE_SYSTEM = BAHMNI_CODE_SYSTEM_PREFIX + "/appointment-services";
-	public static final String BAHMNI_APPOINTMENT_REASON_SYSTEM = BAHMNI_CODE_SYSTEM_PREFIX + "/appointment-reasons";
 }

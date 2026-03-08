@@ -29,31 +29,18 @@ public class BahmniFhirAppointmentDaoImplTest {
 	}
 	
 	@Test
-	public void testMapSortParamToPropertyWithDateParam() throws Exception {
-		// Test paramToProp via reflection since it's protected
-		Method method = BahmniFhirAppointmentDaoImpl.class.getDeclaredMethod("paramToProp", String.class);
-		method.setAccessible(true);
-		
-		String result = (String) method.invoke(appointmentDao, "date");
-		assertEquals("startDateTime", result);
+	public void testMapSortParamToProperty() throws Exception {
+		testParamMapping("date", "startDateTime");
+		testParamMapping("status", "status");
+		testParamMapping("patient", "patient");
 	}
 	
-	@Test
-	public void testMapSortParamToPropertyWithStatusParam() throws Exception {
+	private void testParamMapping(String inputParam, String expectedOutput) throws Exception {
 		Method method = BahmniFhirAppointmentDaoImpl.class.getDeclaredMethod("paramToProp", String.class);
 		method.setAccessible(true);
 		
-		String result = (String) method.invoke(appointmentDao, "status");
-		assertEquals("status", result);
-	}
-	
-	@Test
-	public void testMapSortParamToPropertyWithPatientParam() throws Exception {
-		Method method = BahmniFhirAppointmentDaoImpl.class.getDeclaredMethod("paramToProp", String.class);
-		method.setAccessible(true);
-		
-		String result = (String) method.invoke(appointmentDao, "patient");
-		assertEquals("patient", result);
+		String result = (String) method.invoke(appointmentDao, inputParam);
+		assertEquals("Should map " + inputParam + " correctly", expectedOutput, result);
 	}
 	
 	@Test

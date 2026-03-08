@@ -59,30 +59,38 @@ public class BahmniFhirAppointmentServiceImplTest {
 	
 	@Test
 	public void shouldThrowExceptionOnCreateAttempt() {
-		assertThrows(UnsupportedOperationException.class, () -> {
-			appointmentService.create(new Appointment());
-		});
+		assertThrows(UnsupportedOperationException.class, this::callCreate);
+	}
+	
+	private void callCreate() {
+		appointmentService.create(new Appointment());
 	}
 	
 	@Test
 	public void shouldThrowExceptionOnUpdateAttempt() {
-		assertThrows(UnsupportedOperationException.class, () -> {
-			appointmentService.update("test-uuid", new Appointment());
-		});
+		assertThrows(UnsupportedOperationException.class, this::callUpdate);
+	}
+	
+	private void callUpdate() {
+		appointmentService.update("test-uuid", new Appointment());
 	}
 	
 	@Test
 	public void shouldThrowExceptionOnDeleteAttempt() {
-		assertThrows(UnsupportedOperationException.class, () -> {
-			appointmentService.delete("test-uuid");
-		});
+		assertThrows(UnsupportedOperationException.class, this::callDelete);
+	}
+	
+	private void callDelete() {
+		appointmentService.delete("test-uuid");
 	}
 	
 	@Test
 	public void shouldThrowExceptionOnPatchAttempt() {
-		assertThrows(UnsupportedOperationException.class, () -> {
-			appointmentService.patch("test-uuid", null, "", null);
-		});
+		assertThrows(UnsupportedOperationException.class, this::callPatch);
+	}
+	
+	private void callPatch() {
+		appointmentService.patch("test-uuid", null, "", null);
 	}
 	
 	@Test
