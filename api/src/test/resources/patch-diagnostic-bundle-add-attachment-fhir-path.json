@@ -1,0 +1,21 @@
+{
+  "resourceType": "Parameters",
+  "parameter": [
+    {
+      "name": "operation",
+      "part": [
+        { "name": "type", "valueCode": "add" },
+        { "name": "path", "valueString": "DiagnosticReport" },
+        { "name": "name", "valueString": "presentedForm" },
+        {
+          "name": "value",
+          "part": [
+            { "name": "contentType", "valueCode": "application/pdf" },
+            { "name": "url", "valueUrl": "https://example.org/reports/lab-result-123.pdf" },
+            { "name": "title", "valueString": "Lab Result PDF" }
+          ]
+        }
+      ]
+    }
+  ]
+}

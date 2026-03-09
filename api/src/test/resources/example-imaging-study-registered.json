@@ -1,0 +1,23 @@
+{
+  "resourceType": "ImagingStudy",
+  "id": "example-imaging-study",
+  "identifier": [
+    {
+      "system": "urn:dicom:uid",
+      "value": "urn:oid:2.16.124.113543.6003.1154777499.30246.19789.3503430045"
+    }
+  ],
+  "status": "registered",
+  "subject": {
+    "reference": "Patient/example-patient-id"
+  },
+  "basedOn": [
+    {
+      "reference": "ServiceRequest/example-order-id"
+    }
+  ],
+  "location": {
+    "reference": "Location/example-radiology-center"
+  },
+  "description": "Imaging Study taken for XR Wrist"
+}

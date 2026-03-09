@@ -1,0 +1,62 @@
+{
+  "resourceType": "ImagingStudy",
+  "id": "example-imaging-study-with-notes",
+  "identifier": [
+    {
+      "system": "urn:dicom:uid",
+      "value": "urn:oid:2.16.124.113543.6003.1154777499.30246.19789.3503430045"
+    }
+  ],
+  "status": "available",
+  "subject": {
+    "reference": "Patient/example-patient-id"
+  },
+  "encounter": {
+    "reference": "Encounter/example-encounter-id"
+  },
+  "started": "2025-12-03T11:01:20+03:00",
+  "basedOn": [
+    {
+      "reference": "ServiceRequest/example-order-id"
+    }
+  ],
+  "location": {
+    "reference": "Location/example-radiology-center"
+  },
+  "description": "Imaging Study with radiologist observations",
+  "note": [
+    {
+      "id": "note-1-uuid",
+      "authorReference": {
+        "reference": "Practitioner/provider-uuid",
+        "type": "Practitioner",
+        "display": "Dr. Radiologist"
+      },
+      "time": "2025-12-03T11:30:00+03:00",
+      "text": "Initial findings show normal bone structure. No fractures detected."
+    },
+    {
+      "id": "note-2-uuid",
+      "authorReference": {
+        "reference": "Practitioner/provider-uuid",
+        "type": "Practitioner",
+        "display": "Dr. Radiologist"
+      },
+      "time": "2025-12-03T14:45:00+03:00",
+      "text": "Follow-up review confirms earlier findings. Patient can be discharged."
+    }
+  ],
+  "extension": [
+    {
+      "url": "http://fhir.bahmni.org/ext/imaging-study/performer",
+      "valueReference": {
+        "reference": "Practitioner/example-technician-id",
+        "type": "Practitioner"
+      }
+    },
+    {
+      "url": "http://fhir.bahmni.org/ext/imaging-study/completion-date",
+      "valueDateTime": "2025-12-03T15:00:00+03:00"
+    }
+  ]
+}

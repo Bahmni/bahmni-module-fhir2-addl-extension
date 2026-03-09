@@ -13,7 +13,5 @@ public class ModuleUtilsTest {
 		assertEquals("case-number", ModuleUtils.toSlugCase("Case number"));
 		assertEquals("case-1-2-number", ModuleUtils.toSlugCase("Case 1 & 2 number"));
 		assertEquals("case-1-2-3-number", ModuleUtils.toSlugCase("Case 1 & 2 && 3 number"));
-		//String attributeString = "http://fhir.bahmni.org/ext//document-reference/attribute#case-1-2-3-number";
 	}
-	
 }

@@ -1,0 +1,93 @@
+{
+  "resourceType": "Bundle",
+  "id": "diagnostic-report-bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:b0a4b18e-94e7-4b1b-8031-c7ae4bdd8db9",
+      "resource": {
+        "resourceType": "DiagnosticReport",
+        "basedOn": [
+          {
+            "reference": "ServiceRequest/e3db5d5c-49cd-4690-aba0-f87addb518a5"
+          }
+        ],
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/v2-0074",
+                "code": "LAB"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "code": "1331AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "display": "Absolute monocyte count"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/23a8371b-df7a-47c7-a015-b24198392cfa",
+          "display": "Rugtar Ragos"
+        },
+        "encounter": {
+          "reference": "Encounter/a60c4455-b27a-4704-a6ea-3354081d269c"
+        },
+        "effectiveDateTime": "2016-12-15",
+        "issued": "2016-12-15T14:15:30-06:00",
+        "result": [
+          {
+            "reference": "urn:uuid:49a86246-4004-42eb-9bdc-f542f93f9228"
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:49a86246-4004-42eb-9bdc-f542f93f9228",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "49a86246-4004-42eb-9bdc-f542f93f9228",
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "code": "1331AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "display": "Absolute monocyte count"
+            }
+          ],
+          "text": "Absolute monocyte count"
+        },
+        "subject": {
+          "reference": "Patient/23a8371b-df7a-47c7-a015-b24198392cfa"
+        },
+        "valueQuantity": {
+          "value": 176,
+          "unit": "g/L",
+          "system": "http://unitsofmeasure.org",
+          "code": "g/L"
+        },
+        "referenceRange": [
+          {
+            "low": {
+              "value": 10.4,
+              "unit": "g/L",
+              "system": "http://unitsofmeasure.org",
+              "code": "g/L"
+            },
+            "high": {
+              "value": 17.8,
+              "unit": "g/L",
+              "system": "http://unitsofmeasure.org",
+              "code": "g/L"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

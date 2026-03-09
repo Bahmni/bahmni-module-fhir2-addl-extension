@@ -1,8 +1,12 @@
 package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
 
+import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.AccessLevel;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2AddlExtension.api.service.ServiceRequestLocationReferenceResolver;
+import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.OrderTypeTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.ServiceRequestPriorityTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.validators.ServiceRequestValidator;
@@ -21,6 +25,8 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
+import java.util.Optional;
 
 import static org.apache.commons.lang3.Validate.notNull;
 import static org.openmrs.module.fhir2.api.translators.impl.FhirTranslatorUtils.getLastUpdated;
@@ -30,6 +36,7 @@ import static org.openmrs.module.fhir2.api.translators.impl.ReferenceHandlingTra
 @Primary
 @Component
 @Setter(AccessLevel.PACKAGE)
+@Slf4j
 public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTranslator<Order> {
 	
 	@Autowired
@@ -59,50 +66,66 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 	@Autowired
 	private ServiceRequestValidator serviceRequestValidator;
 	
+	@Autowired
+	private ServiceRequestLocationReferenceResolver locationReferenceResolver;
+	
+	@Autowired
+	private BahmniOrderReferenceTranslator bahmniOrderReferenceTranslator;
+	
 	@Override
 	public ServiceRequest toFhirResource(@Nonnull Order order) {
 		notNull(order, "The TestOrder object should not be null");
-		
+
 		ServiceRequest serviceRequest = new ServiceRequest();
-		
+
 		serviceRequest.setId(order.getUuid());
-		
+
 		serviceRequest.setStatus(determineServiceRequestStatus(order));
-		
+
 		serviceRequest.setCode(conceptTranslator.toFhirResource(order.getConcept()));
-		
+
 		serviceRequest.setIntent(ServiceRequest.ServiceRequestIntent.ORDER);
-		
+
 		serviceRequest.setPriority(serviceRequestPriorityTranslator.toFhirResource(order.getUrgency()));
-		
+
 		serviceRequest.setSubject(patientReferenceTranslator.toFhirResource(order.getPatient()));
-		
+
 		serviceRequest.setEncounter(encounterReferenceTranslator.toFhirResource(order.getEncounter()));
-		
+
 		serviceRequest.setRequester(providerReferenceTranslator.toFhirResource(order.getOrderer()));
-		
+
 		serviceRequest.setOccurrence(new Period().setStart(order.getEffectiveStartDate()).setEnd(
 		    order.getEffectiveStopDate()));
-		
+
+        serviceRequest.addIdentifier(orderIdentifierTranslator.toFhirResource(order));
+
 		if (order.getPreviousOrder() != null
 		        && (order.getAction() == Order.Action.DISCONTINUE || order.getAction() == Order.Action.REVISE)) {
 			serviceRequest.setReplaces((Collections.singletonList(createOrderReferenceInternal(order.getPreviousOrder())
 			        .setIdentifier(orderIdentifierTranslator.toFhirResource(order.getPreviousOrder())))));
-		} else if (order.getPreviousOrder() != null && order.getAction() == Order.Action.RENEW) {
+		} else if (order.getPreviousOrder() != null && (order.getAction() == Order.Action.RENEW || order.getAction() == Order.Action.NEW)) {
 			serviceRequest.setBasedOn(Collections.singletonList(createOrderReferenceInternal(order.getPreviousOrder())
 			        .setIdentifier(orderIdentifierTranslator.toFhirResource(order.getPreviousOrder()))));
 		}
-		
+
+		Optional.ofNullable(locationReferenceResolver.getRequestedLocationReferenceForOrder(order)).ifPresent(reference -> {
+			serviceRequest.setLocationReference(Collections.singletonList(reference));
+		});
+
 		serviceRequest.getMeta().setLastUpdated(getLastUpdated(order));
 		serviceRequest.getMeta().setVersionId(getVersionId(order));
-		
+
 		serviceRequest.setCategory(Collections.singletonList(orderTypeTranslator.toFhirResource(order.getOrderType())));
-		
+
 		Extension extension = determineLabOrderConceptTypeExtension(order);
 		if (extension != null) {
 			serviceRequest.addExtension(extension);
 		}
-		
+
+		if (order.getCommentToFulfiller() != null && !order.getCommentToFulfiller().isEmpty()) {
+			serviceRequest.addNote(new Annotation().setText(order.getCommentToFulfiller()));
+		}
+
 		return serviceRequest;
 	}
 	
@@ -122,6 +145,23 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 		order.setEncounter(encounterReferenceTranslator.toOpenmrsType(resource.getEncounter()));
 		order.setOrderer(providerReferenceTranslator.toOpenmrsType(resource.getRequester()));
 		order.setUrgency(serviceRequestPriorityTranslator.toOpenmrsType(resource.getPriority()));
+		
+		if (resource.hasNote() && !resource.getNote().isEmpty()) {
+			Annotation firstNote = resource.getNote().get(0);
+			if (firstNote.hasText()) {
+				order.setCommentToFulfiller(firstNote.getText());
+			}
+		}
+		
+		// TODO: Handle cases for revise and renew orders
+		if (resource.hasBasedOn() && !resource.getBasedOn().isEmpty()) {
+			List<Reference> basedOnReferences = resource.getBasedOn();
+			if (basedOnReferences.size() > 1)
+				throw new InvalidRequestException("Multiple basedOn reference is not allowed");
+			Order previousOrder = bahmniOrderReferenceTranslator.toOpenmrsType(basedOnReferences.get(0));
+			order.setPreviousOrder(previousOrder);
+		}
+		
 		return order;
 	}
 	

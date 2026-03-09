@@ -1,5 +1,8 @@
 package org.bahmni.module.fhir2AddlExtension.api.dao.impl;
 
+import ca.uhn.fhir.rest.param.StringParam;
+import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
+import org.hibernate.criterion.Criterion;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -11,18 +14,25 @@ import org.openmrs.api.ConceptService;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 
-import ca.uhn.fhir.rest.param.StringParam;
-import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BahmniFhirMedicationDaoImplTest {
@@ -34,6 +44,10 @@ public class BahmniFhirMedicationDaoImplTest {
 	private static final int FROM_INDEX = 0;
 	
 	private static final int TO_INDEX = 10;
+	
+	private static final String SYSTEM_URL = "http://example.com/system";
+	
+	private static final String CONCEPT_REFERENCE_TERM_ALIAS = "crt";
 	
 	@Mock
 	private ConceptService conceptService;
@@ -294,5 +308,22 @@ public class BahmniFhirMedicationDaoImplTest {
 		
 		// Execute - should throw InvalidRequestException
 		bahmniFhirMedicationDao.getSearchResultsCount(searchParams);
+	}
+	
+	@Test
+	public void generateSystemQuery_shouldReturnPropertySubqueryExpressionWhenCodesIsEmpty() {
+		Criterion result = bahmniFhirMedicationDao.generateSystemQuery(SYSTEM_URL, null, CONCEPT_REFERENCE_TERM_ALIAS);
+		
+		assertThat(result, notNullValue());
+		assertThat(result, instanceOf(org.hibernate.criterion.PropertySubqueryExpression.class));
+	}
+	
+	@Test
+	public void generateSystemQuery_shouldDelegateToSuperWhenCodesHasValues() {
+		List<String> codes = Collections.singletonList("validCode");
+		
+		Criterion result = bahmniFhirMedicationDao.generateSystemQuery(SYSTEM_URL, codes, CONCEPT_REFERENCE_TERM_ALIAS);
+		
+		assertThat(result, notNullValue());
 	}
 }

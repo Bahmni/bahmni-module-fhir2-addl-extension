@@ -9,7 +9,7 @@ import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttri
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttributeType;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceContent;
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceAttributeTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceBasedOnReferenceTranslator;
+import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceExtensionTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceStatusTranslator;
@@ -76,15 +76,14 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
 	
 	private final DocumentReferenceExtensionTranslator extensionTranslator;
 	
-	private final DocumentReferenceBasedOnReferenceTranslator basedOnReferenceTranslator;
+	private final BahmniOrderReferenceTranslator basedOnReferenceTranslator;
 	
 	@Autowired
 	public DocumentReferenceTranslatorImpl(PatientReferenceTranslator patientReferenceTranslator,
 	    ConceptTranslator conceptTranslator, DocumentReferenceStatusTranslator statusTranslator,
 	    EncounterReferenceTranslator<Encounter> encounterReferenceTranslator,
 	    PractitionerReferenceTranslator<Provider> providerReferenceTranslator,
-	    DocumentReferenceExtensionTranslator extensionTranslator,
-	    DocumentReferenceBasedOnReferenceTranslator basedOnReferenceTranslator) {
+	    DocumentReferenceExtensionTranslator extensionTranslator, BahmniOrderReferenceTranslator basedOnReferenceTranslator) {
 		this.patientReferenceTranslator = patientReferenceTranslator;
 		this.conceptTranslator = conceptTranslator;
 		this.statusTranslator = statusTranslator;
@@ -333,16 +332,18 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
 				contextComponent.setEncounter(Collections.singletonList(encounterReferenceTranslator.toFhirResource(encounter)));
 				resource.setContext(contextComponent);
 			});
-		Optional<Period> contextPeriod = Optional.ofNullable(docRef.getDateStarted()).map(date -> {
+		if (docRef.getDateStarted() != null || docRef.getDateEnded() != null) {
 			Period period = new Period();
-			return period.setStart(docRef.getDateStarted());
-		}).map(period -> period.setEnd((docRef.getDateEnded())));
-		contextPeriod.ifPresent(value -> {
+			period.setStart(docRef.getDateStarted());
+			period.setEnd(docRef.getDateEnded());
 			if (!resource.hasContext()) {
 				DocumentReference.DocumentReferenceContextComponent contextComponent = new DocumentReference.DocumentReferenceContextComponent();
-				contextComponent.setPeriod(value);
+				contextComponent.setPeriod(period);
+				resource.setContext(contextComponent);
+			} else {
+				resource.getContext().setPeriod(period);
 			}
-		});
+		}
     }
 	
 	private void mapContentsFromFhirDocument(FhirDocumentReference document, DocumentReference resource, User user) {
@@ -370,6 +371,7 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
 			existingContent.setContentType(resourceContent.getAttachment().getContentType());
 			existingContent.setContentUrl(resourceContent.getAttachment().getUrl());
 		}
+		//TODO format is removed in R6 spec
 		if (resourceContent.hasFormat()) {
 			existingContent.setContentFormat(resourceContent.getFormat().getCode());
 		}
@@ -385,6 +387,7 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
 			        "Invalid document attachment. Please ensure attachment has valid content-type and url");
 		}
 		FhirDocumentReferenceContent documentReferenceContent = new FhirDocumentReferenceContent();
+		//TODO format is removed in R6 spec
 		if (contentComponent.hasFormat()) {
 			documentReferenceContent.setContentFormat(contentComponent.getFormat().getCode());
 		}

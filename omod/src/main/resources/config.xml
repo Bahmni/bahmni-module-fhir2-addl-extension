@@ -34,24 +34,71 @@
 	 /AOP -->
 
 
-	<!-- Required Privileges
+    <!-- Required Privileges -->
 	<privilege>
-		<name>Form Entry</name>
-		<description>Allows user to access Form Entry pages/functions</description>
+		<name>Get DocumentReference</name>
+		<description>Allows user to get document references</description>
 	</privilege>
-	 /Required Privileges -->
+	<privilege>
+		<name>Add DocumentReference</name>
+		<description>Allows user to add a document reference</description>
+	</privilege>
+	<privilege>
+		<name>Delete DocumentReference</name>
+		<description>Allows user to delete an existing document reference</description>
+	</privilege>
+	<privilege>
+		<name>Edit DocumentReference</name>
+		<description>Allows user to edit an existing document reference</description>
+	</privilege>
+	<privilege>
+		<name>Get Imaging Study</name>
+		<description>Allows user to view and search imaging study resources</description>
+	</privilege>
+	<privilege>
+		<name>Add Imaging Study</name>
+		<description>Allows user to create new imaging study resources</description>
+	</privilege>
+	<privilege>
+		<name>Edit Imaging Study</name>
+		<description>Allows user to edit existing imaging study resources</description>
+	</privilege>
+    <privilege>
+        <name>Delete Imaging Study</name>
+        <description>Allows user to delete existing imaging study resources</description>
+    </privilege>
+	<privilege>
+		<name>Get Diagnostic Report</name>
+		<description>Allows user to view and search Diagnostic Report resources</description>
+	</privilege>
+	<privilege>
+		<name>Add Diagnostic Report</name>
+		<description>Allows user to create new Diagnostic Report resources</description>
+	</privilege>
+	<privilege>
+		<name>Edit Diagnostic Report</name>
+		<description>Allows user to edit existing Diagnostic Report resources</description>
+	</privilege>
+	<privilege>
+		<name>Delete Diagnostic Report</name>
+		<description>Allows user to delete existing Diagnostic Report resources</description>
+	</privilege>
 
-	<!-- Required Global Properties
+	<!-- Required Global Properties -->
 	<globalProperty>
-		<property>@MODULE_ID@.someProperty</property>
+		<property>fhir2Extension.orderTypeToReferralLocationAttributeMap</property>
 		<defaultValue></defaultValue>
 		<description>
-			A description of the global property goes here.  The description
-			should explain enough for administrators to understand the purpose
-			and possible values for the global property.
+			This configuration maps an order type (order_type.name) to a location attribute type (location_attribute_type.name)
+			to determine a requested/preferred location for a given order through order attribute (LOCATION_REFERENCE). If a
+			location has such an attribute set (e.g. REFERRAL_RADIOLOGY_CENTER), and there exists a mapping through
+			this configuration for an order's type (e.g. Radiology Order), then the order's requested/preferred location will be set
+			to the location specified for the encounter/visit location. The configuration takes in multiple mappings
+			separated by semicolon (format key1:value1; key2:value2). The maps are case sensitive.
+			e.g - "RADIOLOGY ORDER:REFERRAL_RADIOLOGY_CENTER;LAB ORDER:REFERRAL_LABORATORY_CENTER"
 		</description>
 	</globalProperty>
-	/Required Global Properties -->
+	<!-- Required Global Properties -->
 
 	<!-- Servlets -->
 	<!-- Accessed through the url /pageContext()/moduleServlet/<moduleId>/<servlet-name>
@@ -71,13 +118,21 @@
 		<require_module>org.openmrs.module.fhir2</require_module>
 		<require_module>org.openmrs.module.webservices.rest</require_module>
 		<require_module>org.openmrs.module.episodes</require_module>
+		<require_module>org.bahmni.module.appointments</require_module>
+		<require_module>org.ict4h.openmrs.openmrs-atomfeed</require_module>
 	</require_modules>
+
+	<databaseChangelogFile>liquibase.xml</databaseChangelogFile>
 
 	<mappingFiles>
 		DocumentReference.hbm.xml
 		DocumentReferenceContent.hbm.xml
 		DocumentReferenceAttribute.hbm.xml
 		DocumentReferenceAttributeType.hbm.xml
+        ImagingStudy.hbm.xml
+        ImagingStudyNotes.hbm.xml
+		DocumentAttachment.hbm.xml
+		FhirDiagnosticReportExt.hbm.xml
 	</mappingFiles>
 
 	<messages>

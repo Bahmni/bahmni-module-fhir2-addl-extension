@@ -4,6 +4,7 @@ import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.parser.IParser;
 import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttributeType;
 import org.hl7.fhir.instance.model.api.IBaseResource;
+import org.hl7.fhir.r4.model.Bundle;
 import org.openmrs.Concept;
 import org.openmrs.ConceptName;
 import org.openmrs.Provider;
@@ -71,5 +72,13 @@ public class TestDataFactory {
 			resource = r4ResourceParser.parseResource(reader);
 		}
 		return resource;
+	}
+	
+	public static Bundle loadDiagnosticReportBundle(String filename) throws IOException {
+		return (Bundle) loadResourceFromFile(filename);
+	}
+	
+	public static IBaseResource getResourceFromString(String resourceString) {
+		return r4ResourceParser.parseResource(resourceString);
 	}
 }

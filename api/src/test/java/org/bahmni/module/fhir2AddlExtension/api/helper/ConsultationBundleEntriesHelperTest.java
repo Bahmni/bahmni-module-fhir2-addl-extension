@@ -1,21 +1,22 @@
 package org.bahmni.module.fhir2AddlExtension.api.helper;
 
 import ca.uhn.fhir.rest.server.exceptions.InternalErrorException;
+import org.bahmni.module.fhir2AddlExtension.api.TestDataFactory;
 import org.hl7.fhir.r4.model.*;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.module.fhir2.FhirConstants;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.*;
 
-@RunWith(MockitoJUnitRunner.class)
 public class ConsultationBundleEntriesHelperTest {
 	
 	private List<Bundle.BundleEntryComponent> entries;
@@ -300,7 +301,7 @@ public class ConsultationBundleEntriesHelperTest {
 	}
 	
 	@Test
-	public void shouldNotModifyEntryWhenResourceTypeIsNotSupported() {
+	public void shouldResolveObservationEncounterReference() {
 		// Given
 		Observation observation = createObservation();
 		observation.setEncounter(new Reference("urn:uuid:placeholder"));
@@ -318,8 +319,7 @@ public class ConsultationBundleEntriesHelperTest {
 		
 		// Then
 		Observation resultObservation = (Observation) result.getResource();
-		// Reference should not be modified
-		assertEquals("urn:uuid:placeholder", resultObservation.getEncounter().getReference());
+		assertEquals(FhirConstants.ENCOUNTER + "/encounter-uuid", resultObservation.getEncounter().getReference());
 	}
 	
 	@Test
@@ -400,5 +400,64 @@ public class ConsultationBundleEntriesHelperTest {
 		observation.setStatus(Observation.ObservationStatus.PRELIMINARY);
 		observation.setSubject(new Reference("Patient/123"));
 		return observation;
+	}
+	
+	@Test
+	public void shouldResolveMemberObservationReferences() {
+		// Given
+		Observation systolicObs = createObservation();
+		systolicObs.setId("systolicObs"); //to assist in debugging
+		systolicObs.setEncounter(new Reference("urn:uuid:example-encounter"));
+		Bundle.BundleEntryComponent systolicObsEntry = createBundleEntry(systolicObs, "urn:uuid:systolicObs");
+		
+		Observation diastolicObs = createObservation();
+		diastolicObs.setId("diastolicObs"); //to assist in debugging
+		diastolicObs.setEncounter(new Reference("urn:uuid:example-encounter"));
+		Bundle.BundleEntryComponent diastolicObsEntry = createBundleEntry(diastolicObs, "urn:uuid:diastolicObs");
+		
+		Observation bpObs = createObservation();
+		bpObs.setId("bpObs"); //to assist in debugging
+		bpObs.setEncounter(new Reference("urn:uuid:example-encounter"));
+		bpObs.addHasMember(new Reference("urn:uuid:systolicObs"));
+		bpObs.addHasMember(new Reference("urn:uuid:diastolicObs"));
+		Bundle.BundleEntryComponent bpObsEntry = createBundleEntry(bpObs, "urn:uuid:bpObs");
+		
+		Encounter encounter = createEncounter();
+		encounter.setId("example-encounter"); //to assist in debugging
+		Bundle.BundleEntryComponent encounterEntry = createBundleEntry(encounter, "urn:uuid:example-encounter");
+		
+		// Add entries in an order where dependencies are not respected
+		entries.add(bpObsEntry);
+		entries.add(systolicObsEntry);
+		entries.add(diastolicObsEntry);
+		entries.add(encounterEntry);
+		
+		// When
+		List<Bundle.BundleEntryComponent> result = ConsultationBundleEntriesHelper.orderEntriesByReference(entries);
+		
+		// Then
+		assertEquals(4, result.size());
+		// Encounter should be first since it's referenced by the others
+		assertEquals(encounterEntry, result.get(0));
+		assertEquals(bpObsEntry, result.get(3));
+		
+	}
+	
+	@Test
+	public void shouldSortObservationsByDependencies() throws IOException {
+		//the following is the order in the json file for observations
+		//29b5f5c4-b256-4f8f-809b-f87d8384b5cb
+		//49a86246-4004-42eb-9bdc-f542f93f9228
+		//60613a43-c4cb-4502-b3e2-cf9215feaa70
+		Bundle reportBundle = TestDataFactory.loadDiagnosticReportBundle("example-diagnostic-report-bundle-with-encounter-reference-nested-results.json");
+		List<Observation> observations = reportBundle.getEntry().stream()
+				.map(Bundle.BundleEntryComponent::getResource)
+				.filter(resource -> resource != null && resource.getResourceType().name().equals("Observation"))
+				.map(resource -> (Observation) resource )
+				.collect(Collectors.toList());
+		List<Observation> list = ConsultationBundleEntriesHelper.sortObservationsByDepth(observations);
+		Assert.assertEquals("urn:uuid:49a86246-4004-42eb-9bdc-f542f93f9228", list.get(0).getId());
+		Assert.assertEquals("urn:uuid:60613a43-c4cb-4502-b3e2-cf9215feaa70", list.get(1).getId());
+		Assert.assertEquals("Observation/29b5f5c4-b256-4f8f-809b-f87d8384b5cb", list.get(2).getId());
 	}
 }

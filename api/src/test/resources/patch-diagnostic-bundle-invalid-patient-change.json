@@ -1,0 +1,7 @@
+[
+  {
+    "op": "replace",
+    "path": "/entry/0/resource/subject/reference",
+    "value": "Patient/different-patient-uuid"
+  }
+]

@@ -1,0 +1,11 @@
+[
+  {
+    "op": "add",
+    "path": "/entry/0/resource/presentedForm/-",
+    "value": {
+      "contentType": "application/pdf",
+      "url": "https://example.org/reports/lab-result-123.pdf",
+      "title": "Lab Result PDF"
+    }
+  }
+]

@@ -3,6 +3,8 @@ package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
 import lombok.AccessLevel;
 import lombok.Setter;
 import org.hl7.fhir.r4.model.MedicationRequest;
+import org.hl7.fhir.r4.model.Period;
+import org.hl7.fhir.r4.model.Timing;
 import org.openmrs.CareSetting;
 import org.openmrs.DrugOrder;
 import org.openmrs.Order;
@@ -31,6 +33,18 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 		
 		if (drugOrder.getUrgency() != null && drugOrder.getUrgency().equals(Order.Urgency.STAT)) {
 			drugOrder.setScheduledDate(null);
+			// MedicationRequestTimingRepeatComponentTranslatorImpl silently drops boundsPeriod.
+			// Read it directly here to set autoExpireDate so OpenMRS knows when the STAT order
+			// expires and won't block a new order for the same drug.
+			if (medicationRequest.hasDosageInstruction()) {
+				Timing timing = medicationRequest.getDosageInstructionFirstRep().getTiming();
+				if (timing != null && timing.getRepeat() != null && timing.getRepeat().hasBoundsPeriod()) {
+					Period boundsPeriod = timing.getRepeat().getBoundsPeriod();
+					if (boundsPeriod.hasEnd()) {
+						drugOrder.setAutoExpireDate(boundsPeriod.getEnd());
+					}
+				}
+			}
 		} else if (drugOrder.getScheduledDate() != null) {
 			drugOrder.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
 		}

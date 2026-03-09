@@ -2,6 +2,9 @@ package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
 
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2AddlExtension.api.context.AppContext;
+import org.bahmni.module.fhir2AddlExtension.api.dao.OrderAttributeTypeDao;
+import org.bahmni.module.fhir2AddlExtension.api.service.impl.ServiceRequestLocationReferenceResolverImpl;
 import org.bahmni.module.fhir2AddlExtension.api.translator.OrderTypeTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.translator.ServiceRequestPriorityTranslator;
 import org.bahmni.module.fhir2AddlExtension.api.validators.ServiceRequestValidator;
@@ -18,10 +21,12 @@ import org.openmrs.api.OrderService;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
 import org.openmrs.module.fhir2.api.translators.EncounterReferenceTranslator;
+import org.openmrs.module.fhir2.api.translators.LocationReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.impl.OrderIdentifierTranslatorImpl;
 import org.openmrs.order.OrderUtilTest;
+import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
 
 import java.lang.reflect.Field;
 import java.util.*;
@@ -85,6 +90,18 @@ public class BahmniServiceRequestTranslatorImplTest {
 	@Mock
 	private OrderService orderService;
 	
+	@Mock
+	OrderAttributeTypeDao orderAttributeTypeDao;
+	
+	@Mock
+	LocationReferenceTranslator locationReferenceTranslator;
+	
+	@Mock
+	AppContext appContext;
+	
+	@Mock
+	BahmniOrderReferenceTranslator bahmniOrderReferenceTranslator;
+	
 	private Order discontinuedOrder;
 	
 	private Order order;
@@ -117,6 +134,12 @@ public class BahmniServiceRequestTranslatorImplTest {
 		translator.setServiceRequestPriorityTranslator(serviceRequestPriorityTranslator);
 		translator.setServiceRequestValidator(serviceRequestValidator);
 		translator.setOrderService(orderService);
+		translator.setBahmniOrderReferenceTranslator(bahmniOrderReferenceTranslator);
+		
+		ServiceRequestLocationReferenceResolverImpl orderLocationReferenceResolver = new ServiceRequestLocationReferenceResolverImpl(
+		        locationReferenceTranslator, orderAttributeTypeDao, appContext);
+		
+		translator.setLocationReferenceResolver(orderLocationReferenceResolver);
 		
 		orderConcept = new Concept();
 		ConceptClass cc = new ConceptClass();
@@ -239,12 +262,51 @@ public class BahmniServiceRequestTranslatorImplTest {
 	}
 	
 	@Test
+	public void toFhirResource_shouldTranslateToFhirResourceWithBasedOnFieldGivenNewOrderWithPreviousOrder() {
+		String linkedOrderUuid = "test-linked-order-uuid";
+		Order linkedOrder = new Order();
+		linkedOrder.setUuid(linkedOrderUuid);
+		linkedOrder.setAction(Order.Action.NEW);
+		linkedOrder.setConcept(testConcept);
+		linkedOrder.setPreviousOrder(order);
+		
+		ServiceRequest result = translator.toFhirResource(linkedOrder);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getId(), notNullValue());
+		assertThat(result.getId(), equalTo(linkedOrderUuid));
+		assertThat(result.getBasedOn().get(0).getReference(), equalTo(PRIOR_SERVICE_REQUEST_REFERENCE));
+		assertThat(result.getBasedOn().get(0).getIdentifier().getValue(), equalTo(ORDER_NUMBER));
+	}
+	
+	@Test
+	public void toFhirResource_shouldNotSetBasedOnFieldWhenNewOrderHasNoPreviousOrder() {
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getBasedOn(), empty());
+	}
+	
+	@Test
 	public void toFhirResource_shouldTranslateOpenmrsOrderToFhirServiceRequest() {
 		
 		ServiceRequest result = translator.toFhirResource(order);
 		
 		assertThat(result, notNullValue());
 		assertThat(result.getIntent(), equalTo(ServiceRequest.ServiceRequestIntent.ORDER));
+	}
+	
+	@Test
+	public void toFhirResource_shouldAddIdentifierToServiceRequest() {
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getIdentifier(), notNullValue());
+		assertThat(result.getIdentifier(), not(empty()));
+		assertThat(result.getIdentifier().size(), greaterThanOrEqualTo(1));
+		assertThat(result.getIdentifier().get(0).getValue(), equalTo(ORDER_NUMBER));
 	}
 	
 	@Test
@@ -933,5 +995,274 @@ public class BahmniServiceRequestTranslatorImplTest {
 		// Verify order type is set based on concept
 		assertThat(result.getOrderType(), equalTo(labOrderType));
 		verify(orderService).getOrderTypeByConcept(labConcept);
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldSetCommentToFulfillerWhenNoteIsPresent() {
+		String noteText = "Please expedite this lab test";
+		
+		// Add note to ServiceRequest
+		Annotation note = new Annotation();
+		note.setText(noteText);
+		serviceRequest.addNote(note);
+		
+		// Setup mocks
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		
+		// Execute
+		Order result = translator.toOpenmrsType(serviceRequest);
+		
+		// Verify commentToFulfiller is set
+		assertThat(result, notNullValue());
+		assertThat(result.getCommentToFulfiller(), notNullValue());
+		assertThat(result.getCommentToFulfiller(), equalTo(noteText));
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldNotSetCommentToFulfillerWhenNoteListIsEmpty() {
+		// Ensure ServiceRequest has no notes
+		serviceRequest.setNote(new ArrayList<>());
+		
+		// Setup mocks
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		
+		// Execute
+		Order result = translator.toOpenmrsType(serviceRequest);
+		
+		// Verify commentToFulfiller is not set
+		assertThat(result, notNullValue());
+		assertThat(result.getCommentToFulfiller(), nullValue());
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldNotSetCommentToFulfillerWhenNoteHasNoText() {
+		// Add note without text to ServiceRequest
+		Annotation note = new Annotation();
+		// Don't set text on the annotation
+		serviceRequest.addNote(note);
+		
+		// Setup mocks
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		
+		// Execute
+		Order result = translator.toOpenmrsType(serviceRequest);
+		
+		// Verify commentToFulfiller is not set
+		assertThat(result, notNullValue());
+		assertThat(result.getCommentToFulfiller(), nullValue());
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldUseOnlyFirstNoteWhenMultipleNotesArePresent() {
+		String firstNoteText = "First note - this should be used";
+		String secondNoteText = "Second note - this should be ignored";
+		
+		// Add multiple notes to ServiceRequest
+		Annotation firstNote = new Annotation();
+		firstNote.setText(firstNoteText);
+		serviceRequest.addNote(firstNote);
+		
+		Annotation secondNote = new Annotation();
+		secondNote.setText(secondNoteText);
+		serviceRequest.addNote(secondNote);
+		
+		// Setup mocks
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		
+		// Execute
+		Order result = translator.toOpenmrsType(serviceRequest);
+		
+		// Verify only first note is used as commentToFulfiller
+		assertThat(result, notNullValue());
+		assertThat(result.getCommentToFulfiller(), notNullValue());
+		assertThat(result.getCommentToFulfiller(), equalTo(firstNoteText));
+		assertThat(result.getCommentToFulfiller(), not(equalTo(secondNoteText)));
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldNotSetCommentToFulfillerWhenNoteHasEmptyString() {
+		// Add note with empty string - hasText() returns false for empty strings
+		Annotation note = new Annotation();
+		note.setText("");
+		serviceRequest.addNote(note);
+		
+		// Setup mocks
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		
+		// Execute
+		Order result = translator.toOpenmrsType(serviceRequest);
+		
+		// Verify commentToFulfiller is not set because hasText() returns false for empty strings
+		assertThat(result, notNullValue());
+		assertThat(result.getCommentToFulfiller(), nullValue());
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldSetCommentToFulfillerWhenNoteHasNonEmptyText() {
+		String textWithContent = "Test note content";
+		
+		// Add note with actual content
+		Annotation note = new Annotation();
+		note.setText(textWithContent);
+		serviceRequest.addNote(note);
+		
+		// Setup mocks
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		
+		// Execute
+		Order result = translator.toOpenmrsType(serviceRequest);
+		
+		// Verify commentToFulfiller is set to the text content
+		assertThat(result, notNullValue());
+		assertThat(result.getCommentToFulfiller(), notNullValue());
+		assertThat(result.getCommentToFulfiller(), equalTo(textWithContent));
+	}
+	
+	@Test
+	public void toFhirResource_shouldAddNoteWhenOrderHasCommentToFulfiller() {
+		String commentText = "Please process urgently";
+		order.setCommentToFulfiller(commentText);
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getNote(), notNullValue());
+		assertThat(result.getNote().size(), equalTo(1));
+		assertThat(result.getNote().get(0).getText(), equalTo(commentText));
+	}
+	
+	@Test
+	public void toFhirResource_shouldNotAddNoteWhenOrderHasNullCommentToFulfiller() {
+		order.setCommentToFulfiller(null);
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getNote(), empty());
+	}
+	
+	@Test
+	public void toFhirResource_shouldNotAddNoteWhenOrderHasEmptyCommentToFulfiller() {
+		order.setCommentToFulfiller("");
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getNote(), empty());
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldSetPreviousOrderWhenBasedOnIsPresent() {
+		
+		Reference basedOnRef = new Reference();
+		basedOnRef.setReference("ServiceRequest/previous-order-uuid");
+		basedOnRef.setType("ServiceRequest");
+		serviceRequest.addBasedOn(basedOnRef);
+		
+		Order previousOrder = new Order();
+		previousOrder.setUuid("previous-order-uuid");
+		
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		when(bahmniOrderReferenceTranslator.toOpenmrsType(basedOnRef)).thenReturn(previousOrder);
+		
+		Order result = translator.toOpenmrsType(serviceRequest);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getPreviousOrder(), notNullValue());
+		assertThat(result.getPreviousOrder(), equalTo(previousOrder));
+		verify(bahmniOrderReferenceTranslator).toOpenmrsType(basedOnRef);
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldNotSetPreviousOrderWhenBasedOnIsEmpty() {
+		serviceRequest.setBasedOn(new ArrayList<>());
+
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+
+		Order result = translator.toOpenmrsType(serviceRequest);
+
+		assertThat(result, notNullValue());
+		assertThat(result.getPreviousOrder(), nullValue());
+		verifyNoInteractions(bahmniOrderReferenceTranslator);
+	}
+	
+	@Test(expected = InvalidRequestException.class)
+	public void toOpenmrsType_shouldThrowExceptionWhenMultipleBasedOnReferencesArePresent() {
+		Reference basedOnRef1 = new Reference();
+		basedOnRef1.setReference("ServiceRequest/previous-order-uuid-1");
+		basedOnRef1.setType("ServiceRequest");
+		serviceRequest.addBasedOn(basedOnRef1);
+		
+		Reference basedOnRef2 = new Reference();
+		basedOnRef2.setReference("ServiceRequest/previous-order-uuid-2");
+		basedOnRef2.setType("ServiceRequest");
+		serviceRequest.addBasedOn(basedOnRef2);
+		
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		
+		translator.toOpenmrsType(serviceRequest);
 	}
 }
