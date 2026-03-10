@@ -25,7 +25,6 @@ import org.openmrs.module.fhir2.api.translators.LocationReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.impl.OrderIdentifierTranslatorImpl;
-import org.openmrs.order.OrderUtilTest;
 import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
 
 import java.lang.reflect.Field;
@@ -310,142 +309,62 @@ public class BahmniServiceRequestTranslatorImplTest {
 	}
 	
 	@Test
-	public void toFhirResource_shouldTranslateOrderFromOnlyDateActivatedToActiveServiceRequest() {
-		
-		Calendar activationDate = Calendar.getInstance();
-		activationDate.set(2000, Calendar.APRIL, 16);
-		order.setDateActivated(activationDate.getTime());
-		
+	public void toFhirResource_shouldReturnDraftStatusWhenFulfillerStatusIsNull() {
 		ServiceRequest result = translator.toFhirResource(order);
-		
+
+		assertThat(result, notNullValue());
+		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.DRAFT));
+	}
+
+	@Test
+	public void toFhirResource_shouldReturnActiveStatusWhenFulfillerStatusIsReceived() {
+		order.setFulfillerStatus(Order.FulfillerStatus.RECEIVED);
+
+		ServiceRequest result = translator.toFhirResource(order);
+
 		assertThat(result, notNullValue());
 		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.ACTIVE));
 	}
-	
+
 	@Test
-	public void toFhirResource_shouldTranslateOrderFromAutoExpireToCompleteServiceRequest() throws Exception {
-		
-		Calendar date = Calendar.getInstance();
-		date.set(2000, Calendar.APRIL, 16);
-		order.setDateActivated(date.getTime());
-		date.set(2070, Calendar.APRIL, 16);
-		order.setAutoExpireDate(date.getTime());
-		date.set(2010, Calendar.APRIL, 16);
-		OrderUtilTest.setDateStopped(order, date.getTime());
-		
+	public void toFhirResource_shouldReturnActiveStatusWhenFulfillerStatusIsInProgress() {
+		order.setFulfillerStatus(Order.FulfillerStatus.IN_PROGRESS);
+
 		ServiceRequest result = translator.toFhirResource(order);
-		
-		assertThat(result, notNullValue());
-		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.COMPLETED));
-	}
-	
-	@Test
-	public void toFhirResource_shouldTranslateOrderToActiveServiceRequest() throws Exception {
-		
-		Calendar date = Calendar.getInstance();
-		date.set(2000, Calendar.APRIL, 16);
-		order.setDateActivated(date.getTime());
-		date.set(2070, Calendar.APRIL, 16);
-		order.setAutoExpireDate(date.getTime());
-		date.set(2069, Calendar.APRIL, 16);
-		OrderUtilTest.setDateStopped(order, date.getTime());
-		
-		ServiceRequest result = translator.toFhirResource(order);
-		
+
 		assertThat(result, notNullValue());
 		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.ACTIVE));
 	}
-	
+
 	@Test
-	public void toFhirResource_shouldTranslateOrderToCompletedServiceRequest() throws Exception {
-		
-		Calendar date = Calendar.getInstance();
-		date.set(2000, Calendar.APRIL, 16);
-		order.setDateActivated(date.getTime());
-		date.set(2011, Calendar.APRIL, 16);
-		order.setAutoExpireDate(date.getTime());
-		date.set(2010, Calendar.APRIL, 16);
-		OrderUtilTest.setDateStopped(order, date.getTime());
-		
+	public void toFhirResource_shouldReturnCompletedStatusWhenFulfillerStatusIsCompleted() {
+		order.setFulfillerStatus(Order.FulfillerStatus.COMPLETED);
+
 		ServiceRequest result = translator.toFhirResource(order);
-		
+
 		assertThat(result, notNullValue());
 		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.COMPLETED));
 	}
-	
+
 	@Test
-	public void toFhirResource_shouldTranslateWrongOrderFromActiveToUnknownServiceRequest() throws Exception {
-		
-		Calendar date = Calendar.getInstance();
-		date.set(2000, Calendar.APRIL, 16);
-		order.setDateActivated(date.getTime());
-		date.set(2015, Calendar.APRIL, 16);
-		order.setAutoExpireDate(date.getTime());
-		date.set(2010, Calendar.APRIL, 16);
-		order.setAction(Order.Action.DISCONTINUE);
-		OrderUtilTest.setDateStopped(order, date.getTime());
-		
+	public void toFhirResource_shouldReturnEnteredInErrorStatusWhenFulfillerStatusIsException() {
+		order.setFulfillerStatus(Order.FulfillerStatus.EXCEPTION);
+
 		ServiceRequest result = translator.toFhirResource(order);
-		
+
 		assertThat(result, notNullValue());
-		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.UNKNOWN));
+		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.ENTEREDINERROR));
 	}
-	
+
 	@Test
-	public void toFhirResource_shouldTranslateWrongOrderFromCompleteToUnknownServiceRequest() throws Exception {
-		
-		Calendar date = Calendar.getInstance();
-		date.set(2000, Calendar.APRIL, 16);
-		order.setDateActivated(date.getTime());
-		date.set(2070, Calendar.APRIL, 16);
-		order.setAutoExpireDate(date.getTime());
-		date.set(2069, Calendar.APRIL, 16);
+	public void toFhirResource_shouldReturnRevokedStatusWhenActionIsDiscontinueAndFulfillerStatusIsNonNull() {
+		order.setFulfillerStatus(Order.FulfillerStatus.RECEIVED);
 		order.setAction(Order.Action.DISCONTINUE);
-		OrderUtilTest.setDateStopped(order, date.getTime());
-		
+
 		ServiceRequest result = translator.toFhirResource(order);
-		
+
 		assertThat(result, notNullValue());
 		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.REVOKED));
-	}
-	
-	@Test
-	public void toFhirResource_shouldTranslateOrderFromOnlyAutoExpireToCompleteServiceRequest() throws Exception {
-		
-		Calendar date = Calendar.getInstance();
-		date.set(2000, Calendar.APRIL, 16);
-		order.setDateActivated(date.getTime());
-		date.set(2015, Calendar.APRIL, 16);
-		order.setAutoExpireDate(date.getTime());
-		
-		ServiceRequest result = translator.toFhirResource(order);
-		
-		assertThat(result, notNullValue());
-		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.COMPLETED));
-	}
-	
-	@Test
-	public void toFhirResource_shouldTranslateOrderFromOnlyDateStoppedToCompleteServiceRequest() throws Exception {
-		
-		Calendar date = Calendar.getInstance();
-		date.set(2000, Calendar.APRIL, 16);
-		order.setDateActivated(date.getTime());
-		date.set(2015, Calendar.APRIL, 16);
-		OrderUtilTest.setDateStopped(order, date.getTime());
-		
-		ServiceRequest result = translator.toFhirResource(order);
-		
-		assertThat(result, notNullValue());
-		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.COMPLETED));
-	}
-	
-	@Test
-	public void toFhirResource_shouldTranslateFromNoDataToActiveServiceRequest() {
-		
-		ServiceRequest result = translator.toFhirResource(order);
-		
-		assertThat(result, notNullValue());
-		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.ACTIVE));
 	}
 	
 	@Test
