@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.service.impl;
+package org.bahmni.module.fhir2addlextension.api.service.impl;
 
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.DateRangeParam;
@@ -8,10 +8,9 @@ import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.TokenAndListParam;
 import ca.uhn.fhir.rest.param.TokenOrListParam;
 import ca.uhn.fhir.rest.param.TokenParam;
-import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
-import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirAppointmentDao;
-import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniAppointmentSearchParams;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirAppointmentTranslator;
+import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirAppointmentDao;
+import org.bahmni.module.fhir2addlextension.api.search.param.BahmniAppointmentSearchParams;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniFhirAppointmentTranslator;
 import org.hl7.fhir.r4.model.Appointment;
 import org.junit.Before;
 import org.junit.Test;

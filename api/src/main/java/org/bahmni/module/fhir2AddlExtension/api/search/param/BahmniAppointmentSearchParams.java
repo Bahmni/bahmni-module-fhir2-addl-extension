@@ -1,6 +1,5 @@
-package org.bahmni.module.fhir2AddlExtension.api.search.param;
+package org.bahmni.module.fhir2addlextension.api.search.param;
 
-import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.rest.api.SortSpec;
 import ca.uhn.fhir.rest.param.DateRangeParam;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
@@ -15,7 +14,6 @@ import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.springframework.util.StringUtils;
 
 import java.util.Collections;
-import java.util.HashSet;
 
 import static org.openmrs.module.fhir2.FhirConstants.DATE_RANGE_SEARCH_HANDLER;
 import static org.openmrs.module.fhir2.FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER;

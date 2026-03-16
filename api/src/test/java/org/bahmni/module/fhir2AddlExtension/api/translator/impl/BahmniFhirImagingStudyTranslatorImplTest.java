@@ -1,9 +1,9 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirImagingStudy;
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirImagingStudyNote;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirImagingStudyTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
+import org.bahmni.module.fhir2addlextension.api.model.FhirImagingStudy;
+import org.bahmni.module.fhir2addlextension.api.model.FhirImagingStudyNote;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniFhirImagingStudyTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniOrderReferenceTranslator;
 import org.hl7.fhir.r4.model.Annotation;
 import org.hl7.fhir.r4.model.ImagingStudy;
 import org.hl7.fhir.r4.model.Reference;
@@ -32,8 +32,8 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.bahmni.module.fhir2AddlExtension.api.TestDataFactory.exampleProviderWithUuid;
-import static org.bahmni.module.fhir2AddlExtension.api.TestDataFactory.loadResourceFromFile;
+import static org.bahmni.module.fhir2addlextension.api.TestDataFactory.exampleProviderWithUuid;
+import static org.bahmni.module.fhir2addlextension.api.TestDataFactory.loadResourceFromFile;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 

@@ -1,20 +1,19 @@
-package org.bahmni.module.fhir2AddlExtension.api.service.impl;
+package org.bahmni.module.fhir2addlextension.api.service.impl;
 
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.extern.slf4j.Slf4j;
-import org.bahmni.module.fhir2AddlExtension.api.dao.DocumentReferenceDao;
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReference;
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceContent;
-import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniDocumentReferenceSearchParams;
-import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirDocumentReferenceService;
-import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceTranslator;
+import org.bahmni.module.fhir2addlextension.api.dao.DocumentReferenceDao;
+import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReference;
+import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceContent;
+import org.bahmni.module.fhir2addlextension.api.search.param.BahmniDocumentReferenceSearchParams;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirDocumentReferenceService;
+import org.bahmni.module.fhir2addlextension.api.translator.DocumentReferenceTranslator;
 import org.hl7.fhir.r4.model.DocumentReference;
 import org.hl7.fhir.r4.model.Enumerations;
 import org.openmrs.User;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.fhir2.api.dao.FhirDao;
-import org.openmrs.module.fhir2.api.dao.FhirPractitionerDao;
 import org.openmrs.module.fhir2.api.impl.BaseFhirService;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
 import org.openmrs.module.fhir2.api.search.SearchQueryInclude;

@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.providers;
+package org.bahmni.module.fhir2addlextension.api.providers;
 
 import ca.uhn.fhir.rest.annotation.Create;
 import ca.uhn.fhir.rest.annotation.ResourceParam;

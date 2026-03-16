@@ -1,10 +1,9 @@
-package org.bahmni.module.fhir2AddlExtension.api.model;
+package org.bahmni.module.fhir2addlextension.api.model;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.openmrs.BaseCustomizableData;
-import org.openmrs.BaseOpenmrsData;
 import org.openmrs.Concept;
 import org.openmrs.Encounter;
 import org.openmrs.Location;

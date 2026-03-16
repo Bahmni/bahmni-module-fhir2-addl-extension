@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator;
+package org.bahmni.module.fhir2addlextension.api.translator;
 
 import org.hl7.fhir.r4.model.Appointment;
 import org.openmrs.module.appointments.model.AppointmentStatus;

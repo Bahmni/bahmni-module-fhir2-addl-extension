@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.dao;
+package org.bahmni.module.fhir2addlextension.api.dao;
 
 import org.openmrs.Diagnosis;
 import org.openmrs.annotation.Authorized;

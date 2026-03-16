@@ -1,10 +1,10 @@
-package org.bahmni.module.fhir2AddlExtension.api.dao.impl;
+package org.bahmni.module.fhir2addlextension.api.dao.impl;
 
 import ca.uhn.fhir.rest.param.DateRangeParam;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.TokenAndListParam;
-import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirDiagnosticReportDao;
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirDiagnosticReportExt;
+import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirDiagnosticReportDao;
+import org.bahmni.module.fhir2addlextension.api.model.FhirDiagnosticReportExt;
 import org.hibernate.Criteria;
 import org.hibernate.Session;
 import org.hibernate.criterion.Restrictions;

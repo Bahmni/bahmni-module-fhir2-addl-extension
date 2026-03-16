@@ -1,7 +1,7 @@
-package org.bahmni.module.fhir2AddlExtension.api.context.impl;
+package org.bahmni.module.fhir2addlextension.api.context.impl;
 
 import lombok.extern.slf4j.Slf4j;
-import org.bahmni.module.fhir2AddlExtension.api.context.AppContext;
+import org.bahmni.module.fhir2addlextension.api.context.AppContext;
 import org.openmrs.EncounterRole;
 import org.openmrs.EncounterType;
 import org.openmrs.User;

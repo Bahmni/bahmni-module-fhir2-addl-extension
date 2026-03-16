@@ -1,11 +1,11 @@
-package org.bahmni.module.fhir2AddlExtension.api.service.impl;
+package org.bahmni.module.fhir2addlextension.api.service.impl;
 
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
-import org.bahmni.module.fhir2AddlExtension.api.dao.FhirEncounterDiagnosisDao;
-import org.bahmni.module.fhir2AddlExtension.api.service.FhirEncounterDiagnosisService;
+import org.bahmni.module.fhir2addlextension.api.dao.FhirEncounterDiagnosisDao;
+import org.bahmni.module.fhir2addlextension.api.service.FhirEncounterDiagnosisService;
 import org.hl7.fhir.r4.model.Condition;
 import org.openmrs.Diagnosis;
 import org.openmrs.module.fhir2.api.impl.BaseFhirService;

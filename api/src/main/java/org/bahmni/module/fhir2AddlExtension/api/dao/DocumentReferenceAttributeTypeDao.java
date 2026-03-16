@@ -1,6 +1,6 @@
-package org.bahmni.module.fhir2AddlExtension.api.dao;
+package org.bahmni.module.fhir2addlextension.api.dao;
 
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttributeType;
+import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceAttributeType;
 
 import java.util.List;
 

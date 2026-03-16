@@ -1,6 +1,6 @@
-package org.bahmni.module.fhir2AddlExtension.api.dao;
+package org.bahmni.module.fhir2addlextension.api.dao;
 
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirImagingStudy;
+import org.bahmni.module.fhir2addlextension.api.model.FhirImagingStudy;
 import org.openmrs.annotation.Authorized;
 import org.openmrs.module.fhir2.api.dao.FhirDao;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
@@ -9,7 +9,7 @@ import javax.annotation.Nonnull;
 import java.util.Collection;
 import java.util.List;
 
-import static org.bahmni.module.fhir2AddlExtension.api.PrivilegeConstants.*;
+import static org.bahmni.module.fhir2addlextension.api.PrivilegeConstants.*;
 
 public interface BahmniFhirImagingStudyDao extends FhirDao<FhirImagingStudy> {
 	

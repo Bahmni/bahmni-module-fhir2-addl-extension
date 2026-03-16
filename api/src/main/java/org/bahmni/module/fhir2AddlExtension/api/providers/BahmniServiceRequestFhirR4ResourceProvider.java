@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.providers;
+package org.bahmni.module.fhir2addlextension.api.providers;
 
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.rest.annotation.IncludeParam;
@@ -13,9 +13,9 @@ import ca.uhn.fhir.rest.api.SortSpec;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.*;
 import org.apache.commons.collections.CollectionUtils;
-import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
-import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniServiceRequestSearchParams;
-import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirServiceRequestService;
+import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2addlextension.api.search.param.BahmniServiceRequestSearchParams;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirServiceRequestService;
 import org.hl7.fhir.r4.model.Encounter;
 import org.hl7.fhir.r4.model.ImagingStudy;
 import org.hl7.fhir.r4.model.Patient;

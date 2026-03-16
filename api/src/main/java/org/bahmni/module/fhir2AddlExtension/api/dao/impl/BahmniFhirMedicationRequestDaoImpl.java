@@ -1,6 +1,6 @@
-package org.bahmni.module.fhir2AddlExtension.api.dao.impl;
+package org.bahmni.module.fhir2addlextension.api.dao.impl;
 
-import org.bahmni.module.fhir2AddlExtension.api.dao.FhirConceptCodeSystemQuery;
+import org.bahmni.module.fhir2addlextension.api.dao.FhirConceptCodeSystemQuery;
 import org.hibernate.criterion.Criterion;
 import org.openmrs.DrugOrder;
 import org.openmrs.api.OrderService;

@@ -1,11 +1,11 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.extern.slf4j.Slf4j;
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirImagingStudy;
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirImagingStudyNote;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirImagingStudyTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
+import org.bahmni.module.fhir2addlextension.api.model.FhirImagingStudy;
+import org.bahmni.module.fhir2addlextension.api.model.FhirImagingStudyNote;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniFhirImagingStudyTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniOrderReferenceTranslator;
 import org.hl7.fhir.r4.model.Annotation;
 import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.Extension;
@@ -34,8 +34,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants.FHIR_EXT_IMAGING_STUDY_COMPLETION_DATE;
-import static org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants.FHIR_EXT_IMAGING_STUDY_PERFORMER;
+import static org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants.FHIR_EXT_IMAGING_STUDY_COMPLETION_DATE;
+import static org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants.FHIR_EXT_IMAGING_STUDY_PERFORMER;
 
 @Component
 @Slf4j

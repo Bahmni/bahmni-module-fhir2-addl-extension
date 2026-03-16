@@ -1,8 +1,8 @@
-package org.bahmni.module.fhir2AddlExtension.api.validators.impl;
+package org.bahmni.module.fhir2addlextension.api.validators.impl;
 
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.exceptions.MethodNotAllowedException;
-import org.bahmni.module.fhir2AddlExtension.api.validators.DiagnosticReportBundleUpdateValidator;
+import org.bahmni.module.fhir2addlextension.api.validators.DiagnosticReportBundleUpdateValidator;
 import org.hl7.fhir.r4.model.DiagnosticReport;
 import org.hl7.fhir.r4.model.Reference;
 import org.junit.Before;

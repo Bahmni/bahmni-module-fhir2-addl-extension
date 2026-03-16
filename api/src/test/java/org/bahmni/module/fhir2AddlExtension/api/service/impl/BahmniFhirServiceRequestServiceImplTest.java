@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.service.impl;
+package org.bahmni.module.fhir2addlextension.api.service.impl;
 
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.rest.api.SortSpec;
@@ -11,10 +11,10 @@ import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.TokenAndListParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
-import org.bahmni.module.fhir2AddlExtension.api.context.AppContext;
-import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
-import org.bahmni.module.fhir2AddlExtension.api.dao.OrderAttributeTypeDao;
-import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniServiceRequestSearchParams;
+import org.bahmni.module.fhir2addlextension.api.context.AppContext;
+import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirServiceRequestDao;
+import org.bahmni.module.fhir2addlextension.api.dao.OrderAttributeTypeDao;
+import org.bahmni.module.fhir2addlextension.api.search.param.BahmniServiceRequestSearchParams;
 import org.hamcrest.Matchers;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.CodeableConcept;

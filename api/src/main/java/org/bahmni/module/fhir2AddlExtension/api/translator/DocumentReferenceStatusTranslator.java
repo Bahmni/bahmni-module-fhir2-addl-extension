@@ -1,6 +1,6 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator;
+package org.bahmni.module.fhir2addlextension.api.translator;
 
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReference;
+import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReference;
 import org.hl7.fhir.r4.model.DocumentReference;
 import org.hl7.fhir.r4.model.Enumerations;
 

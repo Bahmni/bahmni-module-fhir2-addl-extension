@@ -1,22 +1,19 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
-import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
-import org.bahmni.module.fhir2AddlExtension.api.translator.AppointmentStatusTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirAppointmentTranslator;
+import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2addlextension.api.translator.AppointmentStatusTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniFhirAppointmentTranslator;
 import org.hl7.fhir.r4.model.Appointment;
 import org.hl7.fhir.r4.model.Appointment.AppointmentParticipantComponent;
 import org.hl7.fhir.r4.model.Appointment.ParticipationStatus;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
-import org.hl7.fhir.r4.model.Identifier;
 import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
 import org.openmrs.module.fhir2.api.translators.LocationReferenceTranslator;
 import org.openmrs.Provider;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
-import org.openmrs.module.appointments.model.AppointmentProvider;
 import org.openmrs.module.appointments.model.AppointmentProviderResponse;
-import org.openmrs.module.appointments.model.AppointmentReason;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 

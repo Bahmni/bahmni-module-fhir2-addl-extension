@@ -3,9 +3,9 @@
         "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
         "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
 
-<hibernate-mapping package="org.bahmni.module.fhir2AddlExtension.api.model">
+<hibernate-mapping package="org.bahmni.module.fhir2addlextension.api.model">
 
-    <class name="org.bahmni.module.fhir2AddlExtension.api.model.FhirImagingStudyNote" table="imaging_study_notes">
+    <class name="org.bahmni.module.fhir2addlextension.api.model.FhirImagingStudyNote" table="imaging_study_notes">
 
         <id name="imagingStudyNoteId" type="int" column="imaging_study_notes_id">
             <generator class="native">
@@ -13,7 +13,7 @@
             </generator>
         </id>
 
-        <many-to-one name="imagingStudy" class="org.bahmni.module.fhir2AddlExtension.api.model.FhirImagingStudy" not-null="true" column="imaging_study_id"/>
+        <many-to-one name="imagingStudy" class="org.bahmni.module.fhir2addlextension.api.model.FhirImagingStudy" not-null="true" column="imaging_study_id"/>
 
         <many-to-one name="performer" class="org.openmrs.Provider" column="performer_id"/>
 

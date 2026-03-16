@@ -1,10 +1,10 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
-import org.bahmni.module.fhir2AddlExtension.api.dao.DocumentReferenceAttributeTypeDao;
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttribute;
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttributeType;
-import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceAttributeTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceExtensionTranslator;
+import org.bahmni.module.fhir2addlextension.api.dao.DocumentReferenceAttributeTypeDao;
+import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceAttribute;
+import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceAttributeType;
+import org.bahmni.module.fhir2addlextension.api.translator.DocumentReferenceAttributeTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.DocumentReferenceExtensionTranslator;
 import org.hl7.fhir.r4.model.Extension;
 import org.junit.Assert;
 import org.junit.Before;
@@ -15,8 +15,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static org.bahmni.module.fhir2AddlExtension.api.TestDataFactory.exampleAttrTypeExternalOrganization;
-import static org.bahmni.module.fhir2AddlExtension.api.TestDataFactory.exampleAttrTypeIsSelfSubmitted;
+import static org.bahmni.module.fhir2addlextension.api.TestDataFactory.exampleAttrTypeExternalOrganization;
+import static org.bahmni.module.fhir2addlextension.api.TestDataFactory.exampleAttrTypeIsSelfSubmitted;
 
 public class DocumentReferenceExtensionTranslatorImplTest {
 	

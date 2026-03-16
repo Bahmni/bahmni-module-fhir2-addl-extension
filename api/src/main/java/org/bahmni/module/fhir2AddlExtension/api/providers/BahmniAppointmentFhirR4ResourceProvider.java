@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.providers;
+package org.bahmni.module.fhir2addlextension.api.providers;
 
 import ca.uhn.fhir.rest.annotation.IdParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
@@ -12,8 +12,8 @@ import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.TokenAndListParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
-import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniAppointmentSearchParams;
-import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirAppointmentService;
+import org.bahmni.module.fhir2addlextension.api.search.param.BahmniAppointmentSearchParams;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirAppointmentService;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Appointment;
 import org.hl7.fhir.r4.model.IdType;

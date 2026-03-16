@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
 import lombok.AccessLevel;
 import lombok.Setter;

@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.dao;
+package org.bahmni.module.fhir2addlextension.api.dao;
 
 import org.hibernate.criterion.Criterion;
 import org.hibernate.criterion.DetachedCriteria;

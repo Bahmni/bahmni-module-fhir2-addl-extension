@@ -1,10 +1,10 @@
-package org.bahmni.module.fhir2AddlExtension.api.service.impl;
+package org.bahmni.module.fhir2addlextension.api.service.impl;
 
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.extern.slf4j.Slf4j;
-import org.bahmni.module.fhir2AddlExtension.api.context.AppContext;
-import org.bahmni.module.fhir2AddlExtension.api.service.LabResultsEncounterService;
-import org.bahmni.module.fhir2AddlExtension.api.utils.ModuleUtils;
+import org.bahmni.module.fhir2addlextension.api.context.AppContext;
+import org.bahmni.module.fhir2addlextension.api.service.LabResultsEncounterService;
+import org.bahmni.module.fhir2addlextension.api.utils.ModuleUtils;
 import org.hl7.fhir.r4.model.Reference;
 import org.openmrs.Encounter;
 import org.openmrs.EncounterProvider;

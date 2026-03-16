@@ -1,8 +1,8 @@
-package org.bahmni.module.fhir2AddlExtension.api.dao.impl;
+package org.bahmni.module.fhir2addlextension.api.dao.impl;
 
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
-import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirImagingStudyDao;
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirImagingStudy;
+import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirImagingStudyDao;
+import org.bahmni.module.fhir2addlextension.api.model.FhirImagingStudy;
 import org.hibernate.Criteria;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.dao.impl.BaseFhirDao;

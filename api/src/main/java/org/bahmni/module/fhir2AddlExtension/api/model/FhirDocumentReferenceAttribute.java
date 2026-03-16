@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.model;
+package org.bahmni.module.fhir2addlextension.api.model;
 
 import org.openmrs.attribute.Attribute;
 import org.openmrs.attribute.BaseAttribute;

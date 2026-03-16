@@ -1,9 +1,9 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.parser.IParser;
-import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniEpisodeOfCareTranslator;
+import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniEpisodeOfCareTranslator;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;

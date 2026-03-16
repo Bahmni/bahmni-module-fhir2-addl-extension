@@ -1,9 +1,9 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
 import lombok.AccessLevel;
 import lombok.Setter;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.ComplexObsDataTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniOrderReferenceTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.ComplexObsDataTranslator;
 import org.hibernate.proxy.HibernateProxy;
 import org.hl7.fhir.r4.model.Annotation;
 import org.hl7.fhir.r4.model.Coding;
@@ -49,7 +49,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static org.apache.commons.lang3.Validate.notNull;
-import static org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants.FHIR_EXT_OBSERVATION_FORM_NAMESPACE_PATH;
+import static org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants.FHIR_EXT_OBSERVATION_FORM_NAMESPACE_PATH;
 import static org.openmrs.module.fhir2.FhirConstants.UCUM_SYSTEM_URI;
 import static org.openmrs.module.fhir2.api.translators.impl.FhirTranslatorUtils.getLastUpdated;
 import static org.openmrs.module.fhir2.api.translators.impl.FhirTranslatorUtils.getVersionId;

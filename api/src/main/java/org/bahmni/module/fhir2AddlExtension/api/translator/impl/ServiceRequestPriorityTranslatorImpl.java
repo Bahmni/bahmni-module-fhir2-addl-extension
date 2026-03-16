@@ -1,6 +1,6 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
-import org.bahmni.module.fhir2AddlExtension.api.translator.ServiceRequestPriorityTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.ServiceRequestPriorityTranslator;
 import org.hl7.fhir.r4.model.ServiceRequest;
 import org.openmrs.Order;
 import org.springframework.stereotype.Component;

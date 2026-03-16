@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.providers;
+package org.bahmni.module.fhir2addlextension.api.providers;
 
 import java.util.Objects;
 import javax.annotation.Nonnull;
@@ -10,7 +10,7 @@ import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import ca.uhn.fhir.rest.server.exceptions.InternalErrorException;
 import org.apache.commons.lang3.StringUtils;
-import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirValueSetService;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirValueSetService;
 import org.hl7.fhir.r4.model.IdType;
 import org.hl7.fhir.r4.model.ValueSet;
 import org.openmrs.module.fhir2.api.annotations.R4Provider;

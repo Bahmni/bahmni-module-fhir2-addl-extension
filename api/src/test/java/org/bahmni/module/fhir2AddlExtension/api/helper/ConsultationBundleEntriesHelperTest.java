@@ -1,7 +1,7 @@
-package org.bahmni.module.fhir2AddlExtension.api.helper;
+package org.bahmni.module.fhir2addlextension.api.helper;
 
 import ca.uhn.fhir.rest.server.exceptions.InternalErrorException;
-import org.bahmni.module.fhir2AddlExtension.api.TestDataFactory;
+import org.bahmni.module.fhir2addlextension.api.TestDataFactory;
 import org.hl7.fhir.r4.model.*;
 import org.junit.Assert;
 import org.junit.Before;

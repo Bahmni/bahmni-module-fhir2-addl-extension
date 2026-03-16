@@ -1,8 +1,8 @@
-package org.bahmni.module.fhir2AddlExtension.api.validators.impl;
+package org.bahmni.module.fhir2addlextension.api.validators.impl;
 
 import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
-import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
-import org.bahmni.module.fhir2AddlExtension.api.validators.DiagnosticReportValidator;
+import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirServiceRequestDao;
+import org.bahmni.module.fhir2addlextension.api.validators.DiagnosticReportValidator;
 import org.hl7.fhir.r4.model.DiagnosticReport;
 import org.hl7.fhir.r4.model.Reference;
 import org.openmrs.Order;

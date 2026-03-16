@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.service.impl;
+package org.bahmni.module.fhir2addlextension.api.service.impl;
 
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.rest.api.SortSpec;
@@ -8,11 +8,11 @@ import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
-import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
-import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniServiceRequestSearchParams;
-import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirServiceRequestService;
-import org.bahmni.module.fhir2AddlExtension.api.service.ServiceRequestLocationReferenceResolver;
-import org.bahmni.module.fhir2AddlExtension.api.utils.ModuleUtils;
+import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirServiceRequestDao;
+import org.bahmni.module.fhir2addlextension.api.search.param.BahmniServiceRequestSearchParams;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirServiceRequestService;
+import org.bahmni.module.fhir2addlextension.api.service.ServiceRequestLocationReferenceResolver;
+import org.bahmni.module.fhir2addlextension.api.utils.ModuleUtils;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.ServiceRequest;
 import org.openmrs.Location;

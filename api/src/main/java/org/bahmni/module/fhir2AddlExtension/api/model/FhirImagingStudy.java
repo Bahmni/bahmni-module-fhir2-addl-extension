@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.model;
+package org.bahmni.module.fhir2addlextension.api.model;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -12,7 +12,6 @@ import org.openmrs.Order;
 import org.openmrs.Patient;
 import org.openmrs.Provider;
 
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;

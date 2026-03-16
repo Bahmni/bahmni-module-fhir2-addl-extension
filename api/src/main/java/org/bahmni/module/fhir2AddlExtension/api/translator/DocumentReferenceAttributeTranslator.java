@@ -1,7 +1,7 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator;
+package org.bahmni.module.fhir2addlextension.api.translator;
 
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttribute;
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttributeType;
+import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceAttribute;
+import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceAttributeType;
 import org.hl7.fhir.r4.model.Extension;
 
 import java.util.List;

@@ -1,12 +1,12 @@
-package org.bahmni.module.fhir2AddlExtension.api.service.impl;
+package org.bahmni.module.fhir2addlextension.api.service.impl;
 
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import lombok.extern.slf4j.Slf4j;
-import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirImagingStudyDao;
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirImagingStudy;
-import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniImagingStudySearchParams;
-import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirImagingStudyService;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirImagingStudyTranslator;
+import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirImagingStudyDao;
+import org.bahmni.module.fhir2addlextension.api.model.FhirImagingStudy;
+import org.bahmni.module.fhir2addlextension.api.search.param.BahmniImagingStudySearchParams;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirImagingStudyService;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniFhirImagingStudyTranslator;
 import org.hl7.fhir.r4.model.ImagingStudy;
 import org.openmrs.module.fhir2.api.dao.FhirDao;
 import org.openmrs.module.fhir2.api.impl.BaseFhirService;

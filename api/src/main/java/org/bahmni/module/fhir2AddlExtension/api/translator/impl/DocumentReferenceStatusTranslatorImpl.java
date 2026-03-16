@@ -1,7 +1,7 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReference;
-import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceStatusTranslator;
+import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReference;
+import org.bahmni.module.fhir2addlextension.api.translator.DocumentReferenceStatusTranslator;
 import org.hl7.fhir.r4.model.DocumentReference;
 import org.hl7.fhir.r4.model.Enumerations;
 import org.springframework.stereotype.Component;

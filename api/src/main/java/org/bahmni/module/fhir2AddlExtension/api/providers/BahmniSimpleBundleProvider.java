@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.providers;
+package org.bahmni.module.fhir2addlextension.api.providers;
 
 import ca.uhn.fhir.rest.server.SimpleBundleProvider;
 import lombok.extern.slf4j.Slf4j;

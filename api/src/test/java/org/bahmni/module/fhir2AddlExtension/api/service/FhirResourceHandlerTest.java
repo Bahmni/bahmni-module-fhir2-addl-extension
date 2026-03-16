@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.service;
+package org.bahmni.module.fhir2addlextension.api.service;
 
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.rest.api.MethodOutcome;
@@ -6,7 +6,7 @@ import ca.uhn.fhir.rest.api.PatchTypeEnum;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.api.server.RequestDetails;
 import ca.uhn.fhir.rest.param.TokenParam;
-import org.bahmni.module.fhir2AddlExtension.api.service.impl.FhirResourceHandlerImpl;
+import org.bahmni.module.fhir2addlextension.api.service.impl.FhirResourceHandlerImpl;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Encounter;

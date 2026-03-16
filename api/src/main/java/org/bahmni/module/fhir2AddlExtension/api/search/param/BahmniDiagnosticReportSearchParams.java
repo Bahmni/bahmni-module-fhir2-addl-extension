@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.search.param;
+package org.bahmni.module.fhir2addlextension.api.search.param;
 
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.rest.api.SortSpec;

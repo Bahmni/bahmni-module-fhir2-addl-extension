@@ -1,13 +1,13 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
-import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
-import org.bahmni.module.fhir2AddlExtension.api.context.AppContext;
-import org.bahmni.module.fhir2AddlExtension.api.dao.OrderAttributeTypeDao;
-import org.bahmni.module.fhir2AddlExtension.api.service.impl.ServiceRequestLocationReferenceResolverImpl;
-import org.bahmni.module.fhir2AddlExtension.api.translator.OrderTypeTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.ServiceRequestPriorityTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.validators.ServiceRequestValidator;
+import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2addlextension.api.context.AppContext;
+import org.bahmni.module.fhir2addlextension.api.dao.OrderAttributeTypeDao;
+import org.bahmni.module.fhir2addlextension.api.service.impl.ServiceRequestLocationReferenceResolverImpl;
+import org.bahmni.module.fhir2addlextension.api.translator.OrderTypeTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.ServiceRequestPriorityTranslator;
+import org.bahmni.module.fhir2addlextension.api.validators.ServiceRequestValidator;
 import org.hl7.fhir.r4.model.*;
 import org.junit.Before;
 import org.junit.Test;
@@ -26,12 +26,12 @@ import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.impl.OrderIdentifierTranslatorImpl;
 import org.openmrs.order.OrderUtilTest;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniOrderReferenceTranslator;
 
 import java.lang.reflect.Field;
 import java.util.*;
 
-import static org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants.ORDER_TYPE_SYSTEM_URI;
+import static org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants.ORDER_TYPE_SYSTEM_URI;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.notNullValue;

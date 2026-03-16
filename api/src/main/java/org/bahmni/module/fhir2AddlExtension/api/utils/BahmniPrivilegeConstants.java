@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.utils;
+package org.bahmni.module.fhir2addlextension.api.utils;
 
 public class BahmniPrivilegeConstants {
 	

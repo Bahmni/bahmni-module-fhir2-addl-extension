@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.search.param;
+package org.bahmni.module.fhir2addlextension.api.search.param;
 
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.rest.api.SortSpec;
@@ -6,7 +6,7 @@ import ca.uhn.fhir.rest.param.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.search.param.ConditionSearchParams;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;

@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.advice;
+package org.bahmni.module.fhir2addlextension.advice;
 
 import org.hl7.fhir.r4.model.Encounter;
 import org.ict4h.atomfeed.server.repository.AllEventRecordsQueue;

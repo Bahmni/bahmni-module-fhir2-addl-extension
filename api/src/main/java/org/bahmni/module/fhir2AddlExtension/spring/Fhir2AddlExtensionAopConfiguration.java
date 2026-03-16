@@ -1,10 +1,10 @@
-package org.bahmni.module.fhir2AddlExtension.spring;
+package org.bahmni.module.fhir2addlextension.spring;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 
-import org.bahmni.module.fhir2AddlExtension.advice.FhirEncounterSaveAdvice;
+import org.bahmni.module.fhir2addlextension.advice.FhirEncounterSaveAdvice;
 import org.openmrs.module.fhir2.api.FhirEncounterService;
 import org.springframework.aop.Advisor;
 import org.springframework.aop.support.StaticMethodMatcherPointcutAdvisor;

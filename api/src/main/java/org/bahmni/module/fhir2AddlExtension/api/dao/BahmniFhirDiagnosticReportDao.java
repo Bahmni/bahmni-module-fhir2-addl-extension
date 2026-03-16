@@ -1,7 +1,7 @@
-package org.bahmni.module.fhir2AddlExtension.api.dao;
+package org.bahmni.module.fhir2addlextension.api.dao;
 
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirDiagnosticReportExt;
-import org.bahmni.module.fhir2AddlExtension.api.utils.BahmniPrivilegeConstants;
+import org.bahmni.module.fhir2addlextension.api.model.FhirDiagnosticReportExt;
+import org.bahmni.module.fhir2addlextension.api.utils.BahmniPrivilegeConstants;
 import org.openmrs.annotation.Authorized;
 import org.openmrs.module.fhir2.api.dao.FhirDao;
 import org.openmrs.util.PrivilegeConstants;

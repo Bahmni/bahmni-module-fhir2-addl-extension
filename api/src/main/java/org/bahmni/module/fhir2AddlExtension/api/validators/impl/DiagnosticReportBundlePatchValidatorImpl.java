@@ -1,14 +1,15 @@
-package org.bahmni.module.fhir2AddlExtension.api.validators.impl;
+package org.bahmni.module.fhir2addlextension.api.validators.impl;
 
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.exceptions.MethodNotAllowedException;
-import org.bahmni.module.fhir2AddlExtension.api.validators.DiagnosticReportBundlePatchValidator;
+import org.bahmni.module.fhir2addlextension.api.validators.DiagnosticReportBundlePatchValidator;
 import org.hl7.fhir.r4.model.DiagnosticReport;
 import org.hl7.fhir.r4.model.DiagnosticReport.DiagnosticReportStatus;
 import org.hl7.fhir.r4.model.Reference;
 import org.springframework.stereotype.Component;
 
 import java.util.EnumSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -67,7 +68,7 @@ public class DiagnosticReportBundlePatchValidatorImpl implements DiagnosticRepor
 		String patchedPatient = patched.getSubject().getReference();
 		
 		if (originalPatient == null || patchedPatient == null) {
-			if (originalPatient != patchedPatient) {
+			if (!Objects.equals(originalPatient, patchedPatient)) {
 				throw new InvalidRequestException(PATIENT_CHANGED_ERROR);
 			}
 			return;
@@ -94,7 +95,7 @@ public class DiagnosticReportBundlePatchValidatorImpl implements DiagnosticRepor
 		String patchedEnc = patched.getEncounter().getReference();
 		
 		if (originalEnc == null || patchedEnc == null) {
-			if (originalEnc != patchedEnc) {
+			if (!Objects.equals(originalEnc, patchedEnc)) {
 				throw new InvalidRequestException(ENCOUNTER_CHANGED_ERROR);
 			}
 			return;

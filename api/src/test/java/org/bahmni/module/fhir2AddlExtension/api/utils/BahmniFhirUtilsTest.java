@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.utils;
+package org.bahmni.module.fhir2addlextension.api.utils;
 
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Observation;
@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
-import static org.bahmni.module.fhir2AddlExtension.api.TestDataFactory.loadDiagnosticReportBundle;
+import static org.bahmni.module.fhir2addlextension.api.TestDataFactory.loadDiagnosticReportBundle;
 
 public class BahmniFhirUtilsTest {
 	

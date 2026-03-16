@@ -1,10 +1,10 @@
-package org.bahmni.module.fhir2AddlExtension.api.service.impl;
+package org.bahmni.module.fhir2addlextension.api.service.impl;
 
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
-import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirEpisodeOfCareDao;
+import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirEpisodeOfCareDao;
 import org.hl7.fhir.r4.model.Encounter;
 import org.hl7.fhir.r4.model.Reference;
 import org.openmrs.module.episodes.Episode;

@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.utils;
+package org.bahmni.module.fhir2addlextension.api.utils;
 
 import org.hl7.fhir.r4.model.Bundle;
 import org.openmrs.module.fhir2.api.util.FhirUtils;

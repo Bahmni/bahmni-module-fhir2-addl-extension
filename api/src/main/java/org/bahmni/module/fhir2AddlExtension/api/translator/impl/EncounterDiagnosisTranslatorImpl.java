@@ -1,8 +1,8 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
 import lombok.AccessLevel;
 import lombok.Setter;
-import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
 import org.hl7.fhir.r4.model.*;
 import org.hl7.fhir.r4.model.Condition;
 import org.openmrs.*;

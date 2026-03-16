@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator;
+package org.bahmni.module.fhir2addlextension.api.translator;
 
 import org.hl7.fhir.r4.model.EpisodeOfCare;
 import org.openmrs.module.episodes.Episode;

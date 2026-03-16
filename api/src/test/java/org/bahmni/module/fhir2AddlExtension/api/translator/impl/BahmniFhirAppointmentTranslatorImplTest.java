@@ -1,10 +1,7 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
-import org.bahmni.module.fhir2AddlExtension.api.translator.AppointmentStatusTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.AppointmentStatusTranslator;
 import org.hl7.fhir.r4.model.Appointment;
-import org.hl7.fhir.r4.model.Appointment.AppointmentParticipantComponent;
-import org.hl7.fhir.r4.model.IdType;
-import org.hl7.fhir.r4.model.Reference;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -22,8 +19,6 @@ import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 import org.openmrs.Concept;
 import org.openmrs.Provider;
-import org.openmrs.Patient;
-import org.openmrs.Location;
 
 import java.util.Date;
 import java.util.HashSet;

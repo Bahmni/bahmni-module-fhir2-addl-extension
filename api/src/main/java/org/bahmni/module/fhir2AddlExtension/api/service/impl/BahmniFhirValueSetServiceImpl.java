@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.service.impl;
+package org.bahmni.module.fhir2addlextension.api.service.impl;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -8,8 +8,8 @@ import javax.annotation.Nonnull;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.AccessLevel;
 import lombok.Setter;
-import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
-import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirValueSetService;
+import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirValueSetService;
 import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.ValueSet;
 import org.openmrs.Concept;

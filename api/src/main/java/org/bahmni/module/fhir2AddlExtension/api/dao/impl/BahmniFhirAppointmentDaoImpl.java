@@ -1,7 +1,7 @@
-package org.bahmni.module.fhir2AddlExtension.api.dao.impl;
+package org.bahmni.module.fhir2addlextension.api.dao.impl;
 
-import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirAppointmentDao;
-import org.bahmni.module.fhir2AddlExtension.api.translator.AppointmentStatusTranslator;
+import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirAppointmentDao;
+import org.bahmni.module.fhir2addlextension.api.translator.AppointmentStatusTranslator;
 import org.hibernate.Criteria;
 import org.hibernate.FetchMode;
 import org.hibernate.criterion.CriteriaSpecification;

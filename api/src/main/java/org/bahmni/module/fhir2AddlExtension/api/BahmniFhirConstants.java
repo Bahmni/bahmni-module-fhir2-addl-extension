@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api;
+package org.bahmni.module.fhir2addlextension.api;
 
 import org.hl7.fhir.r4.model.ResourceType;
 import org.openmrs.module.fhir2.FhirConstants;

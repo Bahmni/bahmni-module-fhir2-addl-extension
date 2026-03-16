@@ -1,10 +1,10 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
+import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirServiceRequestDao;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniOrderReferenceTranslator;
 import org.hl7.fhir.r4.model.Reference;
 import org.openmrs.DrugOrder;
 import org.openmrs.Order;

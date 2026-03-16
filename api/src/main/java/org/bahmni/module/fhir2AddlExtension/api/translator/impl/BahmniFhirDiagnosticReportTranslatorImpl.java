@@ -1,17 +1,16 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.extern.slf4j.Slf4j;
-import org.bahmni.module.fhir2AddlExtension.api.model.Attachment;
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirDiagnosticReportExt;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirDiagnosticReportTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
+import org.bahmni.module.fhir2addlextension.api.model.Attachment;
+import org.bahmni.module.fhir2addlextension.api.model.FhirDiagnosticReportExt;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniFhirDiagnosticReportTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniOrderReferenceTranslator;
 import org.hl7.fhir.r4.model.DiagnosticReport;
 import org.openmrs.Order;
 import org.openmrs.Provider;
 import org.openmrs.module.fhir2.api.translators.DiagnosticReportTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
-import org.openmrs.module.fhir2.model.FhirDiagnosticReport;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 

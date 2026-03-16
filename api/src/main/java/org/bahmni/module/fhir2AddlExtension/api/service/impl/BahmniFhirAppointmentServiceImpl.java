@@ -1,15 +1,14 @@
-package org.bahmni.module.fhir2AddlExtension.api.service.impl;
+package org.bahmni.module.fhir2addlextension.api.service.impl;
 
 import ca.uhn.fhir.rest.api.PatchTypeEnum;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.api.server.RequestDetails;
 import lombok.extern.slf4j.Slf4j;
-import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirAppointmentDao;
-import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniAppointmentSearchParams;
-import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirAppointmentService;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirAppointmentTranslator;
+import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirAppointmentDao;
+import org.bahmni.module.fhir2addlextension.api.search.param.BahmniAppointmentSearchParams;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirAppointmentService;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniFhirAppointmentTranslator;
 import org.hl7.fhir.r4.model.Appointment;
-import org.openmrs.module.appointments.model.AppointmentStatus;
 import org.openmrs.module.fhir2.api.dao.FhirDao;
 import org.openmrs.module.fhir2.api.impl.BaseFhirService;
 import org.openmrs.module.fhir2.api.search.SearchQuery;

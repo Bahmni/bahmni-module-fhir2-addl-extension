@@ -1,9 +1,9 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
-import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniEpisodeOfCareTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.EpisodeOfCareStatusTranslator;
+import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniEpisodeOfCareTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.EpisodeOfCareStatusTranslator;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.EpisodeOfCare;
 import org.hl7.fhir.r4.model.Extension;

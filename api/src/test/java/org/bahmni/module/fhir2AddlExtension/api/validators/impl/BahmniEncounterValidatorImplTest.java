@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.validators.impl;
+package org.bahmni.module.fhir2addlextension.api.validators.impl;
 
 import org.hl7.fhir.r4.model.Encounter;
 import org.hl7.fhir.r4.model.Reference;

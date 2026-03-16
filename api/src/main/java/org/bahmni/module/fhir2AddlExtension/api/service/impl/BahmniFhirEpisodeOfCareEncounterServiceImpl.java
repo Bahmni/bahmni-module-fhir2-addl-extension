@@ -1,13 +1,13 @@
-package org.bahmni.module.fhir2AddlExtension.api.service.impl;
+package org.bahmni.module.fhir2addlextension.api.service.impl;
 
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.ReferenceOrListParam;
 import ca.uhn.fhir.rest.param.ReferenceParam;
 import lombok.extern.slf4j.Slf4j;
-import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniEpisodeOfCareEncounterDao;
-import org.bahmni.module.fhir2AddlExtension.api.providers.BahmniSimpleBundleProvider;
-import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirEpisodeOfCareEncounterService;
+import org.bahmni.module.fhir2addlextension.api.dao.BahmniEpisodeOfCareEncounterDao;
+import org.bahmni.module.fhir2addlextension.api.providers.BahmniSimpleBundleProvider;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirEpisodeOfCareEncounterService;
 import org.hl7.fhir.r4.model.Encounter;
 import org.hl7.fhir.r4.model.Reference;
 import org.openmrs.module.fhir2.api.translators.EncounterTranslator;

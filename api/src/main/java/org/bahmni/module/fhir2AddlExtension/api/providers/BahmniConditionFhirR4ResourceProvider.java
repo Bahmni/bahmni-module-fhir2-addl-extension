@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.providers;
+package org.bahmni.module.fhir2addlextension.api.providers;
 
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.rest.annotation.IncludeParam;
@@ -11,8 +11,8 @@ import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.*;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.apache.commons.collections.CollectionUtils;
-import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniConditionSearchParams;
-import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirConditionService;
+import org.bahmni.module.fhir2addlextension.api.search.param.BahmniConditionSearchParams;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirConditionService;
 import org.hl7.fhir.r4.model.Condition;
 import org.hl7.fhir.r4.model.Patient;
 import org.openmrs.module.fhir2.api.annotations.R4Provider;

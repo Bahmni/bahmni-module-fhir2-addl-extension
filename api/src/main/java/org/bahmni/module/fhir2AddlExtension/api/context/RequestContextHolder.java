@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.context;
+package org.bahmni.module.fhir2addlextension.api.context;
 
 public class RequestContextHolder {
     private static final ThreadLocal<String> REQUEST_CONTEXT = new ThreadLocal<>();

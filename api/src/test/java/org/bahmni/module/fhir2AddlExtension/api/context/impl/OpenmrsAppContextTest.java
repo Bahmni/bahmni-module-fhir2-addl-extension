@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.context.impl;
+package org.bahmni.module.fhir2addlextension.api.context.impl;
 
 import org.junit.Assert;
 import org.junit.Test;

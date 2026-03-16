@@ -1,17 +1,17 @@
-package org.bahmni.module.fhir2AddlExtension.api.service.impl;
+package org.bahmni.module.fhir2addlextension.api.service.impl;
 
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.ReferenceOrListParam;
 import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.TokenAndListParam;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
-import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirEpisodeOfCareDao;
-import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniEpisodeOfCareSearchParams;
-import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirEpisodeOfCareService;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniEpisodeOfCareTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.EpisodeOfCareStatusTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.impl.BahmniEpisodeOfCareStatusTranslatorImpl;
-import org.bahmni.module.fhir2AddlExtension.api.translator.impl.BahmniEpisodeOfCareTranslatorImpl;
+import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirEpisodeOfCareDao;
+import org.bahmni.module.fhir2addlextension.api.search.param.BahmniEpisodeOfCareSearchParams;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirEpisodeOfCareService;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniEpisodeOfCareTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.EpisodeOfCareStatusTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.impl.BahmniEpisodeOfCareStatusTranslatorImpl;
+import org.bahmni.module.fhir2addlextension.api.translator.impl.BahmniEpisodeOfCareTranslatorImpl;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.EpisodeOfCare;

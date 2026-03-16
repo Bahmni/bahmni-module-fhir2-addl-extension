@@ -1,9 +1,9 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
-import org.bahmni.module.fhir2AddlExtension.api.TestUtils;
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirDiagnosticReportExt;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirDiagnosticReportTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
+import org.bahmni.module.fhir2addlextension.api.TestUtils;
+import org.bahmni.module.fhir2addlextension.api.model.FhirDiagnosticReportExt;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniFhirDiagnosticReportTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniOrderReferenceTranslator;
 import org.hl7.fhir.r4.model.DiagnosticReport;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,7 +28,7 @@ import org.openmrs.module.fhir2.api.translators.impl.DiagnosticReportTranslatorI
 
 import java.io.IOException;
 
-import static org.bahmni.module.fhir2AddlExtension.api.TestDataFactory.loadResourceFromFile;
+import static org.bahmni.module.fhir2addlextension.api.TestDataFactory.loadResourceFromFile;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
 

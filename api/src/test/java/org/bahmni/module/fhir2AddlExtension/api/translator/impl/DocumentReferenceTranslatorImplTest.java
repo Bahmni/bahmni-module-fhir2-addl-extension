@@ -1,13 +1,13 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
 import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
-import org.bahmni.module.fhir2AddlExtension.api.dao.DocumentReferenceAttributeTypeDao;
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReference;
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttributeType;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceExtensionTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceStatusTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceTranslator;
+import org.bahmni.module.fhir2addlextension.api.dao.DocumentReferenceAttributeTypeDao;
+import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReference;
+import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceAttributeType;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniOrderReferenceTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.DocumentReferenceExtensionTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.DocumentReferenceStatusTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.DocumentReferenceTranslator;
 import org.hl7.fhir.r4.model.DocumentReference;
 import org.hl7.fhir.r4.model.Period;
 import org.hl7.fhir.r4.model.Reference;
@@ -39,7 +39,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.bahmni.module.fhir2AddlExtension.api.TestDataFactory.*;
+import static org.bahmni.module.fhir2addlextension.api.TestDataFactory.*;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)

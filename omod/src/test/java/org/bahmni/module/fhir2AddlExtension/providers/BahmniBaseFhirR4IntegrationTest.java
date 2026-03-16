@@ -15,7 +15,7 @@
  *  - the signature of the class has been modified from (U extends DomainResource) to (U extends IAnyResource)
  *  - {@link #removeNarrativeAndContained(U) method has been modified to check the correct methods are invoked on resources
  */
-package org.bahmni.module.fhir2AddlExtension.providers;
+package org.bahmni.module.fhir2addlextension.providers;
 
 import java.io.UnsupportedEncodingException;
 import java.util.HashSet;

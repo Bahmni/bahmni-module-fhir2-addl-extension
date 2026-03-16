@@ -1,10 +1,10 @@
-package org.bahmni.module.fhir2AddlExtension.api.providers;
+package org.bahmni.module.fhir2addlextension.api.providers;
 
 import ca.uhn.fhir.rest.annotation.RequiredParam;
 import ca.uhn.fhir.rest.annotation.Search;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.StringParam;
-import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirMedicationService;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirMedicationService;
 import org.openmrs.module.fhir2.api.annotations.R4Provider;
 import org.openmrs.module.fhir2.providers.r4.MedicationFhirResourceProvider;
 import org.springframework.beans.factory.annotation.Autowired;

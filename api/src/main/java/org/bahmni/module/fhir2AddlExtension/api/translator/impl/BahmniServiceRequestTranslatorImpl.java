@@ -1,15 +1,15 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.AccessLevel;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
-import org.bahmni.module.fhir2AddlExtension.api.service.ServiceRequestLocationReferenceResolver;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.OrderTypeTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.ServiceRequestPriorityTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.validators.ServiceRequestValidator;
+import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2addlextension.api.service.ServiceRequestLocationReferenceResolver;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniOrderReferenceTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.OrderTypeTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.ServiceRequestPriorityTranslator;
+import org.bahmni.module.fhir2addlextension.api.validators.ServiceRequestValidator;
 import org.hl7.fhir.r4.model.*;
 import org.openmrs.Concept;
 import org.openmrs.Encounter;

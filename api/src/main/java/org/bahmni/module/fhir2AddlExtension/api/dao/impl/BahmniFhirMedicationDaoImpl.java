@@ -1,8 +1,8 @@
-package org.bahmni.module.fhir2AddlExtension.api.dao.impl;
+package org.bahmni.module.fhir2addlextension.api.dao.impl;
 
 import ca.uhn.fhir.rest.param.StringParam;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
-import org.bahmni.module.fhir2AddlExtension.api.dao.FhirConceptCodeSystemQuery;
+import org.bahmni.module.fhir2addlextension.api.dao.FhirConceptCodeSystemQuery;
 import org.hibernate.criterion.Criterion;
 import org.openmrs.Drug;
 import org.openmrs.api.ConceptService;

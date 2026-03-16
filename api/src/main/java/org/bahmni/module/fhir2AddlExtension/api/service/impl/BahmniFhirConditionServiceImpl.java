@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.service.impl;
+package org.bahmni.module.fhir2addlextension.api.service.impl;
 
 import ca.uhn.fhir.rest.api.PatchTypeEnum;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
@@ -10,10 +10,10 @@ import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
-import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
-import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniConditionSearchParams;
-import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirConditionService;
-import org.bahmni.module.fhir2AddlExtension.api.service.FhirEncounterDiagnosisService;
+import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2addlextension.api.search.param.BahmniConditionSearchParams;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirConditionService;
+import org.bahmni.module.fhir2addlextension.api.service.FhirEncounterDiagnosisService;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Condition;
 import org.openmrs.module.fhir2.api.dao.FhirConditionDao;

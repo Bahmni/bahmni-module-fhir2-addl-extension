@@ -1,13 +1,13 @@
-package org.bahmni.module.fhir2AddlExtension.api.search;
+package org.bahmni.module.fhir2addlextension.api.search;
 
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.ReferenceOrListParam;
 import ca.uhn.fhir.rest.param.ReferenceParam;
-import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniImagingStudySearchParams;
-import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirEpisodeOfCareEncounterService;
-import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirImagingStudyService;
+import org.bahmni.module.fhir2addlextension.api.search.param.BahmniImagingStudySearchParams;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirEpisodeOfCareEncounterService;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirImagingStudyService;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.junit.Before;
 import org.junit.Test;

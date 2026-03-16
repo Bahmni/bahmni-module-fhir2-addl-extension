@@ -7,17 +7,17 @@
  * Copyright 2025 (C) Thoughtworks Inc.
  */
 
-package org.bahmni.module.fhir2AddlExtension.api.service.impl;
+package org.bahmni.module.fhir2addlextension.api.service.impl;
 
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.extern.slf4j.Slf4j;
-import org.bahmni.module.fhir2AddlExtension.api.domain.ConsultationBundle;
-import org.bahmni.module.fhir2AddlExtension.api.helper.ConsultationBundleEntriesHelper;
-import org.bahmni.module.fhir2AddlExtension.api.service.ConsultationBundleService;
-import org.bahmni.module.fhir2AddlExtension.api.service.FhirResourceHandler;
-import org.bahmni.module.fhir2AddlExtension.api.validators.ConsultationBundleValidator;
+import org.bahmni.module.fhir2addlextension.api.domain.ConsultationBundle;
+import org.bahmni.module.fhir2addlextension.api.helper.ConsultationBundleEntriesHelper;
+import org.bahmni.module.fhir2addlextension.api.service.ConsultationBundleService;
+import org.bahmni.module.fhir2addlextension.api.service.FhirResourceHandler;
+import org.bahmni.module.fhir2addlextension.api.validators.ConsultationBundleValidator;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Resource;
 import org.springframework.beans.factory.annotation.Autowired;

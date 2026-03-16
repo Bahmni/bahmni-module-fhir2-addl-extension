@@ -1,12 +1,12 @@
-package org.bahmni.module.fhir2AddlExtension.api.service.impl;
+package org.bahmni.module.fhir2addlextension.api.service.impl;
 
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
-import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirDiagnosticReportDao;
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirDiagnosticReportExt;
-import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirDiagnosticReportService;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirDiagnosticReportTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.validators.DiagnosticReportValidator;
+import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirDiagnosticReportDao;
+import org.bahmni.module.fhir2addlextension.api.model.FhirDiagnosticReportExt;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirDiagnosticReportService;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniFhirDiagnosticReportTranslator;
+import org.bahmni.module.fhir2addlextension.api.validators.DiagnosticReportValidator;
 import org.hl7.fhir.r4.model.DiagnosticReport;
 import org.openmrs.module.fhir2.api.dao.FhirDao;
 import org.openmrs.module.fhir2.api.impl.BaseFhirService;

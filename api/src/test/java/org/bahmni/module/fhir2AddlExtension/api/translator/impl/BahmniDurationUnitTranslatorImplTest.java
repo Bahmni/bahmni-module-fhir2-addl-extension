@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
 import org.hl7.fhir.r4.model.Timing;
 import org.junit.Before;

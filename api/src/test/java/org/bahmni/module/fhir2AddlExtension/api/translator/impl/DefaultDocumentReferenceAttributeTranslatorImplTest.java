@@ -1,8 +1,8 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
 import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
-import org.bahmni.module.fhir2AddlExtension.api.dao.DocumentReferenceAttributeTypeDao;
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttribute;
+import org.bahmni.module.fhir2addlextension.api.dao.DocumentReferenceAttributeTypeDao;
+import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceAttribute;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.StringType;
 import org.junit.Assert;
@@ -17,8 +17,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static org.bahmni.module.fhir2AddlExtension.api.TestDataFactory.exampleAttrTypeExternalOrganization;
-import static org.bahmni.module.fhir2AddlExtension.api.TestDataFactory.exampleAttrTypeIsSelfSubmitted;
+import static org.bahmni.module.fhir2addlextension.api.TestDataFactory.exampleAttrTypeExternalOrganization;
+import static org.bahmni.module.fhir2addlextension.api.TestDataFactory.exampleAttrTypeIsSelfSubmitted;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)

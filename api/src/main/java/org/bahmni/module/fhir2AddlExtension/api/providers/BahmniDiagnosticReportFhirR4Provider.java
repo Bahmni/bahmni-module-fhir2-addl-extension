@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.providers;
+package org.bahmni.module.fhir2addlextension.api.providers;
 
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.model.api.annotation.Description;
@@ -28,10 +28,10 @@ import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
-import org.bahmni.module.fhir2AddlExtension.api.context.RequestContextHolder;
-import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniDiagnosticReportSearchParams;
-import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirDiagnosticReportBundleService;
-import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirDiagnosticReportService;
+import org.bahmni.module.fhir2addlextension.api.context.RequestContextHolder;
+import org.bahmni.module.fhir2addlextension.api.search.param.BahmniDiagnosticReportSearchParams;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirDiagnosticReportBundleService;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirDiagnosticReportService;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.DiagnosticReport;

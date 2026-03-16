@@ -1,10 +1,10 @@
-package org.bahmni.module.fhir2AddlExtension.api.dao.impl;
+package org.bahmni.module.fhir2addlextension.api.dao.impl;
 
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
-import org.bahmni.module.fhir2AddlExtension.api.dao.DocumentReferenceAttributeTypeDao;
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttributeType;
+import org.bahmni.module.fhir2addlextension.api.dao.DocumentReferenceAttributeTypeDao;
+import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceAttributeType;
 import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;

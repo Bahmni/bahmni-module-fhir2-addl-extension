@@ -1,15 +1,13 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttribute;
-import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceExtensionTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceAttributeTranslator;
+import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceAttribute;
+import org.bahmni.module.fhir2addlextension.api.translator.DocumentReferenceExtensionTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.DocumentReferenceAttributeTranslator;
 import org.hl7.fhir.r4.model.Extension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 

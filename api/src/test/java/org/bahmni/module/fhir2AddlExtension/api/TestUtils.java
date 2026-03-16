@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api;
+package org.bahmni.module.fhir2addlextension.api;
 
 import java.lang.reflect.Field;
 

@@ -1,6 +1,6 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
-import org.bahmni.module.fhir2AddlExtension.api.translator.ComplexObsDataTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.ComplexObsDataTranslator;
 import org.hl7.fhir.r4.model.Attachment;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Observation;
@@ -11,7 +11,7 @@ import org.openmrs.Obs;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants.FHIR_EXT_OBSERVATION_ATTACHMENT_VALUE;
+import static org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants.FHIR_EXT_OBSERVATION_ATTACHMENT_VALUE;
 
 class AttachmentObsDataTranslator implements ComplexObsDataTranslator {
 	

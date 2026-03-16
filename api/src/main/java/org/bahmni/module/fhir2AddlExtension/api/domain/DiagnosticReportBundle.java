@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.domain;
+package org.bahmni.module.fhir2addlextension.api.domain;
 
 import ca.uhn.fhir.model.api.annotation.ResourceDef;
 import org.hl7.fhir.r4.model.Bundle;

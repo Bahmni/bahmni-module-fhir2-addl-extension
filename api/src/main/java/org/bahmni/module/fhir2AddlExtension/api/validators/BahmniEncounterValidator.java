@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.validators;
+package org.bahmni.module.fhir2addlextension.api.validators;
 
 import org.openmrs.Encounter;
 

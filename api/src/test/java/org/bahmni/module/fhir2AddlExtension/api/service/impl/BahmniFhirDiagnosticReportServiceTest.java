@@ -1,12 +1,12 @@
-package org.bahmni.module.fhir2AddlExtension.api.service.impl;
+package org.bahmni.module.fhir2addlextension.api.service.impl;
 
-import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirDiagnosticReportDao;
-import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirServiceRequestDao;
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirDiagnosticReportExt;
-import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirDiagnosticReportService;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirDiagnosticReportTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.validators.impl.DiagnosticReportValidatorImpl;
+import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirDiagnosticReportDao;
+import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirServiceRequestDao;
+import org.bahmni.module.fhir2addlextension.api.model.FhirDiagnosticReportExt;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirDiagnosticReportService;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniFhirDiagnosticReportTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniOrderReferenceTranslator;
+import org.bahmni.module.fhir2addlextension.api.validators.impl.DiagnosticReportValidatorImpl;
 import org.hl7.fhir.r4.model.DiagnosticReport;
 import org.junit.Assert;
 import org.junit.Before;
@@ -27,7 +27,7 @@ import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 
 import java.io.IOException;
 
-import static org.bahmni.module.fhir2AddlExtension.api.TestDataFactory.loadResourceFromFile;
+import static org.bahmni.module.fhir2addlextension.api.TestDataFactory.loadResourceFromFile;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;

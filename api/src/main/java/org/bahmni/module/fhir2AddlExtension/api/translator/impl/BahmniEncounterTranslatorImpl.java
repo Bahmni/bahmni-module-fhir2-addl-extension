@@ -1,8 +1,8 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
 import lombok.AccessLevel;
 import lombok.Setter;
-import org.bahmni.module.fhir2AddlExtension.api.validators.BahmniEncounterValidator;
+import org.bahmni.module.fhir2addlextension.api.validators.BahmniEncounterValidator;
 import org.openmrs.*;
 import org.openmrs.module.fhir2.api.translators.*;
 import org.openmrs.module.fhir2.api.translators.impl.EncounterTranslatorImpl;

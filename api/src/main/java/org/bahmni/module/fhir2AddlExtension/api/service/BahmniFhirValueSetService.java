@@ -1,7 +1,6 @@
-package org.bahmni.module.fhir2AddlExtension.api.service;
+package org.bahmni.module.fhir2addlextension.api.service;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.hl7.fhir.r4.model.ValueSet;
 import org.openmrs.module.fhir2.api.FhirValueSetService;

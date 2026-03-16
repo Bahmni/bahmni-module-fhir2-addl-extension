@@ -1,6 +1,6 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
-import org.bahmni.module.fhir2AddlExtension.api.translator.ComplexObsDataTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.ComplexObsDataTranslator;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Reference;

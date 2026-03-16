@@ -1,9 +1,8 @@
-package org.bahmni.module.fhir2AddlExtension.api.context;
+package org.bahmni.module.fhir2addlextension.api.context;
 
 import org.openmrs.EncounterRole;
 import org.openmrs.EncounterType;
 import org.openmrs.User;
-import org.openmrs.api.EncounterService;
 
 import java.util.Map;
 

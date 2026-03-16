@@ -1,7 +1,7 @@
-package org.bahmni.module.fhir2AddlExtension.api.dao.impl;
+package org.bahmni.module.fhir2addlextension.api.dao.impl;
 
 import lombok.extern.slf4j.Slf4j;
-import org.bahmni.module.fhir2AddlExtension.api.dao.OrderAttributeTypeDao;
+import org.bahmni.module.fhir2addlextension.api.dao.OrderAttributeTypeDao;
 import org.openmrs.OrderAttributeType;
 import org.openmrs.OrderGroupAttributeType;
 import org.openmrs.api.db.OrderDAO;

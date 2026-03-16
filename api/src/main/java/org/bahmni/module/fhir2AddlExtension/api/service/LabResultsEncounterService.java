@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.service;
+package org.bahmni.module.fhir2addlextension.api.service;
 
 import org.hl7.fhir.r4.model.Reference;
 import org.openmrs.Order;

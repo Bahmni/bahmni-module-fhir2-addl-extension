@@ -1,6 +1,6 @@
-package org.bahmni.module.fhir2AddlExtension.api.dao.impl;
+package org.bahmni.module.fhir2addlextension.api.dao.impl;
 
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirDiagnosticReportExt;
+import org.bahmni.module.fhir2addlextension.api.model.FhirDiagnosticReportExt;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.query.Query;

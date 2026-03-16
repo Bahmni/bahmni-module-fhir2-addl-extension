@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.dao;
+package org.bahmni.module.fhir2addlextension.api.dao;
 
 import org.openmrs.OrderAttributeType;
 import org.openmrs.OrderGroupAttributeType;

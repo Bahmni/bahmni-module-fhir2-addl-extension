@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.providers;
+package org.bahmni.module.fhir2addlextension.api.providers;
 
 import ca.uhn.fhir.rest.annotation.*;
 import ca.uhn.fhir.rest.api.MethodOutcome;
@@ -12,8 +12,8 @@ import ca.uhn.fhir.rest.param.TokenAndListParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
-import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniImagingStudySearchParams;
-import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirImagingStudyService;
+import org.bahmni.module.fhir2addlextension.api.search.param.BahmniImagingStudySearchParams;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirImagingStudyService;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.IdType;
 import org.hl7.fhir.r4.model.ImagingStudy;

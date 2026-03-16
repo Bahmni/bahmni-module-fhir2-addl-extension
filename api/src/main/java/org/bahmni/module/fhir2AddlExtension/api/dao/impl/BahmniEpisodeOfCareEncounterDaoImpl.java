@@ -1,9 +1,9 @@
-package org.bahmni.module.fhir2AddlExtension.api.dao.impl;
+package org.bahmni.module.fhir2addlextension.api.dao.impl;
 
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
-import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniEpisodeOfCareEncounterDao;
+import org.bahmni.module.fhir2addlextension.api.dao.BahmniEpisodeOfCareEncounterDao;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.openmrs.Encounter;

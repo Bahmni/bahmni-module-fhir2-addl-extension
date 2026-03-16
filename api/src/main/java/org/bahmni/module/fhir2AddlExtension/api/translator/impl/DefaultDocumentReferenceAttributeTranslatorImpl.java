@@ -1,13 +1,13 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
 import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
 import lombok.extern.slf4j.Slf4j;
-import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
-import org.bahmni.module.fhir2AddlExtension.api.dao.DocumentReferenceAttributeTypeDao;
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttribute;
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttributeType;
-import org.bahmni.module.fhir2AddlExtension.api.translator.DocumentReferenceAttributeTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.utils.ModuleUtils;
+import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2addlextension.api.dao.DocumentReferenceAttributeTypeDao;
+import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceAttribute;
+import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceAttributeType;
+import org.bahmni.module.fhir2addlextension.api.translator.DocumentReferenceAttributeTranslator;
+import org.bahmni.module.fhir2addlextension.api.utils.ModuleUtils;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.Type;
@@ -90,7 +90,7 @@ public class DefaultDocumentReferenceAttributeTranslatorImpl implements Document
         }
         String extAttributeName = extUrl.substring(DOC_REF_ATTR_EXT_URL.length());
         if (extAttributeName.isEmpty()) {
-            Optional.empty();
+            return Optional.empty();
         }
 
         List<FhirDocumentReferenceAttributeType> definedAttributeTypes = getActiveDocumentAttributeTypes();

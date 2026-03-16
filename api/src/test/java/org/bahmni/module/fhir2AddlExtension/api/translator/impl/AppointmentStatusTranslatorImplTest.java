@@ -1,6 +1,6 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
-import org.bahmni.module.fhir2AddlExtension.api.translator.AppointmentStatusTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.AppointmentStatusTranslator;
 import org.hl7.fhir.r4.model.Appointment;
 import org.junit.Before;
 import org.junit.Test;

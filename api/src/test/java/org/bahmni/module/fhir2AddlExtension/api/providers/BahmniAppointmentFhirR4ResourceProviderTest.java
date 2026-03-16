@@ -1,12 +1,12 @@
-package org.bahmni.module.fhir2AddlExtension.api.providers;
+package org.bahmni.module.fhir2addlextension.api.providers;
 
 import ca.uhn.fhir.rest.api.SortSpec;
 import ca.uhn.fhir.rest.param.DateRangeParam;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.TokenAndListParam;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
-import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniAppointmentSearchParams;
-import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirAppointmentService;
+import org.bahmni.module.fhir2addlextension.api.search.param.BahmniAppointmentSearchParams;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirAppointmentService;
 import org.hl7.fhir.r4.model.Appointment;
 import org.hl7.fhir.r4.model.IdType;
 import org.junit.Before;
@@ -16,7 +16,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
 
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 

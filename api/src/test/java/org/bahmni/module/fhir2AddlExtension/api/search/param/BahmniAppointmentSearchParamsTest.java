@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.search.param;
+package org.bahmni.module.fhir2addlextension.api.search.param;
 
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.ReferenceOrListParam;

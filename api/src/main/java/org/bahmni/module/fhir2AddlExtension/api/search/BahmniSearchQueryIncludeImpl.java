@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.search;
+package org.bahmni.module.fhir2addlextension.api.search;
 
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
@@ -7,10 +7,10 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
-import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniImagingStudySearchParams;
-import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirEpisodeOfCareEncounterService;
-import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirImagingStudyService;
+import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2addlextension.api.search.param.BahmniImagingStudySearchParams;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirEpisodeOfCareEncounterService;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirImagingStudyService;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.openmrs.annotation.OpenmrsProfile;
 import org.openmrs.module.fhir2.FhirConstants;

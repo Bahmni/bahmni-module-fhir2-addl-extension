@@ -7,13 +7,13 @@
  * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
  * graphic logo is a trademark of OpenMRS Inc.
  */
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
 import java.util.Date;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.bahmni.module.fhir2AddlExtension.api.translator.MedicationStatusCalculator;
+import org.bahmni.module.fhir2addlextension.api.translator.MedicationStatusCalculator;
 import org.hl7.fhir.r4.model.MedicationRequest;
 import org.openmrs.DrugOrder;
 import org.openmrs.Order;

@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.providers;
+package org.bahmni.module.fhir2addlextension.api.providers;
 
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.rest.annotation.Create;
@@ -19,8 +19,8 @@ import ca.uhn.fhir.rest.param.TokenAndListParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
-import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniEpisodeOfCareSearchParams;
-import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirEpisodeOfCareService;
+import org.bahmni.module.fhir2addlextension.api.search.param.BahmniEpisodeOfCareSearchParams;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirEpisodeOfCareService;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Encounter;
 import org.hl7.fhir.r4.model.EpisodeOfCare;

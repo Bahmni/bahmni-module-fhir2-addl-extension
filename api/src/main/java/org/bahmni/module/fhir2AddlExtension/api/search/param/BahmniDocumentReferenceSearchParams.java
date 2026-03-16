@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.search.param;
+package org.bahmni.module.fhir2addlextension.api.search.param;
 
 import ca.uhn.fhir.rest.api.SortSpec;
 import ca.uhn.fhir.rest.param.DateRangeParam;
@@ -8,7 +8,6 @@ import ca.uhn.fhir.rest.param.TokenAndListParam;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.search.param.BaseResourceSearchParams;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.springframework.util.StringUtils;

@@ -1,12 +1,12 @@
-package org.bahmni.module.fhir2AddlExtension.api.service.impl;
+package org.bahmni.module.fhir2addlextension.api.service.impl;
 
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
-import org.bahmni.module.fhir2AddlExtension.api.context.AppContext;
-import org.bahmni.module.fhir2AddlExtension.api.dao.OrderAttributeTypeDao;
-import org.bahmni.module.fhir2AddlExtension.api.service.ServiceRequestLocationReferenceResolver;
-import org.bahmni.module.fhir2AddlExtension.api.utils.ModuleUtils;
+import org.bahmni.module.fhir2addlextension.api.context.AppContext;
+import org.bahmni.module.fhir2addlextension.api.dao.OrderAttributeTypeDao;
+import org.bahmni.module.fhir2addlextension.api.service.ServiceRequestLocationReferenceResolver;
+import org.bahmni.module.fhir2addlextension.api.utils.ModuleUtils;
 import org.hl7.fhir.r4.model.Reference;
 import org.openmrs.Location;
 import org.openmrs.LocationAttribute;

@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.service.impl;
+package org.bahmni.module.fhir2addlextension.api.service.impl;
 
 import ca.uhn.fhir.rest.api.SortSpec;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
@@ -8,14 +8,14 @@ import ca.uhn.fhir.rest.param.ReferenceOrListParam;
 import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.TokenAndListParam;
 import ca.uhn.fhir.rest.param.TokenParam;
-import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
-import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirImagingStudyDao;
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirImagingStudy;
-import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniImagingStudySearchParams;
-import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirImagingStudyService;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirImagingStudyTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniOrderReferenceTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.impl.BahmniFhirImagingStudyTranslatorImpl;
+import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirImagingStudyDao;
+import org.bahmni.module.fhir2addlextension.api.model.FhirImagingStudy;
+import org.bahmni.module.fhir2addlextension.api.search.param.BahmniImagingStudySearchParams;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirImagingStudyService;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniFhirImagingStudyTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniOrderReferenceTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.impl.BahmniFhirImagingStudyTranslatorImpl;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.ImagingStudy;
@@ -50,7 +50,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
-import static org.bahmni.module.fhir2AddlExtension.api.TestDataFactory.loadResourceFromFile;
+import static org.bahmni.module.fhir2addlextension.api.TestDataFactory.loadResourceFromFile;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;

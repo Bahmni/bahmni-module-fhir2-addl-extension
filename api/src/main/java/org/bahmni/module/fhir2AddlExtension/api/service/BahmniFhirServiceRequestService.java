@@ -1,10 +1,10 @@
-package org.bahmni.module.fhir2AddlExtension.api.service;
+package org.bahmni.module.fhir2addlextension.api.service;
 
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.rest.api.SortSpec;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.*;
-import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniServiceRequestSearchParams;
+import org.bahmni.module.fhir2addlextension.api.search.param.BahmniServiceRequestSearchParams;
 import org.openmrs.module.fhir2.api.FhirServiceRequestService;
 
 import java.util.HashSet;

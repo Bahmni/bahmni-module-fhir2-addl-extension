@@ -1,16 +1,14 @@
-package org.bahmni.module.fhir2AddlExtension.api.translator.impl;
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
-import org.bahmni.module.fhir2AddlExtension.api.context.RequestContextHolder;
-import org.bahmni.module.fhir2AddlExtension.api.domain.DiagnosticReportBundle;
-import org.bahmni.module.fhir2AddlExtension.api.model.FhirDiagnosticReportExt;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirDiagnosticReportBundleTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniFhirDiagnosticReportTranslator;
+import org.bahmni.module.fhir2addlextension.api.context.RequestContextHolder;
+import org.bahmni.module.fhir2addlextension.api.model.FhirDiagnosticReportExt;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniFhirDiagnosticReportBundleTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniFhirDiagnosticReportTranslator;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.DiagnosticReport;
 import org.hl7.fhir.r4.model.Meta;
 import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Resource;
-import org.hl7.fhir.r4.model.StringType;
 import org.openmrs.Obs;
 import org.openmrs.Provider;
 import org.openmrs.module.fhir2.api.translators.ObservationTranslator;

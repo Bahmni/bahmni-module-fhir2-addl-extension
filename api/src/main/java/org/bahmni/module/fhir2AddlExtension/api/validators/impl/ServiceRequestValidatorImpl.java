@@ -1,9 +1,9 @@
-package org.bahmni.module.fhir2AddlExtension.api.validators.impl;
+package org.bahmni.module.fhir2addlextension.api.validators.impl;
 
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.AccessLevel;
 import lombok.Setter;
-import org.bahmni.module.fhir2AddlExtension.api.validators.ServiceRequestValidator;
+import org.bahmni.module.fhir2addlextension.api.validators.ServiceRequestValidator;
 import org.hl7.fhir.r4.model.ServiceRequest;
 import org.openmrs.Concept;
 import org.openmrs.OrderType;

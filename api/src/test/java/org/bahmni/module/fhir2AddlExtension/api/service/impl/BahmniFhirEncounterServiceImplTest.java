@@ -1,7 +1,7 @@
-package org.bahmni.module.fhir2AddlExtension.api.service.impl;
+package org.bahmni.module.fhir2addlextension.api.service.impl;
 
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
-import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirEpisodeOfCareDao;
+import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirEpisodeOfCareDao;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -10,7 +10,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Encounter;
 import org.openmrs.User;
 import org.openmrs.api.AdministrationService;
-import org.openmrs.api.context.Context;
 import org.openmrs.api.context.UserContext;
 import org.openmrs.api.db.ContextDAO;
 import org.openmrs.module.episodes.Episode;
@@ -24,7 +23,7 @@ import org.openmrs.module.fhir2.api.translators.EncounterTranslator;
 import java.io.IOException;
 import java.lang.reflect.Field;
 
-import static org.bahmni.module.fhir2AddlExtension.api.TestDataFactory.loadResourceFromFile;
+import static org.bahmni.module.fhir2addlextension.api.TestDataFactory.loadResourceFromFile;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)

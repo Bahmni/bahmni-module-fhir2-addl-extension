@@ -1,15 +1,15 @@
-package org.bahmni.module.fhir2AddlExtension.api.service.impl;
+package org.bahmni.module.fhir2addlextension.api.service.impl;
 
 import ca.uhn.fhir.rest.api.PatchTypeEnum;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.api.server.RequestDetails;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.extern.slf4j.Slf4j;
-import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirEpisodeOfCareDao;
-import org.bahmni.module.fhir2AddlExtension.api.search.param.BahmniEpisodeOfCareSearchParams;
-import org.bahmni.module.fhir2AddlExtension.api.service.BahmniFhirEpisodeOfCareService;
-import org.bahmni.module.fhir2AddlExtension.api.translator.BahmniEpisodeOfCareTranslator;
-import org.bahmni.module.fhir2AddlExtension.api.translator.EpisodeOfCareStatusTranslator;
+import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirEpisodeOfCareDao;
+import org.bahmni.module.fhir2addlextension.api.search.param.BahmniEpisodeOfCareSearchParams;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirEpisodeOfCareService;
+import org.bahmni.module.fhir2addlextension.api.translator.BahmniEpisodeOfCareTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.EpisodeOfCareStatusTranslator;
 import org.hl7.fhir.r4.model.EpisodeOfCare;
 import org.openmrs.User;
 import org.openmrs.api.context.Context;

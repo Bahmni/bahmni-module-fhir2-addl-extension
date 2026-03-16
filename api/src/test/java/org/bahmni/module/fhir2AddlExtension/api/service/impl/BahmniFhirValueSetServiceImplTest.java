@@ -1,4 +1,4 @@
-package org.bahmni.module.fhir2AddlExtension.api.service.impl;
+package org.bahmni.module.fhir2addlextension.api.service.impl;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -13,7 +13,7 @@ import java.util.Locale;
 import java.util.Set;
 
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
-import org.bahmni.module.fhir2AddlExtension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
 import org.hl7.fhir.r4.model.ValueSet;
 import org.junit.Before;
 import org.junit.Test;
