@@ -41,7 +41,7 @@ jobs:
     env:
       ORG_NAME: Bahmni
       REPOSITORY_NAME: openmrs-distro-bahmni
-      EVENT_TYPE: fhir2_extension_updated
+      EVENT_TYPE: fhir2_adittional_extension_publish
     steps:
       - name: Create repository_dispatch
         run: |
