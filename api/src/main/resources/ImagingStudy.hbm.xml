@@ -2,9 +2,9 @@
 <!DOCTYPE hibernate-mapping PUBLIC
         "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
         "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
-<hibernate-mapping package="org.bahmni.module.fhir2AddlExtension.api.model">
+<hibernate-mapping package="org.bahmni.module.fhir2addlextension.api.model">
 
-    <class name="org.bahmni.module.fhir2AddlExtension.api.model.FhirImagingStudy" table="imaging_study">
+    <class name="org.bahmni.module.fhir2addlextension.api.model.FhirImagingStudy" table="imaging_study">
         <id name="imagingStudyId" type="java.lang.Integer" column="imaging_study_id">
             <generator class="native">
                 <param name="sequence">imaging_study_id_seq</param>
@@ -15,7 +15,7 @@
 
         <property name="status" column="status" length="20" not-null="true">
             <type name="org.hibernate.type.EnumType">
-                <param name="enumClass">org.bahmni.module.fhir2AddlExtension.api.model.FhirImagingStudy$FhirImagingStudyStatus</param>
+                <param name="enumClass">org.bahmni.module.fhir2addlextension.api.model.FhirImagingStudy$FhirImagingStudyStatus</param>
                 <param name="useNamed">true</param>
             </type>
         </property>
@@ -41,7 +41,7 @@
         <many-to-one name="encounter" class="org.openmrs.Encounter" column="encounter_id" />
         <set name="notes" cascade="all-delete-orphan" inverse="true">
             <key column="imaging_study_id"/>
-            <one-to-many class="org.bahmni.module.fhir2AddlExtension.api.model.FhirImagingStudyNote" />
+            <one-to-many class="org.bahmni.module.fhir2addlextension.api.model.FhirImagingStudyNote" />
         </set>
     </class>
 
