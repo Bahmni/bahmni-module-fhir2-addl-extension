@@ -2,9 +2,9 @@
 <!DOCTYPE hibernate-mapping PUBLIC
         "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
         "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
-<hibernate-mapping package="org.bahmni.module.fhir2AddlExtension.api.model">
+<hibernate-mapping package="org.bahmni.module.fhir2addlextension.api.model">
 
-    <class name="org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReference" table="document_reference">
+    <class name="org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReference" table="document_reference">
         <id name="documentReferenceId" type="java.lang.Integer" column="document_reference_id">
             <generator class="native">
                 <param name="sequence">document_reference_id_seq</param>
@@ -16,13 +16,13 @@
 
         <property name="status" column="status" length="20" not-null="true">
             <type name="org.hibernate.type.EnumType">
-                <param name="enumClass">org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReference$FhirDocumentReferenceStatus</param>
+                <param name="enumClass">org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReference$FhirDocumentReferenceStatus</param>
                 <param name="useNamed">true</param>
             </type>
         </property>
         <property name="docStatus" column="doc_status" length="20" not-null="true">
             <type name="org.hibernate.type.EnumType">
-                <param name="enumClass">org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReference$FhirDocumentReferenceDocStatus</param>
+                <param name="enumClass">org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReference$FhirDocumentReferenceDocStatus</param>
                 <param name="useNamed">true</param>
             </type>
         </property>
@@ -50,12 +50,12 @@
 
         <set name="contents" cascade="all-delete-orphan" table="document_reference_content" lazy="true">
             <key column="document_reference_id"/>
-            <one-to-many class="org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceContent"/>
+            <one-to-many class="org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceContent"/>
         </set>
 
         <set name="attributes" lazy="true" inverse="true" batch-size="100" cascade="all-delete-orphan" order-by="voided asc">
             <key column="document_reference_id" />
-            <one-to-many class="org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttribute" />
+            <one-to-many class="org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceAttribute" />
         </set>
     </class>
 
