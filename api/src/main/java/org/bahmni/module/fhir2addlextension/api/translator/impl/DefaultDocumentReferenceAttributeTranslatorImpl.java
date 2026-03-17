@@ -90,7 +90,7 @@ public class DefaultDocumentReferenceAttributeTranslatorImpl implements Document
         }
         String extAttributeName = extUrl.substring(DOC_REF_ATTR_EXT_URL.length());
         if (extAttributeName.isEmpty()) {
-            Optional.empty();
+            return Optional.empty();
         }
 
         List<FhirDocumentReferenceAttributeType> definedAttributeTypes = getActiveDocumentAttributeTypes();
