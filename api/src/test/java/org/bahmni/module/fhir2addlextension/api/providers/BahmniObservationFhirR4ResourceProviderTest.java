@@ -133,4 +133,24 @@ public class BahmniObservationFhirR4ResourceProviderTest {
 		assertNotNull(capturedParams.getEncounter());
 		assertEquals(encounterReference, capturedParams.getEncounter());
 	}
+	
+	@Test
+	public void testGetEverythingByEncounter_shouldPopulateBundleMetadata() {
+		Observation obs = new Observation();
+		obs.setId("obs-uuid-1");
+		List<IBaseResource> observations = Arrays.asList(obs);
+		
+		ReferenceAndListParam encounterReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam(ENCOUNTER_UUID)));
+		
+		when(observationService.searchForObservations(any(ObservationSearchParams.class))).thenReturn(bundleProvider);
+		when(bundleProvider.getResources(0, Integer.MAX_VALUE)).thenReturn(observations);
+		
+		Bundle result = resourceProvider.getEverythingByEncounter(encounterReference, requestDetails);
+		
+		assertNotNull(result);
+		assertNotNull(result.getId());
+		assertNotNull(result.getMeta());
+		assertNotNull(result.getMeta().getLastUpdated());
+	}
 }
