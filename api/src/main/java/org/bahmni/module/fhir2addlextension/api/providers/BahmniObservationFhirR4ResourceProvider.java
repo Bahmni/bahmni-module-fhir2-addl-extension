@@ -8,10 +8,10 @@ import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.api.server.RequestDetails;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirObservationService;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Observation;
-import org.openmrs.module.fhir2.api.FhirObservationService;
 import org.openmrs.module.fhir2.api.annotations.R4Provider;
 import org.openmrs.module.fhir2.api.search.param.ObservationSearchParams;
 import org.openmrs.module.fhir2.api.util.FhirUtils;
@@ -25,12 +25,8 @@ import java.util.List;
 @R4Provider
 public class BahmniObservationFhirR4ResourceProvider extends ObservationFhirResourceProvider {
 	
-	private final FhirObservationService observationService;
-	
 	@Autowired
-	public BahmniObservationFhirR4ResourceProvider(FhirObservationService observationService) {
-		this.observationService = observationService;
-	}
+	private BahmniFhirObservationService observationService;
 	
 	@Description(shortDefinition = "Retrieves all Observations for an encounter without paging limit", value = "This operation returns all Observations linked to the specified encounter as a Bundle, "
 	        + "bypassing the default FHIR paging maximum limit.")

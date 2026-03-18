@@ -5,6 +5,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import org.bahmni.module.fhir2addlextension.api.dao.BahmniObsDao;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirObservationService;
 import org.hl7.fhir.r4.model.Observation;
 import org.openmrs.Obs;
 import org.openmrs.module.fhir2.api.impl.FhirObservationServiceImpl;
@@ -18,7 +19,7 @@ import java.util.Set;
 
 @Component
 @Primary
-public class BahmniFhirObservationServiceImpl extends FhirObservationServiceImpl {
+public class BahmniFhirObservationServiceImpl extends FhirObservationServiceImpl implements BahmniFhirObservationService {
 	
 	@Getter(value = AccessLevel.PROTECTED)
 	@Setter(onMethod_ = @Autowired)

@@ -9,14 +9,15 @@ import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Observation;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirObservationService;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.openmrs.module.fhir2.api.FhirObservationService;
 import org.openmrs.module.fhir2.api.search.param.ObservationSearchParams;
 
 import java.util.Arrays;
@@ -39,7 +40,7 @@ public class BahmniObservationFhirR4ResourceProviderTest {
 	private static final String SERVER_BASE = "https://localhost/openmrs/ws/fhir2/R4";
 	
 	@Mock
-	private FhirObservationService observationService;
+	private BahmniFhirObservationService observationService;
 	
 	@Mock
 	private IBundleProvider bundleProvider;
@@ -50,11 +51,11 @@ public class BahmniObservationFhirR4ResourceProviderTest {
 	@Captor
 	private ArgumentCaptor<ObservationSearchParams> searchParamsCaptor;
 	
+	@InjectMocks
 	private BahmniObservationFhirR4ResourceProvider resourceProvider;
 	
 	@Before
 	public void setUp() {
-		resourceProvider = new BahmniObservationFhirR4ResourceProvider(observationService);
 		when(requestDetails.getFhirServerBase()).thenReturn(SERVER_BASE);
 	}
 	
