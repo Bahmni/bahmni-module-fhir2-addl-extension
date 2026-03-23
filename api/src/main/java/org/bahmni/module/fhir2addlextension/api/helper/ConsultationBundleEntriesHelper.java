@@ -2,6 +2,7 @@ package org.bahmni.module.fhir2addlextension.api.helper;
 
 import ca.uhn.fhir.rest.server.exceptions.InternalErrorException;
 import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.Immunization;
 import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.Resource;
@@ -153,6 +154,13 @@ public class ConsultationBundleEntriesHelper {
                     entry.setResource(observation);
                 }
 				break;
+            case Immunization:
+                Immunization immunization = (Immunization) resource;
+                if (immunization.hasEncounter()) {
+                    String placeholderReferenceUrl = immunization.getEncounter().getReference();
+                    immunization.setEncounter(createEncounterReference(getIdForPlaceHolderReference(placeholderReferenceUrl,processedEntries)));
+                    entry.setResource(immunization);
+                }
 			default:
 				break;
 		}

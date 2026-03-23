@@ -167,13 +167,13 @@ public class ConsultationBundleValidatorImplTest {
         bundleWithUnsupportedResource.addEntry(encounterEntry);
 
         // Add an unsupported resource type (Observation)
-        Bundle.BundleEntryComponent immunizationEntry = createValidBundleEntry(createImmunizationIncident());
+        Bundle.BundleEntryComponent immunizationEntry = createValidBundleEntry(createImagingStudy());
         bundleWithUnsupportedResource.addEntry(immunizationEntry);
 
         // When & Then
         InvalidRequestException exception = assertThrows(InvalidRequestException.class,
                 () -> validator.validateBundleEntries(bundleWithUnsupportedResource));
-        assertEquals("Entry of resource type Immunization is not supported as part of Consultation Bundle",
+        assertEquals("Entry of resource type ImagingStudy is not supported as part of Consultation Bundle",
                 exception.getMessage());
     }
 	
@@ -236,18 +236,18 @@ public class ConsultationBundleValidatorImplTest {
 		return observation;
 	}
 	
-	private Immunization createImmunizationIncident() {
-		Immunization immunization = new Immunization();
-		immunization.setStatus(Immunization.ImmunizationStatus.COMPLETED);
-		immunization.setPatient(new Reference("Patient/123"));
-		immunization.setEncounter(new Reference("Encounter/456"));
-		return immunization;
-	}
-	
 	private MedicationRequest createMedicationRequest() {
 		MedicationRequest medicationRequest = new MedicationRequest();
 		medicationRequest.setSubject(new Reference("Patient/123"));
 		medicationRequest.setEncounter(new Reference("Encounter/456"));
 		return medicationRequest;
+	}
+	
+	private ImagingStudy createImagingStudy() {
+		ImagingStudy imagingStudy = new ImagingStudy();
+		imagingStudy.setSubject(new Reference("Patient/123"));
+		imagingStudy.setEncounter(new Reference("Encounter/456"));
+		imagingStudy.setStatus(ImagingStudy.ImagingStudyStatus.REGISTERED);
+		return imagingStudy;
 	}
 }
