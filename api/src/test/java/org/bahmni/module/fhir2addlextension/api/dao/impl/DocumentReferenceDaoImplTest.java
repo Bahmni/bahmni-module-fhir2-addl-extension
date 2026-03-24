@@ -3,9 +3,12 @@ package org.bahmni.module.fhir2addlextension.api.dao.impl;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReference;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceAttribute;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceContent;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.User;
@@ -16,6 +19,7 @@ import org.openmrs.api.db.ContextDAO;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -26,6 +30,12 @@ public class DocumentReferenceDaoImplTest {
 	
 	@Spy
 	private DocumentReferenceDaoImpl documentReferenceDao;
+	
+	@Mock
+	private SessionFactory sessionFactory;
+	
+	@Mock
+	private Session session;
 	
 	private User user;
 	
@@ -38,6 +48,9 @@ public class DocumentReferenceDaoImplTest {
 		Context.setDAO(contextDAO);
 		Context.openSession();
 		Context.setUserContext(userContext);
+		
+		when(sessionFactory.getCurrentSession()).thenReturn(session);
+		doReturn(sessionFactory).when(documentReferenceDao).getSessionFactory();
 	}
 	
 	@Test
@@ -47,8 +60,6 @@ public class DocumentReferenceDaoImplTest {
 		FhirDocumentReference existingDoc = new FhirDocumentReference();
 		existingDoc.setUuid(uuid);
 		
-		doReturn(existingDoc).when(documentReferenceDao).createOrUpdate(existingDoc);
-		
 		documentReferenceDao.voidDocumentReference(existingDoc, voidReason);
 		
 		assertTrue(existingDoc.getVoided());
@@ -56,7 +67,7 @@ public class DocumentReferenceDaoImplTest {
 		assertEquals(voidReason, existingDoc.getVoidReason());
 		assertNotNull(existingDoc.getDateVoided());
 		assertEquals(user, existingDoc.getVoidedBy());
-		verify(documentReferenceDao).createOrUpdate(existingDoc);
+		verify(session).saveOrUpdate(existingDoc);
 	}
 	
 	@Test
@@ -66,13 +77,11 @@ public class DocumentReferenceDaoImplTest {
 		FhirDocumentReference existingDoc = createDocumentReferenceWithChildren();
 		existingDoc.setUuid(uuid);
 		
-		doReturn(existingDoc).when(documentReferenceDao).createOrUpdate(existingDoc);
-		
 		documentReferenceDao.voidDocumentReference(existingDoc, voidReason);
 		
 		assertDocumentReferenceVoided(existingDoc, voidReason);
 		assertChildEntitiesVoided(existingDoc, voidReason);
-		verify(documentReferenceDao).createOrUpdate(existingDoc);
+		verify(session).saveOrUpdate(existingDoc);
 	}
 	
 	@Test
@@ -87,13 +96,12 @@ public class DocumentReferenceDaoImplTest {
 		alreadyVoidedContent.setVoidReason("Previously voided");
 		existingDoc.addContent(alreadyVoidedContent);
 		
-		doReturn(existingDoc).when(documentReferenceDao).createOrUpdate(existingDoc);
-		
 		documentReferenceDao.voidDocumentReference(existingDoc, voidReason);
 		
 		assertTrue(existingDoc.getVoided());
 		assertEquals(voidReason, existingDoc.getVoidReason());
 		assertEquals("Previously voided", alreadyVoidedContent.getVoidReason());
+		verify(session).saveOrUpdate(existingDoc);
 	}
 	
 	private FhirDocumentReference createDocumentReferenceWithChildren() {

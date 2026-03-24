@@ -52,7 +52,7 @@ public class DocumentReferenceDaoImpl extends BaseFhirDao<FhirDocumentReference>
 			}
 		}
 		
-		createOrUpdate(documentReference);
+		getSessionFactory().getCurrentSession().saveOrUpdate(documentReference);
 	}
 	
 	@Override
