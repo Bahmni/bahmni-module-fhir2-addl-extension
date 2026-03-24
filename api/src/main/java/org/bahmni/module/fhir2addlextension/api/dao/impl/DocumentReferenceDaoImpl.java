@@ -1,8 +1,6 @@
 package org.bahmni.module.fhir2addlextension.api.dao.impl;
 
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
-import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
-import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2addlextension.api.dao.DocumentReferenceDao;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReference;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceAttribute;
@@ -19,7 +17,6 @@ import javax.annotation.Nonnull;
 import java.util.Date;
 
 @Component
-@Slf4j
 public class DocumentReferenceDaoImpl extends BaseFhirDao<FhirDocumentReference> implements DocumentReferenceDao {
 	
 	@Override

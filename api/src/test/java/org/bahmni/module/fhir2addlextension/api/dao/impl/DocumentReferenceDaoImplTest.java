@@ -1,6 +1,5 @@
 package org.bahmni.module.fhir2addlextension.api.dao.impl;
 
-import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReference;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceAttribute;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceContent;
