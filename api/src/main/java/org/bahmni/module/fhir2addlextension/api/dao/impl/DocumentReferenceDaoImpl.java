@@ -5,6 +5,8 @@ import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2addlextension.api.dao.DocumentReferenceDao;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReference;
+import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceAttribute;
+import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceContent;
 import org.hibernate.Criteria;
 import org.openmrs.User;
 import org.openmrs.api.context.Context;
@@ -13,6 +15,7 @@ import org.openmrs.module.fhir2.api.dao.impl.BaseFhirDao;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Nonnull;
 import java.util.Date;
 
 @Component
@@ -20,19 +23,39 @@ import java.util.Date;
 public class DocumentReferenceDaoImpl extends BaseFhirDao<FhirDocumentReference> implements DocumentReferenceDao {
 	
 	@Override
-	public void voidDocumentReference(String uuid, String voidReason) {
-		FhirDocumentReference documentReference = get(uuid);
-		if (documentReference == null) {
-			throw new InvalidRequestException("DocumentReference not found with uuid: " + uuid);
-		}
+	public void voidDocumentReference(@Nonnull FhirDocumentReference documentReference, @Nonnull String voidReason) {
 		User authenticatedUser = Context.getAuthenticatedUser();
+		Date voidedDate = new Date();
+		
 		documentReference.setVoided(true);
 		documentReference.setDocStatus(FhirDocumentReference.FhirDocumentReferenceDocStatus.ENTEREDINERROR);
 		documentReference.setVoidReason(voidReason);
-		documentReference.setDateVoided(new Date());
+		documentReference.setDateVoided(voidedDate);
 		documentReference.setVoidedBy(authenticatedUser);
+		
+		if (documentReference.getContents() != null) {
+			for (FhirDocumentReferenceContent content : documentReference.getContents()) {
+				if (!content.getVoided()) {
+					content.setVoided(true);
+					content.setVoidReason(voidReason);
+					content.setDateVoided(voidedDate);
+					content.setVoidedBy(authenticatedUser);
+				}
+			}
+		}
+		
+		if (documentReference.getAttributes() != null) {
+			for (FhirDocumentReferenceAttribute attribute : documentReference.getAttributes()) {
+				if (!attribute.getVoided()) {
+					attribute.setVoided(true);
+					attribute.setVoidReason(voidReason);
+					attribute.setDateVoided(voidedDate);
+					attribute.setVoidedBy(authenticatedUser);
+				}
+			}
+		}
+		
 		createOrUpdate(documentReference);
-		log.info("Successfully voided DocumentReference with uuid: {} for reason: {}", uuid, voidReason);
 	}
 	
 	@Override

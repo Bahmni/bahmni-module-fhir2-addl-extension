@@ -12,7 +12,7 @@ import java.util.List;
 public interface DocumentReferenceDao extends FhirDao<FhirDocumentReference> {
 	
 	@Authorized({ "Delete DocumentReference" })
-	void voidDocumentReference(@Nonnull String uuid, @Nonnull String voidReason);
+	void voidDocumentReference(@Nonnull FhirDocumentReference documentReference, @Nonnull String voidReason);
 	
 	@Authorized({ "Get DocumentReference" })
 	FhirDocumentReference get(@Nonnull String uuid);
