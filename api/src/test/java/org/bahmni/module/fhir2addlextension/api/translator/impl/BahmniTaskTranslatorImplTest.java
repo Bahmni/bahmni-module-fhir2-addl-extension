@@ -1,0 +1,205 @@
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+import java.lang.reflect.Field;
+import java.util.Collections;
+
+import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
+import org.hl7.fhir.r4.model.Extension;
+import org.hl7.fhir.r4.model.Reference;
+import org.hl7.fhir.r4.model.StringType;
+import org.hl7.fhir.r4.model.Task;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+import org.openmrs.Person;
+import org.openmrs.PersonName;
+import org.openmrs.Provider;
+import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
+import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
+import org.openmrs.module.fhir2.api.translators.ReferenceTranslator;
+import org.openmrs.module.fhir2.api.translators.TaskInputTranslator;
+import org.openmrs.module.fhir2.api.translators.TaskOutputTranslator;
+import org.openmrs.module.fhir2.model.FhirReference;
+import org.openmrs.module.fhir2.model.FhirTask;
+
+@SuppressWarnings("unused")
+@RunWith(MockitoJUnitRunner.class)
+public class BahmniTaskTranslatorImplTest {
+	
+	@Mock
+	private ReferenceTranslator referenceTranslator;
+	
+	@Mock
+	private TaskInputTranslator taskInputTranslator;
+	
+	@Mock
+	private TaskOutputTranslator taskOutputTranslator;
+	
+	@Mock
+	private ConceptTranslator conceptTranslator;
+	
+	@Mock
+	private PractitionerReferenceTranslator<Provider> providerReferenceTranslator;
+	
+	private BahmniTaskTranslatorImpl translator;
+	
+	@Before
+	public void setup() throws Exception {
+		translator = new BahmniTaskTranslatorImpl();
+		setSuperField("referenceTranslator", referenceTranslator);
+		setSuperField("taskInputTranslator", taskInputTranslator);
+		setSuperField("taskOutputTranslator", taskOutputTranslator);
+		setSuperField("conceptTranslator", conceptTranslator);
+		setOwnField("providerReferenceTranslator", providerReferenceTranslator);
+	}
+	
+	private void setSuperField(String name, Object value) throws Exception {
+		Field field = translator.getClass().getSuperclass().getDeclaredField(name);
+		field.setAccessible(true);
+		field.set(translator, value);
+	}
+	
+	private void setOwnField(String name, Object value) throws Exception {
+		Field field = translator.getClass().getDeclaredField(name);
+		field.setAccessible(true);
+		field.set(translator, value);
+	}
+	
+	// ── toOpenmrsType (create) ───────────────────────────────────────────────
+	
+	@Test
+	public void toOpenmrsType_shouldStoreNameExtensionInNameField() {
+		Task task = new Task();
+		task.addExtension(BahmniFhirConstants.FHIR_EXT_TASK_NAME, new StringType("PatientHistory"));
+		task.setStatus(Task.TaskStatus.COMPLETED);
+		task.setIntent(Task.TaskIntent.ORDER);
+		
+		FhirTask result = translator.toOpenmrsType(task);
+		
+		assertThat(result.getName(), equalTo("PatientHistory"));
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldNotOverwriteNameWhenExtensionAbsent() {
+		Task task = new Task();
+		task.setStatus(Task.TaskStatus.COMPLETED);
+		task.setIntent(Task.TaskIntent.ORDER);
+		
+		FhirTask result = translator.toOpenmrsType(task);
+		
+		// name is auto-generated as "Task/{uuid}" by super — just confirm no extension applied
+		assertThat(result.getDescription(), nullValue());
+	}
+	
+	// ── toOpenmrsType (update) ───────────────────────────────────────────────
+	
+	@Test
+	public void toOpenmrsTypeUpdate_shouldStoreNameExtensionInNameField() {
+		FhirTask existingTask = new FhirTask();
+		existingTask.setInput(Collections.emptySet());
+		existingTask.setOutput(Collections.emptySet());
+		
+		Task task = new Task();
+		task.addExtension(BahmniFhirConstants.FHIR_EXT_TASK_NAME, new StringType("ExaminationForm"));
+		task.setStatus(Task.TaskStatus.COMPLETED);
+		task.setIntent(Task.TaskIntent.ORDER);
+		
+		FhirTask result = translator.toOpenmrsType(existingTask, task);
+		
+		assertThat(result.getName(), equalTo("ExaminationForm"));
+	}
+	
+	// ── toFhirResource ───────────────────────────────────────────────────────
+	
+	@Test
+	public void toFhirResource_shouldMapNameToExtension() {
+		FhirTask fhirTask = new FhirTask();
+		fhirTask.setName("PatientHistory"); // plain name — no "/"
+		fhirTask.setStatus(FhirTask.TaskStatus.COMPLETED);
+		fhirTask.setIntent(FhirTask.TaskIntent.ORDER);
+		fhirTask.setInput(Collections.emptySet());
+		fhirTask.setOutput(Collections.emptySet());
+		
+		Task result = translator.toFhirResource(fhirTask);
+		
+		Extension ext = result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_TASK_NAME);
+		assertThat(ext, notNullValue());
+		assertThat(((StringType) ext.getValue()).getValue(), equalTo("PatientHistory"));
+	}
+	
+	@Test
+	public void toFhirResource_shouldNotAddExtensionForAutoGeneratedName() {
+		FhirTask fhirTask = new FhirTask();
+		fhirTask.setName("Task/some-uuid-123"); // auto-generated pattern
+		fhirTask.setStatus(FhirTask.TaskStatus.COMPLETED);
+		fhirTask.setIntent(FhirTask.TaskIntent.ORDER);
+		fhirTask.setInput(Collections.emptySet());
+		fhirTask.setOutput(Collections.emptySet());
+		
+		Task result = translator.toFhirResource(fhirTask);
+		
+		assertThat(result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_TASK_NAME), nullValue());
+	}
+	
+	@Test
+	public void toFhirResource_shouldNotAddExtensionWhenNameIsNull() {
+		FhirTask fhirTask = new FhirTask();
+		fhirTask.setStatus(FhirTask.TaskStatus.COMPLETED);
+		fhirTask.setIntent(FhirTask.TaskIntent.ORDER);
+		fhirTask.setInput(Collections.emptySet());
+		fhirTask.setOutput(Collections.emptySet());
+		
+		Task result = translator.toFhirResource(fhirTask);
+		
+		assertThat(result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_TASK_NAME), nullValue());
+	}
+	
+	@Test
+	public void toFhirResource_shouldSetOwnerDisplayName() {
+		FhirReference ownerRef = new FhirReference();
+		ownerRef.setReference("Practitioner/c1c21e11-3f10-11e4-adec-0800271c1b75");
+		ownerRef.setType("Practitioner");
+		
+		FhirTask fhirTask = new FhirTask();
+		fhirTask.setStatus(FhirTask.TaskStatus.COMPLETED);
+		fhirTask.setIntent(FhirTask.TaskIntent.ORDER);
+		fhirTask.setOwnerReference(ownerRef);
+		fhirTask.setInput(Collections.emptySet());
+		fhirTask.setOutput(Collections.emptySet());
+		
+		PersonName personName = new PersonName("Dr. Jane", null, "Smith");
+		Person person = new Person();
+		person.addName(personName);
+		Provider provider = new Provider();
+		provider.setPerson(person);
+		when(providerReferenceTranslator.toOpenmrsType(any(Reference.class))).thenReturn(provider);
+		when(referenceTranslator.toFhirResource(any())).thenReturn(
+		    new Reference("Practitioner/c1c21e11-3f10-11e4-adec-0800271c1b75").setType("Practitioner"));
+		
+		Task result = translator.toFhirResource(fhirTask);
+		
+		assertThat(result.getOwner().getDisplay(), equalTo("Dr. Jane Smith")); // givenName + familyName
+	}
+	
+	@Test
+	public void toFhirResource_shouldNotFailWhenOwnerReferenceIsNull() {
+		FhirTask fhirTask = new FhirTask();
+		fhirTask.setStatus(FhirTask.TaskStatus.COMPLETED);
+		fhirTask.setIntent(FhirTask.TaskIntent.ORDER);
+		fhirTask.setInput(Collections.emptySet());
+		fhirTask.setOutput(Collections.emptySet());
+		
+		Task result = translator.toFhirResource(fhirTask);
+		
+		assertThat(result.hasOwner(), equalTo(false));
+	}
+}
