@@ -64,15 +64,9 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.ict4h.openmrs</groupId>
-            <artifactId>openmrs-atomfeed-common</artifactId>
-            <version>${openmrsAtomfeedVersion}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.ict4h</groupId>
-            <artifactId>atomfeed-server</artifactId>
-            <version>${atomfeed.version}</version>
+            <groupId>org.bahmni.module</groupId>
+            <artifactId>eventoutbox-api</artifactId>
+            <version>${eventoutbox.version}</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
