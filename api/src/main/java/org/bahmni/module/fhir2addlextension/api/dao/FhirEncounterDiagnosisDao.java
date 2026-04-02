@@ -1,10 +1,10 @@
 package org.bahmni.module.fhir2addlextension.api.dao;
 
+import org.bahmni.module.fhir2addlextension.api.PrivilegeConstants;
 import org.openmrs.Diagnosis;
 import org.openmrs.annotation.Authorized;
 import org.openmrs.module.fhir2.api.dao.FhirDao;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
-import org.openmrs.util.PrivilegeConstants;
 
 import javax.annotation.Nonnull;
 import java.util.Collection;
@@ -29,7 +29,7 @@ public interface FhirEncounterDiagnosisDao extends FhirDao<Diagnosis> {
 	int getSearchResultsCount(@Nonnull SearchParameterMap searchParameterMap);
 	
 	@Override
-	@Authorized(PrivilegeConstants.EDIT_DIAGNOSES)
+	@Authorized({ PrivilegeConstants.ADD_DIAGNOSES, PrivilegeConstants.EDIT_DIAGNOSES })
 	Diagnosis createOrUpdate(@Nonnull Diagnosis diagnosis);
 	
 	@Override

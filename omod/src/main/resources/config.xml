@@ -83,6 +83,118 @@
 		<name>Delete Diagnostic Report</name>
 		<description>Allows user to delete existing Diagnostic Report resources</description>
 	</privilege>
+	<privilege>
+		<name>Get Episodes</name>
+		<description>Allows user to view patient program episodes</description>
+	</privilege>
+	<privilege>
+		<name>Get Appointments</name>
+		<description>Allows user to view appointments</description>
+	</privilege>
+	<privilege>
+		<name>Add Encounters</name>
+		<description>Allows user to create new encounter records</description>
+	</privilege>
+	<privilege>
+		<name>Get Encounters</name>
+		<description>Allows user to view encounter records</description>
+	</privilege>
+	<privilege>
+		<name>Add Allergies</name>
+		<description>Allows user to create new allergy intolerance records</description>
+	</privilege>
+	<privilege>
+		<name>Get Allergies</name>
+		<description>Allows user to view allergy intolerance records</description>
+	</privilege>
+	<privilege>
+		<name>Add Orders</name>
+		<description>Allows user to create new order records</description>
+	</privilege>
+	<privilege>
+		<name>Get Orders</name>
+		<description>Allows user to view order records</description>
+	</privilege>
+	<privilege>
+		<name>Edit Orders</name>
+		<description>Allows user to edit existing order records</description>
+	</privilege>
+	<privilege>
+		<name>Add Diagnoses</name>
+		<description>Allows user to create new diagnosis records</description>
+	</privilege>
+	<privilege>
+		<name>Get Diagnoses</name>
+		<description>Allows user to view diagnosis records</description>
+	</privilege>
+	<privilege>
+		<name>Edit Diagnoses</name>
+		<description>Allows user to edit existing diagnosis records</description>
+	</privilege>
+	<privilege>
+		<name>Delete Diagnoses</name>
+		<description>Allows user to delete diagnosis records</description>
+	</privilege>
+	<privilege>
+		<name>Add Observations</name>
+		<description>Allows user to create new observation records</description>
+	</privilege>
+	<privilege>
+		<name>Get Observations</name>
+		<description>Allows user to view observation records</description>
+	</privilege>
+	<privilege>
+		<name>Edit Observations</name>
+		<description>Allows user to edit existing observation records</description>
+	</privilege>
+	<privilege>
+		<name>Delete Observations</name>
+		<description>Allows user to delete observation records</description>
+	</privilege>
+	<privilege>
+		<name>Add Conditions</name>
+		<description>Allows user to create new condition records</description>
+	</privilege>
+	<privilege>
+		<name>Get Conditions</name>
+		<description>Allows user to view condition records</description>
+	</privilege>
+	<privilege>
+		<name>Edit Conditions</name>
+		<description>Allows user to edit existing condition records</description>
+	</privilege>
+	<privilege>
+		<name>Delete Conditions</name>
+		<description>Allows user to delete condition records</description>
+	</privilege>
+	<privilege>
+		<name>Get Patient Programs</name>
+		<description>Allows user to view program records</description>
+	</privilege>
+	<privilege>
+		<name>Get Medications</name>
+		<description>Allows user to view medication records</description>
+	</privilege>
+	<privilege>
+		<name>Add Medications</name>
+		<description>Allows user to create new medication records</description>
+	</privilege>
+	<privilege>
+		<name>Get Vaccinations</name>
+		<description>Allows user to view vaccination records</description>
+	</privilege>
+	<privilege>
+		<name>Add Vaccinations</name>
+		<description>Allows user to create new vaccination records</description>
+	</privilege>
+	<privilege>
+		<name>Delete Orders</name>
+		<description>Allows user to delete order records</description>
+	</privilege>
+	<privilege>
+		<name>Get Notes</name>
+		<description>Allows user to view notes</description>
+	</privilege>
 
 	<!-- Required Global Properties -->
 	<globalProperty>
@@ -91,7 +203,7 @@
 		<description>
 			This configuration maps an order type (order_type.name) to a location attribute type (location_attribute_type.name)
 			to determine a requested/preferred location for a given order through order attribute (LOCATION_REFERENCE). If a
-			location has such an attribute set (e.g. REFERRAL_RADIOLOGY_CENTER), and there exists a mapping through
+				location has such an attribute set (e.g. REFERRAL_RADIOLOGY_CENTER), and there exists a mapping through
 			this configuration for an order's type (e.g. Radiology Order), then the order's requested/preferred location will be set
 			to the location specified for the encounter/visit location. The configuration takes in multiple mappings
 			separated by semicolon (format key1:value1; key2:value2). The maps are case sensitive.
