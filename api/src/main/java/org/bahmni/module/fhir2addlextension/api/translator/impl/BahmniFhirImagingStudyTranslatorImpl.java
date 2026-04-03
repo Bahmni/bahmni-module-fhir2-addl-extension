@@ -15,15 +15,10 @@ import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.r4.model.Type;
-import org.openmrs.Location;
-import org.openmrs.Obs;
-import org.openmrs.Provider;
-import org.openmrs.User;
+import org.openmrs.*;
 import org.openmrs.api.context.Context;
-import org.openmrs.module.fhir2.api.translators.LocationReferenceTranslator;
-import org.openmrs.module.fhir2.api.translators.ObservationTranslator;
-import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
-import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
+import org.openmrs.module.fhir2.FhirConstants;
+import org.openmrs.module.fhir2.api.translators.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -32,6 +27,7 @@ import javax.annotation.Nonnull;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -62,16 +58,23 @@ public class BahmniFhirImagingStudyTranslatorImpl implements BahmniFhirImagingSt
 	
 	private final ObservationTranslator observationTranslator;
 	
+	private final EncounterReferenceTranslator<Encounter> encounterReferenceTranslator;
+	
+	private final ObservationReferenceTranslator observationReferenceTranslator;
+	
 	@Autowired
 	public BahmniFhirImagingStudyTranslatorImpl(BahmniOrderReferenceTranslator basedOnReferenceTranslator,
 	    PatientReferenceTranslator patientReferenceTranslator, LocationReferenceTranslator locationReferenceTranslator,
 	    PractitionerReferenceTranslator<Provider> practitionerReferenceTranslator,
-	    ObservationTranslator observationTranslator) {
+	    ObservationTranslator observationTranslator, EncounterReferenceTranslator<Encounter> encounterReferenceTranslator,
+	    ObservationReferenceTranslator observationReferenceTranslator) {
 		this.basedOnReferenceTranslator = basedOnReferenceTranslator;
 		this.patientReferenceTranslator = patientReferenceTranslator;
 		this.locationReferenceTranslator = locationReferenceTranslator;
 		this.practitionerReferenceTranslator = practitionerReferenceTranslator;
 		this.observationTranslator = observationTranslator;
+		this.encounterReferenceTranslator = encounterReferenceTranslator;
+		this.observationReferenceTranslator = observationReferenceTranslator;
 	}
 	
 	@Override
@@ -85,6 +88,7 @@ public class BahmniFhirImagingStudyTranslatorImpl implements BahmniFhirImagingSt
         resource.setLocation(locationReferenceTranslator.toFhirResource(study.getLocation()));
         resource.setDescription(study.getDescription());
         resource.setStarted(study.getDateStarted());
+        resource.setEncounter(encounterReferenceTranslator.toFhirResource(study.getEncounter()));
         if (study.getNotes() != null && !study.getNotes().isEmpty()) {
             resource.setNote(
                 study.getNotes().stream().map(note -> {
@@ -160,6 +164,10 @@ public class BahmniFhirImagingStudyTranslatorImpl implements BahmniFhirImagingSt
 			existingObject.setStatus(toOmrsStatusType(resource.getStatus()));
 		}
 		
+		if (resource.hasEncounter()) {
+			existingObject.setEncounter(encounterReferenceTranslator.toOpenmrsType(resource.getEncounter()));
+		}
+		
 		if (resource.hasLocation()) {
 			Location location = locationReferenceTranslator.toOpenmrsType(resource.getLocation());
 			if (location == null) {
@@ -181,8 +189,44 @@ public class BahmniFhirImagingStudyTranslatorImpl implements BahmniFhirImagingSt
 		mapExtensionToStudyPerformer(existingObject, resource);
 		mapExtensionToDateCompleted(existingObject, resource);
 		mapAnnotationsToNotes(existingObject, resource);
+		mapExtensionToQualityResults(existingObject, resource);
 		
 		return existingObject;
+	}
+	
+	/**
+	 * Maps quality observation extensions to managed Obs entities. Uses
+	 * ObservationReferenceTranslator to get managed entities from the database. This follows the
+	 * same pattern as OpenMRS FHIR DiagnosticReportTranslator.
+	 */
+	private void mapExtensionToQualityResults(FhirImagingStudy study, ImagingStudy resource) {
+		List<Extension> qualityObsExtensions = resource.getExtensionsByUrl(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION);
+		if (qualityObsExtensions.isEmpty()) {
+			return;
+		}
+		
+		Set<Obs> qualityResults = new LinkedHashSet<>();
+		for (Extension ext : qualityObsExtensions) {
+			if (!(ext.getValue() instanceof Reference)) {
+				continue;
+			}
+			
+			Reference obsRef = (Reference) ext.getValue();
+			// Skip contained references - they should have been converted to real references by the service
+			if (obsRef.getReference() != null && obsRef.getReference().startsWith("#")) {
+				continue;
+			}
+			
+			// Use ObservationReferenceTranslator to get the managed Obs entity from database
+			Obs obs = observationReferenceTranslator.toOpenmrsType(obsRef);
+			if (obs != null) {
+				qualityResults.add(obs);
+			}
+		}
+		
+		if (!qualityResults.isEmpty()) {
+			study.setResults(qualityResults);
+		}
 	}
 	
 	private static void mapExtensionToDateCompleted(FhirImagingStudy existingObject, ImagingStudy resource) {

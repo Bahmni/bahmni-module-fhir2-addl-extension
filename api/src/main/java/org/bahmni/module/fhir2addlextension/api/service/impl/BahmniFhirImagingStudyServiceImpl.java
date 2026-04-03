@@ -16,14 +16,12 @@ import org.hl7.fhir.r4.model.ImagingStudy;
 import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.Resource;
-import org.openmrs.Obs;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.FhirObservationService;
 import org.openmrs.module.fhir2.api.dao.FhirDao;
 import org.openmrs.module.fhir2.api.impl.BaseFhirService;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
 import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
-import org.openmrs.module.fhir2.api.translators.ObservationTranslator;
 import org.openmrs.module.fhir2.api.translators.OpenmrsFhirTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -32,11 +30,9 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants.FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION;
@@ -56,21 +52,18 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	
 	private final FhirObservationService fhirObservationService;
 	
-	private final ObservationTranslator observationTranslator;
-	
 	@Autowired
 	public BahmniFhirImagingStudyServiceImpl(
 	    BahmniFhirImagingStudyDao imagingStudyDao,
 	    BahmniFhirImagingStudyTranslator imagingStudyTranslator,
 	    SearchQueryInclude<ImagingStudy> searchQueryInclude,
 	    SearchQuery<FhirImagingStudy, ImagingStudy, BahmniFhirImagingStudyDao, BahmniFhirImagingStudyTranslator, SearchQueryInclude<ImagingStudy>> searchQuery,
-	    FhirObservationService fhirObservationService, ObservationTranslator observationTranslator) {
+	    FhirObservationService fhirObservationService) {
 		this.imagingStudyDao = imagingStudyDao;
 		this.imagingStudyTranslator = imagingStudyTranslator;
 		this.searchQueryInclude = searchQueryInclude;
 		this.searchQuery = searchQuery;
 		this.fhirObservationService = fhirObservationService;
-		this.observationTranslator = observationTranslator;
 	}
 	
 	@Override
@@ -130,18 +123,18 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 					.setType(FhirConstants.ENCOUNTER);
 		}
 		
-		// Create observations and collect them
-		Set<Obs> qualityResults = createQualityObservations(qualityObsExtensions, containedMap, encounterReference);
+		Map<String, Reference> obsReferenceMap = createQualityObservations(qualityObsExtensions, containedMap, encounterReference);
 		
-		// Link observations to imaging study
-		existingStudy.setResults(qualityResults);
+		updateQualityObservationExtensions(imagingStudy, obsReferenceMap);
+
+		FhirImagingStudy updatedStudy = imagingStudyTranslator.toOpenmrsType(existingStudy, imagingStudy);
 		
-		// Save and return
-		FhirImagingStudy savedStudy = imagingStudyDao.createOrUpdate(existingStudy);
+		FhirImagingStudy savedStudy = imagingStudyDao.createOrUpdate(updatedStudy);
 		return imagingStudyTranslator.toFhirResource(savedStudy);
 	}
-	
-	private Set<Obs> createQualityObservations(List<Extension> qualityObsExtensions, Map<String, Resource> containedMap, Reference encounterReference) {
+
+	private Map<String, Reference> createQualityObservations(List<Extension> qualityObsExtensions, 
+			Map<String, Resource> containedMap, Reference encounterReference) {
 		// Collect observations maintaining reference to original IDs
 		Map<Observation, String> observationReferenceMap = new HashMap<>();
 		List<String> preExistingObservationIds = new ArrayList<>();
@@ -182,8 +175,6 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 		List<Observation> sortedObservations = ConsultationBundleEntriesHelper.sortObservationsByDepth(
 				new ArrayList<>(observationReferenceMap.keySet()));
 		
-		// Use LinkedHashSet to preserve insertion order
-		Set<Obs> qualityResults = new LinkedHashSet<>();
 		Map<String, Reference> observationsReferenceMap = new HashMap<>();
 		
 		for (Observation observation : sortedObservations) {
@@ -219,21 +210,30 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 					? fhirObservationService.update(obsEntryId, observation)
 					: fhirObservationService.create(observation);
 			
-			// Store reference for hasMember resolution
+			// Store reference for hasMember resolution and return map
 			Reference persistedObsReference = new Reference()
 					.setReference(FhirConstants.OBSERVATION + "/" + persistedObservation.getId())
 					.setType(FhirConstants.OBSERVATION);
 			persistedObsReference.setResource(persistedObservation);
 			observationsReferenceMap.put(obsEntryId, persistedObsReference);
-			
-			// Convert to OpenMRS Obs and add to results (preserving order)
-			Obs openmrsObs = observationTranslator.toOpenmrsType(persistedObservation);
-			if (openmrsObs != null) {
-				qualityResults.add(openmrsObs);
-			}
 		}
 		
-		return qualityResults;
+		return observationsReferenceMap;
+	}
+	
+	/**
+	 * Updates the ImagingStudy quality observation extensions with persisted references. Replaces
+	 * contained references (#uuid) with actual observation references (Observation/uuid).
+	 */
+	private void updateQualityObservationExtensions(ImagingStudy imagingStudy, Map<String, Reference> obsReferenceMap) {
+		// Remove old extensions and contained resources
+		imagingStudy.getExtension().removeIf(ext -> FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION.equals(ext.getUrl()));
+		imagingStudy.getContained().clear();
+		
+		// Add new extensions with persisted references
+		for (Reference persistedRef : obsReferenceMap.values()) {
+			imagingStudy.addExtension(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION, persistedRef);
+		}
 	}
 	
 	private Observation findExistingObservation(String uuid) {

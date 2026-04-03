@@ -137,7 +137,9 @@ public class BahmniObservationTranslatorImpl implements ObservationTranslator {
 		}
 
 		Set<Obs> members = new HashSet<>();
+
 		for (Reference reference : resource.getHasMember()) {
+            System.out.println("reference: " + resource.getHasMember());
 			Obs member = observationReferenceTranslator.toOpenmrsType(reference);
 			members.add(member);
 		}

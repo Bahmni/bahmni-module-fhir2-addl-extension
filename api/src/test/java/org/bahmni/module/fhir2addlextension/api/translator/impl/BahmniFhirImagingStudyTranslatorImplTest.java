@@ -13,6 +13,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.openmrs.Encounter;
 import org.openmrs.Location;
 import org.openmrs.Order;
 import org.openmrs.Patient;
@@ -21,7 +22,9 @@ import org.openmrs.User;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.context.UserContext;
 import org.openmrs.api.db.ContextDAO;
+import org.openmrs.module.fhir2.api.translators.EncounterReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.LocationReferenceTranslator;
+import org.openmrs.module.fhir2.api.translators.ObservationReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.ObservationTranslator;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
@@ -67,6 +70,12 @@ public class BahmniFhirImagingStudyTranslatorImplTest {
 	@Mock
 	private ObservationTranslator observationTranslator;
 	
+	@Mock
+	private EncounterReferenceTranslator<Encounter> encounterReferenceTranslator;
+	
+	@Mock
+	private ObservationReferenceTranslator observationReferenceTranslator;
+	
 	@Before
 	public void setUp() {
 		when(userContext.getAuthenticatedUser()).thenReturn(user);
@@ -75,7 +84,8 @@ public class BahmniFhirImagingStudyTranslatorImplTest {
 		Context.setUserContext(userContext);
 		
 		translator = new BahmniFhirImagingStudyTranslatorImpl(basedOnReferenceTranslator, patientReferenceTranslator,
-		        locationReferenceTranslator, practitionerReferenceTranslator, observationTranslator);
+		        locationReferenceTranslator, practitionerReferenceTranslator, observationTranslator,
+		        encounterReferenceTranslator, observationReferenceTranslator);
 	}
 	
 	private Annotation createAnnotation(String id, String text, Reference author, Date time) {
