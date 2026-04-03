@@ -11,13 +11,17 @@ import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.ImagingStudy;
+import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Reference;
+import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.r4.model.Type;
 import org.openmrs.Location;
+import org.openmrs.Obs;
 import org.openmrs.Provider;
 import org.openmrs.User;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.fhir2.api.translators.LocationReferenceTranslator;
+import org.openmrs.module.fhir2.api.translators.ObservationTranslator;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +40,7 @@ import java.util.stream.Collectors;
 
 import static org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants.FHIR_EXT_IMAGING_STUDY_COMPLETION_DATE;
 import static org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants.FHIR_EXT_IMAGING_STUDY_PERFORMER;
+import static org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants.FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION;
 
 @Component
 @Slf4j
@@ -55,14 +60,18 @@ public class BahmniFhirImagingStudyTranslatorImpl implements BahmniFhirImagingSt
 	
 	private final PractitionerReferenceTranslator<Provider> practitionerReferenceTranslator;
 	
+	private final ObservationTranslator observationTranslator;
+	
 	@Autowired
 	public BahmniFhirImagingStudyTranslatorImpl(BahmniOrderReferenceTranslator basedOnReferenceTranslator,
 	    PatientReferenceTranslator patientReferenceTranslator, LocationReferenceTranslator locationReferenceTranslator,
-	    PractitionerReferenceTranslator<Provider> practitionerReferenceTranslator) {
+	    PractitionerReferenceTranslator<Provider> practitionerReferenceTranslator,
+	    ObservationTranslator observationTranslator) {
 		this.basedOnReferenceTranslator = basedOnReferenceTranslator;
 		this.patientReferenceTranslator = patientReferenceTranslator;
 		this.locationReferenceTranslator = locationReferenceTranslator;
 		this.practitionerReferenceTranslator = practitionerReferenceTranslator;
+		this.observationTranslator = observationTranslator;
 	}
 	
 	@Override
@@ -94,6 +103,19 @@ public class BahmniFhirImagingStudyTranslatorImpl implements BahmniFhirImagingSt
         if (study.getDateCompleted() != null) {
             resource.addExtension(FHIR_EXT_IMAGING_STUDY_COMPLETION_DATE, new DateTimeType(study.getDateCompleted()));
         }
+        
+        if (study.getResults() != null && !study.getResults().isEmpty()) {
+            for (Obs obs : study.getResults()) {
+                Observation fhirObs = observationTranslator.toFhirResource(obs);
+                String containedId = "#" + obs.getUuid();
+                fhirObs.setId(containedId);
+                
+                resource.addContained(fhirObs);
+                
+                resource.addExtension(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION, new Reference(containedId));
+            }
+        }
+        
         return resource;
     }
 	

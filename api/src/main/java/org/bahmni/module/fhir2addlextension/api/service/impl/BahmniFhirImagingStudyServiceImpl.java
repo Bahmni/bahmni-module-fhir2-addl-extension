@@ -1,21 +1,45 @@
 package org.bahmni.module.fhir2addlextension.api.service.impl;
 
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
+import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
+import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirImagingStudyDao;
+import org.bahmni.module.fhir2addlextension.api.helper.ConsultationBundleEntriesHelper;
 import org.bahmni.module.fhir2addlextension.api.model.FhirImagingStudy;
 import org.bahmni.module.fhir2addlextension.api.search.param.BahmniImagingStudySearchParams;
 import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirImagingStudyService;
 import org.bahmni.module.fhir2addlextension.api.translator.BahmniFhirImagingStudyTranslator;
+import org.bahmni.module.fhir2addlextension.api.utils.BahmniFhirUtils;
+import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.ImagingStudy;
+import org.hl7.fhir.r4.model.Observation;
+import org.hl7.fhir.r4.model.Reference;
+import org.hl7.fhir.r4.model.Resource;
+import org.openmrs.Obs;
+import org.openmrs.module.fhir2.FhirConstants;
+import org.openmrs.module.fhir2.api.FhirObservationService;
 import org.openmrs.module.fhir2.api.dao.FhirDao;
 import org.openmrs.module.fhir2.api.impl.BaseFhirService;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
 import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
+import org.openmrs.module.fhir2.api.translators.ObservationTranslator;
 import org.openmrs.module.fhir2.api.translators.OpenmrsFhirTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import javax.annotation.Nonnull;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import static org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants.FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION;
 
 @Component
 @Transactional
@@ -30,16 +54,23 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	
 	private final SearchQuery<FhirImagingStudy, ImagingStudy, BahmniFhirImagingStudyDao, BahmniFhirImagingStudyTranslator, SearchQueryInclude<ImagingStudy>> searchQuery;
 	
+	private final FhirObservationService fhirObservationService;
+	
+	private final ObservationTranslator observationTranslator;
+	
 	@Autowired
 	public BahmniFhirImagingStudyServiceImpl(
 	    BahmniFhirImagingStudyDao imagingStudyDao,
 	    BahmniFhirImagingStudyTranslator imagingStudyTranslator,
 	    SearchQueryInclude<ImagingStudy> searchQueryInclude,
-	    SearchQuery<FhirImagingStudy, ImagingStudy, BahmniFhirImagingStudyDao, BahmniFhirImagingStudyTranslator, SearchQueryInclude<ImagingStudy>> searchQuery) {
+	    SearchQuery<FhirImagingStudy, ImagingStudy, BahmniFhirImagingStudyDao, BahmniFhirImagingStudyTranslator, SearchQueryInclude<ImagingStudy>> searchQuery,
+	    FhirObservationService fhirObservationService, ObservationTranslator observationTranslator) {
 		this.imagingStudyDao = imagingStudyDao;
 		this.imagingStudyTranslator = imagingStudyTranslator;
 		this.searchQueryInclude = searchQueryInclude;
 		this.searchQuery = searchQuery;
+		this.fhirObservationService = fhirObservationService;
+		this.observationTranslator = observationTranslator;
 	}
 	
 	@Override
@@ -62,6 +93,157 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 		}
 		return searchQuery.getQueryResults(searchParams.toSearchParameterMap(), imagingStudyDao, imagingStudyTranslator,
 		    searchQueryInclude);
+	}
+	
+	@Override
+	public ImagingStudy submitQualityAssessment(@Nonnull ImagingStudy imagingStudy) {
+		if (imagingStudy.getId() == null) {
+			throw new InvalidRequestException("ImagingStudy ID is required for quality assessment submission");
+		}
+		
+		// Get existing imaging study
+		FhirImagingStudy existingStudy = imagingStudyDao.get(imagingStudy.getId());
+		if (existingStudy == null) {
+			throw new ResourceNotFoundException("ImagingStudy with ID " + imagingStudy.getId() + " not found");
+		}
+		
+		// Extract quality observation extensions
+		List<Extension> qualityObsExtensions = imagingStudy.getExtensionsByUrl(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION);
+		if (qualityObsExtensions.isEmpty()) {
+			throw new InvalidRequestException("No quality assessment observations found in extensions");
+		}
+		
+		if (!imagingStudy.hasContained()) {
+			throw new InvalidRequestException("No contained resources found. Quality observations must be contained resources.");
+		}
+		
+		// Create map of contained resources by ID for lookup
+		Map<String, Resource> containedMap = imagingStudy.getContained().stream()
+				.filter(r -> r.getId() != null)
+				.collect(Collectors.toMap(Resource::getId, r -> r));
+		
+		// Prepare encounter reference if imaging study has one
+		Reference encounterReference = null;
+		if (existingStudy.getEncounter() != null) {
+			encounterReference = new Reference()
+					.setReference(FhirConstants.ENCOUNTER + "/" + existingStudy.getEncounter().getUuid())
+					.setType(FhirConstants.ENCOUNTER);
+		}
+		
+		// Create observations and collect them
+		Set<Obs> qualityResults = createQualityObservations(qualityObsExtensions, containedMap, encounterReference);
+		
+		// Link observations to imaging study
+		existingStudy.setResults(qualityResults);
+		
+		// Save and return
+		FhirImagingStudy savedStudy = imagingStudyDao.createOrUpdate(existingStudy);
+		return imagingStudyTranslator.toFhirResource(savedStudy);
+	}
+	
+	private Set<Obs> createQualityObservations(List<Extension> qualityObsExtensions, Map<String, Resource> containedMap, Reference encounterReference) {
+		// Collect observations maintaining reference to original IDs
+		Map<Observation, String> observationReferenceMap = new HashMap<>();
+		List<String> preExistingObservationIds = new ArrayList<>();
+		
+		for (Extension ext : qualityObsExtensions) {
+			if (!(ext.getValue() instanceof Reference)) {
+				log.warn("Quality observation extension value is not a Reference, skipping");
+				continue;
+			}
+			
+			Reference obsRef = (Reference) ext.getValue();
+			String containedId = obsRef.getReference();
+			
+			if (containedId == null || !containedId.startsWith("#")) {
+				log.warn("Invalid contained reference: " + containedId);
+				continue;
+			}
+			
+			Resource containedResource = containedMap.get(containedId);
+			if (!(containedResource instanceof Observation)) {
+				log.warn("Referenced contained resource is not an Observation: " + containedId);
+				continue;
+			}
+			
+			Observation observation = (Observation) containedResource;
+			String obsId = BahmniFhirUtils.extractId(containedId);
+			
+			// Check if observation already exists
+			Observation existing = findExistingObservation(obsId);
+			if (existing != null) {
+				preExistingObservationIds.add(existing.getId());
+			}
+			
+			observationReferenceMap.put(observation, obsId);
+		}
+		
+		// Sort observations by depth to handle hasMember relationships correctly
+		List<Observation> sortedObservations = ConsultationBundleEntriesHelper.sortObservationsByDepth(
+				new ArrayList<>(observationReferenceMap.keySet()));
+		
+		// Use LinkedHashSet to preserve insertion order
+		Set<Obs> qualityResults = new LinkedHashSet<>();
+		Map<String, Reference> observationsReferenceMap = new HashMap<>();
+		
+		for (Observation observation : sortedObservations) {
+			String resourceId = Optional.ofNullable(observation.getIdElement().getValue())
+					.orElseGet(() -> observationReferenceMap.get(observation));
+			String obsEntryId = BahmniFhirUtils.extractId(resourceId);
+			
+			// Remove empty encounter references to avoid NullPointerException
+			if (observation.hasEncounter() && observation.getEncounter().getReference() != null 
+					&& observation.getEncounter().getReference().isEmpty()) {
+				observation.setEncounter(null);
+			}
+			
+			// Set encounter reference if available
+			if (encounterReference != null) {
+				observation.setEncounter(encounterReference);
+			}
+			
+			// Resolve hasMember references to already-created observations
+			observation.getHasMember().forEach(member -> {
+				Observation memberObs = (Observation) member.getResource();
+				if (memberObs != null) {
+					Reference mappedRef = observationsReferenceMap.get(memberObs.getId());
+					if (mappedRef != null) {
+						log.debug(String.format("resolving obs.hasMember ref: %s => %s%n", member.getReference(), mappedRef.getReference()));
+						member.setReference(mappedRef.getReference());
+					}
+				}
+			});
+			
+			// Create or update observation
+			Observation persistedObservation = preExistingObservationIds.contains(obsEntryId)
+					? fhirObservationService.update(obsEntryId, observation)
+					: fhirObservationService.create(observation);
+			
+			// Store reference for hasMember resolution
+			Reference persistedObsReference = new Reference()
+					.setReference(FhirConstants.OBSERVATION + "/" + persistedObservation.getId())
+					.setType(FhirConstants.OBSERVATION);
+			persistedObsReference.setResource(persistedObservation);
+			observationsReferenceMap.put(obsEntryId, persistedObsReference);
+			
+			// Convert to OpenMRS Obs and add to results (preserving order)
+			Obs openmrsObs = observationTranslator.toOpenmrsType(persistedObservation);
+			if (openmrsObs != null) {
+				qualityResults.add(openmrsObs);
+			}
+		}
+		
+		return qualityResults;
+	}
+	
+	private Observation findExistingObservation(String uuid) {
+		try {
+			return fhirObservationService.get(uuid);
+		}
+		catch (ResourceNotFoundException e) {
+			log.debug("No existing observation found with UUID: {}", uuid);
+		}
+		return null;
 	}
 	
 }

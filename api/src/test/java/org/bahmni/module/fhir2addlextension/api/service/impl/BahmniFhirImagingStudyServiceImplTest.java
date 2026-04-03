@@ -38,11 +38,13 @@ import org.openmrs.api.context.UserContext;
 import org.openmrs.api.db.ContextDAO;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.FhirGlobalPropertyService;
+import org.openmrs.module.fhir2.api.FhirObservationService;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
 import org.openmrs.module.fhir2.api.search.SearchQueryBundleProvider;
 import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.openmrs.module.fhir2.api.translators.LocationReferenceTranslator;
+import org.openmrs.module.fhir2.api.translators.ObservationTranslator;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 
@@ -101,6 +103,12 @@ public class BahmniFhirImagingStudyServiceImplTest {
 	@Mock
 	private FhirGlobalPropertyService globalPropertyService;
 	
+	@Mock
+	private FhirObservationService fhirObservationService;
+	
+	@Mock
+	private ObservationTranslator observationTranslator;
+	
 	private BahmniFhirImagingStudyTranslator imagingStudyTranslator;
 	
 	private BahmniFhirImagingStudyService fhirImagingStudyService;
@@ -135,10 +143,11 @@ public class BahmniFhirImagingStudyServiceImplTest {
 		openmrsLocation.setName("Test Location");
 		
 		imagingStudyTranslator = new BahmniFhirImagingStudyTranslatorImpl(basedOnReferenceTranslator,
-		        patientReferenceTranslator, locationReferenceTranslator, practitionerReferenceTranslator);
+		        patientReferenceTranslator, locationReferenceTranslator, practitionerReferenceTranslator, observationTranslator);
 		fhirImagingStudyService = new BahmniFhirImagingStudyServiceImpl(
 		                                                                imagingStudyDao, imagingStudyTranslator,
-		                                                                searchQueryInclude, searchQuery) {
+		                                                                searchQueryInclude, searchQuery,
+                                                                        fhirObservationService, observationTranslator) {
 			
 			@Override
 			protected void validateObject(FhirImagingStudy object) {

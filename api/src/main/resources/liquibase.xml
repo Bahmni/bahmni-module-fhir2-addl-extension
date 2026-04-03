@@ -517,4 +517,32 @@
                                  referencedTableName="document_attachment" referencedColumnNames="document_attachment_id"/>
     </changeSet>
 
+    <changeSet id="create_imaging_study_quality_results_table_20260402" author="samridhi jameela" dbms="mysql,mariadb,postgresql">
+        <preConditions onFail="MARK_RAN" onError="WARN">
+            <not>
+                <tableExists tableName="imaging_study_quality_results"/>
+            </not>
+            <tableExists tableName="imaging_study"/>
+            <tableExists tableName="obs"/>
+        </preConditions>
+        <comment>Create join table for imaging study quality assessment observations</comment>
+        <createTable tableName="imaging_study_quality_results">
+            <column name="imaging_study_id" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="obs_id" type="int">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint constraintName="fk_imaging_study_quality_results_imaging_study"
+                                 baseTableName="imaging_study_quality_results" baseColumnNames="imaging_study_id"
+                                 referencedTableName="imaging_study" referencedColumnNames="imaging_study_id"/>
+        <addForeignKeyConstraint constraintName="fk_imaging_study_quality_results_obs"
+                                 baseTableName="imaging_study_quality_results" baseColumnNames="obs_id"
+                                 referencedTableName="obs" referencedColumnNames="obs_id"/>
+        <addPrimaryKey tableName="imaging_study_quality_results"
+                       columnNames="imaging_study_id,obs_id"
+                       constraintName="pk_imaging_study_quality_results"/>
+    </changeSet>
+
 </databaseChangeLog>

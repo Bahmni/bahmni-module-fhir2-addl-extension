@@ -22,6 +22,7 @@ import org.openmrs.api.context.Context;
 import org.openmrs.api.context.UserContext;
 import org.openmrs.api.db.ContextDAO;
 import org.openmrs.module.fhir2.api.translators.LocationReferenceTranslator;
+import org.openmrs.module.fhir2.api.translators.ObservationTranslator;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 
@@ -63,6 +64,9 @@ public class BahmniFhirImagingStudyTranslatorImplTest {
 	@Mock
 	private User user;
 	
+	@Mock
+	private ObservationTranslator observationTranslator;
+	
 	@Before
 	public void setUp() {
 		when(userContext.getAuthenticatedUser()).thenReturn(user);
@@ -71,7 +75,7 @@ public class BahmniFhirImagingStudyTranslatorImplTest {
 		Context.setUserContext(userContext);
 		
 		translator = new BahmniFhirImagingStudyTranslatorImpl(basedOnReferenceTranslator, patientReferenceTranslator,
-		        locationReferenceTranslator, practitionerReferenceTranslator);
+		        locationReferenceTranslator, practitionerReferenceTranslator, observationTranslator);
 	}
 	
 	private Annotation createAnnotation(String id, String text, Reference author, Date time) {

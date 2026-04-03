@@ -8,6 +8,7 @@ import lombok.ToString;
 import org.openmrs.BaseOpenmrsData;
 import org.openmrs.Encounter;
 import org.openmrs.Location;
+import org.openmrs.Obs;
 import org.openmrs.Order;
 import org.openmrs.Patient;
 import org.openmrs.Provider;
@@ -19,8 +20,8 @@ import java.util.Set;
 @Getter
 @Setter
 @NoArgsConstructor
-@ToString(exclude = {"notes"})
-@EqualsAndHashCode(exclude = {"notes"}, callSuper = false)
+@ToString(exclude = {"notes", "results"})
+@EqualsAndHashCode(exclude = {"notes", "results"}, callSuper = false)
 public class FhirImagingStudy extends BaseOpenmrsData {
 	
 	private Integer imagingStudyId;
@@ -44,6 +45,8 @@ public class FhirImagingStudy extends BaseOpenmrsData {
     private Date dateCompleted;
 
     private Set<FhirImagingStudyNote> notes = new HashSet<>();
+	
+	private Set<Obs> results = new HashSet<>();
 	
 	private FhirImagingStudyStatus status;
 	
