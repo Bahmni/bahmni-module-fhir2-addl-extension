@@ -12,7 +12,7 @@ import org.openmrs.module.fhir2.FhirConstants;
 import java.util.*;
 
 public class ConsultationBundleEntriesHelper {
-
+	
 	public static List<Bundle.BundleEntryComponent> orderEntriesByReference(List<Bundle.BundleEntryComponent> entries) {
         List<Bundle.BundleEntryComponent> orderedEntries = new ArrayList<>();
 
@@ -94,7 +94,7 @@ public class ConsultationBundleEntriesHelper {
 
         return orderedEntries;
     }
-
+	
 	public static Bundle.BundleEntryComponent resolveReferences(Bundle.BundleEntryComponent entry,
 	        Map<String, Bundle.BundleEntryComponent> processedEntries) {
 		Resource resource = entry.getResource();
@@ -167,7 +167,7 @@ public class ConsultationBundleEntriesHelper {
 		}
 		return entry;
 	}
-
+	
 	public static List<Observation> sortObservationsByDepth(List<Observation> inputs) {
         List<Observation> result = new ArrayList<>();
         Set<String> visited = new HashSet<>();
@@ -178,18 +178,18 @@ public class ConsultationBundleEntriesHelper {
         }
         return result;
     }
-
+	
 	private static void depthFirstSearch(Observation node, Set<String> visited, Set<String> beingVisited,
 	        List<Observation> result) {
 		if (visited.contains(node.getId()))
 			return;
-
+		
 		if (beingVisited.contains(node.getId())) {
 			throw new RuntimeException("Circular dependency detected at: " + node.getId());
 		}
-
+		
 		beingVisited.add(node.getId()); // Mark as currently in the recursion stack
-
+		
 		for (Reference child : node.getHasMember()) {
 			Observation memberObs = (Observation) child.getResource();
 			if (memberObs == null) {
@@ -197,12 +197,12 @@ public class ConsultationBundleEntriesHelper {
 			}
 			depthFirstSearch(memberObs, visited, beingVisited, result);
 		}
-
+		
 		beingVisited.remove(node.getId()); // Remove from stack
 		visited.add(node.getId()); // Mark as fully processed
 		result.add(node); // Add to final list
 	}
-
+	
 	private static Set<Reference> extractReferences(Resource resource) {
         Set<Reference> references = new HashSet<>();
 
@@ -259,14 +259,14 @@ public class ConsultationBundleEntriesHelper {
 
         return references;
     }
-
+	
 	private static Reference createEncounterReference(String encounterUUID) {
 		Reference encounterReference = new Reference();
 		encounterReference.setType(FhirConstants.ENCOUNTER);
 		encounterReference.setReference(FhirConstants.ENCOUNTER + "/" + encounterUUID);
 		return encounterReference;
 	}
-
+	
 	private static String getIdForPlaceHolderReference(String placeHolderReference,
 	        Map<String, Bundle.BundleEntryComponent> processedEntries) {
 		Bundle.BundleEntryComponent processedEntry = processedEntries.get(placeHolderReference);
