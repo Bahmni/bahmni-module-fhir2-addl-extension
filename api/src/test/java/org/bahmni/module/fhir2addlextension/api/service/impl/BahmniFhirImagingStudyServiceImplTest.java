@@ -52,8 +52,14 @@ import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import org.hl7.fhir.r4.model.Observation;
+
+import static org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants.FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION;
 import static org.bahmni.module.fhir2addlextension.api.TestDataFactory.loadResourceFromFile;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
@@ -66,6 +72,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -414,6 +421,89 @@ public class BahmniFhirImagingStudyServiceImplTest {
 		assertThat(resultList, empty());
 	}
 	
+	@Test
+	public void shouldSubmitQualityAssessmentWithContainedObservations() throws IOException {
+		String studyId = "18046e64-cf94-4adf-b0d3-a83aa9fb165a";
+		ImagingStudy request = (ImagingStudy) loadResourceFromFile("example-imaging-study-with-quality-assessment.json");
+		
+		FhirImagingStudy existingStudy = createExistingStudyWithEncounter(studyId);
+		when(imagingStudyDao.get(studyId)).thenReturn(existingStudy);
+		when(imagingStudyDao.createOrUpdate(any())).thenAnswer(invocation -> invocation.getArgument(0));
+		
+		Provider performer = new Provider();
+		performer.setUuid("60b31d2a-1d0c-11f1-b099-5a3ed7acdb7e");
+		when(practitionerReferenceTranslator.toOpenmrsType(
+				ArgumentMatchers.argThat(reference -> {
+					return reference != null && reference.getReference() != null &&
+							reference.getReference().equals("Practitioner/60b31d2a-1d0c-11f1-b099-5a3ed7acdb7e");
+				})))
+				.thenReturn(performer);
+		
+		AtomicInteger counter = new AtomicInteger(0);
+		Map<String, org.openmrs.Obs> createdObsMap = new HashMap<>();
+		
+		ArgumentCaptor<Observation> obsCaptor = ArgumentCaptor.forClass(Observation.class);
+		
+		when(fhirObservationService.create(any(Observation.class))).thenAnswer(invocation -> {
+			Observation inputObs = invocation.getArgument(0);
+			Observation obs = new Observation();
+			String obsId = "obs-" + counter.incrementAndGet();
+			obs.setId(obsId);
+			
+			if (inputObs.hasHasMember()) {
+				obs.setHasMember(inputObs.getHasMember());
+			}
+			
+			org.openmrs.Obs openmrsObs = new org.openmrs.Obs();
+			openmrsObs.setUuid(obsId);
+			createdObsMap.put(obsId, openmrsObs);
+			
+			return obs;
+		});
+		
+		when(observationReferenceTranslator.toOpenmrsType(any(Reference.class))).thenAnswer(invocation -> {
+			Reference ref = invocation.getArgument(0);
+			if (ref != null && ref.getReference() != null && ref.getReference().startsWith("Observation/")) {
+				String obsId = ref.getReference().substring("Observation/".length());
+				return createdObsMap.get(obsId);
+			}
+			return null;
+		});
+		
+		when(observationTranslator.toFhirResource(any(org.openmrs.Obs.class))).thenAnswer(invocation -> {
+			org.openmrs.Obs obs = invocation.getArgument(0);
+			if (obs == null) return null;
+			Observation fhirObs = new Observation();
+			fhirObs.setId(obs.getUuid());
+			return fhirObs;
+		});
+		
+		ImagingStudy result = fhirImagingStudyService.submitQualityAssessment(request);
+		
+		Assert.assertNotNull(result);
+		verify(fhirObservationService, times(3)).create(obsCaptor.capture());
+		
+		List<Observation> createdObservations = obsCaptor.getAllValues();
+		Observation obsWithMembers = createdObservations.stream()
+				.filter(Observation::hasHasMember)
+				.findFirst()
+				.orElse(null);
+		
+		Assert.assertNotNull("Should have observation with hasMember", obsWithMembers);
+		Assert.assertTrue("hasMember reference should be resolved to Observation/uuid format",
+				obsWithMembers.getHasMember().get(0).getReference().startsWith("Observation/"));
+		Assert.assertFalse("hasMember reference should not contain # prefix",
+				obsWithMembers.getHasMember().get(0).getReference().contains("#"));
+		
+		List<Extension> extensions = result.getExtensionsByUrl(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION);
+		assertEquals(3, extensions.size());
+		extensions.forEach(ext -> {
+			Reference ref = (Reference) ext.getValue();
+			Assert.assertTrue(ref.getReference().startsWith("#"));
+		});
+		assertEquals(3, result.getContained().size());
+	}
+	
 	private FhirImagingStudy createTestFhirImagingStudy(String uuid) {
 		FhirImagingStudy study = new FhirImagingStudy();
 		study.setUuid(uuid);
@@ -424,6 +514,14 @@ public class BahmniFhirImagingStudyServiceImplTest {
 		study.setLocation(openmrsLocation);
 		study.setDescription("Test imaging study");
 		study.setDateStarted(new java.util.Date());
+		return study;
+	}
+	
+	private FhirImagingStudy createExistingStudyWithEncounter(String uuid) {
+		FhirImagingStudy study = createTestFhirImagingStudy(uuid);
+		Encounter encounter = new Encounter();
+		encounter.setUuid("encounter-uuid-default");
+		study.setEncounter(encounter);
 		return study;
 	}
 }

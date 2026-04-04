@@ -94,10 +94,11 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 			throw new InvalidRequestException("ImagingStudy ID is required for quality assessment submission");
 		}
 		
-		// Get existing imaging study
-		FhirImagingStudy existingStudy = imagingStudyDao.get(imagingStudy.getId());
+		// Get existing imaging study - extract UUID from potential "ImagingStudy/uuid" format
+		String extractedUuid = BahmniFhirUtils.extractId(imagingStudy.getId());
+		FhirImagingStudy existingStudy = imagingStudyDao.get(extractedUuid);
 		if (existingStudy == null) {
-			throw new ResourceNotFoundException("ImagingStudy with ID " + imagingStudy.getId() + " not found");
+			throw new ResourceNotFoundException("ImagingStudy with ID ImagingStudy/" + extractedUuid + " not found");
 		}
 		
 		// Extract quality observation extensions
@@ -132,7 +133,7 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 		FhirImagingStudy savedStudy = imagingStudyDao.createOrUpdate(updatedStudy);
 		return imagingStudyTranslator.toFhirResource(savedStudy);
 	}
-
+	
 	private Map<String, Reference> createQualityObservations(List<Extension> qualityObsExtensions, 
 			Map<String, Resource> containedMap, Reference encounterReference) {
 		// Collect observations maintaining reference to original IDs
@@ -195,12 +196,23 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 			
 			// Resolve hasMember references to already-created observations
 			observation.getHasMember().forEach(member -> {
-				Observation memberObs = (Observation) member.getResource();
-				if (memberObs != null) {
-					Reference mappedRef = observationsReferenceMap.get(memberObs.getId());
+				// Extract the reference ID (works for both #id and Observation/uuid formats)
+				String memberRefId = member.getReference();
+				if (memberRefId != null) {
+					if (memberRefId.startsWith("#")) {
+						// Remove the # prefix for contained references
+						memberRefId = memberRefId.substring(1);
+					} else if (memberRefId.contains("/")) {
+						// Extract UUID from Observation/uuid format
+						memberRefId = BahmniFhirUtils.extractId(memberRefId);
+					}
+					
+					// Look up the mapped reference from already-created observations
+					Reference mappedRef = observationsReferenceMap.get(memberRefId);
 					if (mappedRef != null) {
 						log.debug(String.format("resolving obs.hasMember ref: %s => %s%n", member.getReference(), mappedRef.getReference()));
 						member.setReference(mappedRef.getReference());
+						member.setResource(null); // Clear any stale resource reference
 					}
 				}
 			});

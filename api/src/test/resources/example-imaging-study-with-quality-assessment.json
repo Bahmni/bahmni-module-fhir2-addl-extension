@@ -1,0 +1,154 @@
+{
+  "resourceType": "ImagingStudy",
+  "id": "18046e64-cf94-4adf-b0d3-a83aa9fb165a",
+  "status": "available",
+  "subject": {
+    "reference": "Patient/378b68ba-fbd4-4600-8baf-433de84e8a92"
+  },
+  "contained": [
+    {
+      "resourceType": "Observation",
+      "status": "final",
+      "code": {
+        "coding": [
+          {
+            "system": "http://dicom.nema.org/resources/ontology/DCM",
+            "code": "113012",
+            "display": "Data Quality Assessment"
+          }
+        ]
+      },
+      "subject": {
+        "reference": "Patient/378b68ba-fbd4-4600-8baf-433de84e8a92"
+      },
+      "encounter": {
+        "reference": ""
+      },
+      "performer": [
+        {
+          "reference": "Practitioner/60b31d2a-1d0c-11f1-b099-5a3ed7acdb7e"
+        }
+      ],
+      "effectiveDateTime": "2026-04-02T11:53:15.468Z",
+      "valueCodeableConcept": {
+        "coding": [
+          {
+            "code": "24e1168b-035c-4e97-be77-bd7c906ba0bd",
+            "display": "Not acceptable"
+          }
+        ]
+      },
+      "extension": [
+        {
+          "url": "http://fhir.bahmni.org/ext/observation/form-namespace-path",
+          "valueString": "Bahmni^Chest X ray image quality.1/7-0"
+        }
+      ],
+      "id": "obs-1775130800624-wkl0xssb7"
+    },
+    {
+      "resourceType": "Observation",
+      "status": "final",
+      "code": {
+        "coding": [
+          {
+            "system": "http://dicom.nema.org/resources/ontology/DCM",
+            "code": "113012",
+            "display": "Data Quality Assessment"
+          }
+        ]
+      },
+      "subject": {
+        "reference": "Patient/378b68ba-fbd4-4600-8baf-433de84e8a92"
+      },
+      "encounter": {
+        "reference": ""
+      },
+      "performer": [
+        {
+          "reference": "Practitioner/60b31d2a-1d0c-11f1-b099-5a3ed7acdb7e"
+        }
+      ],
+      "effectiveDateTime": "2026-04-02T11:53:15.468Z",
+      "valueCodeableConcept": {
+        "coding": [
+          {
+            "code": "42753af0-6618-479c-8a05-0548e9c3689f",
+            "display": "Poor inspiration"
+          }
+        ]
+      },
+      "extension": [
+        {
+          "url": "http://fhir.bahmni.org/ext/observation/form-namespace-path",
+          "valueString": "Bahmni^Chest X ray image quality.1/10-0"
+        }
+      ],
+      "id": "obs-1775130800625-ms54etvfp"
+    },
+    {
+      "resourceType": "Observation",
+      "status": "final",
+      "code": {
+        "coding": [
+          {
+            "system": "http://dicom.nema.org/resources/ontology/DCM",
+            "code": "113012",
+            "display": "Data Quality Assessment"
+          }
+        ]
+      },
+      "subject": {
+        "reference": "Patient/378b68ba-fbd4-4600-8baf-433de84e8a92"
+      },
+      "encounter": {
+        "reference": ""
+      },
+      "performer": [
+        {
+          "reference": "Practitioner/60b31d2a-1d0c-11f1-b099-5a3ed7acdb7e"
+        }
+      ],
+      "effectiveDateTime": "2026-04-02T11:53:15.468Z",
+      "extension": [
+        {
+          "url": "http://fhir.bahmni.org/ext/observation/form-namespace-path",
+          "valueString": "Bahmni^Chest X ray image quality.1/9-0"
+        }
+      ],
+      "hasMember": [
+        {
+          "reference": "#obs-1775130800625-ms54etvfp",
+          "type": "Observation"
+        }
+      ],
+      "id": "obs-1775130800625-wep20anwg"
+    }
+  ],
+  "extension": [
+    {
+      "url": "http://fhir.bahmni.org/ext/imaging-study/performer",
+      "valueReference": {
+        "reference": "Practitioner/60b31d2a-1d0c-11f1-b099-5a3ed7acdb7e"
+      }
+    },
+    {
+      "url": "http://fhir.bahmni.org/ext/imaging-study/quality-observation",
+      "valueReference": {
+        "reference": "#obs-1775130800624-wkl0xssb7"
+      }
+    },
+    {
+      "url": "http://fhir.bahmni.org/ext/imaging-study/quality-observation",
+      "valueReference": {
+        "reference": "#obs-1775130800625-ms54etvfp"
+      }
+    },
+    {
+      "url": "http://fhir.bahmni.org/ext/imaging-study/quality-observation",
+      "valueReference": {
+        "reference": "#obs-1775130800625-wep20anwg"
+      }
+    }
+  ]
+}
