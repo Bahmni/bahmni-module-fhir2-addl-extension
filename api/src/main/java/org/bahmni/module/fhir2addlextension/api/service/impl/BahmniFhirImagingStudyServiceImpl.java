@@ -16,8 +16,11 @@ import org.hl7.fhir.r4.model.ImagingStudy;
 import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.Resource;
+import org.openmrs.Obs;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.FhirObservationService;
+import org.openmrs.module.fhir2.api.translators.ObservationReferenceTranslator;
+import org.openmrs.module.fhir2.api.translators.ObservationTranslator;
 import org.openmrs.module.fhir2.api.dao.FhirDao;
 import org.openmrs.module.fhir2.api.impl.BaseFhirService;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
@@ -32,6 +35,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -52,18 +57,25 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	
 	private final FhirObservationService fhirObservationService;
 	
+	private final ObservationTranslator observationTranslator;
+	
+	private final ObservationReferenceTranslator observationReferenceTranslator;
+	
 	@Autowired
 	public BahmniFhirImagingStudyServiceImpl(
 	    BahmniFhirImagingStudyDao imagingStudyDao,
 	    BahmniFhirImagingStudyTranslator imagingStudyTranslator,
 	    SearchQueryInclude<ImagingStudy> searchQueryInclude,
 	    SearchQuery<FhirImagingStudy, ImagingStudy, BahmniFhirImagingStudyDao, BahmniFhirImagingStudyTranslator, SearchQueryInclude<ImagingStudy>> searchQuery,
-	    FhirObservationService fhirObservationService) {
+	    FhirObservationService fhirObservationService, ObservationTranslator observationTranslator,
+	    ObservationReferenceTranslator observationReferenceTranslator) {
 		this.imagingStudyDao = imagingStudyDao;
 		this.imagingStudyTranslator = imagingStudyTranslator;
 		this.searchQueryInclude = searchQueryInclude;
 		this.searchQuery = searchQuery;
 		this.fhirObservationService = fhirObservationService;
+		this.observationTranslator = observationTranslator;
+		this.observationReferenceTranslator = observationReferenceTranslator;
 	}
 	
 	@Override
@@ -86,6 +98,34 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 		}
 		return searchQuery.getQueryResults(searchParams.toSearchParameterMap(), imagingStudyDao, imagingStudyTranslator,
 		    searchQueryInclude);
+	}
+	
+	@Override
+	@Transactional(readOnly = true)
+	public ImagingStudy fetchWithQualityAssessment(String uuid) {
+		FhirImagingStudy study = imagingStudyDao.get(uuid);
+		if (study == null) {
+			throw new ResourceNotFoundException("ImagingStudy not found: " + uuid);
+		}
+		
+		ImagingStudy resource = imagingStudyTranslator.toFhirResource(study);
+		
+		addQualityAssessmentsToFhirResource(study, resource);
+		
+		return resource;
+	}
+	
+	private void addQualityAssessmentsToFhirResource(FhirImagingStudy study, ImagingStudy resource) {
+		if (study.getResults() != null && !study.getResults().isEmpty()) {
+			for (Obs obs : study.getResults()) {
+				Observation fhirObs = observationTranslator.toFhirResource(obs);
+				String containedId = "#" + obs.getUuid();
+				fhirObs.setId(containedId);
+				
+				resource.addContained(fhirObs);
+				resource.addExtension(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION, new Reference(containedId));
+			}
+		}
 	}
 	
 	@Override
@@ -127,11 +167,24 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 		Map<String, Reference> obsReferenceMap = createQualityObservations(qualityObsExtensions, containedMap, encounterReference);
 		
 		updateQualityObservationExtensions(imagingStudy, obsReferenceMap);
+		
+		Set<Obs> qualityResults = new LinkedHashSet<>();
+		for (Reference obsRef : obsReferenceMap.values()) {
+			Obs obs = observationReferenceTranslator.toOpenmrsType(obsRef);
+			if (obs != null) {
+				qualityResults.add(obs);
+			}
+		}
+		existingStudy.setResults(qualityResults);
 
 		FhirImagingStudy updatedStudy = imagingStudyTranslator.toOpenmrsType(existingStudy, imagingStudy);
 		
 		FhirImagingStudy savedStudy = imagingStudyDao.createOrUpdate(updatedStudy);
-		return imagingStudyTranslator.toFhirResource(savedStudy);
+		
+		ImagingStudy result = imagingStudyTranslator.toFhirResource(savedStudy);
+		addQualityAssessmentsToFhirResource(savedStudy, result);
+		
+		return result;
 	}
 	
 	private Map<String, Reference> createQualityObservations(List<Extension> qualityObsExtensions, 
@@ -184,7 +237,7 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 			String obsEntryId = BahmniFhirUtils.extractId(resourceId);
 			
 			// Remove empty encounter references to avoid NullPointerException
-			if (observation.hasEncounter() && observation.getEncounter().getReference() != null 
+			if (observation.hasEncounter() && observation.getEncounter().getReference() != null
 					&& observation.getEncounter().getReference().isEmpty()) {
 				observation.setEncounter(null);
 			}

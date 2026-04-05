@@ -10,4 +10,6 @@ public interface BahmniFhirImagingStudyService extends FhirService<ImagingStudy>
 	IBundleProvider searchImagingStudy(BahmniImagingStudySearchParams searchParams);
 	
 	ImagingStudy submitQualityAssessment(ImagingStudy imagingStudy);
+	
+	ImagingStudy fetchWithQualityAssessment(String uuid);
 }

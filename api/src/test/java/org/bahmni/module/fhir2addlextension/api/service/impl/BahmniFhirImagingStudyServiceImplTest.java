@@ -162,7 +162,8 @@ public class BahmniFhirImagingStudyServiceImplTest {
 		fhirImagingStudyService = new BahmniFhirImagingStudyServiceImpl(
 		                                                                imagingStudyDao, imagingStudyTranslator,
 		                                                                searchQueryInclude, searchQuery,
-                                                                        fhirObservationService) {
+                                                                        fhirObservationService, observationTranslator,
+                                                                        observationReferenceTranslator) {
 			
 			@Override
 			protected void validateObject(FhirImagingStudy object) {

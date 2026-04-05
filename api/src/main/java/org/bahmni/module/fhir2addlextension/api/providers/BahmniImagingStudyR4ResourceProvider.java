@@ -109,6 +109,6 @@ public class BahmniImagingStudyR4ResourceProvider implements IResourceProvider {
 		if (id == null || id.getIdPart() == null) {
 			throw new InvalidRequestException("ImagingStudy ID must be specified");
 		}
-		return fhirImagingStudyService.get(id.getIdPart());
+		return fhirImagingStudyService.fetchWithQualityAssessment(id.getIdPart());
 	}
 }
