@@ -2,12 +2,17 @@ package org.bahmni.module.fhir2addlextension.api.service.impl;
 
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
+import org.bahmni.module.fhir2addlextension.api.PrivilegeConstants;
 import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirDiagnosticReportDao;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDiagnosticReportExt;
 import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirDiagnosticReportService;
 import org.bahmni.module.fhir2addlextension.api.translator.BahmniFhirDiagnosticReportTranslator;
 import org.bahmni.module.fhir2addlextension.api.validators.DiagnosticReportValidator;
 import org.hl7.fhir.r4.model.DiagnosticReport;
+import org.openmrs.User;
+import org.openmrs.annotation.Authorized;
+import org.openmrs.api.APIAuthenticationException;
+import org.openmrs.api.context.Context;
 import org.openmrs.module.fhir2.api.dao.FhirDao;
 import org.openmrs.module.fhir2.api.impl.BaseFhirService;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
@@ -50,7 +55,12 @@ public class BahmniFhirDiagnosticReportServiceImpl extends BaseFhirService<Diagn
 	}
 	
 	@Override
+	@Authorized({ PrivilegeConstants.GET_DIAGNOSTIC_REPORT, PrivilegeConstants.GET_OBSERVATIONS })
 	public IBundleProvider searchForDiagnosticReports(DiagnosticReportSearchParams diagnosticReportSearchParams) {
+		if (!Context.getUserContext().hasPrivilege(PrivilegeConstants.GET_DIAGNOSTIC_REPORT)
+		        && !Context.getUserContext().hasPrivilege(PrivilegeConstants.GET_OBSERVATIONS)) {
+			requirePrivilege(PrivilegeConstants.GET_DIAGNOSTIC_REPORT);
+		}
 		return searchQuery.getQueryResults(diagnosticReportSearchParams.toSearchParameterMap(), diagnosticReportDao,
 		    diagnosticReportTranslator, searchQueryInclude);
 	}
@@ -78,6 +88,16 @@ public class BahmniFhirDiagnosticReportServiceImpl extends BaseFhirService<Diagn
 			openmrsReport.setUuid(FhirUtils.newUuid());
 		}
 		return getTranslator().toFhirResource(getDao().createOrUpdate(openmrsReport));
+	}
+	
+	private void requirePrivilege(String privilege) {
+		User authenticatedUser = Context.getUserContext().getAuthenticatedUser();
+		if (authenticatedUser == null) {
+			throw new APIAuthenticationException("User must be authenticated");
+		}
+		if (!authenticatedUser.hasPrivilege(privilege)) {
+			throw new APIAuthenticationException("User does not have required privilege: " + privilege);
+		}
 	}
 	
 }

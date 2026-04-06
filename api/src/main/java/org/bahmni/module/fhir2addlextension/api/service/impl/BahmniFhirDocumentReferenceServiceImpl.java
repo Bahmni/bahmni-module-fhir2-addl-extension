@@ -3,6 +3,7 @@ package org.bahmni.module.fhir2addlextension.api.service.impl;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.extern.slf4j.Slf4j;
+import org.bahmni.module.fhir2addlextension.api.PrivilegeConstants;
 import org.bahmni.module.fhir2addlextension.api.dao.DocumentReferenceDao;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReference;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceContent;
@@ -12,6 +13,8 @@ import org.bahmni.module.fhir2addlextension.api.translator.DocumentReferenceTran
 import org.hl7.fhir.r4.model.DocumentReference;
 import org.hl7.fhir.r4.model.Enumerations;
 import org.openmrs.User;
+import org.openmrs.annotation.Authorized;
+import org.openmrs.api.APIAuthenticationException;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.fhir2.api.dao.FhirDao;
 import org.openmrs.module.fhir2.api.impl.BaseFhirService;
@@ -75,7 +78,9 @@ public class BahmniFhirDocumentReferenceServiceImpl extends BaseFhirService<Docu
 	}
 	
 	@Override
+	@Authorized({ PrivilegeConstants.GET_DOCUMENT_REFERENCE })
 	public IBundleProvider searchDocumentReferences(BahmniDocumentReferenceSearchParams searchParams) {
+		requirePrivilege(PrivilegeConstants.GET_DOCUMENT_REFERENCE);
 		if (!searchParams.hasPatientReference() && !searchParams.hasId()) {
 			logAndThrowUnsupportedExceptionForMissingPatientOrResourceId();
 		}
@@ -175,5 +180,15 @@ public class BahmniFhirDocumentReferenceServiceImpl extends BaseFhirService<Docu
 		if (StringUtils.isEmpty(contentComponent.getAttachment().getUrl()))
 			return false;
 		return true;
+	}
+	
+	private void requirePrivilege(String privilege) {
+		User authenticatedUser = Context.getUserContext().getAuthenticatedUser();
+		if (authenticatedUser == null) {
+			throw new APIAuthenticationException("User must be authenticated");
+		}
+		if (!authenticatedUser.hasPrivilege(privilege)) {
+			throw new APIAuthenticationException("User does not have required privilege: " + privilege);
+		}
 	}
 }
