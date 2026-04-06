@@ -56,25 +56,18 @@ public class BahmniFhirImagingStudyTranslatorImpl implements BahmniFhirImagingSt
 	
 	private final PractitionerReferenceTranslator<Provider> practitionerReferenceTranslator;
 	
-	private final ObservationTranslator observationTranslator;
-	
 	private final EncounterReferenceTranslator<Encounter> encounterReferenceTranslator;
-	
-	private final ObservationReferenceTranslator observationReferenceTranslator;
 	
 	@Autowired
 	public BahmniFhirImagingStudyTranslatorImpl(BahmniOrderReferenceTranslator basedOnReferenceTranslator,
 	    PatientReferenceTranslator patientReferenceTranslator, LocationReferenceTranslator locationReferenceTranslator,
 	    PractitionerReferenceTranslator<Provider> practitionerReferenceTranslator,
-	    ObservationTranslator observationTranslator, EncounterReferenceTranslator<Encounter> encounterReferenceTranslator,
-	    ObservationReferenceTranslator observationReferenceTranslator) {
+	    EncounterReferenceTranslator<Encounter> encounterReferenceTranslator) {
 		this.basedOnReferenceTranslator = basedOnReferenceTranslator;
 		this.patientReferenceTranslator = patientReferenceTranslator;
 		this.locationReferenceTranslator = locationReferenceTranslator;
 		this.practitionerReferenceTranslator = practitionerReferenceTranslator;
-		this.observationTranslator = observationTranslator;
 		this.encounterReferenceTranslator = encounterReferenceTranslator;
-		this.observationReferenceTranslator = observationReferenceTranslator;
 	}
 	
 	@Override

@@ -47,6 +47,8 @@ import static org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants.FHIR_
 @Slf4j
 public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingStudy, FhirImagingStudy> implements BahmniFhirImagingStudyService {
 	
+	private static final String CONTAINED_RESOURCE_PREFIX = "#";
+	
 	private final BahmniFhirImagingStudyDao imagingStudyDao;
 	
 	private final BahmniFhirImagingStudyTranslator imagingStudyTranslator;
@@ -119,7 +121,7 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 		if (study.getResults() != null && !study.getResults().isEmpty()) {
 			for (Obs obs : study.getResults()) {
 				Observation fhirObs = observationTranslator.toFhirResource(obs);
-				String containedId = "#" + obs.getUuid();
+				String containedId = CONTAINED_RESOURCE_PREFIX + obs.getUuid();
 				fhirObs.setId(containedId);
 				
 				resource.addContained(fhirObs);
@@ -189,34 +191,29 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	
 	private Map<String, Reference> createQualityObservations(List<Extension> qualityObsExtensions, 
 			Map<String, Resource> containedMap, Reference encounterReference) {
-		// Collect observations maintaining reference to original IDs
+		
 		Map<Observation, String> observationReferenceMap = new HashMap<>();
 		List<String> preExistingObservationIds = new ArrayList<>();
 		
+		collectObservationsFromExtensions(qualityObsExtensions, containedMap, observationReferenceMap, preExistingObservationIds);
+		
+		List<Observation> sortedObservations = ConsultationBundleEntriesHelper.sortObservationsByDepth(
+				new ArrayList<>(observationReferenceMap.keySet()));
+		
+		return persistObservations(sortedObservations, observationReferenceMap, preExistingObservationIds, encounterReference);
+	}
+	
+	private void collectObservationsFromExtensions(List<Extension> qualityObsExtensions, Map<String, Resource> containedMap,
+	        Map<Observation, String> observationReferenceMap, List<String> preExistingObservationIds) {
+		
 		for (Extension ext : qualityObsExtensions) {
-			if (!(ext.getValue() instanceof Reference)) {
-				log.warn("Quality observation extension value is not a Reference, skipping");
+			Observation observation = extractObservationFromExtension(ext, containedMap);
+			if (observation == null) {
 				continue;
 			}
 			
-			Reference obsRef = (Reference) ext.getValue();
-			String containedId = obsRef.getReference();
+			String obsId = BahmniFhirUtils.extractId(observation.getId());
 			
-			if (containedId == null || !containedId.startsWith("#")) {
-				log.warn("Invalid contained reference: " + containedId);
-				continue;
-			}
-			
-			Resource containedResource = containedMap.get(containedId);
-			if (!(containedResource instanceof Observation)) {
-				log.warn("Referenced contained resource is not an Observation: " + containedId);
-				continue;
-			}
-			
-			Observation observation = (Observation) containedResource;
-			String obsId = BahmniFhirUtils.extractId(containedId);
-			
-			// Check if observation already exists
 			Observation existing = findExistingObservation(obsId);
 			if (existing != null) {
 				preExistingObservationIds.add(existing.getId());
@@ -224,10 +221,34 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 			
 			observationReferenceMap.put(observation, obsId);
 		}
+	}
+	
+	private Observation extractObservationFromExtension(Extension ext, Map<String, Resource> containedMap) {
+		if (!(ext.getValue() instanceof Reference)) {
+			log.warn("Quality observation extension value is not a Reference, skipping");
+			return null;
+		}
 		
-		// Sort observations by depth to handle hasMember relationships correctly
-		List<Observation> sortedObservations = ConsultationBundleEntriesHelper.sortObservationsByDepth(
-				new ArrayList<>(observationReferenceMap.keySet()));
+		Reference obsRef = (Reference) ext.getValue();
+		String containedId = obsRef.getReference();
+		
+		if (containedId == null || !containedId.startsWith(CONTAINED_RESOURCE_PREFIX)) {
+			log.warn("Invalid contained reference: " + containedId);
+			return null;
+		}
+		
+		Resource containedResource = containedMap.get(containedId);
+		if (!(containedResource instanceof Observation)) {
+			log.warn("Referenced contained resource is not an Observation: " + containedId);
+			return null;
+		}
+		
+		return (Observation) containedResource;
+	}
+	
+	private Map<String, Reference> persistObservations(List<Observation> sortedObservations,
+			Map<Observation, String> observationReferenceMap, List<String> preExistingObservationIds,
+			Reference encounterReference) {
 		
 		Map<String, Reference> observationsReferenceMap = new HashMap<>();
 		
@@ -236,54 +257,70 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 					.orElseGet(() -> observationReferenceMap.get(observation));
 			String obsEntryId = BahmniFhirUtils.extractId(resourceId);
 			
-			// Remove empty encounter references to avoid NullPointerException
-			if (observation.hasEncounter() && observation.getEncounter().getReference() != null
-					&& observation.getEncounter().getReference().isEmpty()) {
-				observation.setEncounter(null);
-			}
+			prepareObservationForPersistence(observation, encounterReference, observationsReferenceMap);
 			
-			// Set encounter reference if available
-			if (encounterReference != null) {
-				observation.setEncounter(encounterReference);
-			}
-			
-			// Resolve hasMember references to already-created observations
-			observation.getHasMember().forEach(member -> {
-				// Extract the reference ID (works for both #id and Observation/uuid formats)
-				String memberRefId = member.getReference();
-				if (memberRefId != null) {
-					if (memberRefId.startsWith("#")) {
-						// Remove the # prefix for contained references
-						memberRefId = memberRefId.substring(1);
-					} else if (memberRefId.contains("/")) {
-						// Extract UUID from Observation/uuid format
-						memberRefId = BahmniFhirUtils.extractId(memberRefId);
-					}
-					
-					// Look up the mapped reference from already-created observations
-					Reference mappedRef = observationsReferenceMap.get(memberRefId);
-					if (mappedRef != null) {
-						log.debug(String.format("resolving obs.hasMember ref: %s => %s%n", member.getReference(), mappedRef.getReference()));
-						member.setReference(mappedRef.getReference());
-						member.setResource(null); // Clear any stale resource reference
-					}
-				}
-			});
-			
-			// Create or update observation
 			Observation persistedObservation = preExistingObservationIds.contains(obsEntryId)
 					? fhirObservationService.update(obsEntryId, observation)
 					: fhirObservationService.create(observation);
 			
-			// Store reference for hasMember resolution and return map
-			Reference persistedObsReference = new Reference()
-					.setReference(FhirConstants.OBSERVATION + "/" + persistedObservation.getId())
-					.setType(FhirConstants.OBSERVATION);
-			persistedObsReference.setResource(persistedObservation);
+			Reference persistedObsReference = createObservationReference(persistedObservation);
 			observationsReferenceMap.put(obsEntryId, persistedObsReference);
 		}
 		
 		return observationsReferenceMap;
+	}
+	
+	private void prepareObservationForPersistence(Observation observation, Reference encounterReference,
+	        Map<String, Reference> observationsReferenceMap) {
+		
+		// Remove empty encounter references to avoid NullPointerException
+		if (observation.hasEncounter() && observation.getEncounter().getReference() != null
+		        && observation.getEncounter().getReference().isEmpty()) {
+			observation.setEncounter(null);
+		}
+		
+		// Set encounter reference if available
+		if (encounterReference != null) {
+			observation.setEncounter(encounterReference);
+		}
+		
+		resolveHasMemberReferences(observation, observationsReferenceMap);
+	}
+	
+	private void resolveHasMemberReferences(Observation observation, Map<String, Reference> observationsReferenceMap) {
+		observation.getHasMember().forEach(member -> {
+			String memberRefId = extractReferenceId(member.getReference());
+			if (memberRefId != null) {
+				Reference mappedRef = observationsReferenceMap.get(memberRefId);
+				if (mappedRef != null) {
+					log.debug(String.format("resolving obs.hasMember ref: %s => %s%n", 
+							member.getReference(), mappedRef.getReference()));
+					member.setReference(mappedRef.getReference());
+					member.setResource(null);
+				}
+			}
+		});
+	}
+	
+	private String extractReferenceId(String reference) {
+		if (reference == null) {
+			return null;
+		}
+		
+		if (reference.startsWith(CONTAINED_RESOURCE_PREFIX)) {
+			return reference.substring(1);
+		} else if (reference.contains("/")) {
+			return BahmniFhirUtils.extractId(reference);
+		}
+		
+		return reference;
+	}
+	
+	private Reference createObservationReference(Observation observation) {
+		Reference reference = new Reference().setReference(FhirConstants.OBSERVATION + "/" + observation.getId()).setType(
+		    FhirConstants.OBSERVATION);
+		reference.setResource(observation);
+		return reference;
 	}
 	
 	/**

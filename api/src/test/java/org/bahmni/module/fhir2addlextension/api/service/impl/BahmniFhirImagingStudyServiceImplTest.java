@@ -8,6 +8,8 @@ import ca.uhn.fhir.rest.param.ReferenceOrListParam;
 import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.TokenAndListParam;
 import ca.uhn.fhir.rest.param.TokenParam;
+import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
+import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
 import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirImagingStudyDao;
 import org.bahmni.module.fhir2addlextension.api.model.FhirImagingStudy;
@@ -53,8 +55,10 @@ import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.hl7.fhir.r4.model.Observation;
@@ -158,7 +162,8 @@ public class BahmniFhirImagingStudyServiceImplTest {
 		openmrsLocation.setName("Test Location");
 		
 		imagingStudyTranslator = new BahmniFhirImagingStudyTranslatorImpl(basedOnReferenceTranslator,
-		        patientReferenceTranslator, locationReferenceTranslator, practitionerReferenceTranslator, observationTranslator, encounterReferenceTranslator, observationReferenceTranslator);
+		        patientReferenceTranslator, locationReferenceTranslator, practitionerReferenceTranslator,
+                encounterReferenceTranslator);
 		fhirImagingStudyService = new BahmniFhirImagingStudyServiceImpl(
 		                                                                imagingStudyDao, imagingStudyTranslator,
 		                                                                searchQueryInclude, searchQuery,
@@ -516,6 +521,69 @@ public class BahmniFhirImagingStudyServiceImplTest {
 		study.setDescription("Test imaging study");
 		study.setDateStarted(new java.util.Date());
 		return study;
+	}
+	
+	@Test
+	public void testFetchWithQualityAssessment_shouldReturnStudyWithContainedObservations() {
+		String studyId = "test-study-uuid";
+		FhirImagingStudy study = createExistingStudyWithEncounter(studyId);
+		
+		org.openmrs.Obs obs1 = new org.openmrs.Obs();
+		obs1.setUuid("obs-uuid-1");
+		org.openmrs.Obs obs2 = new org.openmrs.Obs();
+		obs2.setUuid("obs-uuid-2");
+		
+		Set<org.openmrs.Obs> results = new LinkedHashSet<>();
+		results.add(obs1);
+		results.add(obs2);
+		study.setResults(results);
+		
+		when(imagingStudyDao.get(studyId)).thenReturn(study);
+		when(observationTranslator.toFhirResource(any(org.openmrs.Obs.class))).thenAnswer(invocation -> {
+			org.openmrs.Obs obs = invocation.getArgument(0);
+			Observation fhirObs = new Observation();
+			fhirObs.setId(obs.getUuid());
+			return fhirObs;
+		});
+		
+		ImagingStudy result = fhirImagingStudyService.fetchWithQualityAssessment(studyId);
+		
+		Assert.assertNotNull(result);
+		Assert.assertEquals(studyId, result.getId());
+		Assert.assertEquals(2, result.getContained().size());
+		Assert.assertEquals(2, result.getExtensionsByUrl(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION).size());
+	}
+	
+	@Test(expected = ResourceNotFoundException.class)
+	public void testFetchWithQualityAssessment_shouldThrowExceptionWhenStudyNotFound() {
+		String studyId = "non-existent-uuid";
+		
+		when(imagingStudyDao.get(studyId)).thenReturn(null);
+		
+		fhirImagingStudyService.fetchWithQualityAssessment(studyId);
+	}
+	
+	@Test(expected = InvalidRequestException.class)
+	public void testSubmitQualityAssessment_shouldThrowExceptionWhenNoExtensions() {
+		ImagingStudy request = new ImagingStudy();
+		request.setId("test-study-uuid");
+		
+		FhirImagingStudy existingStudy = createExistingStudyWithEncounter("test-study-uuid");
+		when(imagingStudyDao.get("test-study-uuid")).thenReturn(existingStudy);
+		
+		fhirImagingStudyService.submitQualityAssessment(request);
+	}
+	
+	@Test(expected = InvalidRequestException.class)
+	public void testSubmitQualityAssessment_shouldThrowExceptionWhenNoContainedResources() {
+		ImagingStudy request = new ImagingStudy();
+		request.setId("test-study-uuid");
+		request.addExtension(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION, new Reference("#obs-1"));
+		
+		FhirImagingStudy existingStudy = createExistingStudyWithEncounter("test-study-uuid");
+		when(imagingStudyDao.get("test-study-uuid")).thenReturn(existingStudy);
+		
+		fhirImagingStudyService.submitQualityAssessment(request);
 	}
 	
 	private FhirImagingStudy createExistingStudyWithEncounter(String uuid) {
