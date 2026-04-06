@@ -1,5 +1,6 @@
 package org.bahmni.module.fhir2addlextension.api.service.impl;
 
+import org.bahmni.module.fhir2addlextension.api.PrivilegeConstants;
 import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirDiagnosticReportDao;
 import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirServiceRequestDao;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDiagnosticReportExt;
@@ -8,6 +9,7 @@ import org.bahmni.module.fhir2addlextension.api.translator.BahmniFhirDiagnosticR
 import org.bahmni.module.fhir2addlextension.api.translator.BahmniOrderReferenceTranslator;
 import org.bahmni.module.fhir2addlextension.api.validators.impl.DiagnosticReportValidatorImpl;
 import org.hl7.fhir.r4.model.DiagnosticReport;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -17,8 +19,14 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Encounter;
 import org.openmrs.Order;
 import org.openmrs.Provider;
+import org.openmrs.User;
+import org.openmrs.api.APIAuthenticationException;
+import org.openmrs.api.context.Context;
+import org.openmrs.api.context.UserContext;
+import org.openmrs.api.db.ContextDAO;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
 import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
+import org.openmrs.module.fhir2.api.search.param.DiagnosticReportSearchParams;
 import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
 import org.openmrs.module.fhir2.api.translators.EncounterReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.ObservationReferenceTranslator;
@@ -30,6 +38,7 @@ import java.io.IOException;
 import static org.bahmni.module.fhir2addlextension.api.TestDataFactory.loadResourceFromFile;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -37,6 +46,15 @@ import static org.mockito.Mockito.when;
 public class BahmniFhirDiagnosticReportServiceTest {
 	
 	BahmniFhirDiagnosticReportService diagnosticReportService;
+	
+	@Mock
+	private ContextDAO contextDAO;
+	
+	@Mock
+	private UserContext userContext;
+	
+	@Mock
+	private User user;
 	
 	@Mock
 	BahmniFhirDiagnosticReportDao bahmniFhirDiagnosticReportDao;
@@ -73,6 +91,11 @@ public class BahmniFhirDiagnosticReportServiceTest {
 	
 	@Before
 	public void setUp() throws Exception {
+		when(userContext.getAuthenticatedUser()).thenReturn(user);
+		Context.setDAO(contextDAO);
+		Context.openSession();
+		Context.setUserContext(userContext);
+		
 		DiagnosticReportValidatorImpl validator = new DiagnosticReportValidatorImpl(serviceRequestDao);
 		diagnosticReportService = new BahmniFhirDiagnosticReportServiceImpl(
 		                                                                    bahmniFhirDiagnosticReportDao, validator,
@@ -84,6 +107,11 @@ public class BahmniFhirDiagnosticReportServiceTest {
 				//Done to avoid failure in ValidateUtil.validate(object) which calls Context.getAdministrativeService()
 			}
 		};
+	}
+	
+	@After
+	public void tearDown() {
+		Context.closeSession();
 	}
 	
 	@Test
@@ -110,8 +138,45 @@ public class BahmniFhirDiagnosticReportServiceTest {
 		verify(diagnosticReportTranslator).toFhirResource(openmrsReport);
 	}
 	
+	@Test(expected = APIAuthenticationException.class)
+	public void searchForDiagnosticReports_shouldThrowWhenUserNotAuthenticated() {
+		when(userContext.getAuthenticatedUser()).thenReturn(null);
+		when(userContext.hasPrivilege(PrivilegeConstants.GET_DIAGNOSTIC_REPORT)).thenReturn(false);
+		when(userContext.hasPrivilege(PrivilegeConstants.GET_OBSERVATIONS)).thenReturn(false);
+		
+		DiagnosticReportSearchParams params = mock(DiagnosticReportSearchParams.class);
+		diagnosticReportService.searchForDiagnosticReports(params);
+	}
+	
+	@Test(expected = APIAuthenticationException.class)
+	public void searchForDiagnosticReports_shouldThrowWhenUserLacksBothPrivileges() {
+		when(user.hasPrivilege(PrivilegeConstants.GET_DIAGNOSTIC_REPORT)).thenReturn(false);
+		when(userContext.hasPrivilege(PrivilegeConstants.GET_DIAGNOSTIC_REPORT)).thenReturn(false);
+		when(userContext.hasPrivilege(PrivilegeConstants.GET_OBSERVATIONS)).thenReturn(false);
+		
+		DiagnosticReportSearchParams params = mock(DiagnosticReportSearchParams.class);
+		diagnosticReportService.searchForDiagnosticReports(params);
+	}
+	
 	@Test
-	public void searchForDiagnosticReports() {
+	public void searchForDiagnosticReports_shouldSucceedWithGetDiagnosticReportPrivilege() {
+		when(userContext.hasPrivilege(PrivilegeConstants.GET_DIAGNOSTIC_REPORT)).thenReturn(true);
+		
+		DiagnosticReportSearchParams params = mock(DiagnosticReportSearchParams.class);
+		when(params.toSearchParameterMap()).thenReturn(new org.openmrs.module.fhir2.api.search.param.SearchParameterMap());
+		
+		diagnosticReportService.searchForDiagnosticReports(params);
+	}
+	
+	@Test
+	public void searchForDiagnosticReports_shouldSucceedWithGetObservationsPrivilege() {
+		when(userContext.hasPrivilege(PrivilegeConstants.GET_DIAGNOSTIC_REPORT)).thenReturn(false);
+		when(userContext.hasPrivilege(PrivilegeConstants.GET_OBSERVATIONS)).thenReturn(true);
+		
+		DiagnosticReportSearchParams params = mock(DiagnosticReportSearchParams.class);
+		when(params.toSearchParameterMap()).thenReturn(new org.openmrs.module.fhir2.api.search.param.SearchParameterMap());
+		
+		diagnosticReportService.searchForDiagnosticReports(params);
 	}
 	
 	@Test

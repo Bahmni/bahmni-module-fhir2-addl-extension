@@ -1,11 +1,16 @@
 package org.bahmni.module.fhir2addlextension.api.service.impl;
 
+import ca.uhn.fhir.rest.param.ReferenceAndListParam;
+import ca.uhn.fhir.rest.param.ReferenceOrListParam;
+import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
+import org.bahmni.module.fhir2addlextension.api.PrivilegeConstants;
 import org.bahmni.module.fhir2addlextension.api.dao.DocumentReferenceAttributeTypeDao;
 import org.bahmni.module.fhir2addlextension.api.dao.DocumentReferenceDao;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReference;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceAttributeType;
+import org.bahmni.module.fhir2addlextension.api.search.param.BahmniDocumentReferenceSearchParams;
 import org.bahmni.module.fhir2addlextension.api.translator.BahmniOrderReferenceTranslator;
 import org.bahmni.module.fhir2addlextension.api.translator.DocumentReferenceExtensionTranslator;
 import org.bahmni.module.fhir2addlextension.api.translator.DocumentReferenceStatusTranslator;
@@ -16,6 +21,7 @@ import org.bahmni.module.fhir2addlextension.api.translator.impl.DocumentReferenc
 import org.bahmni.module.fhir2addlextension.api.translator.impl.DocumentReferenceTranslatorImpl;
 import org.hl7.fhir.r4.model.DocumentReference;
 import org.hl7.fhir.r4.model.Enumerations;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -24,6 +30,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Encounter;
 import org.openmrs.Provider;
 import org.openmrs.User;
+import org.openmrs.api.APIAuthenticationException;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.context.UserContext;
 import org.openmrs.api.db.ContextDAO;
@@ -87,11 +94,12 @@ public class BahmniFhirDocumentReferenceServiceImplTest {
 	private DocumentReferenceTranslator translator;
 	
 	@Before
-    public void setUp() {
-        when(userContext.getAuthenticatedUser()).thenReturn(user);
-        Context.setDAO(contextDAO);
-        Context.openSession();
-        Context.setUserContext(userContext);
+	public void setUp() {
+		when(userContext.getAuthenticatedUser()).thenReturn(user);
+		when(user.hasPrivilege(PrivilegeConstants.GET_DOCUMENT_REFERENCE)).thenReturn(true);
+		Context.setDAO(contextDAO);
+		Context.openSession();
+		Context.setUserContext(userContext);
         DocumentReferenceAttributeTypeDao attributeTypeDao = includeRetired -> supportedAttributes;
         DefaultDocumentReferenceAttributeTranslatorImpl defaultAttributeTranslator = new DefaultDocumentReferenceAttributeTranslatorImpl(attributeTypeDao);
         DocumentReferenceExtensionTranslator extensionTranslator = new DocumentReferenceExtensionTranslatorImpl(defaultAttributeTranslator);
@@ -139,5 +147,43 @@ public class BahmniFhirDocumentReferenceServiceImplTest {
 	@Test
 	public void applyUpdate() {
 		
+	}
+	
+	@After
+	public void tearDown() {
+		Context.closeSession();
+	}
+	
+	@Test(expected = APIAuthenticationException.class)
+	public void searchDocumentReferences_shouldThrowWhenUserNotAuthenticated() {
+		when(userContext.getAuthenticatedUser()).thenReturn(null);
+		
+		BahmniDocumentReferenceSearchParams params = new BahmniDocumentReferenceSearchParams();
+		params.setPatientReference(new ReferenceAndListParam().addAnd(new ReferenceOrListParam().add(new ReferenceParam(
+		        "Patient/test-uuid"))));
+		
+		documentReferenceService.searchDocumentReferences(params);
+	}
+	
+	@Test(expected = APIAuthenticationException.class)
+	public void searchDocumentReferences_shouldThrowWhenUserLacksPrivilege() {
+		when(user.hasPrivilege(PrivilegeConstants.GET_DOCUMENT_REFERENCE)).thenReturn(false);
+		
+		BahmniDocumentReferenceSearchParams params = new BahmniDocumentReferenceSearchParams();
+		params.setPatientReference(new ReferenceAndListParam().addAnd(new ReferenceOrListParam().add(new ReferenceParam(
+		        "Patient/test-uuid"))));
+		
+		documentReferenceService.searchDocumentReferences(params);
+	}
+	
+	@Test
+	public void searchDocumentReferences_shouldSucceedWithCorrectPrivilege() {
+		when(user.hasPrivilege(PrivilegeConstants.GET_DOCUMENT_REFERENCE)).thenReturn(true);
+		
+		BahmniDocumentReferenceSearchParams params = new BahmniDocumentReferenceSearchParams();
+		params.setPatientReference(new ReferenceAndListParam().addAnd(new ReferenceOrListParam().add(new ReferenceParam(
+		        "Patient/test-uuid"))));
+		
+		documentReferenceService.searchDocumentReferences(params);
 	}
 }
