@@ -269,4 +269,25 @@ public class BahmniImagingStudyR4ResourceProviderTest {
 		study.setDescription("Test imaging study");
 		return study;
 	}
+	
+	@Test
+	public void testSubmitQualityAssessmentWithNullIdPart_shouldThrowException() {
+		ImagingStudy imagingStudy = createTestImagingStudy(null);
+		IdType idType = new IdType();
+		idType.setValue(null);
+		
+		assertThrows(InvalidRequestException.class, () -> {
+			resourceProvider.submitQualityAssessment(idType, imagingStudy);
+		});
+	}
+	
+	@Test
+	public void testFetchQualityAssessmentWithNullIdPart_shouldThrowException() {
+		IdType idType = new IdType();
+		idType.setValue(null);
+		
+		assertThrows(InvalidRequestException.class, () -> {
+			resourceProvider.fetchQualityAssessment(idType);
+		});
+	}
 }
