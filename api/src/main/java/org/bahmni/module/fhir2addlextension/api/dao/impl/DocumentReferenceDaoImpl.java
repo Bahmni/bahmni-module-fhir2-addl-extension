@@ -1,14 +1,12 @@
 package org.bahmni.module.fhir2addlextension.api.dao.impl;
 
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
-import org.bahmni.module.fhir2addlextension.api.PrivilegeConstants;
 import org.bahmni.module.fhir2addlextension.api.dao.DocumentReferenceDao;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReference;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceAttribute;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceContent;
 import org.hibernate.Criteria;
 import org.openmrs.User;
-import org.openmrs.annotation.Authorized;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.dao.impl.BaseFhirDao;
@@ -16,42 +14,10 @@ import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
-import java.util.Collection;
 import java.util.Date;
-import java.util.List;
 
 @Component
 public class DocumentReferenceDaoImpl extends BaseFhirDao<FhirDocumentReference> implements DocumentReferenceDao {
-	
-	@Override
-	@Authorized({ PrivilegeConstants.GET_DOCUMENT_REFERENCE })
-	public FhirDocumentReference get(@Nonnull String uuid) {
-		return super.get(uuid);
-	}
-	
-	@Override
-	@Authorized({ PrivilegeConstants.GET_DOCUMENT_REFERENCE })
-	public List<FhirDocumentReference> get(@Nonnull Collection<String> uuids) {
-		return super.get(uuids);
-	}
-	
-	@Override
-	@Authorized({ PrivilegeConstants.ADD_DOCUMENT_REFERENCE, PrivilegeConstants.EDIT_DOCUMENT_REFERENCE })
-	public FhirDocumentReference createOrUpdate(@Nonnull FhirDocumentReference newEntry) {
-		return super.createOrUpdate(newEntry);
-	}
-	
-	@Override
-	@Authorized({ PrivilegeConstants.DELETE_DOCUMENT_REFERENCE })
-	public FhirDocumentReference delete(@Nonnull String uuid) {
-		return super.delete(uuid);
-	}
-	
-	@Override
-	@Authorized({ PrivilegeConstants.GET_DOCUMENT_REFERENCE })
-	public List<FhirDocumentReference> getSearchResults(@Nonnull SearchParameterMap theParams) {
-		return super.getSearchResults(theParams);
-	}
 	
 	@Override
 	public void voidDocumentReference(@Nonnull FhirDocumentReference documentReference, @Nonnull String voidReason) {
