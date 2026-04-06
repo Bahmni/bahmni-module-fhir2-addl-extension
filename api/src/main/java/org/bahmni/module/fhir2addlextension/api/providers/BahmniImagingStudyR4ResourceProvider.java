@@ -1,7 +1,17 @@
 package org.bahmni.module.fhir2addlextension.api.providers;
 
 import ca.uhn.fhir.model.api.annotation.Description;
-import ca.uhn.fhir.rest.annotation.*;
+import ca.uhn.fhir.rest.annotation.Create;
+import ca.uhn.fhir.rest.annotation.IdParam;
+import ca.uhn.fhir.rest.annotation.Operation;
+import ca.uhn.fhir.rest.annotation.OperationParam;
+import ca.uhn.fhir.rest.annotation.OptionalParam;
+import ca.uhn.fhir.rest.annotation.Patch;
+import ca.uhn.fhir.rest.annotation.Read;
+import ca.uhn.fhir.rest.annotation.ResourceParam;
+import ca.uhn.fhir.rest.annotation.Search;
+import ca.uhn.fhir.rest.annotation.Sort;
+import ca.uhn.fhir.rest.annotation.Update;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.api.PatchTypeEnum;
 import ca.uhn.fhir.rest.api.SortSpec;
@@ -13,6 +23,7 @@ import ca.uhn.fhir.rest.param.TokenAndListParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
+import org.bahmni.module.fhir2addlextension.api.context.RequestContextHolder;
 import org.bahmni.module.fhir2addlextension.api.search.param.BahmniImagingStudySearchParams;
 import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirImagingStudyService;
 import org.hl7.fhir.instance.model.api.IBaseResource;
@@ -91,23 +102,24 @@ public class BahmniImagingStudyR4ResourceProvider implements IResourceProvider {
 	@Description(shortDefinition = "Submit quality assessment observations for ImagingStudy", value = "This operation submits quality assessment observations as contained resources within the ImagingStudy. "
 	        + "The ImagingStudy should include contained Observation resources referenced by quality-observation extensions.")
 	@Operation(name = "$submit-quality-assessment", idempotent = false, type = ImagingStudy.class, returnParameters = { @OperationParam(name = "return", type = ImagingStudy.class, min = 1, max = 1) })
-	public ImagingStudy submitQualityAssessment(@IdParam @Nonnull IdType id,
-	        @OperationParam(name = "input", min = 1, max = 1) ImagingStudy imagingStudy) {
-		
-		if (id == null || id.getIdPart() == null) {
-			throw new InvalidRequestException("ImagingStudy ID must be specified");
+	public ImagingStudy submitQualityAssessment(@OperationParam(name = "input", min = 1, max = 1) ImagingStudy imagingStudy,
+	        RequestDetails requestDetails) {
+		if (imagingStudy == null) {
+			throw new InvalidRequestException("ImagingStudy resource must be provided");
 		}
 		
-		imagingStudy.setId(id.getIdPart());
-		return fhirImagingStudyService.submitQualityAssessment(imagingStudy);
+		RequestContextHolder.setValue(requestDetails.getFhirServerBase());
+		return fhirImagingStudyService.create(imagingStudy);
 	}
 	
 	@Description(shortDefinition = "Fetch ImagingStudy with quality assessment observations", value = "This operation retrieves an ImagingStudy with its quality assessment observations included as contained resources.")
 	@Operation(name = "$fetch-quality-assessment", idempotent = true, type = ImagingStudy.class, returnParameters = { @OperationParam(name = "return", type = ImagingStudy.class, min = 1, max = 1) })
-	public ImagingStudy fetchQualityAssessment(@IdParam @Nonnull IdType id) {
+	public ImagingStudy fetchQualityAssessment(@IdParam @Nonnull IdType id, RequestDetails requestDetails) {
 		if (id == null || id.getIdPart() == null) {
 			throw new InvalidRequestException("ImagingStudy ID must be specified");
 		}
+		
+		RequestContextHolder.setValue(requestDetails.getFhirServerBase());
 		return fhirImagingStudyService.fetchWithQualityAssessment(id.getIdPart());
 	}
 }

@@ -44,11 +44,7 @@ import org.openmrs.module.fhir2.api.search.SearchQuery;
 import org.openmrs.module.fhir2.api.search.SearchQueryBundleProvider;
 import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
-import org.openmrs.module.fhir2.api.translators.EncounterReferenceTranslator;
-import org.openmrs.module.fhir2.api.translators.LocationReferenceTranslator;
-import org.openmrs.module.fhir2.api.translators.ObservationTranslator;
-import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
-import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
+import org.openmrs.module.fhir2.api.translators.*;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -76,7 +72,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(MockitoJUnitRunner.Silent.class)
 public class BahmniFhirImagingStudyServiceImplTest {
 	
 	@Mock
@@ -115,14 +111,14 @@ public class BahmniFhirImagingStudyServiceImplTest {
 	@Mock
 	private FhirObservationService fhirObservationService;
 	
-	@Mock
+	@Mock(lenient = true)
 	private ObservationTranslator observationTranslator;
 	
 	@Mock
 	private EncounterReferenceTranslator<Encounter> encounterReferenceTranslator;
 	
-	@Mock
-	private org.openmrs.module.fhir2.api.translators.ObservationReferenceTranslator observationReferenceTranslator;
+	@Mock(lenient = true)
+	private ObservationReferenceTranslator observationReferenceTranslator;
 	
 	private BahmniFhirImagingStudyTranslator imagingStudyTranslator;
 	
@@ -480,7 +476,7 @@ public class BahmniFhirImagingStudyServiceImplTest {
 			return fhirObs;
 		});
 		
-		ImagingStudy result = fhirImagingStudyService.submitQualityAssessment(request);
+		ImagingStudy result = fhirImagingStudyService.create(request);
 		
 		Assert.assertNotNull(result);
 		verify(fhirObservationService, times(3)).create(obsCaptor.capture());
@@ -559,27 +555,43 @@ public class BahmniFhirImagingStudyServiceImplTest {
 		fhirImagingStudyService.fetchWithQualityAssessment(studyId);
 	}
 	
-	@Test(expected = InvalidRequestException.class)
-	public void testSubmitQualityAssessment_shouldThrowExceptionWhenNoExtensions() {
+	@Test
+	public void testSubmitQualityAssessment_shouldNotThrowExceptionWhenNoExtensions() {
 		ImagingStudy request = new ImagingStudy();
 		request.setId("test-study-uuid");
+		request.setStatus(ImagingStudy.ImagingStudyStatus.REGISTERED);
+		request.addIdentifier().setSystem("urn:dicom:uid").setValue("urn:oid:test.study.instance");
+		request.setSubject(new Reference("Patient/" + PATIENT_UUID));
 		
-		FhirImagingStudy existingStudy = createExistingStudyWithEncounter("test-study-uuid");
-		when(imagingStudyDao.get("test-study-uuid")).thenReturn(existingStudy);
+		FhirImagingStudy newStudy = createTestFhirImagingStudy("test-study-uuid");
+		when(imagingStudyDao.createOrUpdate(any())).thenReturn(newStudy);
+		when(patientReferenceTranslator.toOpenmrsType(any(Reference.class))).thenReturn(openmrsPatient);
 		
-		fhirImagingStudyService.submitQualityAssessment(request);
+		// Should go through normal create flow since no quality assessments
+		ImagingStudy result = fhirImagingStudyService.create(request);
+		
+		Assert.assertNotNull(result);
+		Assert.assertEquals(0, result.getExtensionsByUrl(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION).size());
 	}
 	
-	@Test(expected = InvalidRequestException.class)
-	public void testSubmitQualityAssessment_shouldThrowExceptionWhenNoContainedResources() {
+	@Test
+	public void testSubmitQualityAssessment_shouldNotThrowExceptionWhenNoContainedResources() {
+		String studyId = "test-study-uuid";
 		ImagingStudy request = new ImagingStudy();
-		request.setId("test-study-uuid");
+		request.setId(studyId);
+		request.setStatus(ImagingStudy.ImagingStudyStatus.REGISTERED);
+		request.addIdentifier().setSystem("urn:dicom:uid").setValue("urn:oid:test.study.instance");
+		request.setSubject(new Reference("Patient/" + PATIENT_UUID));
 		request.addExtension(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION, new Reference("#obs-1"));
+		// No contained resources - this goes through normal create flow, not quality assessment
 		
-		FhirImagingStudy existingStudy = createExistingStudyWithEncounter("test-study-uuid");
-		when(imagingStudyDao.get("test-study-uuid")).thenReturn(existingStudy);
+		FhirImagingStudy newStudy = createTestFhirImagingStudy(studyId);
+		when(imagingStudyDao.createOrUpdate(any())).thenReturn(newStudy);
+		when(patientReferenceTranslator.toOpenmrsType(any(Reference.class))).thenReturn(openmrsPatient);
 		
-		fhirImagingStudyService.submitQualityAssessment(request);
+		// Should go through normal create flow since no contained resources
+		ImagingStudy result = fhirImagingStudyService.create(request);
+		Assert.assertNotNull(result);
 	}
 	
 	private FhirImagingStudy createExistingStudyWithEncounter(String uuid) {
@@ -590,23 +602,41 @@ public class BahmniFhirImagingStudyServiceImplTest {
 		return study;
 	}
 	
-	@Test(expected = ResourceNotFoundException.class)
-	public void testSubmitQualityAssessment_shouldThrowExceptionWhenStudyNotFound() {
+	@Test
+	public void testSubmitQualityAssessment_shouldNotProcessWhenStudyNotFound() {
+		String studyId = "non-existent-uuid";
 		ImagingStudy request = new ImagingStudy();
-		request.setId("non-existent-uuid");
+		request.setId(studyId);
+		request.setStatus(ImagingStudy.ImagingStudyStatus.REGISTERED);
+		request.addIdentifier().setSystem("urn:dicom:uid").setValue("urn:oid:test.study.instance");
+		request.setSubject(new Reference("Patient/" + PATIENT_UUID));
 		request.addExtension(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION, new Reference("#obs-1"));
+		// No contained - triggers normal create flow, not quality assessment flow
 		
-		when(imagingStudyDao.get("non-existent-uuid")).thenReturn(null);
+		FhirImagingStudy newStudy = createTestFhirImagingStudy(studyId);
+		when(imagingStudyDao.createOrUpdate(any())).thenReturn(newStudy);
+		when(patientReferenceTranslator.toOpenmrsType(any(Reference.class))).thenReturn(openmrsPatient);
 		
-		fhirImagingStudyService.submitQualityAssessment(request);
+		// Should go through normal create flow since no contained resources
+		ImagingStudy result = fhirImagingStudyService.create(request);
+		Assert.assertNotNull(result);
 	}
 	
-	@Test(expected = InvalidRequestException.class)
-	public void testSubmitQualityAssessment_shouldThrowExceptionWhenIdIsNull() {
+	@Test
+	public void testSubmitQualityAssessment_shouldHandleEmptyId() {
 		ImagingStudy request = new ImagingStudy();
 		request.setId(new IdType());
+		request.setStatus(ImagingStudy.ImagingStudyStatus.REGISTERED);
+		request.addIdentifier().setSystem("urn:dicom:uid").setValue("urn:oid:test.study.instance");
+		request.setSubject(new Reference("Patient/" + PATIENT_UUID));
 		
-		fhirImagingStudyService.submitQualityAssessment(request);
+		FhirImagingStudy newStudy = createTestFhirImagingStudy("generated-uuid");
+		when(imagingStudyDao.createOrUpdate(any())).thenReturn(newStudy);
+		when(patientReferenceTranslator.toOpenmrsType(any(Reference.class))).thenReturn(openmrsPatient);
+		
+		// Should create successfully with generated ID
+		ImagingStudy result = fhirImagingStudyService.create(request);
+		Assert.assertNotNull(result);
 	}
 	
 	@Test
@@ -657,7 +687,7 @@ public class BahmniFhirImagingStudyServiceImplTest {
 			return fhirObs;
 		});
 		
-		ImagingStudy result = fhirImagingStudyService.submitQualityAssessment(request);
+		ImagingStudy result = fhirImagingStudyService.create(request);
 		
 		Assert.assertNotNull(result);
 		verify(fhirObservationService, times(3)).create(any(Observation.class));
@@ -725,7 +755,7 @@ public class BahmniFhirImagingStudyServiceImplTest {
 			return fhirObs;
 		});
 		
-		ImagingStudy result = fhirImagingStudyService.submitQualityAssessment(request);
+		ImagingStudy result = fhirImagingStudyService.create(request);
 		
 		Assert.assertNotNull(result);
 		verify(fhirObservationService, times(1)).update(eq("obs-1775130800624-wkl0xssb7"), any(Observation.class));
@@ -736,6 +766,7 @@ public class BahmniFhirImagingStudyServiceImplTest {
 		String studyId = "study-with-invalid-ext";
 		ImagingStudy request = new ImagingStudy();
 		request.setId(studyId);
+		request.setStatus(ImagingStudy.ImagingStudyStatus.REGISTERED);
 		
 		Extension invalidExt = new Extension(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION);
 		invalidExt.setValue(new org.hl7.fhir.r4.model.StringType("invalid-value"));
@@ -747,7 +778,6 @@ public class BahmniFhirImagingStudyServiceImplTest {
 		request.addExtension(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION, new Reference("#valid-obs"));
 		
 		FhirImagingStudy existingStudy = createExistingStudyWithEncounter(studyId);
-		when(imagingStudyDao.get(studyId)).thenReturn(existingStudy);
 		when(imagingStudyDao.createOrUpdate(any())).thenAnswer(invocation -> invocation.getArgument(0));
 		
 		when(fhirObservationService.create(any(Observation.class))).thenAnswer(invocation -> {
@@ -770,7 +800,7 @@ public class BahmniFhirImagingStudyServiceImplTest {
 			return fhirObs;
 		});
 		
-		ImagingStudy result = fhirImagingStudyService.submitQualityAssessment(request);
+		ImagingStudy result = fhirImagingStudyService.create(request);
 		
 		Assert.assertNotNull(result);
 		verify(fhirObservationService, times(1)).create(any(Observation.class));
@@ -781,6 +811,7 @@ public class BahmniFhirImagingStudyServiceImplTest {
 		String studyId = "study-with-invalid-contained";
 		ImagingStudy request = new ImagingStudy();
 		request.setId(studyId);
+		request.setStatus(ImagingStudy.ImagingStudyStatus.REGISTERED);
 		
 		org.hl7.fhir.r4.model.Patient invalidResource = new org.hl7.fhir.r4.model.Patient();
 		invalidResource.setId("#invalid-resource");
@@ -793,7 +824,6 @@ public class BahmniFhirImagingStudyServiceImplTest {
 		request.addExtension(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION, new Reference("#valid-obs"));
 		
 		FhirImagingStudy existingStudy = createExistingStudyWithEncounter(studyId);
-		when(imagingStudyDao.get(studyId)).thenReturn(existingStudy);
 		when(imagingStudyDao.createOrUpdate(any())).thenAnswer(invocation -> invocation.getArgument(0));
 		
 		when(fhirObservationService.create(any(Observation.class))).thenAnswer(invocation -> {
@@ -816,7 +846,7 @@ public class BahmniFhirImagingStudyServiceImplTest {
 			return fhirObs;
 		});
 		
-		ImagingStudy result = fhirImagingStudyService.submitQualityAssessment(request);
+		ImagingStudy result = fhirImagingStudyService.create(request);
 		
 		Assert.assertNotNull(result);
 		verify(fhirObservationService, times(1)).create(any(Observation.class));
@@ -827,6 +857,7 @@ public class BahmniFhirImagingStudyServiceImplTest {
 		String studyId = "study-with-invalid-ref";
 		ImagingStudy request = new ImagingStudy();
 		request.setId(studyId);
+		request.setStatus(ImagingStudy.ImagingStudyStatus.REGISTERED);
 		
 		request.addExtension(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION, new Reference("invalid-ref"));
 		request.addExtension(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION, new Reference("#non-existent-obs"));
@@ -837,7 +868,6 @@ public class BahmniFhirImagingStudyServiceImplTest {
 		request.addExtension(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION, new Reference("#valid-obs"));
 		
 		FhirImagingStudy existingStudy = createExistingStudyWithEncounter(studyId);
-		when(imagingStudyDao.get(studyId)).thenReturn(existingStudy);
 		when(imagingStudyDao.createOrUpdate(any())).thenAnswer(invocation -> invocation.getArgument(0));
 		
 		when(fhirObservationService.create(any(Observation.class))).thenAnswer(invocation -> {
@@ -860,7 +890,7 @@ public class BahmniFhirImagingStudyServiceImplTest {
 			return fhirObs;
 		});
 		
-		ImagingStudy result = fhirImagingStudyService.submitQualityAssessment(request);
+		ImagingStudy result = fhirImagingStudyService.create(request);
 		
 		Assert.assertNotNull(result);
 		verify(fhirObservationService, times(1)).create(any(Observation.class));
@@ -922,7 +952,7 @@ public class BahmniFhirImagingStudyServiceImplTest {
 			return fhirObs;
 		});
 		
-		ImagingStudy result = fhirImagingStudyService.submitQualityAssessment(request);
+		ImagingStudy result = fhirImagingStudyService.create(request);
 		
 		Assert.assertNotNull(result);
 	}

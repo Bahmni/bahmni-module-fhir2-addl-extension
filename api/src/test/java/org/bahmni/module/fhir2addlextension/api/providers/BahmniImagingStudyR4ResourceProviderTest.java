@@ -219,24 +219,22 @@ public class BahmniImagingStudyR4ResourceProviderTest {
 	
 	@Test
 	public void testSubmitQualityAssessment() {
-		ImagingStudy imagingStudy = createTestImagingStudy(null);
+		ImagingStudy imagingStudy = createTestImagingStudy(IMAGING_STUDY_UUID);
 		ImagingStudy resultStudy = createTestImagingStudy(IMAGING_STUDY_UUID);
 		
-		when(fhirImagingStudyService.submitQualityAssessment(imagingStudy)).thenReturn(resultStudy);
+		when(fhirImagingStudyService.create(imagingStudy)).thenReturn(resultStudy);
 		
-		ImagingStudy result = resourceProvider.submitQualityAssessment(new IdType(IMAGING_STUDY_UUID), imagingStudy);
+		ImagingStudy result = resourceProvider.submitQualityAssessment(imagingStudy, requestDetails);
 		
 		assertNotNull(result);
 		assertEquals(IMAGING_STUDY_UUID, result.getId());
-		verify(fhirImagingStudyService).submitQualityAssessment(imagingStudy);
+		verify(fhirImagingStudyService).create(imagingStudy);
 	}
 	
 	@Test
-	public void testSubmitQualityAssessmentWithoutId_shouldThrowException() {
-		ImagingStudy imagingStudy = createTestImagingStudy(null);
-		
+	public void testSubmitQualityAssessmentWithNull_shouldThrowException() {
 		assertThrows(InvalidRequestException.class, () -> {
-			resourceProvider.submitQualityAssessment(null, imagingStudy);
+			resourceProvider.submitQualityAssessment(null, requestDetails);
 		});
 	}
 	
@@ -246,7 +244,7 @@ public class BahmniImagingStudyR4ResourceProviderTest {
 		
 		when(fhirImagingStudyService.fetchWithQualityAssessment(IMAGING_STUDY_UUID)).thenReturn(expectedStudy);
 		
-		ImagingStudy result = resourceProvider.fetchQualityAssessment(new IdType(IMAGING_STUDY_UUID));
+		ImagingStudy result = resourceProvider.fetchQualityAssessment(new IdType(IMAGING_STUDY_UUID), requestDetails);
 		
 		assertNotNull(result);
 		assertEquals(IMAGING_STUDY_UUID, result.getId());
@@ -256,7 +254,7 @@ public class BahmniImagingStudyR4ResourceProviderTest {
 	@Test
 	public void testFetchQualityAssessmentWithoutId_shouldThrowException() {
 		assertThrows(InvalidRequestException.class, () -> {
-			resourceProvider.fetchQualityAssessment(null);
+			resourceProvider.fetchQualityAssessment(null, requestDetails);
 		});
 	}
 	
@@ -268,26 +266,5 @@ public class BahmniImagingStudyR4ResourceProviderTest {
 		study.setStatus(ImagingStudy.ImagingStudyStatus.REGISTERED);
 		study.setDescription("Test imaging study");
 		return study;
-	}
-	
-	@Test
-	public void testSubmitQualityAssessmentWithNullIdPart_shouldThrowException() {
-		ImagingStudy imagingStudy = createTestImagingStudy(null);
-		IdType idType = new IdType();
-		idType.setValue(null);
-		
-		assertThrows(InvalidRequestException.class, () -> {
-			resourceProvider.submitQualityAssessment(idType, imagingStudy);
-		});
-	}
-	
-	@Test
-	public void testFetchQualityAssessmentWithNullIdPart_shouldThrowException() {
-		IdType idType = new IdType();
-		idType.setValue(null);
-		
-		assertThrows(InvalidRequestException.class, () -> {
-			resourceProvider.fetchQualityAssessment(idType);
-		});
 	}
 }

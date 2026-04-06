@@ -103,6 +103,46 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	}
 	
 	@Override
+	public ImagingStudy create(@Nonnull ImagingStudy newResource) {
+		if (newResource == null) {
+			throw new InvalidRequestException("A resource of type ImagingStudy must be supplied");
+		}
+		
+		// Check if this is a quality assessment submission
+		boolean hasQualityAssessments = hasQualityAssessmentExtensions(newResource);
+		
+		if (hasQualityAssessments) {
+			log.debug("Creating ImagingStudy with quality assessments");
+			// Process quality assessments during creation
+			FhirImagingStudy openmrsStudy = imagingStudyTranslator.toOpenmrsType(newResource);
+			validateObject(openmrsStudy);
+			
+			// Process and persist quality assessments, set results on study
+			processQualityAssessments(newResource, openmrsStudy);
+			
+			// Save once with all quality assessment associations
+			FhirImagingStudy savedStudy = imagingStudyDao.createOrUpdate(openmrsStudy);
+			
+			// Return with quality assessments included
+			ImagingStudy result = imagingStudyTranslator.toFhirResource(savedStudy);
+			addQualityAssessmentsToFhirResource(savedStudy, result);
+			
+			return result;
+		} else {
+			// Standard creation without quality assessments
+			return super.create(newResource);
+		}
+	}
+	
+	/**
+	 * Checks if the ImagingStudy has quality assessment extensions and contained observations
+	 */
+	private boolean hasQualityAssessmentExtensions(ImagingStudy imagingStudy) {
+		List<Extension> qualityObsExtensions = imagingStudy.getExtensionsByUrl(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION);
+		return !qualityObsExtensions.isEmpty() && imagingStudy.hasContained();
+	}
+	
+	@Override
 	@Transactional(readOnly = true)
 	public ImagingStudy fetchWithQualityAssessment(String uuid) {
 		FhirImagingStudy study = imagingStudyDao.get(uuid);
@@ -130,19 +170,14 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 		}
 	}
 	
-	@Override
-	public ImagingStudy submitQualityAssessment(@Nonnull ImagingStudy imagingStudy) {
-		if (imagingStudy.getId() == null) {
-			throw new InvalidRequestException("ImagingStudy ID is required for quality assessment submission");
-		}
-		
-		// Get existing imaging study - extract UUID from potential "ImagingStudy/uuid" format
-		String extractedUuid = BahmniFhirUtils.extractId(imagingStudy.getId());
-		FhirImagingStudy existingStudy = imagingStudyDao.get(extractedUuid);
-		if (existingStudy == null) {
-			throw new ResourceNotFoundException("ImagingStudy with ID ImagingStudy/" + extractedUuid + " not found");
-		}
-		
+	/**
+	 * Processes quality assessment observations for an ImagingStudy. Extracts contained
+	 * observations from extensions, persists them, and associates with the study.
+	 * 
+	 * @param imagingStudy The FHIR ImagingStudy resource with quality assessment extensions
+	 * @param openmrsStudy The OpenMRS FhirImagingStudy entity to update
+	 */
+	private void processQualityAssessments(ImagingStudy imagingStudy, FhirImagingStudy openmrsStudy) {
 		// Extract quality observation extensions
 		List<Extension> qualityObsExtensions = imagingStudy.getExtensionsByUrl(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION);
 		if (qualityObsExtensions.isEmpty()) {
@@ -160,9 +195,9 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 		
 		// Prepare encounter reference if imaging study has one
 		Reference encounterReference = null;
-		if (existingStudy.getEncounter() != null) {
+		if (openmrsStudy.getEncounter() != null) {
 			encounterReference = new Reference()
-					.setReference(FhirConstants.ENCOUNTER + "/" + existingStudy.getEncounter().getUuid())
+					.setReference(FhirConstants.ENCOUNTER + "/" + openmrsStudy.getEncounter().getUuid())
 					.setType(FhirConstants.ENCOUNTER);
 		}
 		
@@ -177,16 +212,7 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 				qualityResults.add(obs);
 			}
 		}
-		existingStudy.setResults(qualityResults);
-
-		FhirImagingStudy updatedStudy = imagingStudyTranslator.toOpenmrsType(existingStudy, imagingStudy);
-		
-		FhirImagingStudy savedStudy = imagingStudyDao.createOrUpdate(updatedStudy);
-		
-		ImagingStudy result = imagingStudyTranslator.toFhirResource(savedStudy);
-		addQualityAssessmentsToFhirResource(savedStudy, result);
-		
-		return result;
+		openmrsStudy.setResults(qualityResults);
 	}
 	
 	private Map<String, Reference> createQualityObservations(List<Extension> qualityObsExtensions, 
