@@ -206,11 +206,10 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 		if (encounter == null) {
 			throw new InvalidRequestException("Encounter is required for quality assessments");
 		}
-		
 		EncounterType encounterType = encounter.getEncounterType();
 		if (encounterType == null || !ENCOUNTER_TYPE_RADIOLOGY.equals(encounterType.getName())) {
-			throw new InvalidRequestException("Quality assessments require RADIOLOGY encounter type. Found: "
-			        + (encounterType != null ? encounterType.getName() : "null"));
+			throw new InvalidRequestException("Quality assessments require RADIOLOGY QUALITY ASSESSMENT encounter type. "
+			        + "Found: " + (encounterType != null ? encounterType.getName() : "null"));
 		}
 	}
 	
