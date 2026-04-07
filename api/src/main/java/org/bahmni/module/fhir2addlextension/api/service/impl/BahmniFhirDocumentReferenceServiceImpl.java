@@ -13,7 +13,6 @@ import org.bahmni.module.fhir2addlextension.api.translator.DocumentReferenceTran
 import org.hl7.fhir.r4.model.DocumentReference;
 import org.hl7.fhir.r4.model.Enumerations;
 import org.openmrs.User;
-import org.bahmni.module.fhir2addlextension.api.utils.PrivilegeUtils;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.fhir2.api.dao.FhirDao;
 import org.openmrs.module.fhir2.api.impl.BaseFhirService;
@@ -78,7 +77,7 @@ public class BahmniFhirDocumentReferenceServiceImpl extends BaseFhirService<Docu
 	
 	@Override
 	public IBundleProvider searchDocumentReferences(BahmniDocumentReferenceSearchParams searchParams) {
-		PrivilegeUtils.requirePrivilege(PrivilegeConstants.GET_DOCUMENT_REFERENCE);
+		Context.requirePrivilege(PrivilegeConstants.GET_DOCUMENT_REFERENCE);
 		if (!searchParams.hasPatientReference() && !searchParams.hasId()) {
 			logAndThrowUnsupportedExceptionForMissingPatientOrResourceId();
 		}

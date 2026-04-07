@@ -20,7 +20,7 @@ import org.openmrs.Encounter;
 import org.openmrs.Order;
 import org.openmrs.Provider;
 import org.openmrs.User;
-import org.openmrs.api.APIAuthenticationException;
+import org.openmrs.api.context.ContextAuthenticationException;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.context.UserContext;
 import org.openmrs.api.db.ContextDAO;
@@ -91,7 +91,6 @@ public class BahmniFhirDiagnosticReportServiceTest {
 	
 	@Before
 	public void setUp() throws Exception {
-		when(userContext.getAuthenticatedUser()).thenReturn(user);
 		Context.setDAO(contextDAO);
 		Context.openSession();
 		Context.setUserContext(userContext);
@@ -138,19 +137,8 @@ public class BahmniFhirDiagnosticReportServiceTest {
 		verify(diagnosticReportTranslator).toFhirResource(openmrsReport);
 	}
 	
-	@Test(expected = APIAuthenticationException.class)
-	public void searchForDiagnosticReports_shouldThrowWhenUserNotAuthenticated() {
-		when(userContext.getAuthenticatedUser()).thenReturn(null);
-		when(userContext.hasPrivilege(PrivilegeConstants.GET_DIAGNOSTIC_REPORT)).thenReturn(false);
-		when(userContext.hasPrivilege(PrivilegeConstants.GET_OBSERVATIONS)).thenReturn(false);
-		
-		DiagnosticReportSearchParams params = mock(DiagnosticReportSearchParams.class);
-		diagnosticReportService.searchForDiagnosticReports(params);
-	}
-	
-	@Test(expected = APIAuthenticationException.class)
+	@Test(expected = ContextAuthenticationException.class)
 	public void searchForDiagnosticReports_shouldThrowWhenUserLacksBothPrivileges() {
-		when(user.hasPrivilege(PrivilegeConstants.GET_DIAGNOSTIC_REPORT)).thenReturn(false);
 		when(userContext.hasPrivilege(PrivilegeConstants.GET_DIAGNOSTIC_REPORT)).thenReturn(false);
 		when(userContext.hasPrivilege(PrivilegeConstants.GET_OBSERVATIONS)).thenReturn(false);
 		

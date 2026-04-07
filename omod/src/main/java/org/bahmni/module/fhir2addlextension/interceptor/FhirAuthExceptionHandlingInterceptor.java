@@ -7,6 +7,7 @@ import ca.uhn.fhir.rest.api.server.RequestDetails;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.rest.server.exceptions.ForbiddenOperationException;
 import org.openmrs.api.APIAuthenticationException;
+import org.openmrs.api.context.ContextAuthenticationException;
 import org.springframework.stereotype.Component;
 
 import javax.servlet.ServletException;
@@ -21,7 +22,7 @@ public class FhirAuthExceptionHandlingInterceptor {
 	        HttpServletRequest request) throws ServletException {
 		Throwable cause = exception;
 		while (cause != null) {
-			if (cause instanceof APIAuthenticationException) {
+			if (cause instanceof APIAuthenticationException || cause instanceof ContextAuthenticationException) {
 				return new ForbiddenOperationException(cause.getMessage());
 			}
 			cause = cause.getCause();

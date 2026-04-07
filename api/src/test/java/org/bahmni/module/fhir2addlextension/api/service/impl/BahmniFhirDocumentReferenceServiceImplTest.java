@@ -30,7 +30,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Encounter;
 import org.openmrs.Provider;
 import org.openmrs.User;
-import org.openmrs.api.APIAuthenticationException;
+import org.openmrs.api.context.ContextAuthenticationException;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.context.UserContext;
 import org.openmrs.api.db.ContextDAO;
@@ -96,7 +96,6 @@ public class BahmniFhirDocumentReferenceServiceImplTest {
 	@Before
 	public void setUp() {
 		when(userContext.getAuthenticatedUser()).thenReturn(user);
-		when(user.hasPrivilege(PrivilegeConstants.GET_DOCUMENT_REFERENCE)).thenReturn(true);
 		Context.setDAO(contextDAO);
 		Context.openSession();
 		Context.setUserContext(userContext);
@@ -154,20 +153,9 @@ public class BahmniFhirDocumentReferenceServiceImplTest {
 		Context.closeSession();
 	}
 	
-	@Test(expected = APIAuthenticationException.class)
-	public void searchDocumentReferences_shouldThrowWhenUserNotAuthenticated() {
-		when(userContext.getAuthenticatedUser()).thenReturn(null);
-		
-		BahmniDocumentReferenceSearchParams params = new BahmniDocumentReferenceSearchParams();
-		params.setPatientReference(new ReferenceAndListParam().addAnd(new ReferenceOrListParam().add(new ReferenceParam(
-		        "Patient/test-uuid"))));
-		
-		documentReferenceService.searchDocumentReferences(params);
-	}
-	
-	@Test(expected = APIAuthenticationException.class)
+	@Test(expected = ContextAuthenticationException.class)
 	public void searchDocumentReferences_shouldThrowWhenUserLacksPrivilege() {
-		when(user.hasPrivilege(PrivilegeConstants.GET_DOCUMENT_REFERENCE)).thenReturn(false);
+		when(userContext.hasPrivilege(PrivilegeConstants.GET_DOCUMENT_REFERENCE)).thenReturn(false);
 		
 		BahmniDocumentReferenceSearchParams params = new BahmniDocumentReferenceSearchParams();
 		params.setPatientReference(new ReferenceAndListParam().addAnd(new ReferenceOrListParam().add(new ReferenceParam(
@@ -178,7 +166,7 @@ public class BahmniFhirDocumentReferenceServiceImplTest {
 	
 	@Test
 	public void searchDocumentReferences_shouldSucceedWithCorrectPrivilege() {
-		when(user.hasPrivilege(PrivilegeConstants.GET_DOCUMENT_REFERENCE)).thenReturn(true);
+		when(userContext.hasPrivilege(PrivilegeConstants.GET_DOCUMENT_REFERENCE)).thenReturn(true);
 		
 		BahmniDocumentReferenceSearchParams params = new BahmniDocumentReferenceSearchParams();
 		params.setPatientReference(new ReferenceAndListParam().addAnd(new ReferenceOrListParam().add(new ReferenceParam(
