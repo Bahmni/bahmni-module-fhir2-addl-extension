@@ -51,7 +51,7 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	
 	private static final String CONTAINED_RESOURCE_PREFIX = "#";
 	
-	private static final String ENCOUNTER_TYPE_RADIOLOGY = "RADIOLOGY";
+	private static final String ENCOUNTER_TYPE_RADIOLOGY = "RADIOLOGY QUALITY ASSESSMENT";
 	
 	private final BahmniFhirImagingStudyDao imagingStudyDao;
 	
