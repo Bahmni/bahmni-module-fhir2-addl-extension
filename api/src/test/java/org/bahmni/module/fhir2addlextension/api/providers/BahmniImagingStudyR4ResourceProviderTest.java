@@ -218,27 +218,6 @@ public class BahmniImagingStudyR4ResourceProviderTest {
 	}
 	
 	@Test
-	public void testSubmitQualityAssessment() {
-		ImagingStudy imagingStudy = createTestImagingStudy(IMAGING_STUDY_UUID);
-		ImagingStudy resultStudy = createTestImagingStudy(IMAGING_STUDY_UUID);
-		
-		when(fhirImagingStudyService.create(imagingStudy)).thenReturn(resultStudy);
-		
-		ImagingStudy result = resourceProvider.submitQualityAssessment(imagingStudy, requestDetails);
-		
-		assertNotNull(result);
-		assertEquals(IMAGING_STUDY_UUID, result.getId());
-		verify(fhirImagingStudyService).create(imagingStudy);
-	}
-	
-	@Test
-	public void testSubmitQualityAssessmentWithNull_shouldThrowException() {
-		assertThrows(InvalidRequestException.class, () -> {
-			resourceProvider.submitQualityAssessment(null, requestDetails);
-		});
-	}
-	
-	@Test
 	public void testFetchQualityAssessment() {
 		ImagingStudy expectedStudy = createTestImagingStudy(IMAGING_STUDY_UUID);
 		
@@ -255,6 +234,35 @@ public class BahmniImagingStudyR4ResourceProviderTest {
 	public void testFetchQualityAssessmentWithoutId_shouldThrowException() {
 		assertThrows(InvalidRequestException.class, () -> {
 			resourceProvider.fetchQualityAssessment(null, requestDetails);
+		});
+	}
+	
+	@Test
+	public void testUpdateImagingStudyWithEmptyIdType_shouldThrowException() {
+		ImagingStudy imagingStudy = createTestImagingStudy(IMAGING_STUDY_UUID);
+		IdType emptyId = new IdType("");
+		
+		assertThrows(InvalidRequestException.class, () -> {
+			resourceProvider.updateImagingStudy(emptyId, imagingStudy);
+		});
+	}
+	
+	@Test
+	public void testPatchImagingStudyWithEmptyIdType_shouldThrowException() {
+		String patchBody = "[{\"op\":\"replace\",\"path\":\"/status\",\"value\":\"available\"}]";
+		IdType emptyId = new IdType("");
+		
+		assertThrows(InvalidRequestException.class, () -> {
+			resourceProvider.patchImagingStudy(emptyId, PatchTypeEnum.JSON_PATCH, patchBody, requestDetails);
+		});
+	}
+	
+	@Test
+	public void testFetchQualityAssessmentWithEmptyIdType_shouldThrowException() {
+		IdType emptyId = new IdType("");
+		
+		assertThrows(InvalidRequestException.class, () -> {
+			resourceProvider.fetchQualityAssessment(emptyId, requestDetails);
 		});
 	}
 	

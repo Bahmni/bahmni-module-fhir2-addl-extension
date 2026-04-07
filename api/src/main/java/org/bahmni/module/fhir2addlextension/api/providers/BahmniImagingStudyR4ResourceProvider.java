@@ -99,19 +99,6 @@ public class BahmniImagingStudyR4ResourceProvider implements IResourceProvider {
 		return fhirImagingStudyService.searchImagingStudy(searchParams);
 	}
 	
-	@Description(shortDefinition = "Submit quality assessment observations for ImagingStudy", value = "This operation submits quality assessment observations as contained resources within the ImagingStudy. "
-	        + "The ImagingStudy should include contained Observation resources referenced by quality-observation extensions.")
-	@Operation(name = "$submit-quality-assessment", idempotent = false, type = ImagingStudy.class, returnParameters = { @OperationParam(name = "return", type = ImagingStudy.class, min = 1, max = 1) })
-	public ImagingStudy submitQualityAssessment(@OperationParam(name = "input", min = 1, max = 1) ImagingStudy imagingStudy,
-	        RequestDetails requestDetails) {
-		if (imagingStudy == null) {
-			throw new InvalidRequestException("ImagingStudy resource must be provided");
-		}
-		
-		RequestContextHolder.setValue(requestDetails.getFhirServerBase());
-		return fhirImagingStudyService.create(imagingStudy);
-	}
-	
 	@Description(shortDefinition = "Fetch ImagingStudy with quality assessment observations", value = "This operation retrieves an ImagingStudy with its quality assessment observations included as contained resources.")
 	@Operation(name = "$fetch-quality-assessment", idempotent = true, type = ImagingStudy.class, returnParameters = { @OperationParam(name = "return", type = ImagingStudy.class, min = 1, max = 1) })
 	public ImagingStudy fetchQualityAssessment(@IdParam @Nonnull IdType id, RequestDetails requestDetails) {
