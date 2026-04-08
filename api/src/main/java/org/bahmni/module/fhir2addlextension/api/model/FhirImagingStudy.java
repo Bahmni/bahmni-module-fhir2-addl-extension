@@ -20,8 +20,8 @@ import java.util.Set;
 @Getter
 @Setter
 @NoArgsConstructor
-@ToString(exclude = {"notes", "results"})
-@EqualsAndHashCode(exclude = {"notes", "results"}, callSuper = false)
+@ToString(exclude = {"notes", "assessment"})
+@EqualsAndHashCode(exclude = {"notes", "assessment"}, callSuper = false)
 public class FhirImagingStudy extends BaseOpenmrsData {
 	
 	private Integer imagingStudyId;
@@ -46,7 +46,7 @@ public class FhirImagingStudy extends BaseOpenmrsData {
 
     private Set<FhirImagingStudyNote> notes = new HashSet<>();
 	
-	private Set<Obs> results = new HashSet<>();
+	private Set<Obs> assessment = new HashSet<>();
 	
 	private FhirImagingStudyStatus status;
 	

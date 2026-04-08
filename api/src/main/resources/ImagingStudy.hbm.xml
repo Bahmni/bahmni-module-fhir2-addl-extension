@@ -43,7 +43,7 @@
             <key column="imaging_study_id"/>
             <one-to-many class="org.bahmni.module.fhir2addlextension.api.model.FhirImagingStudyNote" />
         </set>
-        <set name="results" table="imaging_study_quality_results" cascade="none" lazy="true">
+        <set name="assessment" table="imaging_study_quality_assessment" cascade="none" lazy="true">
             <key column="imaging_study_id"/>
             <many-to-many class="org.openmrs.Obs" column="obs_id"/>
         </set>
