@@ -54,9 +54,15 @@ public class BahmniFhirTaskDaoImpl extends FhirTaskDaoImpl implements BahmniFhir
 	@Override
 	protected void setupSearchParams(Criteria criteria, SearchParameterMap theParams) {
 		List<PropParam<?>> forReferenceParams = theParams.getParameters(FhirConstants.FOR_REFERENCE_SEARCH_HANDLER);
-		theParams.getParameters().removeIf(entry -> FhirConstants.FOR_REFERENCE_SEARCH_HANDLER.equals(entry.getKey()));
 
-		super.setupSearchParams(criteria, theParams);
+		SearchParameterMap paramsCopy = new SearchParameterMap();
+		theParams.getParameters().forEach(entry -> {
+			if (!FhirConstants.FOR_REFERENCE_SEARCH_HANDLER.equals(entry.getKey())) {
+				entry.getValue().forEach(param -> paramsCopy.addParameter(entry.getKey(), param.getParam()));
+			}
+		});
+
+		super.setupSearchParams(criteria, paramsCopy);
 
 		if (forReferenceParams != null) {
 			forReferenceParams.forEach(
@@ -105,7 +111,6 @@ public class BahmniFhirTaskDaoImpl extends FhirTaskDaoImpl implements BahmniFhir
 		if (lacksAlias(criteria, "fr")) {
 			criteria.createAlias("forReference", "fr");
 		}
-		System.out.println("Handling forReference with " + forReference + " values");
 		handleAndListParam(forReference,
 		    ref -> ref.getIdPart() != null ? Optional.of(Restrictions.eq("fr.targetUuid", ref.getIdPart()))
 		            : Optional.empty()).ifPresent(criteria::add);
