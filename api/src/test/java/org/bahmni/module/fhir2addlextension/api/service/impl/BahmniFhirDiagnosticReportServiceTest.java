@@ -48,15 +48,6 @@ public class BahmniFhirDiagnosticReportServiceTest {
 	BahmniFhirDiagnosticReportService diagnosticReportService;
 	
 	@Mock
-	private ContextDAO contextDAO;
-	
-	@Mock
-	private UserContext userContext;
-	
-	@Mock
-	private User user;
-	
-	@Mock
 	BahmniFhirDiagnosticReportDao bahmniFhirDiagnosticReportDao;
 	
 	@Mock
@@ -91,10 +82,6 @@ public class BahmniFhirDiagnosticReportServiceTest {
 	
 	@Before
 	public void setUp() throws Exception {
-		Context.setDAO(contextDAO);
-		Context.openSession();
-		Context.setUserContext(userContext);
-		
 		DiagnosticReportValidatorImpl validator = new DiagnosticReportValidatorImpl(serviceRequestDao);
 		diagnosticReportService = new BahmniFhirDiagnosticReportServiceImpl(
 		                                                                    bahmniFhirDiagnosticReportDao, validator,
@@ -106,11 +93,6 @@ public class BahmniFhirDiagnosticReportServiceTest {
 				//Done to avoid failure in ValidateUtil.validate(object) which calls Context.getAdministrativeService()
 			}
 		};
-	}
-	
-	@After
-	public void tearDown() {
-		Context.closeSession();
 	}
 	
 	@Test

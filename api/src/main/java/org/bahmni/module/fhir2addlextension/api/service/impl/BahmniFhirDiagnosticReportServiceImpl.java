@@ -2,14 +2,12 @@ package org.bahmni.module.fhir2addlextension.api.service.impl;
 
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
-import org.bahmni.module.fhir2addlextension.api.PrivilegeConstants;
 import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirDiagnosticReportDao;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDiagnosticReportExt;
 import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirDiagnosticReportService;
 import org.bahmni.module.fhir2addlextension.api.translator.BahmniFhirDiagnosticReportTranslator;
 import org.bahmni.module.fhir2addlextension.api.validators.DiagnosticReportValidator;
 import org.hl7.fhir.r4.model.DiagnosticReport;
-import org.openmrs.api.context.Context;
 import org.openmrs.module.fhir2.api.dao.FhirDao;
 import org.openmrs.module.fhir2.api.impl.BaseFhirService;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
@@ -53,7 +51,6 @@ public class BahmniFhirDiagnosticReportServiceImpl extends BaseFhirService<Diagn
 	
 	@Override
 	public IBundleProvider searchForDiagnosticReports(DiagnosticReportSearchParams diagnosticReportSearchParams) {
-		
 		return searchQuery.getQueryResults(diagnosticReportSearchParams.toSearchParameterMap(), diagnosticReportDao,
 		    diagnosticReportTranslator, searchQueryInclude);
 	}
