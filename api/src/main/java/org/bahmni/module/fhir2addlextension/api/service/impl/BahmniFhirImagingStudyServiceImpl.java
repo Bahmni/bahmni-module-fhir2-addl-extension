@@ -148,7 +148,6 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 		if (study == null) {
 			throw new ResourceNotFoundException(ERROR_STUDY_NOT_FOUND + uuid);
 		}
-		
 		ImagingStudy resource = imagingStudyTranslator.toFhirResource(study);
 		
 		addQualityAssessmentsToFhirResource(study, resource);
@@ -172,26 +171,19 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	@Override
 	public ImagingStudy update(@Nonnull String uuid, @Nonnull ImagingStudy updatedResource) {
 		validateUpdateInput(uuid, updatedResource);
-		
 		FhirImagingStudy existingStudy = getDao().get(uuid);
 		validateExistingStudy(uuid, existingStudy);
-		
 		// Update basic imaging study properties via translator
 		FhirImagingStudy updatedStudy = imagingStudyTranslator.toOpenmrsType(existingStudy, updatedResource);
 		validateObject(updatedStudy);
-		
 		// Check if this is a quality assessment update
 		boolean hasQualityAssessments = hasQualityAssessmentExtensions(updatedResource);
-		
 		if (hasQualityAssessments) {
 			log.debug(DEBUG_UPDATING_QUALITY_ASSESSMENTS);
-			
 			// Validate encounter is RADIOLOGY type
 			validateEncounterTypeForQualityAssessment(updatedStudy.getEncounter());
-			
 			// Void existing quality observations
 			voidExistingQualityObservations(existingStudy);
-			
 			// Process new quality assessments
 			processQualityAssessments(updatedResource, updatedStudy);
 		}
@@ -199,11 +191,9 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 		// Save and return
 		FhirImagingStudy savedStudy = imagingStudyDao.createOrUpdate(updatedStudy);
 		ImagingStudy result = imagingStudyTranslator.toFhirResource(savedStudy);
-		
 		if (hasQualityAssessments) {
 			addQualityAssessmentsToFhirResource(savedStudy, result);
 		}
-		
 		return result;
 	}
 	
@@ -255,7 +245,6 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 		if (existingStudy.getAssessment() == null || existingStudy.getAssessment().isEmpty()) {
 			return;
 		}
-		
 		// Void all observations in assessment set (quality assessments)
 		existingStudy.getAssessment().forEach(obs -> {
 			log.debug(DEBUG_VOIDING_QUALITY_OBSERVATION, obs.getUuid());
@@ -302,11 +291,8 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 					.setReference(FhirConstants.ENCOUNTER + "/" + openmrsStudy.getEncounter().getUuid())
 					.setType(FhirConstants.ENCOUNTER);
 		}
-		
 		Map<String, Reference> obsReferenceMap = createQualityObservations(qualityObsExtensions, containedMap, encounterReference);
-		
 		updateQualityObservationExtensions(imagingStudy, obsReferenceMap);
-		
 		Set<Obs> qualityAssessment = new LinkedHashSet<>();
 		for (Reference obsRef : obsReferenceMap.values()) {
 			Obs obs = observationReferenceTranslator.toOpenmrsType(obsRef);
@@ -339,14 +325,11 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 			if (observation == null) {
 				continue;
 			}
-			
 			String obsId = BahmniFhirUtils.extractId(observation.getId());
-			
 			Observation existing = findExistingObservation(obsId);
 			if (existing != null) {
 				preExistingObservationIds.add(existing.getId());
 			}
-			
 			observationReferenceMap.put(observation, obsId);
 		}
 	}
@@ -356,7 +339,6 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 			log.warn(WARN_EXTENSION_NOT_REFERENCE);
 			return null;
 		}
-		
 		Reference obsRef = (Reference) ext.getValue();
 		String containedId = obsRef.getReference();
 		
@@ -364,13 +346,11 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 			log.warn(WARN_INVALID_CONTAINED_REF + containedId);
 			return null;
 		}
-		
 		Resource containedResource = containedMap.get(containedId);
 		if (!(containedResource instanceof Observation)) {
 			log.warn(WARN_RESOURCE_NOT_OBSERVATION + containedId);
 			return null;
 		}
-		
 		return (Observation) containedResource;
 	}
 	
