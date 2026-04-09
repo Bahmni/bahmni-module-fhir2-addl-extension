@@ -13,26 +13,26 @@ import java.util.List;
 public interface FhirEncounterDiagnosisDao extends FhirDao<Diagnosis> {
 	
 	@Override
-	@Authorized(PrivilegeConstants.GET_DIAGNOSES)
+	@Authorized(org.openmrs.util.PrivilegeConstants.GET_DIAGNOSES)
 	Diagnosis get(@Nonnull String s);
 	
 	@Override
-	@Authorized(PrivilegeConstants.GET_DIAGNOSES)
+	@Authorized(org.openmrs.util.PrivilegeConstants.GET_DIAGNOSES)
 	List<Diagnosis> get(@Nonnull Collection<String> collection);
 	
 	@Override
-	@Authorized(PrivilegeConstants.GET_DIAGNOSES)
+	@Authorized(org.openmrs.util.PrivilegeConstants.GET_DIAGNOSES)
 	List<Diagnosis> getSearchResults(@Nonnull SearchParameterMap searchParameterMap);
 	
 	@Override
-	@Authorized(PrivilegeConstants.GET_DIAGNOSES)
+	@Authorized(org.openmrs.util.PrivilegeConstants.GET_DIAGNOSES)
 	int getSearchResultsCount(@Nonnull SearchParameterMap searchParameterMap);
 	
 	@Override
-	@Authorized({ PrivilegeConstants.ADD_DIAGNOSES, PrivilegeConstants.EDIT_DIAGNOSES })
+	@Authorized({ PrivilegeConstants.ADD_DIAGNOSES, org.openmrs.util.PrivilegeConstants.EDIT_DIAGNOSES })
 	Diagnosis createOrUpdate(@Nonnull Diagnosis diagnosis);
 	
 	@Override
-	@Authorized(PrivilegeConstants.DELETE_DIAGNOSES)
+	@Authorized(org.openmrs.util.PrivilegeConstants.DELETE_DIAGNOSES)
 	Diagnosis delete(@Nonnull String s);
 }

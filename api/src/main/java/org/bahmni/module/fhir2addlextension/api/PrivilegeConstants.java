@@ -21,12 +21,7 @@ public class PrivilegeConstants {
 	
 	public static final String GET_APPOINTMENTS = "Get Appointments";
 	
-	// Encounters
-	public static final String ADD_ENCOUNTERS = "Add Encounters";
-	
-	public static final String GET_ENCOUNTERS = "Get Encounters";
-	
-	// Episodes
+	// Episodes (Bahmni-specific, not in org.openmrs.util.PrivilegeConstants)
 	public static final String GET_EPISODES = "Get Episodes";
 	
 	public static final String ADD_EPISODES = "Add Episodes";
@@ -35,16 +30,7 @@ public class PrivilegeConstants {
 	
 	public static final String DELETE_EPISODES = "Delete Episodes";
 	
-	// Orders
-	public static final String GET_ORDERS = "Get Orders";
-	
-	public static final String ADD_ORDERS = "Add Orders";
-	
-	public static final String EDIT_ORDERS = "Edit Orders";
-	
-	public static final String DELETE_ORDERS = "Delete Orders";
-	
-	// DocumentReference
+	// DocumentReference (Bahmni FHIR-specific)
 	public static final String GET_DOCUMENT_REFERENCE = "Get DocumentReference";
 	
 	public static final String ADD_DOCUMENT_REFERENCE = "Add DocumentReference";
@@ -53,46 +39,19 @@ public class PrivilegeConstants {
 	
 	public static final String DELETE_DOCUMENT_REFERENCE = "Delete DocumentReference";
 	
-	// Allergies
-	public static final String GET_ALLERGIES = "Get Allergies";
-	
-	public static final String ADD_ALLERGIES = "Add Allergies";
-	
-	public static final String EDIT_ALLERGIES = "Edit Allergies";
-	
-	public static final String DELETE_ALLERGIES = "Delete Allergies";
-	
-	// Diagnoses
-	public static final String GET_DIAGNOSES = "Get Diagnoses";
-	
+	// Diagnoses — ADD_DIAGNOSES is not in org.openmrs.util.PrivilegeConstants;
+	// use org.openmrs.util.PrivilegeConstants for GET/EDIT/DELETE_DIAGNOSES
 	public static final String ADD_DIAGNOSES = "Add Diagnoses";
 	
-	public static final String EDIT_DIAGNOSES = "Edit Diagnoses";
-	
-	public static final String DELETE_DIAGNOSES = "Delete Diagnoses";
-	
-	// Observations
-	public static final String GET_OBSERVATIONS = "Get Observations";
-	
-	public static final String ADD_OBSERVATIONS = "Add Observations";
-	
-	public static final String EDIT_OBSERVATIONS = "Edit Observations";
-	
+	// Observations — DELETE_OBSERVATIONS is not in org.openmrs.util.PrivilegeConstants;
+	// use org.openmrs.util.PrivilegeConstants GET_OBS/ADD_OBS/EDIT_OBS for read/write
 	public static final String DELETE_OBSERVATIONS = "Delete Observations";
 	
-	// Conditions
-	public static final String GET_CONDITIONS = "Get Conditions";
-	
+	// Conditions — ADD_CONDITIONS is not in org.openmrs.util.PrivilegeConstants;
+	// use org.openmrs.util.PrivilegeConstants for GET/EDIT/DELETE_CONDITIONS
 	public static final String ADD_CONDITIONS = "Add Conditions";
 	
-	public static final String EDIT_CONDITIONS = "Edit Conditions";
-	
-	public static final String DELETE_CONDITIONS = "Delete Conditions";
-	
-	// Programs
-	public static final String GET_PATIENT_PROGRAMS = "Get Patient Programs";
-	
-	// DiagnosticReport
+	// DiagnosticReport (Bahmni FHIR-specific)
 	public static final String GET_DIAGNOSTIC_REPORT = "Get Diagnostic Report";
 	
 	public static final String ADD_DIAGNOSTIC_REPORT = "Add Diagnostic Report";

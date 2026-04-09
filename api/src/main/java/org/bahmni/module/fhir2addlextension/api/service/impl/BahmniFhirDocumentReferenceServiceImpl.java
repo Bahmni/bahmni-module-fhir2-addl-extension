@@ -77,7 +77,6 @@ public class BahmniFhirDocumentReferenceServiceImpl extends BaseFhirService<Docu
 	
 	@Override
 	public IBundleProvider searchDocumentReferences(BahmniDocumentReferenceSearchParams searchParams) {
-		Context.requirePrivilege(PrivilegeConstants.GET_DOCUMENT_REFERENCE);
 		if (!searchParams.hasPatientReference() && !searchParams.hasId()) {
 			logAndThrowUnsupportedExceptionForMissingPatientOrResourceId();
 		}

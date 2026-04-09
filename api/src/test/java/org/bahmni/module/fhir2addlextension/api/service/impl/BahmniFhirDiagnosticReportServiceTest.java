@@ -137,36 +137,6 @@ public class BahmniFhirDiagnosticReportServiceTest {
 		verify(diagnosticReportTranslator).toFhirResource(openmrsReport);
 	}
 	
-	@Test(expected = ContextAuthenticationException.class)
-	public void searchForDiagnosticReports_shouldThrowWhenUserLacksBothPrivileges() {
-		when(userContext.hasPrivilege(PrivilegeConstants.GET_DIAGNOSTIC_REPORT)).thenReturn(false);
-		when(userContext.hasPrivilege(PrivilegeConstants.GET_OBSERVATIONS)).thenReturn(false);
-		
-		DiagnosticReportSearchParams params = mock(DiagnosticReportSearchParams.class);
-		diagnosticReportService.searchForDiagnosticReports(params);
-	}
-	
-	@Test
-	public void searchForDiagnosticReports_shouldSucceedWithGetDiagnosticReportPrivilege() {
-		when(userContext.hasPrivilege(PrivilegeConstants.GET_DIAGNOSTIC_REPORT)).thenReturn(true);
-		
-		DiagnosticReportSearchParams params = mock(DiagnosticReportSearchParams.class);
-		when(params.toSearchParameterMap()).thenReturn(new org.openmrs.module.fhir2.api.search.param.SearchParameterMap());
-		
-		diagnosticReportService.searchForDiagnosticReports(params);
-	}
-	
-	@Test
-	public void searchForDiagnosticReports_shouldSucceedWithGetObservationsPrivilege() {
-		when(userContext.hasPrivilege(PrivilegeConstants.GET_DIAGNOSTIC_REPORT)).thenReturn(false);
-		when(userContext.hasPrivilege(PrivilegeConstants.GET_OBSERVATIONS)).thenReturn(true);
-		
-		DiagnosticReportSearchParams params = mock(DiagnosticReportSearchParams.class);
-		when(params.toSearchParameterMap()).thenReturn(new org.openmrs.module.fhir2.api.search.param.SearchParameterMap());
-		
-		diagnosticReportService.searchForDiagnosticReports(params);
-	}
-	
 	@Test
 	public void createObsBasedReport() {
 	}

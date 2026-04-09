@@ -153,25 +153,4 @@ public class BahmniFhirDocumentReferenceServiceImplTest {
 		Context.closeSession();
 	}
 	
-	@Test(expected = ContextAuthenticationException.class)
-	public void searchDocumentReferences_shouldThrowWhenUserLacksPrivilege() {
-		when(userContext.hasPrivilege(PrivilegeConstants.GET_DOCUMENT_REFERENCE)).thenReturn(false);
-		
-		BahmniDocumentReferenceSearchParams params = new BahmniDocumentReferenceSearchParams();
-		params.setPatientReference(new ReferenceAndListParam().addAnd(new ReferenceOrListParam().add(new ReferenceParam(
-		        "Patient/test-uuid"))));
-		
-		documentReferenceService.searchDocumentReferences(params);
-	}
-	
-	@Test
-	public void searchDocumentReferences_shouldSucceedWithCorrectPrivilege() {
-		when(userContext.hasPrivilege(PrivilegeConstants.GET_DOCUMENT_REFERENCE)).thenReturn(true);
-		
-		BahmniDocumentReferenceSearchParams params = new BahmniDocumentReferenceSearchParams();
-		params.setPatientReference(new ReferenceAndListParam().addAnd(new ReferenceOrListParam().add(new ReferenceParam(
-		        "Patient/test-uuid"))));
-		
-		documentReferenceService.searchDocumentReferences(params);
-	}
 }

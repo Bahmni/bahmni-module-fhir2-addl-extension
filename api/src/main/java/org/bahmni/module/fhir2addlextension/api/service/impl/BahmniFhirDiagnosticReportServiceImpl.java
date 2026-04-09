@@ -53,10 +53,7 @@ public class BahmniFhirDiagnosticReportServiceImpl extends BaseFhirService<Diagn
 	
 	@Override
 	public IBundleProvider searchForDiagnosticReports(DiagnosticReportSearchParams diagnosticReportSearchParams) {
-		if (!Context.getUserContext().hasPrivilege(PrivilegeConstants.GET_DIAGNOSTIC_REPORT)
-		        && !Context.getUserContext().hasPrivilege(PrivilegeConstants.GET_OBSERVATIONS)) {
-			Context.requirePrivilege(PrivilegeConstants.GET_DIAGNOSTIC_REPORT);
-		}
+		
 		return searchQuery.getQueryResults(diagnosticReportSearchParams.toSearchParameterMap(), diagnosticReportDao,
 		    diagnosticReportTranslator, searchQueryInclude);
 	}
