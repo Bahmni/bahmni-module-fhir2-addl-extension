@@ -1,6 +1,5 @@
 package org.bahmni.module.fhir2addlextension.api.service.impl;
 
-import org.bahmni.module.fhir2addlextension.api.PrivilegeConstants;
 import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirDiagnosticReportDao;
 import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirServiceRequestDao;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDiagnosticReportExt;
@@ -18,7 +17,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Encounter;
 import org.openmrs.Order;
 import org.openmrs.Provider;
-import org.openmrs.User;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
 import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
 import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
