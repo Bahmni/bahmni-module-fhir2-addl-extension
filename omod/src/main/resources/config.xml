@@ -83,6 +83,14 @@
 		<name>Delete Diagnostic Report</name>
 		<description>Allows user to delete existing Diagnostic Report resources</description>
 	</privilege>
+	<privilege>
+		<name>Add Diagnoses</name>
+		<description>Allows user to create new diagnosis records</description>
+	</privilege>
+	<privilege>
+		<name>Add Conditions</name>
+		<description>Allows user to create new condition records</description>
+	</privilege>
 
 	<!-- Required Global Properties -->
 	<globalProperty>
@@ -91,7 +99,7 @@
 		<description>
 			This configuration maps an order type (order_type.name) to a location attribute type (location_attribute_type.name)
 			to determine a requested/preferred location for a given order through order attribute (LOCATION_REFERENCE). If a
-			location has such an attribute set (e.g. REFERRAL_RADIOLOGY_CENTER), and there exists a mapping through
+				location has such an attribute set (e.g. REFERRAL_RADIOLOGY_CENTER), and there exists a mapping through
 			this configuration for an order's type (e.g. Radiology Order), then the order's requested/preferred location will be set
 			to the location specified for the encounter/visit location. The configuration takes in multiple mappings
 			separated by semicolon (format key1:value1; key2:value2). The maps are case sensitive.

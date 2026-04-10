@@ -87,11 +87,11 @@ public class BahmniFhirDocumentReferenceServiceImplTest {
 	private DocumentReferenceTranslator translator;
 	
 	@Before
-    public void setUp() {
-        when(userContext.getAuthenticatedUser()).thenReturn(user);
-        Context.setDAO(contextDAO);
-        Context.openSession();
-        Context.setUserContext(userContext);
+	public void setUp() {
+		when(userContext.getAuthenticatedUser()).thenReturn(user);
+		Context.setDAO(contextDAO);
+		Context.openSession();
+		Context.setUserContext(userContext);
         DocumentReferenceAttributeTypeDao attributeTypeDao = includeRetired -> supportedAttributes;
         DefaultDocumentReferenceAttributeTranslatorImpl defaultAttributeTranslator = new DefaultDocumentReferenceAttributeTranslatorImpl(attributeTypeDao);
         DocumentReferenceExtensionTranslator extensionTranslator = new DocumentReferenceExtensionTranslatorImpl(defaultAttributeTranslator);
