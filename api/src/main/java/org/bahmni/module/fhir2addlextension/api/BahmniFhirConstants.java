@@ -53,6 +53,7 @@ public final class BahmniFhirConstants {
 	public static final String FHIR_EXT_DOCUMENT_REFERENCE_BASED_ON = EXTENSION_PREFIX + "/document-reference/based-on-service-request";
 	public static final String FHIR_EXT_IMAGING_STUDY_PERFORMER = EXTENSION_PREFIX + "/imaging-study/performer";
 	public static final String FHIR_EXT_IMAGING_STUDY_COMPLETION_DATE = EXTENSION_PREFIX + "/imaging-study/completion-date";
+	public static final String FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION = EXTENSION_PREFIX + "/imaging-study/quality-observation";
 	public static final String FHIR_EXT_OBSERVATION_FORM_NAMESPACE_PATH = EXTENSION_PREFIX + "/observation/form-namespace-path";
 	public static final String FHIR_EXT_OBSERVATION_ATTACHMENT_VALUE = EXTENSION_PREFIX + "/observation/obs-value-attachment";
 	public static final String INCLUDE_BASED_ON_PARAM = "basedon";

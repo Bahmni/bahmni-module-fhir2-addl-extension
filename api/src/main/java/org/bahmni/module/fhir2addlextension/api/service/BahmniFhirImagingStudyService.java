@@ -8,4 +8,6 @@ import org.openmrs.module.fhir2.api.FhirService;
 public interface BahmniFhirImagingStudyService extends FhirService<ImagingStudy> {
 	
 	IBundleProvider searchImagingStudy(BahmniImagingStudySearchParams searchParams);
+	
+	ImagingStudy fetchWithQualityAssessment(String uuid);
 }
