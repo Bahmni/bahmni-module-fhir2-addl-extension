@@ -1,17 +1,8 @@
 package org.bahmni.module.fhir2addlextension.api.translator;
 
-import org.hl7.fhir.r4.model.Extension;
 import org.openmrs.OrderAttribute;
+import org.openmrs.OrderAttributeType;
 
-import java.util.Optional;
-
-public interface ServiceRequestExtensionTranslator {
+public interface ServiceRequestExtensionTranslator extends AttributeTranslatorRegistry<OrderAttribute, OrderAttributeType, ServiceRequestAttributeTranslator> {
 	
-	boolean hasAttributeTranslator(Extension extension);
-	
-	Optional<ServiceRequestAttributeTranslator> getAttributeTranslator(String extensionUrl);
-	
-	Optional<ServiceRequestAttributeTranslator> getAttributeTranslator(OrderAttribute attribute);
-	
-	void registerAttributeTranslator(ServiceRequestAttributeTranslator translator);
 }
