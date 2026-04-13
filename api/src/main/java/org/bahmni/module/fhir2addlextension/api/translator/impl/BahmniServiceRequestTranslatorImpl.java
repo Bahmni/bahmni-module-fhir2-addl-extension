@@ -137,11 +137,9 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 
 		// Add order attributes as extensions
 		if (!order.getActiveAttributes().isEmpty()) {
-			order.getActiveAttributes().forEach(attribute -> {
-				extensionTranslator.getAttributeTranslator(attribute)
-						.map(translator -> translator.toFhirResource(attribute))
-						.ifPresent(serviceRequest::addExtension);
-			});
+			order.getActiveAttributes().forEach(attribute -> extensionTranslator.getAttributeTranslator(attribute)
+                    .map(translator -> translator.toFhirResource(attribute))
+                    .ifPresent(serviceRequest::addExtension));
 		}
 
 		return serviceRequest;

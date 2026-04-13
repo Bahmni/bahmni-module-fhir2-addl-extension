@@ -4,7 +4,7 @@ import org.hl7.fhir.r4.model.Extension;
 
 import java.util.Optional;
 
-public interface AttributeTranslatorRegistry<A, AT, T extends AttributeTranslator<A, AT>> {
+public interface AttributeTranslatorRegistry<A, U, T extends AttributeTranslator<A, U>> {
 	
 	boolean hasAttributeTranslator(Extension extension);
 	

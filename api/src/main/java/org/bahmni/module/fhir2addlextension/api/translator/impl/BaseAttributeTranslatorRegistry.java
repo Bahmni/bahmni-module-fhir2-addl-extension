@@ -8,8 +8,8 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
-public abstract class BaseAttributeTranslatorRegistry<A, AT, T extends AttributeTranslator<A, AT>>
-		implements AttributeTranslatorRegistry<A, AT, T> {
+public abstract class BaseAttributeTranslatorRegistry<A, U, T extends AttributeTranslator<A, U>>
+		implements AttributeTranslatorRegistry<A, U, T> {
 
 	private final Set<T> attributeTranslators = new HashSet<>();
 

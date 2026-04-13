@@ -18,7 +18,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
-public abstract class BaseAttributeTranslator<A extends BaseAttribute<AT, ?>, AT extends BaseAttributeType<?>> implements AttributeTranslator<A, AT> {
+public abstract class BaseAttributeTranslator<A extends BaseAttribute<U, ?>, U extends BaseAttributeType<?>> implements AttributeTranslator<A, U> {
 	
 	private static final String DATATYPE_BOOLEAN = "org.openmrs.customdatatype.datatype.BooleanDatatype";
 	
@@ -26,7 +26,7 @@ public abstract class BaseAttributeTranslator<A extends BaseAttribute<AT, ?>, AT
 	
 	protected abstract ResourceType getResourceType();
 	
-	protected abstract List<AT> getActiveAttributeTypes();
+	protected abstract List<U> getActiveAttributeTypes();
 	
 	protected abstract A createAttribute();
 	
@@ -41,7 +41,7 @@ public abstract class BaseAttributeTranslator<A extends BaseAttribute<AT, ?>, AT
 	
 	@Override
 	public List<A> toOpenmrsType(String extUrl, List<Extension> extensions) {
-		Optional<AT> extAttributeType = getAttributeType(extUrl);
+		Optional<U> extAttributeType = getAttributeType(extUrl);
 		if (!extAttributeType.isPresent()) {
 			return Collections.emptyList();
 		}
@@ -96,7 +96,7 @@ public abstract class BaseAttributeTranslator<A extends BaseAttribute<AT, ?>, AT
 	}
 	
 	@Override
-	public Optional<AT> getAttributeType(String extUrl) {
+	public Optional<U> getAttributeType(String extUrl) {
 		if (!supports(extUrl)) {
 			return Optional.empty();
 		}
@@ -106,7 +106,7 @@ public abstract class BaseAttributeTranslator<A extends BaseAttribute<AT, ?>, AT
 			return Optional.empty();
 		}
 
-		List<AT> definedAttributeTypes = getActiveAttributeTypes();
+		List<U> definedAttributeTypes = getActiveAttributeTypes();
 		return definedAttributeTypes.stream()
 				.filter(attrType -> ModuleUtils.toSlugCase(attrType.getName()).equals(extAttributeName))
 				.findFirst();

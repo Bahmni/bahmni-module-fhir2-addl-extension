@@ -57,10 +57,6 @@ public class BahmniServiceRequestTranslatorImplTest {
 	
 	private static final String PRIOR_SERVICE_REQUEST_REFERENCE = FhirConstants.SERVICE_REQUEST + "/" + SERVICE_REQUEST_UUID;
 	
-	private static final String LOINC_SYSTEM_URL = "http://loinc.org";
-	
-	private static final String LOINC_CODE = "1000-1";
-	
 	private static final String PATIENT_UUID = "14d4f066-15f5-102d-96e4-000c29c2a5d7";
 	
 	private static final String ENCOUNTER_UUID = "y403fafb-e5e4-42d0-9d11-4f52e89d123r";

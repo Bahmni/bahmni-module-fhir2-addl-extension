@@ -5,7 +5,7 @@ import org.hl7.fhir.r4.model.Extension;
 import java.util.List;
 import java.util.Optional;
 
-public interface AttributeTranslator<A, AT> {
+public interface AttributeTranslator<A, U> {
 	
 	boolean supports(A attribute);
 	
@@ -13,5 +13,5 @@ public interface AttributeTranslator<A, AT> {
 	
 	Extension toFhirResource(A attribute);
 	
-	Optional<AT> getAttributeType(String extUrl);
+	Optional<U> getAttributeType(String extUrl);
 }
