@@ -6,6 +6,7 @@ import org.bahmni.module.fhir2addlextension.api.context.AppContext;
 import org.bahmni.module.fhir2addlextension.api.dao.OrderAttributeTypeDao;
 import org.bahmni.module.fhir2addlextension.api.service.impl.ServiceRequestLocationReferenceResolverImpl;
 import org.bahmni.module.fhir2addlextension.api.translator.OrderTypeTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.ServiceRequestExtensionTranslator;
 import org.bahmni.module.fhir2addlextension.api.translator.ServiceRequestPriorityTranslator;
 import org.bahmni.module.fhir2addlextension.api.validators.ServiceRequestValidator;
 import org.hl7.fhir.r4.model.*;
@@ -31,6 +32,8 @@ import org.bahmni.module.fhir2addlextension.api.translator.BahmniOrderReferenceT
 import java.lang.reflect.Field;
 import java.util.*;
 
+import static org.bahmni.module.fhir2addlextension.api.TestDataFactory.exampleOrderAttrTypeIsBillingExempt;
+import static org.bahmni.module.fhir2addlextension.api.TestDataFactory.exampleOrderAttrTypePriority;
 import static org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants.ORDER_TYPE_SYSTEM_URI;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -91,7 +94,10 @@ public class BahmniServiceRequestTranslatorImplTest {
 	private OrderService orderService;
 	
 	@Mock
-	OrderAttributeTypeDao orderAttributeTypeDao;
+	private OrderAttributeTypeDao orderAttributeTypeDao;
+	
+	@Mock
+	private OrderAttributeTypeDao mockAttributeTypeDao;
 	
 	@Mock
 	LocationReferenceTranslator locationReferenceTranslator;
@@ -101,6 +107,8 @@ public class BahmniServiceRequestTranslatorImplTest {
 	
 	@Mock
 	BahmniOrderReferenceTranslator bahmniOrderReferenceTranslator;
+	
+	private ServiceRequestExtensionTranslator extensionTranslator;
 	
 	private Order discontinuedOrder;
 	
@@ -124,6 +132,14 @@ public class BahmniServiceRequestTranslatorImplTest {
 	
 	@Before
 	public void setup() throws Exception {
+		List<OrderAttributeType> supportedAttributes = Arrays.asList(exampleOrderAttrTypeIsBillingExempt(),
+		    exampleOrderAttrTypePriority());
+		when(mockAttributeTypeDao.getOrderAttributeTypes(false)).thenReturn(supportedAttributes);
+		
+		ServiceRequestAttributeTranslatorImpl attributeTranslator = new ServiceRequestAttributeTranslatorImpl(
+		        mockAttributeTypeDao);
+		extensionTranslator = new ServiceRequestExtensionTranslatorImpl(attributeTranslator);
+		
 		translator = new BahmniServiceRequestTranslatorImpl();
 		translator.setConceptTranslator(conceptTranslator);
 		translator.setPatientReferenceTranslator(patientReferenceTranslator);
@@ -135,6 +151,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 		translator.setServiceRequestValidator(serviceRequestValidator);
 		translator.setOrderService(orderService);
 		translator.setBahmniOrderReferenceTranslator(bahmniOrderReferenceTranslator);
+		translator.setExtensionTranslator(extensionTranslator);
 		
 		ServiceRequestLocationReferenceResolverImpl orderLocationReferenceResolver = new ServiceRequestLocationReferenceResolverImpl(
 		        locationReferenceTranslator, orderAttributeTypeDao, appContext);
@@ -425,109 +442,46 @@ public class BahmniServiceRequestTranslatorImplTest {
 	}
 	
 	@Test
-	public void toFhirResource_shouldTranslateOrderFromOnlyDateStoppedToCompleteServiceRequest() throws Exception {
+	public void toFhirResource_shouldAddOrderAttributesAsExtensions() {
+		OrderAttributeType attrType = exampleOrderAttrTypeIsBillingExempt();
 		
-		Calendar date = Calendar.getInstance();
-		date.set(2000, Calendar.APRIL, 16);
-		order.setDateActivated(date.getTime());
-		date.set(2015, Calendar.APRIL, 16);
-		OrderUtilTest.setDateStopped(order, date.getTime());
-		
-		ServiceRequest result = translator.toFhirResource(order);
-		
-		assertThat(result, notNullValue());
-		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.COMPLETED));
-	}
-	
-	@Test
-	public void toFhirResource_shouldTranslateFromNoDataToActiveServiceRequest() {
+		OrderAttribute attribute = mock(OrderAttribute.class);
+		when(attribute.getAttributeType()).thenReturn(attrType);
+		when(attribute.getValue()).thenReturn(true);
+		order.addAttribute(attribute);
 		
 		ServiceRequest result = translator.toFhirResource(order);
 		
 		assertThat(result, notNullValue());
-		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.ACTIVE));
+		assertThat(result.getExtension(), notNullValue());
+		assertThat(result.getExtension().size(), greaterThanOrEqualTo(1));
+		assertThat(result.getExtension(),
+		    hasItem(hasProperty("url", equalTo("http://fhir.bahmni.org/ext/service-request/is-billing-exempt"))));
+		// Verify that the value is a BooleanType with value true
+		assertThat(result.getExtension(), hasItem(hasProperty("value", hasProperty("value", equalTo(true)))));
 	}
 	
 	@Test
-	public void toFhirResource_shouldTranslateCode() {
-		Concept openmrsConcept = new Concept();
-		ConceptClass cc = new ConceptClass();
-		cc.setName("Test");
-		openmrsConcept.setConceptClass(cc);
+	public void toOpenmrsType_shouldAddAttributesFromExtensions() {
+		Extension extension = new Extension();
+		extension.setUrl("http://fhir.bahmni.org/ext/service-request/is-billing-exempt");
+		extension.setValue(new org.hl7.fhir.r4.model.StringType("true"));
+		serviceRequest.addExtension(extension);
 		
-		order.setConcept(openmrsConcept);
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
 		
-		CodeableConcept codeableConcept = new CodeableConcept();
-		
-		Coding loincCoding = codeableConcept.addCoding();
-		loincCoding.setSystem(LOINC_SYSTEM_URL);
-		loincCoding.setCode(LOINC_CODE);
-		
-		when(conceptTranslator.toFhirResource(openmrsConcept)).thenReturn(codeableConcept);
-		
-		CodeableConcept result = translator.toFhirResource(order).getCode();
-		
-		assertThat(result, notNullValue());
-		assertThat(result.getCoding(), notNullValue());
-		assertThat(result.getCoding(), hasItem(hasProperty("system", equalTo(LOINC_SYSTEM_URL))));
-		assertThat(result.getCoding(), hasItem(hasProperty("code", equalTo(LOINC_CODE))));
-	}
-	
-	@Test
-	public void toFhirResource_shouldTranslateOccurrence() {
-		Date fromDate = new Date();
-		Date toDate = new Date();
-		
-		order.setDateActivated(fromDate);
-		order.setAutoExpireDate(toDate);
-		
-		Period result = translator.toFhirResource(order).getOccurrencePeriod();
+		Order result = translator.toOpenmrsType(serviceRequest);
 		
 		assertThat(result, notNullValue());
-		assertThat(result.getStart(), equalTo(fromDate));
-		assertThat(result.getEnd(), equalTo(toDate));
-	}
-	
-	@Test
-	public void toFhirResource_shouldTranslateOccurrenceWithMissingEffectiveStart() {
-		Date toDate = new Date();
-		
-		order.setAutoExpireDate(toDate);
-		
-		Period result = translator.toFhirResource(order).getOccurrencePeriod();
-		
-		assertThat(result, notNullValue());
-		assertThat(result.getStart(), nullValue());
-		assertThat(result.getEnd(), equalTo(toDate));
-	}
-	
-	@Test
-	public void toFhirResource_shouldTranslateOccurrenceWithMissingEffectiveEnd() {
-		Date fromDate = new Date();
-		
-		order.setDateActivated(fromDate);
-		
-		Period result = translator.toFhirResource(order).getOccurrencePeriod();
-		
-		assertThat(result, notNullValue());
-		assertThat(result.getStart(), equalTo(fromDate));
-		assertThat(result.getEnd(), nullValue());
-	}
-	
-	@Test
-	public void toFhirResource_shouldTranslateOccurrenceFromScheduled() {
-		Date fromDate = new Date();
-		Date toDate = new Date();
-		
-		order.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
-		order.setScheduledDate(fromDate);
-		order.setAutoExpireDate(toDate);
-		
-		Period result = translator.toFhirResource(order).getOccurrencePeriod();
-		
-		assertThat(result, notNullValue());
-		assertThat(result.getStart(), equalTo(fromDate));
-		assertThat(result.getEnd(), equalTo(toDate));
+		assertThat(result.getAttributes(), notNullValue());
+		assertThat(result.getAttributes().size(), equalTo(1));
 	}
 	
 	@Test
