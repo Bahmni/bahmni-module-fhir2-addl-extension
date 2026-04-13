@@ -41,6 +41,6 @@ public class FhirEncounterSaveAdvice implements AfterReturningAdvice, Applicatio
     }
 	
 	private String getEncounterFeedUrl() {
-		return Context.getAdministrationService().getGlobalProperty("bahmnievents.encounter.feed.publish.url");
+		return Context.getAdministrationService().getGlobalProperty("eventoutbox.encounter.feed.publish.url");
 	}
 }
