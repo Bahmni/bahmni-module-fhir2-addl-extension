@@ -340,6 +340,57 @@ public class ConsultationBundleEntriesHelperTest {
 		assertFalse(resultCondition.hasEncounter());
 	}
 	
+	@Test
+	public void shouldResolveImmunizationEncounterReference() {
+		Immunization immunization = createImmunization();
+		immunization.setEncounter(new Reference("urn:uuid:placeholder"));
+		Bundle.BundleEntryComponent immunizationEntry = createBundleEntry(immunization, "urn:uuid:immunization");
+		
+		Encounter encounter = createEncounter();
+		encounter.setId("encounter-uuid");
+		Bundle.BundleEntryComponent encounterEntry = createBundleEntry(encounter, "urn:uuid:placeholder");
+		processedEntries.put("urn:uuid:placeholder", encounterEntry);
+		
+		Bundle.BundleEntryComponent result = ConsultationBundleEntriesHelper.resolveReferences(immunizationEntry,
+		    processedEntries);
+		
+		Immunization resultImmunization = (Immunization) result.getResource();
+		assertEquals(FhirConstants.ENCOUNTER, resultImmunization.getEncounter().getType());
+		assertEquals(FhirConstants.ENCOUNTER + "/encounter-uuid", resultImmunization.getEncounter().getReference());
+	}
+	
+	@Test
+	public void shouldNotModifyImmunizationEntryWhenNoEncounterIsPresent() {
+		Immunization immunization = createImmunization();
+		assertFalse(immunization.hasEncounter());
+		Bundle.BundleEntryComponent immunizationEntry = createBundleEntry(immunization, "urn:uuid:immunization");
+		
+		Bundle.BundleEntryComponent result = ConsultationBundleEntriesHelper.resolveReferences(immunizationEntry,
+		    processedEntries);
+		
+		Immunization resultImmunization = (Immunization) result.getResource();
+		assertFalse(resultImmunization.hasEncounter());
+	}
+	
+	@Test
+	public void shouldOrderEntriesWithImmunizationDependency() {
+		
+		Bundle.BundleEntryComponent encounterEntry = createBundleEntry(createEncounter(), "urn:uuid:encounter");
+		
+		Immunization immunization = createImmunization();
+		immunization.setEncounter(new Reference("urn:uuid:encounter"));
+		Bundle.BundleEntryComponent immunizationEntry = createBundleEntry(immunization, "urn:uuid:immunization");
+		
+		entries.add(immunizationEntry);
+		entries.add(encounterEntry);
+		
+		List<Bundle.BundleEntryComponent> result = ConsultationBundleEntriesHelper.orderEntriesByReference(entries);
+		
+		assertEquals(2, result.size());
+		assertEquals(encounterEntry, result.get(0));
+		assertEquals(immunizationEntry, result.get(1));
+	}
+	
 	@Test(expected = InternalErrorException.class)
 	public void shouldThrowExceptionWhenReferencedEntryNotFound() {
 		// Given
@@ -400,6 +451,13 @@ public class ConsultationBundleEntriesHelperTest {
 		observation.setStatus(Observation.ObservationStatus.PRELIMINARY);
 		observation.setSubject(new Reference("Patient/123"));
 		return observation;
+	}
+	
+	private Immunization createImmunization() {
+		Immunization immunization = new Immunization();
+		immunization.setStatus(Immunization.ImmunizationStatus.COMPLETED);
+		immunization.setPatient(new Reference("Patient/123"));
+		return immunization;
 	}
 	
 	@Test

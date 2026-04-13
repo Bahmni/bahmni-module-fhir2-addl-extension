@@ -38,7 +38,8 @@ public final class BahmniFhirConstants {
 					ResourceType.Condition,
 					ResourceType.ServiceRequest,
 					ResourceType.MedicationRequest,
-					ResourceType.Observation
+					ResourceType.Observation,
+					ResourceType.Immunization
 			))
 	);
 	public static final String HL7_CONDITION_CATEGORY_CODE_SYSTEM = FhirConstants.HL7_FHIR_CODE_SYSTEM_PREFIX + "/condition-category";
