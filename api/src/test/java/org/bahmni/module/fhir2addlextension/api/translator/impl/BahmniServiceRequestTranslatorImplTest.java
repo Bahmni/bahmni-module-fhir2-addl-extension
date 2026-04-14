@@ -57,6 +57,10 @@ public class BahmniServiceRequestTranslatorImplTest {
 	
 	private static final String PRIOR_SERVICE_REQUEST_REFERENCE = FhirConstants.SERVICE_REQUEST + "/" + SERVICE_REQUEST_UUID;
 	
+	private static final String LOINC_SYSTEM_URL = "http://loinc.org";
+	
+	private static final String LOINC_CODE = "1000-1";
+	
 	private static final String PATIENT_UUID = "14d4f066-15f5-102d-96e4-000c29c2a5d7";
 	
 	private static final String ENCOUNTER_UUID = "y403fafb-e5e4-42d0-9d11-4f52e89d123r";
@@ -435,6 +439,112 @@ public class BahmniServiceRequestTranslatorImplTest {
 		
 		assertThat(result, notNullValue());
 		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.COMPLETED));
+	}
+	
+	@Test
+	public void toFhirResource_shouldTranslateOrderFromOnlyDateStoppedToCompleteServiceRequest() throws Exception {
+		
+		Calendar date = Calendar.getInstance();
+		date.set(2000, Calendar.APRIL, 16);
+		order.setDateActivated(date.getTime());
+		date.set(2015, Calendar.APRIL, 16);
+		OrderUtilTest.setDateStopped(order, date.getTime());
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.COMPLETED));
+	}
+	
+	@Test
+	public void toFhirResource_shouldTranslateFromNoDataToActiveServiceRequest() {
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.ACTIVE));
+	}
+	
+	@Test
+	public void toFhirResource_shouldTranslateCode() {
+		Concept openmrsConcept = new Concept();
+		ConceptClass cc = new ConceptClass();
+		cc.setName("Test");
+		openmrsConcept.setConceptClass(cc);
+		
+		order.setConcept(openmrsConcept);
+		
+		CodeableConcept codeableConcept = new CodeableConcept();
+		
+		Coding loincCoding = codeableConcept.addCoding();
+		loincCoding.setSystem(LOINC_SYSTEM_URL);
+		loincCoding.setCode(LOINC_CODE);
+		
+		when(conceptTranslator.toFhirResource(openmrsConcept)).thenReturn(codeableConcept);
+		
+		CodeableConcept result = translator.toFhirResource(order).getCode();
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getCoding(), notNullValue());
+		assertThat(result.getCoding(), hasItem(hasProperty("system", equalTo(LOINC_SYSTEM_URL))));
+		assertThat(result.getCoding(), hasItem(hasProperty("code", equalTo(LOINC_CODE))));
+	}
+	
+	@Test
+	public void toFhirResource_shouldTranslateOccurrence() {
+		Date fromDate = new Date();
+		Date toDate = new Date();
+		
+		order.setDateActivated(fromDate);
+		order.setAutoExpireDate(toDate);
+		
+		Period result = translator.toFhirResource(order).getOccurrencePeriod();
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getStart(), equalTo(fromDate));
+		assertThat(result.getEnd(), equalTo(toDate));
+	}
+	
+	@Test
+	public void toFhirResource_shouldTranslateOccurrenceWithMissingEffectiveStart() {
+		Date toDate = new Date();
+		
+		order.setAutoExpireDate(toDate);
+		
+		Period result = translator.toFhirResource(order).getOccurrencePeriod();
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getStart(), nullValue());
+		assertThat(result.getEnd(), equalTo(toDate));
+	}
+	
+	@Test
+	public void toFhirResource_shouldTranslateOccurrenceWithMissingEffectiveEnd() {
+		Date fromDate = new Date();
+		
+		order.setDateActivated(fromDate);
+		
+		Period result = translator.toFhirResource(order).getOccurrencePeriod();
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getStart(), equalTo(fromDate));
+		assertThat(result.getEnd(), nullValue());
+	}
+	
+	@Test
+	public void toFhirResource_shouldTranslateOccurrenceFromScheduled() {
+		Date fromDate = new Date();
+		Date toDate = new Date();
+		
+		order.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
+		order.setScheduledDate(fromDate);
+		order.setAutoExpireDate(toDate);
+		
+		Period result = translator.toFhirResource(order).getOccurrencePeriod();
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getStart(), equalTo(fromDate));
+		assertThat(result.getEnd(), equalTo(toDate));
 	}
 	
 	@Test
