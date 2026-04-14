@@ -9,11 +9,14 @@ import org.bahmni.module.fhir2addlextension.api.service.ServiceRequestLocationRe
 import org.bahmni.module.fhir2addlextension.api.translator.BahmniOrderReferenceTranslator;
 import org.bahmni.module.fhir2addlextension.api.translator.OrderTypeTranslator;
 import org.bahmni.module.fhir2addlextension.api.translator.ServiceRequestPriorityTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.ServiceRequestExtensionTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.ServiceRequestAttributeTranslator;
 import org.bahmni.module.fhir2addlextension.api.validators.ServiceRequestValidator;
 import org.hl7.fhir.r4.model.*;
 import org.openmrs.Concept;
 import org.openmrs.Encounter;
 import org.openmrs.Order;
+import org.openmrs.OrderAttribute;
 import org.openmrs.Provider;
 import org.openmrs.CareSetting;
 import org.openmrs.api.OrderService;
@@ -23,10 +26,13 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static org.apache.commons.lang3.Validate.notNull;
 import static org.openmrs.module.fhir2.api.translators.impl.FhirTranslatorUtils.getLastUpdated;
@@ -71,6 +77,9 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 	
 	@Autowired
 	private BahmniOrderReferenceTranslator bahmniOrderReferenceTranslator;
+	
+	@Autowired
+	private ServiceRequestExtensionTranslator extensionTranslator;
 	
 	@Override
 	public ServiceRequest toFhirResource(@Nonnull Order order) {
@@ -126,6 +135,13 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 			serviceRequest.addNote(new Annotation().setText(order.getCommentToFulfiller()));
 		}
 
+		// Add order attributes as extensions
+		if (!order.getActiveAttributes().isEmpty()) {
+			order.getActiveAttributes().forEach(attribute -> extensionTranslator.getAttributeTranslator(attribute)
+                    .map(translator -> translator.toFhirResource(attribute))
+                    .ifPresent(serviceRequest::addExtension));
+		}
+
 		return serviceRequest;
 	}
 	
@@ -160,6 +176,24 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 				throw new InvalidRequestException("Multiple basedOn reference is not allowed");
 			Order previousOrder = bahmniOrderReferenceTranslator.toOpenmrsType(basedOnReferences.get(0));
 			order.setPreviousOrder(previousOrder);
+		}
+		
+		// Handle extensions to attributes
+		if (resource.hasExtension()) {
+			Map<String, List<Extension>> attributeExtensions = resource.getExtension().stream()
+					.collect(Collectors.groupingBy(Extension::getUrl));
+			List<OrderAttribute> allAttributesFromExt = new ArrayList<>();
+			
+			for (String extUrl : attributeExtensions.keySet()) {
+				Optional<ServiceRequestAttributeTranslator> attributeTranslator = extensionTranslator.getAttributeTranslator(extUrl);
+				if (!attributeTranslator.isPresent()) {
+					continue;
+				}
+				allAttributesFromExt.addAll(attributeTranslator.get().toOpenmrsType(extUrl, attributeExtensions.get(extUrl)));
+			}
+			
+			// Add all attributes to the order
+			allAttributesFromExt.forEach(order::addAttribute);
 		}
 		
 		return order;

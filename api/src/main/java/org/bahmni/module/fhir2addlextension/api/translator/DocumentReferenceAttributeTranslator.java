@@ -2,19 +2,7 @@ package org.bahmni.module.fhir2addlextension.api.translator;
 
 import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceAttribute;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceAttributeType;
-import org.hl7.fhir.r4.model.Extension;
 
-import java.util.List;
-import java.util.Optional;
-
-public interface DocumentReferenceAttributeTranslator {
-	
-	boolean supports(FhirDocumentReferenceAttribute attribute);
-	
-	List<FhirDocumentReferenceAttribute> toOpenmrsType(String extUrl, List<Extension> extensions);
-	
-	Extension toFhirResource(FhirDocumentReferenceAttribute attribute);
-	
-	Optional<FhirDocumentReferenceAttributeType> getAttributeType(String extUrl);
+public interface DocumentReferenceAttributeTranslator extends AttributeTranslator<FhirDocumentReferenceAttribute, FhirDocumentReferenceAttributeType> {
 	
 }

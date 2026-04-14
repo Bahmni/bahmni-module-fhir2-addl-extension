@@ -6,6 +6,7 @@ import org.bahmni.module.fhir2addlextension.api.context.AppContext;
 import org.bahmni.module.fhir2addlextension.api.dao.OrderAttributeTypeDao;
 import org.bahmni.module.fhir2addlextension.api.service.impl.ServiceRequestLocationReferenceResolverImpl;
 import org.bahmni.module.fhir2addlextension.api.translator.OrderTypeTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.ServiceRequestExtensionTranslator;
 import org.bahmni.module.fhir2addlextension.api.translator.ServiceRequestPriorityTranslator;
 import org.bahmni.module.fhir2addlextension.api.validators.ServiceRequestValidator;
 import org.hl7.fhir.r4.model.*;
@@ -31,6 +32,8 @@ import org.bahmni.module.fhir2addlextension.api.translator.BahmniOrderReferenceT
 import java.lang.reflect.Field;
 import java.util.*;
 
+import static org.bahmni.module.fhir2addlextension.api.TestDataFactory.exampleOrderAttrTypeIsBillingExempt;
+import static org.bahmni.module.fhir2addlextension.api.TestDataFactory.exampleOrderAttrTypePriority;
 import static org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants.ORDER_TYPE_SYSTEM_URI;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -91,7 +94,10 @@ public class BahmniServiceRequestTranslatorImplTest {
 	private OrderService orderService;
 	
 	@Mock
-	OrderAttributeTypeDao orderAttributeTypeDao;
+	private OrderAttributeTypeDao orderAttributeTypeDao;
+	
+	@Mock
+	private OrderAttributeTypeDao mockAttributeTypeDao;
 	
 	@Mock
 	LocationReferenceTranslator locationReferenceTranslator;
@@ -101,6 +107,8 @@ public class BahmniServiceRequestTranslatorImplTest {
 	
 	@Mock
 	BahmniOrderReferenceTranslator bahmniOrderReferenceTranslator;
+	
+	private ServiceRequestExtensionTranslator extensionTranslator;
 	
 	private Order discontinuedOrder;
 	
@@ -124,6 +132,14 @@ public class BahmniServiceRequestTranslatorImplTest {
 	
 	@Before
 	public void setup() throws Exception {
+		List<OrderAttributeType> supportedAttributes = Arrays.asList(exampleOrderAttrTypeIsBillingExempt(),
+		    exampleOrderAttrTypePriority());
+		when(mockAttributeTypeDao.getOrderAttributeTypes(false)).thenReturn(supportedAttributes);
+		
+		ServiceRequestAttributeTranslatorImpl attributeTranslator = new ServiceRequestAttributeTranslatorImpl(
+		        mockAttributeTypeDao);
+		extensionTranslator = new ServiceRequestExtensionTranslatorImpl(attributeTranslator);
+		
 		translator = new BahmniServiceRequestTranslatorImpl();
 		translator.setConceptTranslator(conceptTranslator);
 		translator.setPatientReferenceTranslator(patientReferenceTranslator);
@@ -135,6 +151,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 		translator.setServiceRequestValidator(serviceRequestValidator);
 		translator.setOrderService(orderService);
 		translator.setBahmniOrderReferenceTranslator(bahmniOrderReferenceTranslator);
+		translator.setExtensionTranslator(extensionTranslator);
 		
 		ServiceRequestLocationReferenceResolverImpl orderLocationReferenceResolver = new ServiceRequestLocationReferenceResolverImpl(
 		        locationReferenceTranslator, orderAttributeTypeDao, appContext);
@@ -528,6 +545,49 @@ public class BahmniServiceRequestTranslatorImplTest {
 		assertThat(result, notNullValue());
 		assertThat(result.getStart(), equalTo(fromDate));
 		assertThat(result.getEnd(), equalTo(toDate));
+	}
+	
+	@Test
+	public void toFhirResource_shouldAddOrderAttributesAsExtensions() {
+		OrderAttributeType attrType = exampleOrderAttrTypeIsBillingExempt();
+		
+		OrderAttribute attribute = mock(OrderAttribute.class);
+		when(attribute.getAttributeType()).thenReturn(attrType);
+		when(attribute.getValue()).thenReturn(true);
+		order.addAttribute(attribute);
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getExtension(), notNullValue());
+		assertThat(result.getExtension().size(), greaterThanOrEqualTo(1));
+		assertThat(result.getExtension(),
+		    hasItem(hasProperty("url", equalTo("http://fhir.bahmni.org/ext/service-request/is-billing-exempt"))));
+		// Verify that the value is a BooleanType with value true
+		assertThat(result.getExtension(), hasItem(hasProperty("value", hasProperty("value", equalTo(true)))));
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldAddAttributesFromExtensions() {
+		Extension extension = new Extension();
+		extension.setUrl("http://fhir.bahmni.org/ext/service-request/is-billing-exempt");
+		extension.setValue(new org.hl7.fhir.r4.model.StringType("true"));
+		serviceRequest.addExtension(extension);
+		
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		
+		Order result = translator.toOpenmrsType(serviceRequest);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getAttributes(), notNullValue());
+		assertThat(result.getAttributes().size(), equalTo(1));
 	}
 	
 	@Test

@@ -52,6 +52,7 @@ public final class BahmniFhirConstants {
 	public static final String EPISODE_OF_CARE_REFERENCE_SEARCH_PARAM = "episodeOfCare.reference.search.handler";
 	public static final String FHIR_EXT_DOCUMENT_REFERENCE_ATTRIBUTE = EXTENSION_PREFIX + "/document-reference/attribute";
 	public static final String FHIR_EXT_DOCUMENT_REFERENCE_BASED_ON = EXTENSION_PREFIX + "/document-reference/based-on-service-request";
+	public static final String FHIR_EXT_SERVICE_REQUEST_ATTRIBUTE_PREFIX = EXTENSION_PREFIX + "/service-request/";
 	public static final String FHIR_EXT_IMAGING_STUDY_PERFORMER = EXTENSION_PREFIX + "/imaging-study/performer";
 	public static final String FHIR_EXT_IMAGING_STUDY_COMPLETION_DATE = EXTENSION_PREFIX + "/imaging-study/completion-date";
 	public static final String FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION = EXTENSION_PREFIX + "/imaging-study/quality-observation";

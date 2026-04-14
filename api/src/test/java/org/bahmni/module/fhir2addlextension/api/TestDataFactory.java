@@ -7,6 +7,7 @@ import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.openmrs.Concept;
 import org.openmrs.ConceptName;
+import org.openmrs.OrderAttributeType;
 import org.openmrs.Provider;
 
 import java.io.BufferedReader;
@@ -33,6 +34,24 @@ public class TestDataFactory {
 		FhirDocumentReferenceAttributeType attributeType = new FhirDocumentReferenceAttributeType();
 		attributeType.setName("Is self submitted");
 		attributeType.setDatatypeClassname("org.openmrs.customdatatype.datatype.BooleanDatatype");
+		attributeType.setMinOccurs(0);
+		attributeType.setMaxOccurs(1);
+		return attributeType;
+	}
+	
+	public static OrderAttributeType exampleOrderAttrTypeIsBillingExempt() {
+		OrderAttributeType attributeType = new OrderAttributeType();
+		attributeType.setName("Is billing exempt");
+		attributeType.setDatatypeClassname("org.openmrs.customdatatype.datatype.BooleanDatatype");
+		attributeType.setMinOccurs(0);
+		attributeType.setMaxOccurs(1);
+		return attributeType;
+	}
+	
+	public static OrderAttributeType exampleOrderAttrTypePriority() {
+		OrderAttributeType attributeType = new OrderAttributeType();
+		attributeType.setName("Priority");
+		attributeType.setDatatypeClassname("org.openmrs.customdatatype.datatype.FreeTextDatatype");
 		attributeType.setMinOccurs(0);
 		attributeType.setMaxOccurs(1);
 		return attributeType;
