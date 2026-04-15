@@ -24,10 +24,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.CareSetting;
 import org.openmrs.Concept;
 import org.openmrs.ConceptClass;
+import org.openmrs.ConceptName;
 import org.openmrs.Encounter;
 import org.openmrs.Order;
 import org.openmrs.OrderAttribute;
@@ -37,6 +37,7 @@ import org.openmrs.Patient;
 import org.openmrs.Provider;
 import org.openmrs.User;
 import org.openmrs.api.OrderService;
+import org.openmrs.api.context.Context;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
 import org.openmrs.module.fhir2.api.translators.EncounterReferenceTranslator;
@@ -48,6 +49,8 @@ import org.openmrs.module.fhir2.model.FhirReference;
 import org.openmrs.module.fhir2.model.FhirTask;
 import org.openmrs.order.OrderUtilTest;
 import org.bahmni.module.fhir2addlextension.api.translator.BahmniOrderReferenceTranslator;
+import org.mockito.MockedStatic;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -56,6 +59,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 import static org.bahmni.module.fhir2addlextension.api.TestDataFactory.exampleOrderAttrTypeIsBillingExempt;
 import static org.bahmni.module.fhir2addlextension.api.TestDataFactory.exampleOrderAttrTypePriority;
@@ -80,6 +84,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mockStatic;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BahmniServiceRequestTranslatorImplTest {
@@ -1540,5 +1545,54 @@ public class BahmniServiceRequestTranslatorImplTest {
 		
 		assertThat(result, notNullValue());
 		assertThat(result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_TASK_OWNER), nullValue());
+	}
+	
+	@Test
+	public void toFhirResource_shouldAddOrderShortNameExtensionWhenConceptHasShortName() {
+		order.setDateActivated(new Date());
+
+		ConceptClass conceptClass = new ConceptClass();
+		conceptClass.setName("Other");
+		Concept mockConcept = mock(Concept.class);
+		when(mockConcept.getConceptClass()).thenReturn(conceptClass);
+
+		ConceptName shortConceptName = new ConceptName();
+		shortConceptName.setName("BG");
+		when(mockConcept.getShortNameInLocale(Locale.ENGLISH)).thenReturn(shortConceptName);
+
+		order.setConcept(mockConcept);
+
+		ServiceRequest result;
+		try (MockedStatic<Context> contextMock = mockStatic(Context.class)) {
+			contextMock.when(Context::getLocale).thenReturn(Locale.ENGLISH);
+			result = translator.toFhirResource(order);
+		}
+
+		assertThat(result, notNullValue());
+		Extension ext = result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_ORDER_SHORT_NAME);
+		assertThat(ext, notNullValue());
+		assertThat(((StringType) ext.getValue()).getValue(), equalTo("BG"));
+	}
+	
+	@Test
+	public void toFhirResource_shouldNotAddOrderShortNameExtensionWhenConceptHasNoShortName() {
+		order.setDateActivated(new Date());
+
+		ConceptClass conceptClass = new ConceptClass();
+		conceptClass.setName("Other");
+		Concept mockConcept = mock(Concept.class);
+		when(mockConcept.getConceptClass()).thenReturn(conceptClass);
+		when(mockConcept.getShortNameInLocale(Locale.ENGLISH)).thenReturn(null);
+
+		order.setConcept(mockConcept);
+
+		ServiceRequest result;
+		try (MockedStatic<Context> contextMock = mockStatic(Context.class)) {
+			contextMock.when(Context::getLocale).thenReturn(Locale.ENGLISH);
+			result = translator.toFhirResource(order);
+		}
+
+		assertThat(result, notNullValue());
+		assertThat(result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_ORDER_SHORT_NAME), nullValue());
 	}
 }
