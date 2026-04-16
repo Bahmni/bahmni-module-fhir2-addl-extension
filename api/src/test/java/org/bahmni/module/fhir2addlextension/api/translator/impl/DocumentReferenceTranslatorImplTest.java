@@ -178,6 +178,37 @@ public class DocumentReferenceTranslatorImplTest {
     }
 	
 	@Test
+	public void toFhirResource_shouldMapDateCreated() throws ParseException {
+		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		Date uploadDate = dateFormat.parse("2026-04-08 10:30:00");
+		
+		FhirDocumentReference docRef = new FhirDocumentReference();
+		docRef.setUuid("test-uuid");
+		docRef.setMasterIdentifier("TEST123");
+		docRef.setDateCreated(uploadDate);
+		docRef.setStatus(FhirDocumentReference.FhirDocumentReferenceStatus.CURRENT);
+		docRef.setDocStatus(FhirDocumentReference.FhirDocumentReferenceDocStatus.PRELIMINARY);
+		
+		DocumentReference fhirResource = translator.toFhirResource(docRef);
+		
+		Assert.assertNotNull(fhirResource.getDate());
+		Assert.assertEquals(uploadDate, fhirResource.getDate());
+	}
+	
+	@Test
+	public void toFhirResource_shouldHandleNullDateCreated() {
+		FhirDocumentReference docRef = new FhirDocumentReference();
+		docRef.setUuid("test-uuid");
+		docRef.setMasterIdentifier("TEST123");
+		docRef.setStatus(FhirDocumentReference.FhirDocumentReferenceStatus.CURRENT);
+		docRef.setDocStatus(FhirDocumentReference.FhirDocumentReferenceDocStatus.PRELIMINARY);
+		
+		DocumentReference fhirResource = translator.toFhirResource(docRef);
+		
+		Assert.assertNull(fhirResource.getDate());
+	}
+	
+	@Test
 	public void toFhirResource_shouldMapContextPeriodStartAndEndDates() throws ParseException {
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		Date startDate = dateFormat.parse("2025-10-31 18:30:00");
