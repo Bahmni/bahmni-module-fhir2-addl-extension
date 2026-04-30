@@ -203,16 +203,17 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 		
 		Date currentDate = new Date();
 		
-		boolean isCompeted = order.isActivated()
-		        && ((order.getDateStopped() != null && currentDate.after(order.getDateStopped())) || (order
-		                .getAutoExpireDate() != null && currentDate.after(order.getAutoExpireDate())));
+		boolean isCompleted = order.isActivated()
+		        && (Order.FulfillerStatus.COMPLETED.equals(order.getFulfillerStatus()) || ((order.getDateStopped() != null && currentDate
+		                .after(order.getDateStopped())) || (order.getAutoExpireDate() != null && currentDate.after(order
+		                .getAutoExpireDate()))));
 		boolean isDiscontinued = order.isActivated() && order.getAction() == Order.Action.DISCONTINUE;
 		
-		if ((isCompeted && isDiscontinued)) {
+		if ((isCompleted && isDiscontinued)) {
 			return ServiceRequest.ServiceRequestStatus.UNKNOWN;
 		} else if (isDiscontinued) {
 			return ServiceRequest.ServiceRequestStatus.REVOKED;
-		} else if (isCompeted) {
+		} else if (isCompleted) {
 			return ServiceRequest.ServiceRequestStatus.COMPLETED;
 		} else {
 			return ServiceRequest.ServiceRequestStatus.ACTIVE;

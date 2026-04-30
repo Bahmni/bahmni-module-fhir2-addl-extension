@@ -466,6 +466,86 @@ public class BahmniServiceRequestTranslatorImplTest {
 	}
 	
 	@Test
+	public void toFhirResource_shouldTranslateOrderWithFulfillerStatusCompletedToCompleteServiceRequest() {
+		Calendar date = Calendar.getInstance();
+		date.set(2000, Calendar.APRIL, 16);
+		order.setDateActivated(date.getTime());
+		order.setFulfillerStatus(Order.FulfillerStatus.COMPLETED);
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.COMPLETED));
+	}
+	
+	@Test
+	public void toFhirResource_shouldTranslateOrderWithFulfillerStatusCompletedAndFutureDatesToCompleteServiceRequest()
+	        throws Exception {
+		Calendar date = Calendar.getInstance();
+		date.set(2000, Calendar.APRIL, 16);
+		order.setDateActivated(date.getTime());
+		date.set(2070, Calendar.APRIL, 16);
+		order.setAutoExpireDate(date.getTime());
+		date.set(2069, Calendar.APRIL, 16);
+		OrderUtilTest.setDateStopped(order, date.getTime());
+		order.setFulfillerStatus(Order.FulfillerStatus.COMPLETED);
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.COMPLETED));
+	}
+	
+	@Test
+	public void toFhirResource_shouldTranslateOrderWithFulfillerStatusCompletedAndDateStoppedToCompleteServiceRequest()
+	        throws Exception {
+		Calendar date = Calendar.getInstance();
+		date.set(2000, Calendar.APRIL, 16);
+		order.setDateActivated(date.getTime());
+		date.set(2010, Calendar.APRIL, 16);
+		OrderUtilTest.setDateStopped(order, date.getTime());
+		order.setFulfillerStatus(Order.FulfillerStatus.COMPLETED);
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.COMPLETED));
+	}
+	
+	@Test
+	public void toFhirResource_shouldTranslateOrderWithFulfillerStatusCompletedAndBothDatesToCompleteServiceRequest()
+	        throws Exception {
+		Calendar date = Calendar.getInstance();
+		date.set(2000, Calendar.APRIL, 16);
+		order.setDateActivated(date.getTime());
+		date.set(2011, Calendar.APRIL, 16);
+		order.setAutoExpireDate(date.getTime());
+		date.set(2010, Calendar.APRIL, 16);
+		OrderUtilTest.setDateStopped(order, date.getTime());
+		order.setFulfillerStatus(Order.FulfillerStatus.COMPLETED);
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.COMPLETED));
+	}
+	
+	@Test
+	public void toFhirResource_shouldTranslateOrderWithFulfillerStatusCompletedAndDiscontinueActionToUnknownServiceRequest()
+	        throws Exception {
+		Calendar date = Calendar.getInstance();
+		date.set(2000, Calendar.APRIL, 16);
+		order.setDateActivated(date.getTime());
+		order.setFulfillerStatus(Order.FulfillerStatus.COMPLETED);
+		order.setAction(Order.Action.DISCONTINUE);
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.UNKNOWN));
+	}
+	
+	@Test
 	public void toFhirResource_shouldTranslateCode() {
 		Concept openmrsConcept = new Concept();
 		ConceptClass cc = new ConceptClass();
