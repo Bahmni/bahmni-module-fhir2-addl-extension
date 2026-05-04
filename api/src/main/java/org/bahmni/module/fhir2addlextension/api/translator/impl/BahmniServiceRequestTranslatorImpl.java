@@ -11,6 +11,7 @@ import org.bahmni.module.fhir2addlextension.api.translator.OrderTypeTranslator;
 import org.bahmni.module.fhir2addlextension.api.translator.ServiceRequestPriorityTranslator;
 import org.bahmni.module.fhir2addlextension.api.translator.ServiceRequestExtensionTranslator;
 import org.bahmni.module.fhir2addlextension.api.translator.ServiceRequestAttributeTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.ServiceRequestStatusTranslator;
 import org.bahmni.module.fhir2addlextension.api.validators.ServiceRequestValidator;
 import org.hl7.fhir.r4.model.*;
 import org.openmrs.Concept;
@@ -80,6 +81,9 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 	
 	@Autowired
 	private ServiceRequestExtensionTranslator extensionTranslator;
+
+	@Autowired
+	private ServiceRequestStatusTranslator serviceRequestStatusTranslator;
 	
 	@Override
 	public ServiceRequest toFhirResource(@Nonnull Order order) {
@@ -199,24 +203,8 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 		return order;
 	}
 	
-	private ServiceRequest.ServiceRequestStatus determineServiceRequestStatus(Order order) {
-		
-		Date currentDate = new Date();
-		
-		boolean isCompeted = order.isActivated()
-		        && ((order.getDateStopped() != null && currentDate.after(order.getDateStopped())) || (order
-		                .getAutoExpireDate() != null && currentDate.after(order.getAutoExpireDate())));
-		boolean isDiscontinued = order.isActivated() && order.getAction() == Order.Action.DISCONTINUE;
-		
-		if ((isCompeted && isDiscontinued)) {
-			return ServiceRequest.ServiceRequestStatus.UNKNOWN;
-		} else if (isDiscontinued) {
-			return ServiceRequest.ServiceRequestStatus.REVOKED;
-		} else if (isCompeted) {
-			return ServiceRequest.ServiceRequestStatus.COMPLETED;
-		} else {
-			return ServiceRequest.ServiceRequestStatus.ACTIVE;
-		}
+	protected ServiceRequest.ServiceRequestStatus determineServiceRequestStatus(Order order) {
+		return serviceRequestStatusTranslator.toFhirResource(order);
 	}
 	
 	private Reference createOrderReferenceInternal(Order order) {
