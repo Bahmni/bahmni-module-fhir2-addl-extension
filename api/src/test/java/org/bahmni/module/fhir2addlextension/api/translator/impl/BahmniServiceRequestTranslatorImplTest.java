@@ -512,10 +512,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 
 	@Test
 	public void toFhirResource_shouldThrowErrorWithoutEffectiveStartDate() {
-		Date toDate = new Date();
-		Date dateActivation = minusDays(toDate, 1);
-		//order.setDateActivated(dateActivation);
-		order.setAutoExpireDate(toDate);
+        order.setAutoExpireDate(new Date());
 		IllegalArgumentException exception = Assert.assertThrows(IllegalArgumentException.class, () -> translator.toFhirResource(order));
 		Assert.assertEquals("Can not determine status for order with no effective start date", exception.getMessage());
 	}
