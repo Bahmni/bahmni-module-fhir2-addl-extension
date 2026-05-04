@@ -6,8 +6,6 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.hl7.fhir.r4.model.ServiceRequest;
 import org.openmrs.Order;
 
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
@@ -41,31 +39,33 @@ public class ServiceRequestStatusTranslatorImpl implements ServiceRequestStatusT
             //determined by the date stopped. the original order action is still new
             return ServiceRequest.ServiceRequestStatus.COMPLETED;
         }
-        //fulfiller status is null, so we must interpret the action, urgency and dates
-        if (Order.Action.NEW.equals(order.getAction())) {
-            Date currentDate = new Date();
-            Date effectiveStartDate = order.getEffectiveStartDate();
-            Date effectiveStopDate = order.getEffectiveStopDate();
 
-            if (order.getDateStopped() != null) {
-                return ServiceRequest.ServiceRequestStatus.REVOKED;
-            }
-
-            if (effectiveStartDate == null) {
-                throw new IllegalArgumentException("Can not determine status for order with no effective start date");
-            }
-
-            int activated = ModuleUtils.compareDates(currentDate, effectiveStartDate, ChronoUnit.MINUTES); // order.isActivated(effectiveStartDate);
-            if (activated < 0) {
-                return ServiceRequest.ServiceRequestStatus.ACTIVE;
-            }
-            if (effectiveStopDate == null) {
-                return ServiceRequest.ServiceRequestStatus.ACTIVE;
-            }
-            int comparisonResult = ModuleUtils.compareDates(effectiveStopDate, currentDate, ChronoUnit.MINUTES);
-            return comparisonResult < 0 ? ServiceRequest.ServiceRequestStatus.COMPLETED : ServiceRequest.ServiceRequestStatus.ACTIVE;
+        if (!Order.Action.NEW.equals(order.getAction())) {
+            return ServiceRequest.ServiceRequestStatus.UNKNOWN;
         }
 
-        return ServiceRequest.ServiceRequestStatus.UNKNOWN;
+        //fulfiller status is null, Order action is NEW, interpret the dates
+        Date currentDate = new Date();
+        Date effectiveStartDate = order.getEffectiveStartDate();
+        Date effectiveStopDate = order.getEffectiveStopDate();
+
+        if (order.getDateStopped() != null) {
+            return ServiceRequest.ServiceRequestStatus.REVOKED;
+        }
+
+        if (effectiveStartDate == null) {
+            throw new IllegalArgumentException("Can not determine status for order with no effective start date");
+        }
+
+        int activated = ModuleUtils.compareDates(currentDate, effectiveStartDate, ChronoUnit.MINUTES); // order.isActivated(effectiveStartDate);
+        if (activated < 0) {
+            return ServiceRequest.ServiceRequestStatus.ACTIVE;
+        }
+        if (effectiveStopDate == null) {
+            return ServiceRequest.ServiceRequestStatus.ACTIVE;
+        }
+        int comparisonResult = ModuleUtils.compareDates(effectiveStopDate, currentDate, ChronoUnit.MINUTES);
+        return comparisonResult < 0 ? ServiceRequest.ServiceRequestStatus.COMPLETED : ServiceRequest.ServiceRequestStatus.ACTIVE;
+
     }
 }

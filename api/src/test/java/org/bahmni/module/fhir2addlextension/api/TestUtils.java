@@ -1,7 +1,6 @@
 package org.bahmni.module.fhir2addlextension.api;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-
+import javax.validation.constraints.NotNull;
 import java.lang.reflect.Field;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -18,17 +17,15 @@ public class TestUtils {
 		field.set(target, value);
 	}
 
-	public static @NonNull Date minusDays(Date currentDate, int days) {
+	public static @NotNull Date minusDays(@NotNull Date currentDate, int days) {
 		Instant instant = currentDate.toInstant();
 		Instant resultInstant = instant.minus(days, ChronoUnit.DAYS);
-		Date dateOfActivation = Date.from(resultInstant);
-		return dateOfActivation;
+		return Date.from(resultInstant);
 	}
 
-	public static @NonNull Date plusDays(Date currentDate, int days) {
+	public static @NotNull Date plusDays(@NotNull Date currentDate, int days) {
 		Instant instant = currentDate.toInstant();
 		Instant resultInstant = instant.plus(days, ChronoUnit.DAYS);
-		Date dateOfActivation = Date.from(resultInstant);
-		return dateOfActivation;
+		return Date.from(resultInstant);
 	}
 }
