@@ -5,17 +5,19 @@ import org.bahmni.module.fhir2addlextension.api.utils.ModuleUtils;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.hl7.fhir.r4.model.ServiceRequest;
 import org.openmrs.Order;
+import org.springframework.stereotype.Component;
 
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
+@Component
 public class ServiceRequestStatusTranslatorImpl implements ServiceRequestStatusTranslator {
     @Override
     public ServiceRequest.ServiceRequestStatus toFhirResource(@NonNull Order data) {
         return determineServiceRequestStatus(data);
     }
 
-    protected ServiceRequest.ServiceRequestStatus determineServiceRequestStatus(Order order) {
+    private ServiceRequest.ServiceRequestStatus determineServiceRequestStatus(Order order) {
         if (order.getVoided()) {
             return ServiceRequest.ServiceRequestStatus.ENTEREDINERROR;
         }

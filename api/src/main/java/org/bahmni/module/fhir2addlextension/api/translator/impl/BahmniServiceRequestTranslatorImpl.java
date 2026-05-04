@@ -29,7 +29,6 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -93,7 +92,7 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 
 		serviceRequest.setId(order.getUuid());
 
-		serviceRequest.setStatus(determineServiceRequestStatus(order));
+		serviceRequest.setStatus(serviceRequestStatusTranslator.toFhirResource(order));
 
 		serviceRequest.setCode(conceptTranslator.toFhirResource(order.getConcept()));
 
@@ -202,11 +201,7 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 		
 		return order;
 	}
-	
-	protected ServiceRequest.ServiceRequestStatus determineServiceRequestStatus(Order order) {
-		return serviceRequestStatusTranslator.toFhirResource(order);
-	}
-	
+
 	private Reference createOrderReferenceInternal(Order order) {
 		Reference reference = createOrderReference(order);
 		if (reference == null) {
