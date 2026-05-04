@@ -57,7 +57,7 @@ public class ServiceRequestStatusTranslatorImpl implements ServiceRequestStatusT
             throw new IllegalArgumentException("Can not determine status for order with no effective start date");
         }
 
-        int activated = ModuleUtils.compareDates(currentDate, effectiveStartDate, ChronoUnit.MINUTES); // order.isActivated(effectiveStartDate);
+        int activated = ModuleUtils.compareDates(currentDate, effectiveStartDate, ChronoUnit.MINUTES);
         if (activated < 0) {
             return ServiceRequest.ServiceRequestStatus.ACTIVE;
         }
