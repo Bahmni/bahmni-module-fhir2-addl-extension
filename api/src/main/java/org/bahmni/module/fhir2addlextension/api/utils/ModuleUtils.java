@@ -45,16 +45,15 @@ public class ModuleUtils {
 		//check location parent
 		return getVisitLocation(aLocation.getParentLocation());
 	}
-
+	
 	/**
 	 * Compares two dates up to ChronoUnit granularity.
+	 * 
 	 * @param d1 1st date to compare
 	 * @param d2 2nd date to compare
 	 * @param unit granularity to compare, default is MINUTES
-	 * @return comparison result
-	 * 0 if they are in the same granularity
-	 * < 0 if d1 is before d2
-	 * > 0 if d1 is after d2
+	 * @return comparison result 0 if they are in the same granularity < 0 if d1 is before d2 > 0 if
+	 *         d1 is after d2
 	 */
 	public static int compareDates(@NotNull Date d1, @NotNull Date d2, ChronoUnit unit) {
 		ChronoUnit granularity = unit != null ? unit : ChronoUnit.MINUTES;

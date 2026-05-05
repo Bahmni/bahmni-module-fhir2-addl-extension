@@ -406,10 +406,11 @@ public class BahmniServiceRequestTranslatorImplTest {
 		assertThat(result, notNullValue());
 		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.COMPLETED));
 	}
-
+	
 	/**
-	 * The order here is the order for discontinuing the previous order. This order by itself is completed, since
-	 * no further action is required
+	 * The order here is the order for discontinuing the previous order. This order by itself is
+	 * completed, since no further action is required
+	 * 
 	 * @throws Exception
 	 */
 	@Test
@@ -509,7 +510,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 		assertThat(result.getStart(), equalTo(fromDate));
 		assertThat(result.getEnd(), equalTo(toDate));
 	}
-
+	
 	@Test
 	public void toFhirResource_shouldThrowErrorWithoutEffectiveStartDate() {
         order.setAutoExpireDate(new Date());

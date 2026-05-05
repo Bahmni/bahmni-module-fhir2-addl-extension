@@ -80,7 +80,7 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 	
 	@Autowired
 	private ServiceRequestExtensionTranslator extensionTranslator;
-
+	
 	@Autowired
 	private ServiceRequestStatusTranslator serviceRequestStatusTranslator;
 	
@@ -201,7 +201,7 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 		
 		return order;
 	}
-
+	
 	private Reference createOrderReferenceInternal(Order order) {
 		Reference reference = createOrderReference(order);
 		if (reference == null) {

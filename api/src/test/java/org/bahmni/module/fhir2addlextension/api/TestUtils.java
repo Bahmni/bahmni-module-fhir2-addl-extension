@@ -16,14 +16,16 @@ public class TestUtils {
 		field.setAccessible(true);
 		field.set(target, value);
 	}
-
-	public static @NotNull Date minusDays(@NotNull Date currentDate, int days) {
+	
+	public static @NotNull
+	Date minusDays(@NotNull Date currentDate, int days) {
 		Instant instant = currentDate.toInstant();
 		Instant resultInstant = instant.minus(days, ChronoUnit.DAYS);
 		return Date.from(resultInstant);
 	}
-
-	public static @NotNull Date plusDays(@NotNull Date currentDate, int days) {
+	
+	public static @NotNull
+	Date plusDays(@NotNull Date currentDate, int days) {
 		Instant instant = currentDate.toInstant();
 		Instant resultInstant = instant.plus(days, ChronoUnit.DAYS);
 		return Date.from(resultInstant);
