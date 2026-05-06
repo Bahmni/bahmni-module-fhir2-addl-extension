@@ -391,6 +391,59 @@ public class ConsultationBundleEntriesHelperTest {
 		assertEquals(immunizationEntry, result.get(1));
 	}
 	
+	@Test
+	public void shouldResolveMedicationDispenseContextReference() {
+		MedicationDispense medicationDispense = createMedicationDispense();
+		medicationDispense.setContext(new Reference("urn:uuid:placeholder"));
+		Bundle.BundleEntryComponent medicationDispenseEntry = createBundleEntry(medicationDispense,
+		    "urn:uuid:medicationDispense");
+		
+		Encounter encounter = createEncounter();
+		encounter.setId("encounter-uuid");
+		Bundle.BundleEntryComponent encounterEntry = createBundleEntry(encounter, "urn:uuid:placeholder");
+		processedEntries.put("urn:uuid:placeholder", encounterEntry);
+		
+		Bundle.BundleEntryComponent result = ConsultationBundleEntriesHelper.resolveReferences(medicationDispenseEntry,
+		    processedEntries);
+		
+		MedicationDispense resultMedicationDispense = (MedicationDispense) result.getResource();
+		assertEquals(FhirConstants.ENCOUNTER, resultMedicationDispense.getContext().getType());
+		assertEquals(FhirConstants.ENCOUNTER + "/encounter-uuid", resultMedicationDispense.getContext().getReference());
+	}
+	
+	@Test
+	public void shouldNotModifyMedicationDispenseEntryWhenNoContextIsPresent() {
+		MedicationDispense medicationDispense = createMedicationDispense();
+		assertFalse(medicationDispense.hasContext());
+		Bundle.BundleEntryComponent medicationDispenseEntry = createBundleEntry(medicationDispense,
+		    "urn:uuid:medicationDispense");
+		
+		Bundle.BundleEntryComponent result = ConsultationBundleEntriesHelper.resolveReferences(medicationDispenseEntry,
+		    processedEntries);
+		
+		MedicationDispense resultMedicationDispense = (MedicationDispense) result.getResource();
+		assertFalse(resultMedicationDispense.hasContext());
+	}
+	
+	@Test
+	public void shouldOrderEntriesWithMedicationDispenseDependency() {
+		Bundle.BundleEntryComponent encounterEntry = createBundleEntry(createEncounter(), "urn:uuid:encounter");
+		
+		MedicationDispense medicationDispense = createMedicationDispense();
+		medicationDispense.setContext(new Reference("urn:uuid:encounter"));
+		Bundle.BundleEntryComponent medicationDispenseEntry = createBundleEntry(medicationDispense,
+		    "urn:uuid:medicationDispense");
+		
+		entries.add(medicationDispenseEntry);
+		entries.add(encounterEntry);
+		
+		List<Bundle.BundleEntryComponent> result = ConsultationBundleEntriesHelper.orderEntriesByReference(entries);
+		
+		assertEquals(2, result.size());
+		assertEquals(encounterEntry, result.get(0));
+		assertEquals(medicationDispenseEntry, result.get(1));
+	}
+	
 	@Test(expected = InternalErrorException.class)
 	public void shouldThrowExceptionWhenReferencedEntryNotFound() {
 		// Given
@@ -458,6 +511,13 @@ public class ConsultationBundleEntriesHelperTest {
 		immunization.setStatus(Immunization.ImmunizationStatus.COMPLETED);
 		immunization.setPatient(new Reference("Patient/123"));
 		return immunization;
+	}
+	
+	private MedicationDispense createMedicationDispense() {
+		MedicationDispense medicationDispense = new MedicationDispense();
+		medicationDispense.setSubject(new Reference("Patient/123"));
+		medicationDispense.setStatus(MedicationDispense.MedicationDispenseStatus.COMPLETED);
+		return medicationDispense;
 	}
 	
 	@Test

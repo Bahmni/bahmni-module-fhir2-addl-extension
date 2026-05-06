@@ -162,6 +162,14 @@ public class ConsultationBundleEntriesHelper {
                     entry.setResource(immunization);
                 }
                 break;
+            case MedicationDispense:
+                org.hl7.fhir.r4.model.MedicationDispense medicationDispense = (org.hl7.fhir.r4.model.MedicationDispense) resource;
+                if (medicationDispense.hasContext()) {
+                    String placeholderReferenceUrl = medicationDispense.getContext().getReference();
+                    medicationDispense.setContext(createEncounterReference(getIdForPlaceHolderReference(placeholderReferenceUrl, processedEntries)));
+                    entry.setResource(medicationDispense);
+                }
+                break;
 			default:
 				break;
 		}
@@ -251,6 +259,12 @@ public class ConsultationBundleEntriesHelper {
                 Immunization immunization = (Immunization) resource;
                 if (immunization.hasEncounter()) {
                     references.add(immunization.getEncounter());
+                }
+                break;
+            case MedicationDispense:
+                org.hl7.fhir.r4.model.MedicationDispense medicationDispense = (org.hl7.fhir.r4.model.MedicationDispense) resource;
+                if (medicationDispense.hasContext()) {
+                    references.add(medicationDispense.getContext());
                 }
                 break;
             default:
