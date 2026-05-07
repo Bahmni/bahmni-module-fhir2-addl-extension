@@ -21,6 +21,7 @@ import org.openmrs.EncounterType;
 import org.openmrs.Obs;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.FhirObservationService;
+import org.openmrs.module.fhir2.api.translators.EncounterReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.ObservationReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.ObservationTranslator;
 import org.openmrs.module.fhir2.api.dao.FhirDao;
@@ -53,6 +54,8 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	
 	private static final String ENCOUNTER_TYPE_RADIOLOGY_QUALITY_ASSESSMENT = "RADIOLOGY QUALITY ASSESSMENT";
 	
+	private static final String ENCOUNTER_TYPE_RADIOLOGY = "RADIOLOGY";
+	
 	public static final String VALIDATION_UUID_REQUIRED = "Uuid cannot be null.";
 	
 	public static final String VALIDATION_RESOURCE_REQUIRED = "Resource cannot be null.";
@@ -62,6 +65,8 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	public static final String VALIDATION_ID_MISMATCH = "ImagingStudy id does not match resource id.";
 	
 	public static final String VALIDATION_ENCOUNTER_REQUIRED = "Encounter is required for quality assessments";
+	
+	public static final String ERROR_ENCOUNTER_TRANSLATION_FAILED = "Could not translate encounter reference: ";
 	
 	public static final String ERROR_STUDY_NOT_FOUND = "ImagingStudy not found: ";
 	
@@ -103,6 +108,8 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	
 	private final ObservationReferenceTranslator observationReferenceTranslator;
 	
+	private final EncounterReferenceTranslator<Encounter> encounterReferenceTranslator;
+	
 	@Autowired
 	public BahmniFhirImagingStudyServiceImpl(
 	    BahmniFhirImagingStudyDao imagingStudyDao,
@@ -110,7 +117,8 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	    SearchQueryInclude<ImagingStudy> searchQueryInclude,
 	    SearchQuery<FhirImagingStudy, ImagingStudy, BahmniFhirImagingStudyDao, BahmniFhirImagingStudyTranslator, SearchQueryInclude<ImagingStudy>> searchQuery,
 	    FhirObservationService fhirObservationService, ObservationTranslator observationTranslator,
-	    ObservationReferenceTranslator observationReferenceTranslator) {
+	    ObservationReferenceTranslator observationReferenceTranslator,
+	    EncounterReferenceTranslator<Encounter> encounterReferenceTranslator) {
 		this.imagingStudyDao = imagingStudyDao;
 		this.imagingStudyTranslator = imagingStudyTranslator;
 		this.searchQueryInclude = searchQueryInclude;
@@ -118,6 +126,7 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 		this.fhirObservationService = fhirObservationService;
 		this.observationTranslator = observationTranslator;
 		this.observationReferenceTranslator = observationReferenceTranslator;
+		this.encounterReferenceTranslator = encounterReferenceTranslator;
 	}
 	
 	@Override
@@ -180,12 +189,26 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 		boolean hasQualityAssessments = hasQualityAssessmentExtensions(updatedResource);
 		if (hasQualityAssessments) {
 			log.debug(DEBUG_UPDATING_QUALITY_ASSESSMENTS);
-			// Validate encounter is RADIOLOGY type
-			validateEncounterTypeForQualityAssessment(updatedStudy.getEncounter());
+			
+			// Extract encounter from contained observations
+			Reference qualityEncounterRef = extractEncounterFromContainedObservations(updatedResource);
+			if (qualityEncounterRef == null || qualityEncounterRef.getReference() == null) {
+				throw new InvalidRequestException(VALIDATION_ENCOUNTER_REQUIRED);
+			}
+			
+			// Convert FHIR encounter reference to OpenMRS encounter for validation
+			Encounter qualityEncounter = encounterReferenceTranslator.toOpenmrsType(qualityEncounterRef);
+			if (qualityEncounter == null) {
+				String encounterUuid = BahmniFhirUtils.extractId(qualityEncounterRef.getReference());
+				throw new InvalidRequestException(ERROR_ENCOUNTER_TRANSLATION_FAILED + encounterUuid);
+			}
+			
+			validateEncounterTypeForQualityAssessment(qualityEncounter);
+			
 			// Void existing quality observations
 			voidExistingQualityObservations(existingStudy);
-			// Process new quality assessments
-			processQualityAssessments(updatedResource, updatedStudy);
+			// Process new quality assessments with the correct encounter reference
+			processQualityAssessments(updatedResource, updatedStudy, qualityEncounterRef);
 		}
 		
 		// Save and return
@@ -262,13 +285,40 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	}
 	
 	/**
+	 * Extracts encounter reference from the first contained observation. Each observation may have
+	 * its own encounter, which will be respected during processing. This method extracts the first
+	 * encounter for validation purposes.
+	 * 
+	 * @param imagingStudy The FHIR ImagingStudy resource with contained observations
+	 * @return The encounter reference from the first contained observation, or null if none found
+	 */
+	private Reference extractEncounterFromContainedObservations(ImagingStudy imagingStudy) {
+		if (!imagingStudy.hasContained() || imagingStudy.getContained().isEmpty()) {
+			return null;
+		}
+		
+		// Get first contained observation's encounter
+		for (Resource contained : imagingStudy.getContained()) {
+			if (contained instanceof Observation) {
+				Observation obs = (Observation) contained;
+				if (obs.hasEncounter()) {
+					return obs.getEncounter();
+				}
+			}
+		}
+		return null;
+	}
+	
+	/**
 	 * Processes quality assessment observations for an ImagingStudy. Extracts contained
 	 * observations from extensions, persists them, and associates with the study.
 	 * 
 	 * @param imagingStudy The FHIR ImagingStudy resource with quality assessment extensions
 	 * @param openmrsStudy The OpenMRS FhirImagingStudy entity to update
+	 * @param encounterReference The encounter reference from contained observations for quality
+	 *            assessment
 	 */
-	private void processQualityAssessments(ImagingStudy imagingStudy, FhirImagingStudy openmrsStudy) {
+	private void processQualityAssessments(ImagingStudy imagingStudy, FhirImagingStudy openmrsStudy, Reference encounterReference) {
 		// Extract quality observation extensions
 		List<Extension> qualityObsExtensions = imagingStudy.getExtensionsByUrl(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION);
 		if (qualityObsExtensions.isEmpty()) {
@@ -284,13 +334,6 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 				.filter(r -> r.getId() != null)
 				.collect(Collectors.toMap(Resource::getId, r -> r));
 		
-		// Prepare encounter reference if imaging study has one
-		Reference encounterReference = null;
-		if (openmrsStudy.getEncounter() != null) {
-			encounterReference = new Reference()
-					.setReference(FhirConstants.ENCOUNTER + "/" + openmrsStudy.getEncounter().getUuid())
-					.setType(FhirConstants.ENCOUNTER);
-		}
 		Map<String, Reference> obsReferenceMap = createQualityObservations(qualityObsExtensions, containedMap, encounterReference);
 		updateQualityObservationExtensions(imagingStudy, obsReferenceMap);
 		Set<Obs> qualityAssessment = new LinkedHashSet<>();
@@ -378,7 +421,7 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 		return observationsReferenceMap;
 	}
 	
-	private void prepareObservationForPersistence(Observation observation, Reference encounterReference,
+	private void prepareObservationForPersistence(Observation observation, Reference defaultEncounterReference,
 	        Map<String, Reference> observationsReferenceMap) {
 		
 		// Remove empty encounter references to avoid NullPointerException
@@ -387,9 +430,10 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 			observation.setEncounter(null);
 		}
 		
-		// Set encounter reference if available
-		if (encounterReference != null) {
-			observation.setEncounter(encounterReference);
+		// Only set default encounter if observation doesn't already have one
+		// This respects each observation's individual encounter from contained resources
+		if (!observation.hasEncounter() && defaultEncounterReference != null) {
+			observation.setEncounter(defaultEncounterReference);
 		}
 		
 		resolveHasMemberReferences(observation, observationsReferenceMap);
