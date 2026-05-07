@@ -54,8 +54,6 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	
 	private static final String ENCOUNTER_TYPE_RADIOLOGY_QUALITY_ASSESSMENT = "RADIOLOGY QUALITY ASSESSMENT";
 	
-	private static final String ENCOUNTER_TYPE_RADIOLOGY = "RADIOLOGY";
-	
 	public static final String VALIDATION_UUID_REQUIRED = "Uuid cannot be null.";
 	
 	public static final String VALIDATION_RESOURCE_REQUIRED = "Resource cannot be null.";
