@@ -2305,7 +2305,6 @@ public class BahmniFhirImagingStudyServiceImplTest {
         request.addContained(obsWithNullEncRef);
         request.addExtension(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION, new Reference("#obs-null-enc-ref"));
         
-         - this will set proper encounter reference
         addEncounterToContainedObservations(request, encounter.getUuid());
 
         when(imagingStudyDao.get(studyId)).thenReturn(existingStudy);
