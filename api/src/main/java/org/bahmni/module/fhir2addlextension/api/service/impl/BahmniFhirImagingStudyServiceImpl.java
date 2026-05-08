@@ -303,15 +303,15 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 		if (qualityObsExtensions.isEmpty()) {
 			throw new InvalidRequestException(ERROR_NO_QUALITY_OBSERVATIONS);
 		}
-		
+
 		if (!imagingStudy.hasContained()) {
 			throw new InvalidRequestException(ERROR_NO_CONTAINED_RESOURCES);
 		}
-		
+
 		Map<String, Resource> containedMap = imagingStudy.getContained().stream()
 				.filter(r -> r.getId() != null)
 				.collect(Collectors.toMap(Resource::getId, r -> r));
-		
+
 		Map<String, Reference> obsReferenceMap = createQualityObservations(qualityObsExtensions, containedMap, encounterReference);
 		updateQualityObservationExtensions(imagingStudy, obsReferenceMap);
 		Set<Obs> qualityAssessment = new LinkedHashSet<>();
@@ -324,17 +324,17 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 		openmrsStudy.setAssessment(qualityAssessment);
 	}
 	
-	private Map<String, Reference> createQualityObservations(List<Extension> qualityObsExtensions, 
+	private Map<String, Reference> createQualityObservations(List<Extension> qualityObsExtensions,
 			Map<String, Resource> containedMap, Reference encounterReference) {
-		
+
 		Map<Observation, String> observationReferenceMap = new HashMap<>();
 		List<String> preExistingObservationIds = new ArrayList<>();
-		
+
 		collectObservationsFromExtensions(qualityObsExtensions, containedMap, observationReferenceMap, preExistingObservationIds);
-		
+
 		List<Observation> sortedObservations = ConsultationBundleEntriesHelper.sortObservationsByDepth(
 				new ArrayList<>(observationReferenceMap.keySet()));
-		
+
 		return persistObservations(sortedObservations, observationReferenceMap, preExistingObservationIds, encounterReference);
 	}
 	
@@ -378,34 +378,37 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	private Map<String, Reference> persistObservations(List<Observation> sortedObservations,
 			Map<Observation, String> observationReferenceMap, List<String> preExistingObservationIds,
 			Reference encounterReference) {
-		
+
 		Map<String, Reference> observationsReferenceMap = new HashMap<>();
-		
+
 		for (Observation observation : sortedObservations) {
 			String resourceId = Optional.ofNullable(observation.getIdElement().getValue())
 					.orElseGet(() -> observationReferenceMap.get(observation));
 			String obsEntryId = BahmniFhirUtils.extractId(resourceId);
-			
-			prepareObservationForPersistence(observation, observationsReferenceMap);
-			
+
+			prepareObservationForPersistence(observation, encounterReference, observationsReferenceMap);
+
 			Observation persistedObservation = preExistingObservationIds.contains(obsEntryId)
 					? fhirObservationService.update(obsEntryId, observation)
 					: fhirObservationService.create(observation);
-			
+
 			Reference persistedObsReference = createObservationReference(persistedObservation);
 			observationsReferenceMap.put(obsEntryId, persistedObsReference);
 		}
-		
+
 		return observationsReferenceMap;
 	}
 	
-	private void prepareObservationForPersistence(Observation observation, Map<String, Reference> observationsReferenceMap) {
+	private void prepareObservationForPersistence(Observation observation, Reference encounterReference,
+	        Map<String, Reference> observationsReferenceMap) {
 		
 		if (observation.hasEncounter() && observation.getEncounter().getReference() != null
 		        && observation.getEncounter().getReference().isEmpty()) {
-			observation.setEncounter(null);
+			throw new InvalidRequestException(VALIDATION_ENCOUNTER_REQUIRED);
 		}
-		
+		if (encounterReference != null) {
+			observation.setEncounter(encounterReference);
+		}
 		resolveHasMemberReferences(observation, observationsReferenceMap);
 	}
 	
