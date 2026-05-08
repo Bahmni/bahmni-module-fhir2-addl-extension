@@ -426,6 +426,31 @@ public class ConsultationBundleEntriesHelperTest {
 	}
 	
 	@Test
+	public void shouldNotResolveMedicationDispenseContextWhenContextIsEpisodeOfCare() {
+		// Given
+		MedicationDispense medicationDispense = createMedicationDispense();
+		medicationDispense.setContext(new Reference("urn:uuid:placeholder"));
+		Bundle.BundleEntryComponent medicationDispenseEntry = createBundleEntry(medicationDispense,
+		    "urn:uuid:medicationDispense");
+		
+		// Context resolves to an EpisodeOfCare, not an Encounter
+		EpisodeOfCare episodeOfCare = new EpisodeOfCare();
+		episodeOfCare.setId("episode-uuid");
+		episodeOfCare.setStatus(EpisodeOfCare.EpisodeOfCareStatus.ACTIVE);
+		Bundle.BundleEntryComponent episodeOfCareEntry = createBundleEntry(episodeOfCare, "urn:uuid:placeholder");
+		processedEntries.put("urn:uuid:placeholder", episodeOfCareEntry);
+		
+		// When
+		Bundle.BundleEntryComponent result = ConsultationBundleEntriesHelper.resolveReferences(medicationDispenseEntry,
+		    processedEntries);
+		
+		// Then: context should remain unchanged (still the original placeholder reference)
+		MedicationDispense resultMedicationDispense = (MedicationDispense) result.getResource();
+		assertTrue(resultMedicationDispense.hasContext());
+		assertEquals("urn:uuid:placeholder", resultMedicationDispense.getContext().getReference());
+	}
+	
+	@Test
 	public void shouldOrderEntriesWithMedicationDispenseDependency() {
 		Bundle.BundleEntryComponent encounterEntry = createBundleEntry(createEncounter(), "urn:uuid:encounter");
 		

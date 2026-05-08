@@ -166,8 +166,11 @@ public class ConsultationBundleEntriesHelper {
                 org.hl7.fhir.r4.model.MedicationDispense medicationDispense = (org.hl7.fhir.r4.model.MedicationDispense) resource;
                 if (medicationDispense.hasContext()) {
                     String placeholderReferenceUrl = medicationDispense.getContext().getReference();
-                    medicationDispense.setContext(createEncounterReference(getIdForPlaceHolderReference(placeholderReferenceUrl, processedEntries)));
-                    entry.setResource(medicationDispense);
+                    Bundle.BundleEntryComponent contextEntry = processedEntries.get(placeholderReferenceUrl);
+                    if (contextEntry != null && ResourceType.Encounter.equals(contextEntry.getResource().getResourceType())) {
+                        medicationDispense.setContext(createEncounterReference(getIdForPlaceHolderReference(placeholderReferenceUrl, processedEntries)));
+                        entry.setResource(medicationDispense);
+                    }
                 }
                 break;
 			default:
