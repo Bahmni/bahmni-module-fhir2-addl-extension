@@ -17,7 +17,6 @@ import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.Resource;
 import org.openmrs.Encounter;
-import org.openmrs.EncounterType;
 import org.openmrs.Obs;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.FhirObservationService;
@@ -52,8 +51,6 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	
 	private static final String CONTAINED_RESOURCE_PREFIX = "#";
 	
-	private static final String ENCOUNTER_TYPE_RADIOLOGY_QUALITY_ASSESSMENT = "RADIOLOGY QUALITY ASSESSMENT";
-	
 	public static final String VALIDATION_UUID_REQUIRED = "Uuid cannot be null.";
 	
 	public static final String VALIDATION_RESOURCE_REQUIRED = "Resource cannot be null.";
@@ -71,8 +68,6 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	public static final String ERROR_SEARCH_PARAMS_REQUIRED = "You must specify patient reference or resource _id or basedOn reference!";
 	
 	public static final String ERROR_MISSING_SEARCH_PARAMS = "Missing patient reference, resource id or basedOn reference for ImagingStudy search";
-	
-	public static final String ERROR_QUALITY_ASSESSMENT_REQUIRES_RADIOLOGY_ENCOUNTER = "Quality assessments require RADIOLOGY QUALITY ASSESSMENT encounter type. Found: ";
 	
 	public static final String ERROR_NO_QUALITY_OBSERVATIONS = "No quality assessment observations found in extensions";
 	
@@ -180,32 +175,25 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 		validateUpdateInput(uuid, updatedResource);
 		FhirImagingStudy existingStudy = getDao().get(uuid);
 		validateExistingStudy(uuid, existingStudy);
-		// Update basic imaging study properties via translator
 		FhirImagingStudy updatedStudy = imagingStudyTranslator.toOpenmrsType(existingStudy, updatedResource);
 		validateObject(updatedStudy);
-		// Check if this is a quality assessment update
 		boolean hasQualityAssessments = hasQualityAssessmentExtensions(updatedResource);
 		if (hasQualityAssessments) {
 			log.debug(DEBUG_UPDATING_QUALITY_ASSESSMENTS);
 			
-			// Extract encounter from contained observations
 			Reference qualityEncounterRef = extractEncounterFromContainedObservations(updatedResource);
 			if (qualityEncounterRef == null || qualityEncounterRef.getReference() == null) {
 				throw new InvalidRequestException(VALIDATION_ENCOUNTER_REQUIRED);
 			}
 			
-			// Convert FHIR encounter reference to OpenMRS encounter for validation
 			Encounter qualityEncounter = encounterReferenceTranslator.toOpenmrsType(qualityEncounterRef);
 			if (qualityEncounter == null) {
 				String encounterUuid = BahmniFhirUtils.extractId(qualityEncounterRef.getReference());
 				throw new InvalidRequestException(ERROR_ENCOUNTER_TRANSLATION_FAILED + encounterUuid);
 			}
 			
-			validateEncounterTypeForQualityAssessment(qualityEncounter);
-			
-			// Void existing quality observations
+			validateEncounterForQualityAssessment(qualityEncounter);
 			voidExistingQualityObservations(existingStudy);
-			// Process new quality assessments with the correct encounter reference
 			processQualityAssessments(updatedResource, updatedStudy, qualityEncounterRef);
 		}
 		
@@ -246,16 +234,11 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	}
 	
 	/**
-	 * Validates that the encounter is of RADIOLOGY type for quality assessments
+	 * Validates that the encounter reference exists for quality assessments
 	 */
-	private void validateEncounterTypeForQualityAssessment(Encounter encounter) {
+	private void validateEncounterForQualityAssessment(Encounter encounter) {
 		if (encounter == null) {
 			throw new InvalidRequestException(VALIDATION_ENCOUNTER_REQUIRED);
-		}
-		EncounterType encounterType = encounter.getEncounterType();
-		if (encounterType == null || !ENCOUNTER_TYPE_RADIOLOGY_QUALITY_ASSESSMENT.equals(encounterType.getName())) {
-			throw new InvalidRequestException(ERROR_QUALITY_ASSESSMENT_REQUIRES_RADIOLOGY_ENCOUNTER
-			        + (encounterType != null ? encounterType.getName() : "null"));
 		}
 	}
 	
@@ -295,7 +278,6 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 			return null;
 		}
 		
-		// Get first contained observation's encounter
 		for (Resource contained : imagingStudy.getContained()) {
 			if (contained instanceof Observation) {
 				Observation obs = (Observation) contained;
@@ -317,7 +299,6 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	 *            assessment
 	 */
 	private void processQualityAssessments(ImagingStudy imagingStudy, FhirImagingStudy openmrsStudy, Reference encounterReference) {
-		// Extract quality observation extensions
 		List<Extension> qualityObsExtensions = imagingStudy.getExtensionsByUrl(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION);
 		if (qualityObsExtensions.isEmpty()) {
 			throw new InvalidRequestException(ERROR_NO_QUALITY_OBSERVATIONS);
@@ -327,7 +308,6 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 			throw new InvalidRequestException(ERROR_NO_CONTAINED_RESOURCES);
 		}
 		
-		// Create map of contained resources by ID for lookup
 		Map<String, Resource> containedMap = imagingStudy.getContained().stream()
 				.filter(r -> r.getId() != null)
 				.collect(Collectors.toMap(Resource::getId, r -> r));
@@ -422,16 +402,9 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	private void prepareObservationForPersistence(Observation observation, Reference defaultEncounterReference,
 	        Map<String, Reference> observationsReferenceMap) {
 		
-		// Remove empty encounter references to avoid NullPointerException
 		if (observation.hasEncounter() && observation.getEncounter().getReference() != null
 		        && observation.getEncounter().getReference().isEmpty()) {
 			observation.setEncounter(null);
-		}
-		
-		// Only set default encounter if observation doesn't already have one
-		// This respects each observation's individual encounter from contained resources
-		if (!observation.hasEncounter() && defaultEncounterReference != null) {
-			observation.setEncounter(defaultEncounterReference);
 		}
 		
 		resolveHasMemberReferences(observation, observationsReferenceMap);
@@ -478,11 +451,9 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	 * contained references (#uuid) with actual observation references (Observation/uuid).
 	 */
 	private void updateQualityObservationExtensions(ImagingStudy imagingStudy, Map<String, Reference> obsReferenceMap) {
-		// Remove old extensions and contained resources
 		imagingStudy.getExtension().removeIf(ext -> FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION.equals(ext.getUrl()));
 		imagingStudy.getContained().clear();
 		
-		// Add new extensions with persisted references
 		for (Reference persistedRef : obsReferenceMap.values()) {
 			imagingStudy.addExtension(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION, persistedRef);
 		}
