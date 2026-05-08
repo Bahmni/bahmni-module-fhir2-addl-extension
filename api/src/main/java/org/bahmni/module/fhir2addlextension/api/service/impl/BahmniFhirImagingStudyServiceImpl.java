@@ -386,7 +386,7 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 					.orElseGet(() -> observationReferenceMap.get(observation));
 			String obsEntryId = BahmniFhirUtils.extractId(resourceId);
 			
-			prepareObservationForPersistence(observation, encounterReference, observationsReferenceMap);
+			prepareObservationForPersistence(observation, observationsReferenceMap);
 			
 			Observation persistedObservation = preExistingObservationIds.contains(obsEntryId)
 					? fhirObservationService.update(obsEntryId, observation)
@@ -399,8 +399,7 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 		return observationsReferenceMap;
 	}
 	
-	private void prepareObservationForPersistence(Observation observation, Reference defaultEncounterReference,
-	        Map<String, Reference> observationsReferenceMap) {
+	private void prepareObservationForPersistence(Observation observation, Map<String, Reference> observationsReferenceMap) {
 		
 		if (observation.hasEncounter() && observation.getEncounter().getReference() != null
 		        && observation.getEncounter().getReference().isEmpty()) {
