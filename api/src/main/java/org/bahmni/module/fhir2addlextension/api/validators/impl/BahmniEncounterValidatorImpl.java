@@ -42,6 +42,9 @@ public class BahmniEncounterValidatorImpl implements BahmniEncounterValidator {
 	}
 	
 	private void validateVisitReference(org.hl7.fhir.r4.model.Encounter encounter) {
+		if (!encounter.hasPartOf()) {
+			return;
+		}
 		Visit visit = visitReferenceTranslator.toOpenmrsType(encounter.getPartOf());
 		if (visit == null) {
 			throw new ValidationException("Invalid Visit reference.");
