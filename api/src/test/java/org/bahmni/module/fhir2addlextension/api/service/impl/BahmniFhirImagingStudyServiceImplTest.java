@@ -2611,4 +2611,211 @@ public class BahmniFhirImagingStudyServiceImplTest {
 		verify(fhirObservationService, times(0)).create(any(Observation.class));
 		verify(fhirObservationService, times(0)).delete(any());
 	}
+	
+	@Test
+	public void testUpdateWithQualityAssessments_shouldHandleObservationWithIdElementValue() throws IOException {
+		String studyId = "test-obs-with-id-element-value";
+
+		Encounter encounter = new Encounter();
+		encounter.setUuid("radiology-encounter-uuid");
+		org.openmrs.EncounterType encounterType = new org.openmrs.EncounterType();
+		encounterType.setName("RADIOLOGY");
+		encounter.setEncounterType(encounterType);
+
+		FhirImagingStudy existingStudy = createTestFhirImagingStudy(studyId);
+		existingStudy.setEncounter(encounter);
+		existingStudy.setAssessment(new LinkedHashSet<>());
+
+		ImagingStudy request = new ImagingStudy();
+		request.setId(studyId);
+		request.setStatus(ImagingStudy.ImagingStudyStatus.AVAILABLE);
+		request.addIdentifier().setSystem("urn:dicom:uid").setValue("urn:oid:test.study.id.element.value");
+		request.setSubject(new Reference("Patient/" + PATIENT_UUID));
+
+		String obsUuid = "obs-with-id-value-uuid";
+		Observation obsWithIdValue = new Observation();
+		obsWithIdValue.setId("#" + obsUuid);
+		obsWithIdValue.setStatus(Observation.ObservationStatus.FINAL);
+		obsWithIdValue.setEncounter(new Reference("Encounter/" + encounter.getUuid()));
+
+		request.addContained(obsWithIdValue);
+		request.addExtension(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION, new Reference("#" + obsUuid));
+
+		when(imagingStudyDao.get(studyId)).thenReturn(existingStudy);
+		when(imagingStudyDao.createOrUpdate(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+		AtomicInteger counter = new AtomicInteger(0);
+		Map<String, org.openmrs.Obs> createdObsMap = new HashMap<>();
+
+		when(fhirObservationService.create(any(Observation.class))).thenAnswer(invocation -> {
+			Observation result = new Observation();
+			String obsId = "created-obs-" + counter.incrementAndGet();
+			result.setId(obsId);
+			org.openmrs.Obs openmrsObs = new org.openmrs.Obs();
+			openmrsObs.setUuid(obsId);
+			createdObsMap.put(obsId, openmrsObs);
+			return result;
+		});
+
+		when(observationReferenceTranslator.toOpenmrsType(any(Reference.class))).thenAnswer(invocation -> {
+			Reference ref = invocation.getArgument(0);
+			if (ref != null && ref.getReference() != null && ref.getReference().startsWith("Observation/")) {
+				String obsId = ref.getReference().substring("Observation/".length());
+				return createdObsMap.get(obsId);
+			}
+			return null;
+		});
+
+		when(observationTranslator.toFhirResource(any(org.openmrs.Obs.class))).thenAnswer(invocation -> {
+			org.openmrs.Obs obs = invocation.getArgument(0);
+			if (obs == null) return null;
+			Observation fhirObs = new Observation();
+			fhirObs.setId(obs.getUuid());
+			return fhirObs;
+		});
+
+		ImagingStudy result = fhirImagingStudyService.update(studyId, request);
+
+		assertNotNull(result);
+		verify(fhirObservationService, times(1)).create(any(Observation.class));
+	}
+	
+	@Test
+	public void testUpdateWithQualityAssessments_shouldHandleObservationWithNullResource() throws IOException {
+		String studyId = "test-obs-null-resource-study";
+
+		Encounter encounter = new Encounter();
+		encounter.setUuid("radiology-encounter-uuid");
+		org.openmrs.EncounterType encounterType = new org.openmrs.EncounterType();
+		encounterType.setName("RADIOLOGY");
+		encounter.setEncounterType(encounterType);
+
+		FhirImagingStudy existingStudy = createTestFhirImagingStudy(studyId);
+		existingStudy.setEncounter(encounter);
+		existingStudy.setAssessment(new LinkedHashSet<>());
+
+		ImagingStudy request = new ImagingStudy();
+		request.setId(studyId);
+		request.setStatus(ImagingStudy.ImagingStudyStatus.AVAILABLE);
+		request.addIdentifier().setSystem("urn:dicom:uid").setValue("urn:oid:test.study.null.resource");
+		request.setSubject(new Reference("Patient/" + PATIENT_UUID));
+
+		Observation obs = new Observation();
+		obs.setId("#test-obs-null-resource");
+		obs.setStatus(Observation.ObservationStatus.FINAL);
+		obs.setEncounter(new Reference("Encounter/" + encounter.getUuid()));
+
+		// Add hasMember with reference that has resource set to null
+		Reference memberRef = new Reference("#child-obs-id");
+		memberRef.setResource(null);
+		obs.addHasMember(memberRef);
+
+		request.addContained(obs);
+		request.addExtension(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION, new Reference("#test-obs-null-resource"));
+
+		when(imagingStudyDao.get(studyId)).thenReturn(existingStudy);
+		when(imagingStudyDao.createOrUpdate(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+		AtomicInteger counter = new AtomicInteger(0);
+		Map<String, org.openmrs.Obs> createdObsMap = new HashMap<>();
+
+		when(fhirObservationService.create(any(Observation.class))).thenAnswer(invocation -> {
+			Observation result = new Observation();
+			String obsId = "created-obs-" + counter.incrementAndGet();
+			result.setId(obsId);
+			org.openmrs.Obs openmrsObs = new org.openmrs.Obs();
+			openmrsObs.setUuid(obsId);
+			createdObsMap.put(obsId, openmrsObs);
+			return result;
+		});
+
+		when(observationReferenceTranslator.toOpenmrsType(any(Reference.class))).thenAnswer(invocation -> {
+			Reference ref = invocation.getArgument(0);
+			if (ref != null && ref.getReference() != null && ref.getReference().startsWith("Observation/")) {
+				String obsId = ref.getReference().substring("Observation/".length());
+				return createdObsMap.get(obsId);
+			}
+			return null;
+		});
+
+		when(observationTranslator.toFhirResource(any(org.openmrs.Obs.class))).thenAnswer(invocation -> {
+			org.openmrs.Obs openmrsObs = invocation.getArgument(0);
+			if (openmrsObs == null) return null;
+			Observation fhirObs = new Observation();
+			fhirObs.setId(openmrsObs.getUuid());
+			return fhirObs;
+		});
+
+		ImagingStudy result = fhirImagingStudyService.update(studyId, request);
+
+		assertNotNull(result);
+		verify(fhirObservationService, times(1)).create(any(Observation.class));
+	}
+	
+	@Test
+	public void testUpdateWithQualityAssessments_shouldHandleEmptyHasMemberList() throws IOException {
+		String studyId = "test-empty-hasmember-list-study";
+
+		Encounter encounter = new Encounter();
+		encounter.setUuid("radiology-encounter-uuid");
+		org.openmrs.EncounterType encounterType = new org.openmrs.EncounterType();
+		encounterType.setName("RADIOLOGY");
+		encounter.setEncounterType(encounterType);
+
+		FhirImagingStudy existingStudy = createTestFhirImagingStudy(studyId);
+		existingStudy.setEncounter(encounter);
+		existingStudy.setAssessment(new LinkedHashSet<>());
+
+		ImagingStudy request = new ImagingStudy();
+		request.setId(studyId);
+		request.setStatus(ImagingStudy.ImagingStudyStatus.AVAILABLE);
+		request.addIdentifier().setSystem("urn:dicom:uid").setValue("urn:oid:test.study.empty.hasmember");
+		request.setSubject(new Reference("Patient/" + PATIENT_UUID));
+
+		Observation obsWithEmptyHasMember = new Observation();
+		obsWithEmptyHasMember.setId("#obs-empty-hasmember");
+		obsWithEmptyHasMember.setStatus(Observation.ObservationStatus.FINAL);
+		obsWithEmptyHasMember.setEncounter(new Reference("Encounter/" + encounter.getUuid()));
+
+		request.addContained(obsWithEmptyHasMember);
+		request.addExtension(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION, new Reference("#obs-empty-hasmember"));
+
+		when(imagingStudyDao.get(studyId)).thenReturn(existingStudy);
+		when(imagingStudyDao.createOrUpdate(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+		AtomicInteger counter = new AtomicInteger(0);
+		Map<String, org.openmrs.Obs> createdObsMap = new HashMap<>();
+
+		when(fhirObservationService.create(any(Observation.class))).thenAnswer(invocation -> {
+			Observation result = new Observation();
+			String obsId = "created-obs-" + counter.incrementAndGet();
+			result.setId(obsId);
+			org.openmrs.Obs openmrsObs = new org.openmrs.Obs();
+			openmrsObs.setUuid(obsId);
+			createdObsMap.put(obsId, openmrsObs);
+			return result;
+		});
+
+		when(observationReferenceTranslator.toOpenmrsType(any(Reference.class))).thenAnswer(invocation -> {
+			Reference ref = invocation.getArgument(0);
+			if (ref != null && ref.getReference() != null && ref.getReference().startsWith("Observation/")) {
+				String obsId = ref.getReference().substring("Observation/".length());
+				return createdObsMap.get(obsId);
+			}
+			return null;
+		});
+
+		when(observationTranslator.toFhirResource(any(org.openmrs.Obs.class))).thenAnswer(invocation -> {
+			org.openmrs.Obs obs = invocation.getArgument(0);
+			if (obs == null) return null;
+			Observation fhirObs = new Observation();
+			fhirObs.setId(obs.getUuid());
+			return fhirObs;
+		});
+
+		ImagingStudy result = fhirImagingStudyService.update(studyId, request);
+
+		assertNotNull(result);
+		verify(fhirObservationService, times(1)).create(any(Observation.class));
+	}
 }
