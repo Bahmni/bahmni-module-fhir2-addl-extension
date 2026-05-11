@@ -2558,7 +2558,7 @@ public class BahmniFhirImagingStudyServiceImplTest {
 	}
 	
 	@Test
-	public void testUpdateWithQualityAssessments_shouldSkipProcessingWhenNoContainedResources() {
+	public void testUpdate_shouldSkipQualityProcessingWhenNoContainedResources() {
 		String studyId = "test-no-contained-with-ext-study";
 		
 		FhirImagingStudy existingStudy = createTestFhirImagingStudy(studyId);
@@ -2578,6 +2578,36 @@ public class BahmniFhirImagingStudyServiceImplTest {
 		ImagingStudy result = fhirImagingStudyService.update(studyId, request);
 		
 		assertNotNull(result);
+		
+		verify(fhirObservationService, times(0)).create(any(Observation.class));
+		verify(fhirObservationService, times(0)).delete(any());
+	}
+	
+	@Test
+	public void testUpdate_shouldSkipQualityProcessingWhenNoExtensions() {
+		String studyId = "test-no-extensions-study";
+		
+		FhirImagingStudy existingStudy = createTestFhirImagingStudy(studyId);
+		existingStudy.setAssessment(new LinkedHashSet<>());
+		
+		ImagingStudy request = new ImagingStudy();
+		request.setId(studyId);
+		request.setStatus(ImagingStudy.ImagingStudyStatus.AVAILABLE);
+		request.addIdentifier().setSystem("urn:dicom:uid").setValue("urn:oid:test.study.no.ext");
+		request.setSubject(new Reference("Patient/" + PATIENT_UUID));
+		
+		Observation obs = new Observation();
+		obs.setId("#some-obs");
+		obs.setStatus(Observation.ObservationStatus.FINAL);
+		request.addContained(obs);
+		
+		when(imagingStudyDao.get(studyId)).thenReturn(existingStudy);
+		when(imagingStudyDao.createOrUpdate(any())).thenAnswer(invocation -> invocation.getArgument(0));
+		
+		ImagingStudy result = fhirImagingStudyService.update(studyId, request);
+		
+		assertNotNull(result);
+		
 		verify(fhirObservationService, times(0)).create(any(Observation.class));
 		verify(fhirObservationService, times(0)).delete(any());
 	}

@@ -248,10 +248,6 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 			throw new InvalidRequestException(ERROR_NO_QUALITY_OBSERVATIONS);
 		}
 
-		if (!imagingStudy.hasContained()) {
-			throw new InvalidRequestException(ERROR_NO_CONTAINED_RESOURCES);
-		}
-
 		Map<String, Resource> containedMap = imagingStudy.getContained().stream()
 				.filter(r -> r.getId() != null)
 				.collect(Collectors.toMap(Resource::getId, r -> r));
