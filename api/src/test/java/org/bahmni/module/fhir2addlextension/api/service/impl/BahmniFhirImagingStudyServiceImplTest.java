@@ -47,7 +47,6 @@ import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.openmrs.module.fhir2.api.translators.*;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -162,8 +161,7 @@ public class BahmniFhirImagingStudyServiceImplTest {
                 imagingStudyDao, imagingStudyTranslator,
                 searchQueryInclude, searchQuery,
                 fhirObservationService, observationTranslator,
-                observationReferenceTranslator,
-                encounterReferenceTranslator) {
+                observationReferenceTranslator) {
 
             @Override
             protected void validateObject(FhirImagingStudy object) {
@@ -195,20 +193,6 @@ public class BahmniFhirImagingStudyServiceImplTest {
                     ref.setReference("Location/" + location.getUuid());
                     return ref;
                 });
-        
-        when(encounterReferenceTranslator.toOpenmrsType(any(Reference.class))).thenAnswer(invocation -> {
-            Reference ref = invocation.getArgument(0);
-            if (ref == null || ref.getReference() == null) return null;
-            Encounter encounter = new Encounter();
-            // Extract UUID from reference like "Encounter/uuid"
-            String refString = ref.getReference();
-            String encounterUuid = refString.contains("/") ? refString.substring(refString.lastIndexOf("/") + 1) : refString;
-            encounter.setUuid(encounterUuid);
-            org.openmrs.EncounterType encounterType = new org.openmrs.EncounterType();
-            encounterType.setName("RADIOLOGY");
-            encounter.setEncounterType(encounterType);
-            return encounter;
-        });
     }
 	
 	@Test
@@ -609,17 +593,6 @@ public class BahmniFhirImagingStudyServiceImplTest {
         Provider performer = new Provider();
         performer.setUuid("60b31d2a-1d0c-11f1-b099-5a3ed7acdb7e");
         when(practitionerReferenceTranslator.toOpenmrsType(any())).thenReturn(performer);
-        
-        // Mock the quality encounter
-        Encounter qualityEncounter = new Encounter();
-        qualityEncounter.setUuid(qualityEncounterUuid);
-        org.openmrs.EncounterType encounterType = new org.openmrs.EncounterType();
-        encounterType.setName("RADIOLOGY");
-        qualityEncounter.setEncounterType(encounterType);
-        
-        when(encounterReferenceTranslator.toOpenmrsType(ArgumentMatchers.argThat(ref -> 
-            ref != null && ref.getReference() != null && ref.getReference().contains(qualityEncounterUuid))))
-            .thenReturn(qualityEncounter);
 
         setupObservationMocks();
 
@@ -962,10 +935,6 @@ public class BahmniFhirImagingStudyServiceImplTest {
 
         when(imagingStudyDao.get(studyId)).thenReturn(existingStudy);
         when(imagingStudyDao.createOrUpdate(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        
-        when(encounterReferenceTranslator.toOpenmrsType(ArgumentMatchers.argThat(ref -> 
-            ref != null && ref.getReference() != null && ref.getReference().contains(encounter.getUuid()))))
-            .thenReturn(encounter);
 
         AtomicInteger counter = new AtomicInteger(0);
         Map<String, org.openmrs.Obs> createdObsMap = new HashMap<>();
@@ -2491,9 +2460,9 @@ public class BahmniFhirImagingStudyServiceImplTest {
         verify(fhirObservationService, times(3)).create(any(Observation.class));
     }
 	
-	@Test(expected = InvalidRequestException.class)
-	public void testUpdateWithQualityAssessments_shouldThrowExceptionWhenEncounterIsNull() {
-		String studyId = "test-null-encounter-validation";
+	@Test
+	public void testUpdateWithQualityAssessments_shouldDelegateEncounterValidationToObservationService() {
+		String studyId = "test-encounter-validation-delegated";
 		
 		FhirImagingStudy existingStudy = createTestFhirImagingStudy(studyId);
 		existingStudy.setAssessment(new LinkedHashSet<>());
@@ -2501,25 +2470,59 @@ public class BahmniFhirImagingStudyServiceImplTest {
 		ImagingStudy request = new ImagingStudy();
 		request.setId(studyId);
 		request.setStatus(ImagingStudy.ImagingStudyStatus.AVAILABLE);
-		request.addIdentifier().setSystem("urn:dicom:uid").setValue("urn:oid:test.study.null.enc.validation");
+		request.addIdentifier().setSystem("urn:dicom:uid").setValue("urn:oid:test.study.enc.validation.delegated");
 		request.setSubject(new Reference("Patient/" + PATIENT_UUID));
 		
 		Observation obs = new Observation();
-		obs.setId("#test-obs-null-enc-val");
+		obs.setId("#test-obs-enc-val");
 		obs.setStatus(Observation.ObservationStatus.FINAL);
-		obs.setEncounter(new Reference("Encounter/non-existent-encounter"));
+		obs.setEncounter(new Reference("Encounter/some-encounter-uuid"));
 		
 		request.addContained(obs);
-		request.addExtension(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION, new Reference("#test-obs-null-enc-val"));
+		request.addExtension(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION, new Reference("#test-obs-enc-val"));
 		
 		when(imagingStudyDao.get(studyId)).thenReturn(existingStudy);
-		when(encounterReferenceTranslator.toOpenmrsType(any(Reference.class))).thenReturn(null);
+		when(imagingStudyDao.createOrUpdate(any())).thenAnswer(invocation -> invocation.getArgument(0));
 		
-		fhirImagingStudyService.update(studyId, request);
+		AtomicInteger counter = new AtomicInteger(0);
+		Map<String, org.openmrs.Obs> createdObsMap = new HashMap<>();
+		
+		when(fhirObservationService.create(any(Observation.class))).thenAnswer(invocation -> {
+			Observation result = new Observation();
+			String obsId = "created-obs-" + counter.incrementAndGet();
+			result.setId(obsId);
+			org.openmrs.Obs openmrsObs = new org.openmrs.Obs();
+			openmrsObs.setUuid(obsId);
+			createdObsMap.put(obsId, openmrsObs);
+			return result;
+		});
+		
+		when(observationReferenceTranslator.toOpenmrsType(any(Reference.class))).thenAnswer(invocation -> {
+			Reference ref = invocation.getArgument(0);
+			if (ref != null && ref.getReference() != null && ref.getReference().startsWith("Observation/")) {
+				String obsId = ref.getReference().substring("Observation/".length());
+				return createdObsMap.get(obsId);
+			}
+			return null;
+		});
+		
+		when(observationTranslator.toFhirResource(any(org.openmrs.Obs.class))).thenAnswer(invocation -> {
+			org.openmrs.Obs openmrsObs = invocation.getArgument(0);
+			if (openmrsObs == null) return null;
+			Observation fhirObs = new Observation();
+			fhirObs.setId(openmrsObs.getUuid());
+			return fhirObs;
+		});
+		
+		// Should not throw exception - validation is delegated to observation service
+		ImagingStudy result = fhirImagingStudyService.update(studyId, request);
+		
+		assertNotNull(result);
+		verify(fhirObservationService, times(1)).create(any(Observation.class));
 	}
 	
-	@Test(expected = InvalidRequestException.class)
-	public void testUpdateWithQualityAssessments_shouldThrowExceptionWhenExtensionsExistButNoObservationsToProcess() {
+	@Test
+	public void testUpdateWithQualityAssessments_shouldSkipProcessingWhenExtensionsReferenceNonObservationResources() {
 		String studyId = "test-empty-extensions-study";
 		
 		Encounter encounter = new Encounter();
@@ -2545,9 +2548,13 @@ public class BahmniFhirImagingStudyServiceImplTest {
 		request.addExtension(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION, new Reference("#not-an-obs-resource"));
 		
 		when(imagingStudyDao.get(studyId)).thenReturn(existingStudy);
-		when(encounterReferenceTranslator.toOpenmrsType(any(Reference.class))).thenReturn(encounter);
+		when(imagingStudyDao.createOrUpdate(any())).thenAnswer(invocation -> invocation.getArgument(0));
 		
-		fhirImagingStudyService.update(studyId, request);
+		ImagingStudy result = fhirImagingStudyService.update(studyId, request);
+		
+		assertNotNull(result);
+		verify(fhirObservationService, times(0)).create(any(Observation.class));
+		verify(fhirObservationService, times(0)).delete(any());
 	}
 	
 	@Test
