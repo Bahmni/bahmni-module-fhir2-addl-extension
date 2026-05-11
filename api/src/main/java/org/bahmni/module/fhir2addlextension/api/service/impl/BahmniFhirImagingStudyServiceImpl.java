@@ -65,10 +65,6 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	
 	public static final String ERROR_MISSING_SEARCH_PARAMS = "Missing patient reference, resource id or basedOn reference for ImagingStudy search";
 	
-	public static final String ERROR_NO_QUALITY_OBSERVATIONS = "No quality assessment observations found in extensions";
-	
-	public static final String ERROR_NO_CONTAINED_RESOURCES = "No contained resources found. Quality observations must be contained resources.";
-	
 	public static final String WARN_EXTENSION_NOT_REFERENCE = "Quality observation extension value is not a Reference, skipping";
 	
 	public static final String WARN_INVALID_CONTAINED_REF = "Invalid contained reference: ";
@@ -244,10 +240,6 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 	 */
 	private void processQualityAssessments(ImagingStudy imagingStudy, FhirImagingStudy openmrsStudy) {
 		List<Extension> qualityObsExtensions = imagingStudy.getExtensionsByUrl(FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION);
-		if (qualityObsExtensions.isEmpty()) {
-			throw new InvalidRequestException(ERROR_NO_QUALITY_OBSERVATIONS);
-		}
-
 		Map<String, Resource> containedMap = imagingStudy.getContained().stream()
 				.filter(r -> r.getId() != null)
 				.collect(Collectors.toMap(Resource::getId, r -> r));
