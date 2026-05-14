@@ -13,6 +13,7 @@ import org.openmrs.module.fhir2.api.translators.impl.MedicationRequestTranslator
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import javax.annotation.Nonnull;
 
@@ -30,6 +31,8 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 		
 		//TODO: This should be translated based on an extension of MedicationRequest to set correct CareSetting
 		drugOrder.setCareSetting(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.name()));
+		
+		translatePriorPrescription(drugOrder, medicationRequest);
 		
 		if (drugOrder.getUrgency() != null && drugOrder.getUrgency().equals(Order.Urgency.STAT)) {
 			drugOrder.setScheduledDate(null);
@@ -49,5 +52,55 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 			drugOrder.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
 		}
 		return drugOrder;
+	}
+	
+	private void translatePriorPrescription(@Nonnull DrugOrder drugOrder, @Nonnull MedicationRequest medicationRequest) {
+		if (!medicationRequest.hasPriorPrescription()) {
+			return;
+		}
+		
+		try {
+			String priorPrescriptionReference = medicationRequest.getPriorPrescription().getReference();
+			if (!StringUtils.hasText(priorPrescriptionReference)) {
+				return;
+			}
+			
+			String priorUuid = extractUuidFromReference(priorPrescriptionReference);
+			if (!StringUtils.hasText(priorUuid)) {
+				return;
+			}
+			
+			Order priorOrder = orderService.getOrderByUuid(priorUuid);
+			if (priorOrder == null) {
+				return;
+			}
+			
+			if (!(priorOrder instanceof DrugOrder)) {
+				return;
+			}
+			
+			drugOrder.setAction(Order.Action.REVISE);
+			drugOrder.setPreviousOrder(priorOrder);
+		}
+		catch (Exception e) {
+			// Don't throw - allow the order to be created as NEW if translation fails
+		}
+	}
+	
+	private String extractUuidFromReference(String reference) {
+		if (!StringUtils.hasText(reference)) {
+			return "";
+		}
+		
+		if (reference.contains("/")) {
+			String[] parts = reference.split("/");
+			return parts[parts.length - 1];
+		}
+		
+		if (reference.startsWith("urn:uuid:")) {
+			return reference.substring("urn:uuid:".length());
+		}
+		
+		return reference;
 	}
 }
