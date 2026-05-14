@@ -66,6 +66,7 @@ public class BahmniMedicationRequestTranslatorImplTest {
 	@Mock
 	private CareSetting outpatientCareSetting;
 	
+	// Parent class (MedicationRequestTranslatorImpl) dependencies injected via @InjectMocks
 	@Mock
 	private MedicationRequestPriorityTranslator medicationRequestPriorityTranslator;
 	
@@ -125,9 +126,10 @@ public class BahmniMedicationRequestTranslatorImplTest {
 	
 	@Test
 	public void toOpenmrsType_givenStatOrderWithBoundsPeriod_shouldSetAutoExpireDate() {
+		// Given: priority translator maps STAT → STAT urgency
 		when(medicationRequestPriorityTranslator.toOpenmrsType(MedicationRequest.MedicationRequestPriority.STAT))
 		        .thenReturn(Order.Urgency.STAT);
-		// dosageTranslator simulates parent setting a scheduledDate (which STAT logic must clear)
+		// And: dosageTranslator simulates parent setting a scheduledDate (which STAT logic must clear)
 		doAnswer(inv -> {
 			((DrugOrder) inv.getArgument(0)).setScheduledDate(today);
 			return inv.getArgument(0);
@@ -135,8 +137,10 @@ public class BahmniMedicationRequestTranslatorImplTest {
 
 		MedicationRequest fhirRequest = buildStatRequestWithBoundsPeriod(today, endOfDay);
 
+		// When
 		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
 
+		// Then: scheduledDate is cleared and autoExpireDate is extracted from boundsPeriod.end
 		assertThat(result.getScheduledDate(), nullValue());
 		assertThat(result.getAutoExpireDate(), equalTo(endOfDay));
 	}
@@ -150,6 +154,7 @@ public class BahmniMedicationRequestTranslatorImplTest {
 			return inv.getArgument(0);
 		}).when(dosageTranslator).toOpenmrsType(any(DrugOrder.class), any(Dosage.class));
 
+		// No dosage instruction with boundsPeriod
 		MedicationRequest fhirRequest = buildBaseRequest();
 		fhirRequest.setPriority(MedicationRequest.MedicationRequestPriority.STAT);
 
@@ -168,6 +173,7 @@ public class BahmniMedicationRequestTranslatorImplTest {
 			return inv.getArgument(0);
 		}).when(dosageTranslator).toOpenmrsType(any(DrugOrder.class), any(Dosage.class));
 
+		// boundsPeriod has only a start, no end
 		MedicationRequest fhirRequest = buildStatRequestWithBoundsPeriod(today, null);
 
 		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
@@ -304,6 +310,7 @@ public class BahmniMedicationRequestTranslatorImplTest {
 	
 	private MedicationRequest buildBaseRequest() {
 		MedicationRequest request = new MedicationRequest();
+		// Set an empty CodeableConcept to avoid NPE in parent's concept translation path
 		request.setMedication(new CodeableConcept());
 		return request;
 	}
