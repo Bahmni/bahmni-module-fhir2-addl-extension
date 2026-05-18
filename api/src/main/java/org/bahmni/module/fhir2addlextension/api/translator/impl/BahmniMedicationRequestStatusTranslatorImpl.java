@@ -38,20 +38,9 @@ public class BahmniMedicationRequestStatusTranslatorImpl implements MedicationRe
 			return MedicationRequest.MedicationRequestStatus.ENTEREDINERROR;
 		}
 		
-		Order.FulfillerStatus fulfillerStatus = drugOrder.getFulfillerStatus();
-		if (fulfillerStatus != null) {
-			switch (fulfillerStatus) {
-				case COMPLETED:
-					return MedicationRequest.MedicationRequestStatus.COMPLETED;
-				case IN_PROGRESS:
-				case RECEIVED:
-					return MedicationRequest.MedicationRequestStatus.ACTIVE;
-				case EXCEPTION:
-					return drugOrder.getDateStopped() != null ? MedicationRequest.MedicationRequestStatus.STOPPED
-					        : MedicationRequest.MedicationRequestStatus.UNKNOWN;
-				default:
-					break;
-			}
+		MedicationRequest.MedicationRequestStatus fulfillerStatusResult = fromFulfillerStatus(drugOrder);
+		if (fulfillerStatusResult != null) {
+			return fulfillerStatusResult;
 		}
 		
 		if (Order.Action.DISCONTINUE.equals(drugOrder.getAction())) {
@@ -60,8 +49,7 @@ public class BahmniMedicationRequestStatusTranslatorImpl implements MedicationRe
 		
 		Date effectiveStartDate = drugOrder.getEffectiveStartDate();
 		if (effectiveStartDate == null) {
-			String NO_EFFECTIVE_START_DATE_EXCEPTION_MESSAGE = "Can not determine status for order with no effective start date";
-			throw new IllegalArgumentException(NO_EFFECTIVE_START_DATE_EXCEPTION_MESSAGE);
+			throw new IllegalArgumentException("Can not determine status for order with no effective start date");
 		}
 		
 		if (drugOrder.getDateStopped() != null) {
@@ -82,5 +70,24 @@ public class BahmniMedicationRequestStatusTranslatorImpl implements MedicationRe
 		int comparisonResult = ModuleUtils.compareDates(autoExpireDate, now, ChronoUnit.MINUTES);
 		return comparisonResult < 0 ? MedicationRequest.MedicationRequestStatus.COMPLETED
 		        : MedicationRequest.MedicationRequestStatus.ACTIVE;
+	}
+	
+	private MedicationRequest.MedicationRequestStatus fromFulfillerStatus(DrugOrder drugOrder) {
+		Order.FulfillerStatus fulfillerStatus = drugOrder.getFulfillerStatus();
+		if (fulfillerStatus == null) {
+			return null;
+		}
+		switch (fulfillerStatus) {
+			case COMPLETED:
+				return MedicationRequest.MedicationRequestStatus.COMPLETED;
+			case IN_PROGRESS:
+			case RECEIVED:
+				return MedicationRequest.MedicationRequestStatus.ACTIVE;
+			case EXCEPTION:
+				return drugOrder.getDateStopped() != null ? MedicationRequest.MedicationRequestStatus.STOPPED
+				        : MedicationRequest.MedicationRequestStatus.UNKNOWN;
+			default:
+				return null;
+		}
 	}
 }
