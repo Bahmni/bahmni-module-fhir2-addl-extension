@@ -11,6 +11,7 @@ package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -294,6 +295,7 @@ public class BahmniMedicationRequestTranslatorImplTest {
 		
 		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
 		
+		assertThat(result.getAction(), not(equalTo(Order.Action.REVISE)));
 		assertThat(result.getPreviousOrder(), nullValue());
 	}
 	
@@ -303,6 +305,62 @@ public class BahmniMedicationRequestTranslatorImplTest {
 		
 		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
 		
+		assertThat(result.getAction(), not(equalTo(Order.Action.REVISE)));
+		assertThat(result.getPreviousOrder(), nullValue());
+	}
+	
+	@Test
+	public void toOpenmrsType_givenPriorPrescriptionNotFound_shouldNotSetReviseAction() {
+		String priorOrderUuid = "non-existent-uuid";
+		when(orderService.getOrderByUuid(priorOrderUuid)).thenReturn(null);
+		
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setPriorPrescription(new Reference("MedicationRequest/" + priorOrderUuid));
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getAction(), not(equalTo(Order.Action.REVISE)));
+		assertThat(result.getPreviousOrder(), nullValue());
+	}
+	
+	@Test
+	public void toOpenmrsType_givenPriorPrescriptionWithEmptyReference_shouldContinueWithoutRevise() {
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setPriorPrescription(new Reference());
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getAction(), not(equalTo(Order.Action.REVISE)));
+		assertThat(result.getPreviousOrder(), nullValue());
+	}
+	
+	@Test
+	public void toOpenmrsType_givenPriorPrescriptionWithPlainUuid_shouldExtractAndLinkOrder() {
+		String priorOrderUuid = "plain-uuid-no-prefix";
+		DrugOrder priorOrder = new DrugOrder();
+		priorOrder.setUuid(priorOrderUuid);
+		when(orderService.getOrderByUuid(priorOrderUuid)).thenReturn(priorOrder);
+		
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setPriorPrescription(new Reference(priorOrderUuid));
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getAction(), equalTo(Order.Action.REVISE));
+		assertThat(result.getPreviousOrder(), equalTo(priorOrder));
+	}
+	
+	@Test
+	public void toOpenmrsType_givenOrderServiceThrowsException_shouldContinueWithoutRevise() {
+		String priorOrderUuid = "throws-uuid";
+		when(orderService.getOrderByUuid(priorOrderUuid)).thenThrow(new RuntimeException("DB error"));
+		
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setPriorPrescription(new Reference("MedicationRequest/" + priorOrderUuid));
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getAction(), not(equalTo(Order.Action.REVISE)));
 		assertThat(result.getPreviousOrder(), nullValue());
 	}
 	
