@@ -63,60 +63,126 @@ public class BahmniMedicationRequestStatusTranslatorImplTest {
 	}
 	
 	@Test
-	public void toFhirResource_shouldHandleMinimalDrugOrder() {
-		DrugOrder minimalOrder = new DrugOrder();
-		minimalOrder.setUuid("minimal-uuid");
-		assertThat(statusTranslator.toFhirResource(minimalOrder), equalTo(MedicationRequest.MedicationRequestStatus.UNKNOWN));
+	public void toFhirResource_shouldReturnEnteredInError_whenOrderIsVoided() {
+		drugOrder.setVoided(true);
+		assertThat(statusTranslator.toFhirResource(drugOrder),
+		    equalTo(MedicationRequest.MedicationRequestStatus.ENTEREDINERROR));
 	}
 	
 	@Test
-	public void toFhirResource_shouldReturnCancelled_whenActionIsDiscontinue() {
-		drugOrder.setAction(Order.Action.DISCONTINUE);
-		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.CANCELLED));
+	public void toFhirResource_shouldReturnCompleted_whenFulfillerStatusIsCompleted() {
+		drugOrder.setFulfillerStatus(Order.FulfillerStatus.COMPLETED);
+		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.COMPLETED));
 	}
 	
 	@Test
-	public void toFhirResource_shouldReturnStopped_whenDateStoppedIsYesterday() throws Exception {
+	public void toFhirResource_shouldReturnActive_whenFulfillerStatusIsInProgress() {
+		drugOrder.setFulfillerStatus(Order.FulfillerStatus.IN_PROGRESS);
+		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.ACTIVE));
+	}
+	
+	@Test
+	public void toFhirResource_shouldReturnActive_whenFulfillerStatusIsReceived() {
+		drugOrder.setFulfillerStatus(Order.FulfillerStatus.RECEIVED);
+		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.ACTIVE));
+	}
+	
+	@Test
+	public void toFhirResource_shouldReturnStopped_whenFulfillerStatusIsExceptionAndDateStoppedIsSet() throws Exception {
+		drugOrder.setFulfillerStatus(Order.FulfillerStatus.EXCEPTION);
 		setDateStopped(drugOrder, yesterday);
 		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.STOPPED));
 	}
 	
 	@Test
-	public void toFhirResource_shouldReturnStopped_whenDateStoppedIsToday() throws Exception {
+	public void toFhirResource_shouldReturnUnknown_whenFulfillerStatusIsExceptionAndNoDateStopped() {
+		drugOrder.setFulfillerStatus(Order.FulfillerStatus.EXCEPTION);
+		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.UNKNOWN));
+	}
+	
+	@Test
+	public void toFhirResource_shouldReturnCompleted_whenActionIsDiscontinue() {
+		drugOrder.setAction(Order.Action.DISCONTINUE);
+		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.COMPLETED));
+	}
+	
+	@Test
+	public void toFhirResource_shouldReturnCompleted_whenDiscontinuedEvenIfAutoExpired() {
+		drugOrder.setAction(Order.Action.DISCONTINUE);
+		drugOrder.setAutoExpireDate(yesterday);
+		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.COMPLETED));
+	}
+	
+	@Test
+	public void toFhirResource_shouldReturnStopped_whenDateStoppedAfterStart() throws Exception {
 		setDateStopped(drugOrder, today);
 		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.STOPPED));
 	}
 	
 	@Test
-	public void toFhirResource_shouldReturnActive_whenDateStoppedIsTomorrow() throws Exception {
-		setDateStopped(drugOrder, tomorrow);
-		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.ACTIVE));
+	public void toFhirResource_shouldReturnStopped_whenDateStoppedSameMinuteAsStart() throws Exception {
+		setDateStopped(drugOrder, yesterday);
+		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.STOPPED));
 	}
 	
 	@Test
-	public void toFhirResource_shouldReturnOnHold_whenScheduledForFutureWithUrgency() {
+	public void toFhirResource_shouldReturnStopped_whenDateStoppedInFutureAfterStart() throws Exception {
+		setDateStopped(drugOrder, tomorrow);
+		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.STOPPED));
+	}
+	
+	@Test
+	public void toFhirResource_shouldReturnStopped_whenBothStoppedAndAutoExpired() throws Exception {
+		setDateStopped(drugOrder, yesterday);
+		drugOrder.setAutoExpireDate(yesterday);
+		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.STOPPED));
+	}
+	
+	@Test
+	public void toFhirResource_shouldReturnCancelled_whenDateStoppedBeforeEffectiveStartDate() throws Exception {
+		drugOrder.setDateActivated(tomorrow);
+		setDateStopped(drugOrder, yesterday);
+		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.CANCELLED));
+	}
+	
+	@Test
+	public void toFhirResource_shouldReturnCancelled_whenDateStoppedBeforeScheduledStartDate() throws Exception {
 		drugOrder.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
 		drugOrder.setScheduledDate(tomorrow);
-		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.ONHOLD));
+		setDateStopped(drugOrder, yesterday);
+		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.CANCELLED));
 	}
 	
-	@Test
-	public void toFhirResource_shouldReturnOnHold_whenDateActivatedIsInFuture() {
-		drugOrder.setDateActivated(tomorrow);
-		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.ONHOLD));
+	@Test(expected = IllegalArgumentException.class)
+	public void toFhirResource_shouldThrowException_whenNoEffectiveStartDate() {
+		drugOrder.setDateActivated(null);
+		statusTranslator.toFhirResource(drugOrder);
 	}
 	
-	@Test
-	public void toFhirResource_shouldReturnActive_whenScheduledDateIsToday() {
+	@Test(expected = IllegalArgumentException.class)
+	public void toFhirResource_shouldThrowException_whenMinimalOrderWithNoDates() {
+		DrugOrder minimalOrder = new DrugOrder();
+		minimalOrder.setUuid("minimal-uuid");
+		statusTranslator.toFhirResource(minimalOrder);
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void toFhirResource_shouldThrowException_whenScheduledUrgencyButNoScheduledDate() {
 		drugOrder.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
-		drugOrder.setScheduledDate(today);
-		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.ACTIVE));
+		drugOrder.setScheduledDate(null);
+		drugOrder.setDateActivated(null);
+		statusTranslator.toFhirResource(drugOrder);
 	}
 	
 	@Test
-	public void toFhirResource_shouldReturnActive_whenScheduledDateIsYesterday() {
-		drugOrder.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
-		drugOrder.setScheduledDate(yesterday);
+	public void toFhirResource_shouldReturnCompleted_whenAutoExpireDateIsInPast() {
+		drugOrder.setAutoExpireDate(yesterday);
+		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.COMPLETED));
+	}
+	
+	@Test
+	public void toFhirResource_shouldReturnActive_whenAutoExpireDateIsCurrentMinute() {
+		drugOrder.setAutoExpireDate(today);
 		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.ACTIVE));
 	}
 	
@@ -138,68 +204,61 @@ public class BahmniMedicationRequestStatusTranslatorImplTest {
 	}
 	
 	@Test
-	public void toFhirResource_shouldReturnCompleted_whenAutoExpireDateIsYesterday() {
-		drugOrder.setAutoExpireDate(yesterday);
-		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.COMPLETED));
+	public void toFhirResource_shouldReturnActive_whenDateActivatedIsInFuture() {
+		drugOrder.setDateActivated(tomorrow);
+		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.ACTIVE));
 	}
 	
 	@Test
-	public void toFhirResource_shouldReturnCompleted_whenAutoExpireDateIsToday() {
-		drugOrder.setAutoExpireDate(today);
-		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.COMPLETED));
+	public void toFhirResource_shouldReturnActive_whenScheduledForFutureWithOnScheduledDateUrgency() {
+		drugOrder.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
+		drugOrder.setScheduledDate(tomorrow);
+		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.ACTIVE));
 	}
 	
 	@Test
-	public void toFhirResource_shouldReturnUnknown_whenNoDateActivatedAndNotScheduled() {
-		drugOrder.setDateActivated(null);
-		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.UNKNOWN));
+	public void toFhirResource_shouldReturnActive_whenScheduledDateIsYesterday() {
+		drugOrder.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
+		drugOrder.setScheduledDate(yesterday);
+		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.ACTIVE));
 	}
 	
 	@Test
-	public void toFhirResource_shouldReturnStopped_whenBothStoppedAndExpired() throws Exception {
-		setDateStopped(drugOrder, yesterday);
-		drugOrder.setAutoExpireDate(yesterday);
-		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.STOPPED));
-	}
-	
-	@Test
-	public void toFhirResource_shouldReturnCancelled_whenDiscontinuedAndExpired() {
-		drugOrder.setAction(Order.Action.DISCONTINUE);
-		drugOrder.setAutoExpireDate(yesterday);
-		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.CANCELLED));
-	}
-	
-	@Test
-	public void toFhirResource_shouldHandleReviseAction() {
+	public void toFhirResource_shouldReturnActive_whenActionIsRevise() {
 		drugOrder.setAction(Order.Action.REVISE);
 		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.ACTIVE));
 	}
 	
 	@Test
-	public void toFhirResource_shouldHandleRenewAction() {
+	public void toFhirResource_shouldReturnActive_whenActionIsRenew() {
 		drugOrder.setAction(Order.Action.RENEW);
 		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.ACTIVE));
 	}
 	
 	@Test
-	public void toFhirResource_shouldIgnoreUrgencyWhenNotScheduled() {
+	public void toFhirResource_shouldReturnActive_whenUrgencyIsStatWithActiveOrder() {
 		drugOrder.setUrgency(Order.Urgency.STAT);
 		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.ACTIVE));
 	}
 	
 	@Test
-	public void toFhirResource_shouldIgnoreUrgencyRoutine() {
+	public void toFhirResource_shouldReturnActive_whenUrgencyIsRoutineWithActiveOrder() {
 		drugOrder.setUrgency(Order.Urgency.ROUTINE);
 		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.ACTIVE));
 	}
 	
 	@Test
-	public void toFhirResource_shouldHandleNullDates() throws Exception {
-		drugOrder.setDateActivated(null);
-		setDateStopped(drugOrder, null);
-		drugOrder.setAutoExpireDate(null);
-		drugOrder.setScheduledDate(null);
-		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.UNKNOWN));
+	public void toFhirResource_shouldReturnCompleted_whenFulfillerCompletedEvenIfNotExpired() {
+		drugOrder.setFulfillerStatus(Order.FulfillerStatus.COMPLETED);
+		drugOrder.setAutoExpireDate(tomorrow);
+		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.COMPLETED));
+	}
+	
+	@Test
+	public void toFhirResource_shouldReturnActive_whenFulfillerInProgressEvenIfAutoExpired() {
+		drugOrder.setFulfillerStatus(Order.FulfillerStatus.IN_PROGRESS);
+		drugOrder.setAutoExpireDate(yesterday);
+		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.ACTIVE));
 	}
 	
 	private void setDateStopped(DrugOrder drugOrder, Date dateStopped) throws Exception {

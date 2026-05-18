@@ -9,10 +9,12 @@
  */
 package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
 import javax.annotation.Nonnull;
 
+import org.bahmni.module.fhir2addlextension.api.utils.ModuleUtils;
 import org.hl7.fhir.r4.model.MedicationRequest;
 import org.openmrs.DrugOrder;
 import org.openmrs.Order;
@@ -32,84 +34,53 @@ public class BahmniMedicationRequestStatusTranslatorImpl implements MedicationRe
 		
 		Date now = new Date();
 		
+		if (drugOrder.getVoided()) {
+			return MedicationRequest.MedicationRequestStatus.ENTEREDINERROR;
+		}
+		
+		Order.FulfillerStatus fulfillerStatus = drugOrder.getFulfillerStatus();
+		if (fulfillerStatus != null) {
+			switch (fulfillerStatus) {
+				case COMPLETED:
+					return MedicationRequest.MedicationRequestStatus.COMPLETED;
+				case IN_PROGRESS:
+				case RECEIVED:
+					return MedicationRequest.MedicationRequestStatus.ACTIVE;
+				case EXCEPTION:
+					return drugOrder.getDateStopped() != null ? MedicationRequest.MedicationRequestStatus.STOPPED
+					        : MedicationRequest.MedicationRequestStatus.UNKNOWN;
+				default:
+					break;
+			}
+		}
+		
 		if (Order.Action.DISCONTINUE.equals(drugOrder.getAction())) {
-			return MedicationRequest.MedicationRequestStatus.CANCELLED;
-		}
-		
-		if (drugOrder.getDateStopped() != null) {
-			return isDateBeforeOrEqual(drugOrder.getDateStopped(), now) ? MedicationRequest.MedicationRequestStatus.STOPPED
-			        : MedicationRequest.MedicationRequestStatus.ACTIVE;
-		}
-		
-		if (isScheduledForFuture(drugOrder, now)) {
-			return MedicationRequest.MedicationRequestStatus.ONHOLD;
-		}
-		
-		if (isActiveOnDate(drugOrder, now)) {
-			return MedicationRequest.MedicationRequestStatus.ACTIVE;
-		}
-		
-		if (isExpiredOnDate(drugOrder, now)) {
 			return MedicationRequest.MedicationRequestStatus.COMPLETED;
 		}
 		
-		return MedicationRequest.MedicationRequestStatus.UNKNOWN;
-	}
-	
-	private boolean isActiveOnDate(DrugOrder drugOrder, Date checkDate) {
-		Date effectiveStartDate = getEffectiveStartDate(drugOrder);
-		Date effectiveStopDate = getEffectiveStopDate(drugOrder);
-		
+		Date effectiveStartDate = drugOrder.getEffectiveStartDate();
 		if (effectiveStartDate == null) {
-			return false;
+			String NO_EFFECTIVE_START_DATE_EXCEPTION_MESSAGE = "Can not determine status for order with no effective start date";
+			throw new IllegalArgumentException(NO_EFFECTIVE_START_DATE_EXCEPTION_MESSAGE);
 		}
 		
-		boolean startedOnOrBefore = isDateBeforeOrEqual(effectiveStartDate, checkDate);
-		boolean notStoppedYet = effectiveStopDate == null || isDateAfter(effectiveStopDate, checkDate);
-		
-		return startedOnOrBefore && notStoppedYet;
-	}
-	
-	private boolean isScheduledForFuture(DrugOrder drugOrder, Date checkDate) {
-		if (Order.Urgency.ON_SCHEDULED_DATE.equals(drugOrder.getUrgency())) {
-			Date scheduledDate = drugOrder.getScheduledDate();
-			return scheduledDate != null && isDateAfter(scheduledDate, checkDate);
-		}
-		
-		Date dateActivated = drugOrder.getDateActivated();
-		return dateActivated != null && isDateAfter(dateActivated, checkDate);
-	}
-	
-	private boolean isExpiredOnDate(DrugOrder drugOrder, Date checkDate) {
-		Date autoExpireDate = drugOrder.getAutoExpireDate();
-		return autoExpireDate != null && isDateBeforeOrEqual(autoExpireDate, checkDate);
-	}
-	
-	private Date getEffectiveStartDate(DrugOrder drugOrder) {
-		if (Order.Urgency.ON_SCHEDULED_DATE.equals(drugOrder.getUrgency())) {
-			return drugOrder.getScheduledDate();
-		}
-		return drugOrder.getDateActivated();
-	}
-	
-	private Date getEffectiveStopDate(DrugOrder drugOrder) {
 		if (drugOrder.getDateStopped() != null) {
-			return drugOrder.getDateStopped();
+			return ModuleUtils.compareDates(drugOrder.getDateStopped(), effectiveStartDate, ChronoUnit.MINUTES) < 0 ? MedicationRequest.MedicationRequestStatus.CANCELLED
+			        : MedicationRequest.MedicationRequestStatus.STOPPED;
 		}
-		return drugOrder.getAutoExpireDate();
-	}
-	
-	private boolean isDateBeforeOrEqual(Date date1, Date date2) {
-		if (date1 == null || date2 == null) {
-			return false;
+		
+		int activated = ModuleUtils.compareDates(now, effectiveStartDate, ChronoUnit.MINUTES);
+		if (activated < 0) {
+			return MedicationRequest.MedicationRequestStatus.ACTIVE;
 		}
-		return date1.compareTo(date2) <= 0;
-	}
-	
-	private boolean isDateAfter(Date date1, Date date2) {
-		if (date1 == null || date2 == null) {
-			return false;
+		
+		Date autoExpireDate = drugOrder.getAutoExpireDate();
+		if (autoExpireDate == null) {
+			return MedicationRequest.MedicationRequestStatus.ACTIVE;
 		}
-		return date1.compareTo(date2) > 0;
+		
+		int comparisonResult = ModuleUtils.compareDates(autoExpireDate, now, ChronoUnit.MINUTES);
+		return comparisonResult < 0 ? MedicationRequest.MedicationRequestStatus.COMPLETED
+		        : MedicationRequest.MedicationRequestStatus.ACTIVE;
 	}
 }
