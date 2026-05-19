@@ -7,14 +7,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.PersonAttribute;
 import org.openmrs.PersonAttributeType;
 import org.openmrs.api.PersonService;
-import org.openmrs.api.context.Context;
-import org.openmrs.api.context.UserContext;
-import org.openmrs.api.db.ContextDAO;
-import org.openmrs.User;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.Arrays;
 
@@ -29,15 +25,6 @@ public class PersonAttributeExtensionTranslatorTest {
 	@Mock
 	private PersonService personService;
 
-	@Mock
-	private UserContext userContext;
-
-	@Mock
-	private ContextDAO contextDAO;
-
-	@Mock
-	private User user;
-
 	private PersonAttributeExtensionTranslator translator;
 
 	private PersonAttributeType phoneType;
@@ -46,12 +33,7 @@ public class PersonAttributeExtensionTranslatorTest {
 
 	@Before
 	public void setup() {
-		when(userContext.getAuthenticatedUser()).thenReturn(user);
-		Context.setDAO(contextDAO);
-		Context.openSession();
-		Context.setUserContext(userContext);
-
-		translator = new PersonAttributeExtensionTranslator();
+		translator = new PersonAttributeExtensionTranslator(personService);
 
 		phoneType = new PersonAttributeType();
 		phoneType.setUuid("phone-uuid");
@@ -62,6 +44,8 @@ public class PersonAttributeExtensionTranslatorTest {
 		boolType.setUuid("bool-uuid");
 		boolType.setName("isVIP");
 		boolType.setFormat("org.openmrs.customdatatype.datatype.BooleanDatatype");
+
+		when(personService.getAllPersonAttributeTypes(false)).thenReturn(Arrays.asList(phoneType, boolType));
 	}
 
 	@Test
@@ -92,6 +76,19 @@ public class PersonAttributeExtensionTranslatorTest {
 	}
 
 	@Test
+	public void resolveType_shouldMatchBySlugName() {
+		PersonAttributeType result = translator.resolveType(PREFIX + "phonenumber");
+
+		assertNotNull(result);
+		assertEquals("phone-uuid", result.getUuid());
+	}
+
+	@Test
+	public void resolveType_shouldReturnNullForUnknownSlug() {
+		assertNull(translator.resolveType(PREFIX + "unknown"));
+	}
+
+	@Test
 	public void resolveType_shouldReturnNullForNonPatientUrl() {
 		assertNull(translator.resolveType("http://fhir.bahmni.org/ext/service-request/something"));
 	}
@@ -99,10 +96,5 @@ public class PersonAttributeExtensionTranslatorTest {
 	@Test
 	public void resolveType_shouldReturnNullForNullUrl() {
 		assertNull(translator.resolveType(null));
-	}
-
-	@Test
-	public void resolveType_shouldReturnNullForEmptySlug() {
-		assertNull(translator.resolveType(PREFIX));
 	}
 }

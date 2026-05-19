@@ -7,7 +7,9 @@ import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.StringType;
 import org.openmrs.PersonAttribute;
 import org.openmrs.PersonAttributeType;
-import org.openmrs.api.context.Context;
+import org.openmrs.api.PersonService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -18,6 +20,13 @@ import java.util.stream.Collectors;
 public class PersonAttributeExtensionTranslator {
 
 	private static final String BOOLEAN_FORMAT = "org.openmrs.customdatatype.datatype.BooleanDatatype";
+
+	private final PersonService personService;
+
+	@Autowired
+	public PersonAttributeExtensionTranslator(@Qualifier("personService") PersonService personService) {
+		this.personService = personService;
+	}
 
 	public Extension toFhirResource(PersonAttribute attribute) {
 		String value = attribute.getValue();
@@ -51,7 +60,7 @@ public class PersonAttributeExtensionTranslator {
 	}
 
 	private Map<String, PersonAttributeType> buildSlugToTypeMap() {
-		return Context.getPersonService().getAllPersonAttributeTypes(false).stream()
+		return personService.getAllPersonAttributeTypes(false).stream()
 				.collect(Collectors.toMap(
 						t -> ModuleUtils.toSlugCase(t.getName()),
 						Function.identity()

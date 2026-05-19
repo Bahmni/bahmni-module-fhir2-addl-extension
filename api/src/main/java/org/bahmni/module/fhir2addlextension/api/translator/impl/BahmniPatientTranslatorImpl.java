@@ -86,19 +86,20 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 				continue;
 			}
 
+			// Void existing attribute of this type first
+			for (PersonAttribute existing : openmrsPatient.getActiveAttributes()) {
+				if (existing.getAttributeType().equals(attrType)) {
+					existing.setVoided(true);
+					existing.setVoidReason("Updated via FHIR");
+				}
+			}
+
 			Type value = ext.getValue();
 			if (value != null && value.primitiveValue() != null) {
 				PersonAttribute attr = new PersonAttribute();
 				attr.setAttributeType(attrType);
 				attr.setValue(value.primitiveValue());
 				openmrsPatient.addAttribute(attr);
-			} else {
-				for (PersonAttribute existing : openmrsPatient.getActiveAttributes()) {
-					if (existing.getAttributeType().equals(attrType)) {
-						existing.setVoided(true);
-						existing.setVoidReason("Cleared via FHIR update");
-					}
-				}
 			}
 		}
 
