@@ -58,12 +58,7 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 		notNull(currentPatient, "The existing Openmrs Patient object should not be null");
 		notNull(patient, "The Patient object should not be null");
 
-		if (patient.hasAddress()) {
-			currentPatient.getAddresses().forEach(addr -> {
-				addr.setVoided(true);
-				addr.setVoidReason("Replaced via FHIR update");
-			});
-		}
+		voidExistingAddresses(currentPatient, patient);
 
 		org.openmrs.Patient openmrsPatient = super.toOpenmrsType(currentPatient, patient);
 
@@ -104,5 +99,14 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 		}
 
 		return openmrsPatient;
+	}
+
+	void voidExistingAddresses(org.openmrs.Patient currentPatient, Patient fhirPatient) {
+		if (fhirPatient.hasAddress()) {
+			currentPatient.getAddresses().forEach(addr -> {
+				addr.setVoided(true);
+				addr.setVoidReason("Replaced via FHIR update");
+			});
+		}
 	}
 }

@@ -100,13 +100,9 @@ public class BahmniPatientTranslatorImplTest {
 
 		when(personAttributeTranslator.resolveType(PREFIX + "phonenumber")).thenReturn(phoneType);
 
-		org.openmrs.Patient result = translator.toOpenmrsType(existingPatient, fhirPatient);
+		translator.toOpenmrsType(existingPatient, fhirPatient);
 
-		for (PersonAttribute attr : result.getAttributes()) {
-			if ("phoneNumber".equals(attr.getAttributeType().getName())) {
-				assertTrue("Existing attribute should be voided", attr.getVoided());
-			}
-		}
+		assertTrue("Existing attribute should be voided", existingAttr.getVoided());
 	}
 
 	@Test
@@ -140,19 +136,32 @@ public class BahmniPatientTranslatorImplTest {
 	}
 
 	@Test
-	public void toOpenmrsType_shouldVoidExistingAddressesWhenNewAddressProvided() {
+	public void voidExistingAddresses_shouldVoidWhenNewAddressProvided() {
 		org.openmrs.Patient existingPatient = new org.openmrs.Patient();
-		existingPatient.setUuid("patient-uuid");
 		PersonAddress existingAddr = new PersonAddress();
 		existingAddr.setCityVillage("OldCity");
 		existingPatient.addAddress(existingAddr);
 
 		Patient fhirPatient = new Patient();
-		fhirPatient.setId("patient-uuid");
-		fhirPatient.addAddress().setCity("NewCity").setUse(org.hl7.fhir.r4.model.Address.AddressUse.HOME);
+		fhirPatient.addAddress().setCity("NewCity");
 
-		org.openmrs.Patient result = translator.toOpenmrsType(existingPatient, fhirPatient);
+		translator.voidExistingAddresses(existingPatient, fhirPatient);
 
 		assertTrue("Old address should be voided", existingAddr.getVoided());
+		assertEquals("Replaced via FHIR update", existingAddr.getVoidReason());
+	}
+
+	@Test
+	public void voidExistingAddresses_shouldNotVoidWhenNoNewAddress() {
+		org.openmrs.Patient existingPatient = new org.openmrs.Patient();
+		PersonAddress existingAddr = new PersonAddress();
+		existingAddr.setCityVillage("OldCity");
+		existingPatient.addAddress(existingAddr);
+
+		Patient fhirPatient = new Patient();
+
+		translator.voidExistingAddresses(existingPatient, fhirPatient);
+
+		assertFalse("Address should not be voided", existingAddr.getVoided());
 	}
 }
