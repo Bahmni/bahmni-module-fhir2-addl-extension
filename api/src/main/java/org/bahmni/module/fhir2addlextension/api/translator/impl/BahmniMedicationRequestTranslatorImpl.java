@@ -45,8 +45,23 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 					}
 				}
 			}
-		} else if (drugOrder.getScheduledDate() != null) {
-			drugOrder.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
+		} else {
+			// Non-STAT: parent only reads timing.event for scheduledDate. Frontend now sends the
+			// start date via timing.repeat.boundsPeriod.start, so fall back to that when event is
+			// absent. Without this, scheduledDate stays null and OpenMRS rejects a second order
+			// for the same drug as a duplicate.
+			if (drugOrder.getScheduledDate() == null && medicationRequest.hasDosageInstruction()) {
+				Timing timing = medicationRequest.getDosageInstructionFirstRep().getTiming();
+				if (timing != null && timing.getRepeat() != null && timing.getRepeat().hasBoundsPeriod()) {
+					Period boundsPeriod = timing.getRepeat().getBoundsPeriod();
+					if (boundsPeriod.hasStart()) {
+						drugOrder.setScheduledDate(boundsPeriod.getStart());
+					}
+				}
+			}
+			if (drugOrder.getScheduledDate() != null) {
+				drugOrder.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
+			}
 		}
 		return drugOrder;
 	}

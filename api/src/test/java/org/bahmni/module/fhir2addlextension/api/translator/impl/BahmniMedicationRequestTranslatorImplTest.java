@@ -212,6 +212,32 @@ public class BahmniMedicationRequestTranslatorImplTest {
 		assertThat(result.getScheduledDate(), nullValue());
 	}
 	
+	@Test
+	public void toOpenmrsType_givenNonStatOrderWithBoundsPeriodStart_shouldSetScheduledDateAndOnScheduledDateUrgency() {
+		// Parent leaves scheduledDate null because frontend now sends start date via boundsPeriod.start
+		// instead of timing.event. The Bahmni override must fall back to boundsPeriod.start.
+		MedicationRequest fhirRequest = buildScheduledRequestWithBoundsPeriod(today);
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getScheduledDate(), equalTo(today));
+		assertThat(result.getUrgency(), equalTo(Order.Urgency.ON_SCHEDULED_DATE));
+	}
+	
+	@Test
+	public void toOpenmrsType_givenNonStatOrderWithBoundsPeriodButNoStart_shouldNotSetScheduledDate() {
+		when(medicationRequestPriorityTranslator.toOpenmrsType(MedicationRequest.MedicationRequestPriority.ROUTINE))
+		        .thenReturn(Order.Urgency.ROUTINE);
+		
+		MedicationRequest fhirRequest = buildScheduledRequestWithBoundsPeriod(null);
+		fhirRequest.setPriority(MedicationRequest.MedicationRequestPriority.ROUTINE);
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getScheduledDate(), nullValue());
+		assertThat(result.getUrgency(), equalTo(Order.Urgency.ROUTINE));
+	}
+	
 	// ========== HELPERS ==========
 	
 	private MedicationRequest buildBaseRequest() {
@@ -236,6 +262,21 @@ public class BahmniMedicationRequestTranslatorImplTest {
 		
 		MedicationRequest request = buildBaseRequest();
 		request.setPriority(MedicationRequest.MedicationRequestPriority.STAT);
+		request.addDosageInstruction().setTiming(timing);
+		return request;
+	}
+	
+	private MedicationRequest buildScheduledRequestWithBoundsPeriod(Date start) {
+		Period boundsPeriod = new Period();
+		if (start != null) {
+			boundsPeriod.setStart(start);
+		}
+		Timing.TimingRepeatComponent repeat = new Timing.TimingRepeatComponent();
+		repeat.setBounds(boundsPeriod);
+		Timing timing = new Timing();
+		timing.setRepeat(repeat);
+		
+		MedicationRequest request = buildBaseRequest();
 		request.addDosageInstruction().setTiming(timing);
 		return request;
 	}
