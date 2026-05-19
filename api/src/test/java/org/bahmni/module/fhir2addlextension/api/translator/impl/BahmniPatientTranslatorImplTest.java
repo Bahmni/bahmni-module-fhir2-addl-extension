@@ -20,7 +20,7 @@ import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(MockitoJUnitRunner.Silent.class)
 public class BahmniPatientTranslatorImplTest {
 
 	private static final String PREFIX = "http://fhir.bahmni.org/ext/patient/";
