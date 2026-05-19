@@ -6,7 +6,6 @@ import java.util.Date;
 
 import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
 import org.hl7.fhir.r4.model.DateTimeType;
-import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Type;
@@ -25,7 +24,7 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 
 	private static final Logger log = LoggerFactory.getLogger(BahmniPatientTranslatorImpl.class);
 
-	private static final String BIRTH_TIME_EXT_URL = "http://hl7.org/fhir/StructureDefinition/patient-birthTime";
+	static final String BIRTH_TIME_EXT_URL = "http://hl7.org/fhir/StructureDefinition/patient-birthTime";
 
 	@Autowired
 	private PersonAttributeExtensionTranslator personAttributeTranslator;
@@ -37,19 +36,8 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 	@Override
 	public Patient toFhirResource(org.openmrs.Patient openmrsPatient) {
 		Patient patient = super.toFhirResource(openmrsPatient);
-
-		for (PersonAttribute attr : openmrsPatient.getActiveAttributes()) {
-			Extension ext = personAttributeTranslator.toFhirResource(attr);
-			if (ext != null) {
-				patient.addExtension(ext);
-			}
-		}
-
-		Date birthtime = openmrsPatient.getBirthtime();
-		if (birthtime != null && patient.hasBirthDateElement()) {
-			patient.getBirthDateElement().addExtension(BIRTH_TIME_EXT_URL, new DateTimeType(birthtime));
-		}
-
+		addPersonAttributeExtensions(patient, openmrsPatient);
+		addBirthTimeExtension(patient, openmrsPatient);
 		return patient;
 	}
 
@@ -59,17 +47,49 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 		notNull(patient, "The Patient object should not be null");
 
 		voidExistingAddresses(currentPatient, patient);
-
 		org.openmrs.Patient openmrsPatient = super.toOpenmrsType(currentPatient, patient);
+		readBirthTime(openmrsPatient, patient);
+		processPersonAttributeExtensions(openmrsPatient, patient);
 
-		if (patient.hasBirthDateElement()) {
-			Extension birthTimeExt = patient.getBirthDateElement().getExtensionByUrl(BIRTH_TIME_EXT_URL);
+		return openmrsPatient;
+	}
+
+	void addPersonAttributeExtensions(Patient fhirPatient, org.openmrs.Patient openmrsPatient) {
+		for (PersonAttribute attr : openmrsPatient.getActiveAttributes()) {
+			Extension ext = personAttributeTranslator.toFhirResource(attr);
+			if (ext != null) {
+				fhirPatient.addExtension(ext);
+			}
+		}
+	}
+
+	void addBirthTimeExtension(Patient fhirPatient, org.openmrs.Patient openmrsPatient) {
+		Date birthtime = openmrsPatient.getBirthtime();
+		if (birthtime != null && fhirPatient.hasBirthDateElement()) {
+			fhirPatient.getBirthDateElement().addExtension(BIRTH_TIME_EXT_URL, new DateTimeType(birthtime));
+		}
+	}
+
+	void readBirthTime(org.openmrs.Patient openmrsPatient, Patient fhirPatient) {
+		if (fhirPatient.hasBirthDateElement()) {
+			Extension birthTimeExt = fhirPatient.getBirthDateElement().getExtensionByUrl(BIRTH_TIME_EXT_URL);
 			if (birthTimeExt != null && birthTimeExt.getValue() instanceof DateTimeType) {
 				openmrsPatient.setBirthtime(((DateTimeType) birthTimeExt.getValue()).getValue());
 			}
 		}
+	}
 
-		for (Extension ext : patient.getExtension()) {
+	void voidExistingAddresses(org.openmrs.Patient currentPatient, Patient fhirPatient) {
+		if (fhirPatient.hasAddress()) {
+			currentPatient.getAddresses().forEach(addr -> {
+				addr.setVoided(true);
+				addr.setVoidReason("Replaced via FHIR update");
+			});
+		}
+	}
+
+	void processPersonAttributeExtensions(org.openmrs.Patient openmrsPatient, Patient fhirPatient) {
+		for (Extension ext : fhirPatient.getExtension()) {
 			String url = ext.getUrl();
 			if (url == null || !url.startsWith(BahmniFhirConstants.FHIR_EXT_PATIENT_ATTRIBUTE_PREFIX)) {
 				continue;
@@ -81,7 +101,6 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 				continue;
 			}
 
-			// Void existing attribute of this type first
 			for (PersonAttribute existing : openmrsPatient.getActiveAttributes()) {
 				if (existing.getAttributeType().equals(attrType)) {
 					existing.setVoided(true);
@@ -96,17 +115,6 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 				attr.setValue(value.primitiveValue());
 				openmrsPatient.addAttribute(attr);
 			}
-		}
-
-		return openmrsPatient;
-	}
-
-	void voidExistingAddresses(org.openmrs.Patient currentPatient, Patient fhirPatient) {
-		if (fhirPatient.hasAddress()) {
-			currentPatient.getAddresses().forEach(addr -> {
-				addr.setVoided(true);
-				addr.setVoidReason("Replaced via FHIR update");
-			});
 		}
 	}
 }
