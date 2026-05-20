@@ -545,4 +545,36 @@
                        constraintName="pk_imaging_study_quality_assessment"/>
     </changeSet>
 
+    <changeSet id="migrate_obs_to_document_reference_20260520" author="aishwarya" dbms="mysql,mariadb">
+        <preConditions onFail="MARK_RAN" onError="WARN">
+            <tableExists tableName="document_reference"/>
+            <tableExists tableName="document_reference_content"/>
+            <tableExists tableName="obs"/>
+            <tableExists tableName="encounter"/>
+            <tableExists tableName="encounter_type"/>
+            <tableExists tableName="encounter_provider"/>
+        </preConditions>
+        <comment> Migrate legacy obs-based patient documents to FHIR DocumentReference (obs to document_reference tables)</comment>
+        <sqlFile path="migrate_obs_to_document_reference.sql"/>
+    </changeSet>
+
+    <changeSet id="rollback_obs_to_document_reference_20260520" author="aishwarya" dbms="mysql,mariadb">
+        <preConditions onFail="MARK_RAN" onError="WARN">
+            <tableExists tableName="document_reference"/>
+            <tableExists tableName="document_reference_content"/>
+        </preConditions>
+        <comment>Rollback migration - Delete migration-created DocumentReferences and content rows</comment>
+        <sql>
+            DELETE FROM document_reference_content
+            WHERE document_reference_id IN (
+                SELECT document_reference_id FROM document_reference
+                WHERE master_identifier LIKE 'migration-obs-%'
+            );
+        </sql>
+        <sql>
+            DELETE FROM document_reference
+            WHERE master_identifier LIKE 'migration-obs-%';
+        </sql>
+    </changeSet>
+
 </databaseChangeLog>
