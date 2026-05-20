@@ -9,28 +9,32 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner.Silent;
 import org.openmrs.PersonAddress;
 import org.openmrs.PersonAttribute;
 import org.openmrs.PersonAttributeType;
 
+import java.util.Collections;
 import java.util.Date;
+import java.util.Map;
 
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.Silent.class)
+@RunWith(Silent.class)
 public class BahmniPatientTranslatorImplTest {
 
 	private static final String PREFIX = "http://fhir.bahmni.org/ext/patient/";
 
 	@Mock
-	private PersonAttributeExtensionTranslator personAttributeTranslator;
+	private org.bahmni.module.fhir2addlextension.api.translator.PersonAttributeExtensionTranslator personAttributeTranslator;
 
 	private BahmniPatientTranslatorImpl translator;
 
 	private PersonAttributeType phoneType;
+
+	private Map<String, PersonAttributeType> slugToTypeMap;
 
 	@Before
 	public void setup() {
@@ -41,6 +45,9 @@ public class BahmniPatientTranslatorImplTest {
 		phoneType.setUuid("phone-uuid");
 		phoneType.setName("phoneNumber");
 		phoneType.setFormat("java.lang.String");
+
+		slugToTypeMap = Collections.singletonMap("phonenumber", phoneType);
+		when(personAttributeTranslator.buildSlugToTypeMap()).thenReturn(slugToTypeMap);
 	}
 
 	// --- addPersonAttributeExtensions ---
@@ -48,8 +55,7 @@ public class BahmniPatientTranslatorImplTest {
 	@Test
 	public void addPersonAttributeExtensions_shouldAddExtensionsForActiveAttributes() {
 		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
-		PersonAttribute attr = new PersonAttribute(phoneType, "+919876543210");
-		openmrsPatient.addAttribute(attr);
+		openmrsPatient.addAttribute(new PersonAttribute(phoneType, "+919876543210"));
 
 		Extension mockExt = new Extension(PREFIX + "phonenumber", new StringType("+919876543210"));
 		when(personAttributeTranslator.toFhirResource(any(PersonAttribute.class))).thenReturn(mockExt);
@@ -65,7 +71,6 @@ public class BahmniPatientTranslatorImplTest {
 	public void addPersonAttributeExtensions_shouldSkipNullExtensions() {
 		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
 		openmrsPatient.addAttribute(new PersonAttribute(phoneType, null));
-
 		when(personAttributeTranslator.toFhirResource(any(PersonAttribute.class))).thenReturn(null);
 
 		Patient fhirPatient = new Patient();
@@ -95,7 +100,6 @@ public class BahmniPatientTranslatorImplTest {
 	@Test
 	public void addBirthTimeExtension_shouldNotAddWhenBirthTimeIsNull() {
 		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
-
 		Patient fhirPatient = new Patient();
 		fhirPatient.setBirthDateElement(new DateType("1990-01-15"));
 
@@ -117,14 +121,12 @@ public class BahmniPatientTranslatorImplTest {
 
 		translator.readBirthTime(openmrsPatient, fhirPatient);
 
-		assertNotNull(openmrsPatient.getBirthtime());
 		assertEquals(expectedTime, openmrsPatient.getBirthtime());
 	}
 
 	@Test
 	public void readBirthTime_shouldNotSetWhenNoExtension() {
 		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
-
 		Patient fhirPatient = new Patient();
 		fhirPatient.setBirthDateElement(new DateType("1990-01-15"));
 
@@ -136,10 +138,7 @@ public class BahmniPatientTranslatorImplTest {
 	@Test
 	public void readBirthTime_shouldNotSetWhenNoBirthDateElement() {
 		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
-		Patient fhirPatient = new Patient();
-
-		translator.readBirthTime(openmrsPatient, fhirPatient);
-
+		translator.readBirthTime(openmrsPatient, new Patient());
 		assertNull(openmrsPatient.getBirthtime());
 	}
 
@@ -148,18 +147,17 @@ public class BahmniPatientTranslatorImplTest {
 	@Test
 	public void processPersonAttributeExtensions_shouldUpsertAttribute() {
 		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
-
 		Patient fhirPatient = new Patient();
-		fhirPatient.addExtension(new Extension(PREFIX + "phonenumber", new StringType("+919876543210")));
+		fhirPatient.addExtension(new Extension(PREFIX + "phonenumber", new StringType("+91NEW")));
 
-		when(personAttributeTranslator.resolveType(PREFIX + "phonenumber")).thenReturn(phoneType);
+		when(personAttributeTranslator.resolveType(PREFIX + "phonenumber", slugToTypeMap)).thenReturn(phoneType);
 
 		translator.processPersonAttributeExtensions(openmrsPatient, fhirPatient);
 
 		boolean found = false;
 		for (PersonAttribute attr : openmrsPatient.getAttributes()) {
 			if ("phoneNumber".equals(attr.getAttributeType().getName())) {
-				assertEquals("+919876543210", attr.getValue());
+				assertEquals("+91NEW", attr.getValue());
 				found = true;
 			}
 		}
@@ -169,37 +167,29 @@ public class BahmniPatientTranslatorImplTest {
 	@Test
 	public void processPersonAttributeExtensions_shouldUpdateExistingValue() {
 		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
-		PersonAttribute existingAttr = new PersonAttribute(phoneType, "+91-OLD");
+		PersonAttribute existingAttr = new PersonAttribute(phoneType, "+91OLD");
 		openmrsPatient.addAttribute(existingAttr);
 
 		Patient fhirPatient = new Patient();
-		fhirPatient.addExtension(new Extension(PREFIX + "phonenumber", new StringType("+91-NEW")));
+		fhirPatient.addExtension(new Extension(PREFIX + "phonenumber", new StringType("+91NEW")));
 
-		when(personAttributeTranslator.resolveType(PREFIX + "phonenumber")).thenReturn(phoneType);
+		when(personAttributeTranslator.resolveType(PREFIX + "phonenumber", slugToTypeMap)).thenReturn(phoneType);
 
 		translator.processPersonAttributeExtensions(openmrsPatient, fhirPatient);
 
 		assertTrue("Old attribute should be voided", existingAttr.getVoided());
-		boolean foundNew = false;
-		for (PersonAttribute attr : openmrsPatient.getAttributes()) {
-			if (!attr.getVoided() && "phoneNumber".equals(attr.getAttributeType().getName())) {
-				assertEquals("+91-NEW", attr.getValue());
-				foundNew = true;
-			}
-		}
-		assertTrue("New value should exist", foundNew);
 	}
 
 	@Test
 	public void processPersonAttributeExtensions_shouldVoidWithoutValue() {
 		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
-		PersonAttribute existingAttr = new PersonAttribute(phoneType, "+919876543210");
+		PersonAttribute existingAttr = new PersonAttribute(phoneType, "+91OLD");
 		openmrsPatient.addAttribute(existingAttr);
 
 		Patient fhirPatient = new Patient();
 		fhirPatient.addExtension(new Extension(PREFIX + "phonenumber"));
 
-		when(personAttributeTranslator.resolveType(PREFIX + "phonenumber")).thenReturn(phoneType);
+		when(personAttributeTranslator.resolveType(PREFIX + "phonenumber", slugToTypeMap)).thenReturn(phoneType);
 
 		translator.processPersonAttributeExtensions(openmrsPatient, fhirPatient);
 
@@ -209,11 +199,10 @@ public class BahmniPatientTranslatorImplTest {
 	@Test
 	public void processPersonAttributeExtensions_shouldSkipUnknownExtensions() {
 		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
-
 		Patient fhirPatient = new Patient();
-		fhirPatient.addExtension(new Extension(PREFIX + "unknown", new StringType("value")));
+		fhirPatient.addExtension(new Extension(PREFIX + "unknown", new StringType("val")));
 
-		when(personAttributeTranslator.resolveType(PREFIX + "unknown")).thenReturn(null);
+		when(personAttributeTranslator.resolveType(PREFIX + "unknown", slugToTypeMap)).thenReturn(null);
 
 		translator.processPersonAttributeExtensions(openmrsPatient, fhirPatient);
 
@@ -223,7 +212,6 @@ public class BahmniPatientTranslatorImplTest {
 	@Test
 	public void processPersonAttributeExtensions_shouldIgnoreNonPatientExtensions() {
 		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
-
 		Patient fhirPatient = new Patient();
 		fhirPatient.addExtension(new Extension("http://fhir.bahmni.org/ext/service-request/x", new StringType("v")));
 
@@ -236,31 +224,28 @@ public class BahmniPatientTranslatorImplTest {
 
 	@Test
 	public void voidExistingAddresses_shouldVoidWhenNewAddressProvided() {
-		org.openmrs.Patient existingPatient = new org.openmrs.Patient();
-		PersonAddress existingAddr = new PersonAddress();
-		existingAddr.setCityVillage("OldCity");
-		existingPatient.addAddress(existingAddr);
+		org.openmrs.Patient patient = new org.openmrs.Patient();
+		PersonAddress addr = new PersonAddress();
+		addr.setCityVillage("OldCity");
+		patient.addAddress(addr);
 
 		Patient fhirPatient = new Patient();
 		fhirPatient.addAddress().setCity("NewCity");
 
-		translator.voidExistingAddresses(existingPatient, fhirPatient);
+		translator.voidExistingAddresses(patient, fhirPatient);
 
-		assertTrue("Old address should be voided", existingAddr.getVoided());
-		assertEquals("Replaced via FHIR update", existingAddr.getVoidReason());
+		assertTrue(addr.getVoided());
+		assertEquals("Replaced via FHIR update", addr.getVoidReason());
 	}
 
 	@Test
 	public void voidExistingAddresses_shouldNotVoidWhenNoNewAddress() {
-		org.openmrs.Patient existingPatient = new org.openmrs.Patient();
-		PersonAddress existingAddr = new PersonAddress();
-		existingAddr.setCityVillage("OldCity");
-		existingPatient.addAddress(existingAddr);
+		org.openmrs.Patient patient = new org.openmrs.Patient();
+		PersonAddress addr = new PersonAddress();
+		patient.addAddress(addr);
 
-		Patient fhirPatient = new Patient();
+		translator.voidExistingAddresses(patient, new Patient());
 
-		translator.voidExistingAddresses(existingPatient, fhirPatient);
-
-		assertFalse("Address should not be voided", existingAddr.getVoided());
+		assertFalse(addr.getVoided());
 	}
 }

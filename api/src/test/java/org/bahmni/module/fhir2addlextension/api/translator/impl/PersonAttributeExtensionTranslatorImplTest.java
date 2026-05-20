@@ -13,19 +13,20 @@ import org.openmrs.PersonAttributeType;
 import org.openmrs.api.PersonService;
 
 import java.util.Arrays;
+import java.util.Map;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class PersonAttributeExtensionTranslatorTest {
+public class PersonAttributeExtensionTranslatorImplTest {
 
 	private static final String PREFIX = "http://fhir.bahmni.org/ext/patient/";
 
 	@Mock
 	private PersonService personService;
 
-	private PersonAttributeExtensionTranslator translator;
+	private PersonAttributeExtensionTranslatorImpl translator;
 
 	private PersonAttributeType phoneType;
 
@@ -33,7 +34,7 @@ public class PersonAttributeExtensionTranslatorTest {
 
 	@Before
 	public void setup() {
-		translator = new PersonAttributeExtensionTranslator(personService);
+		translator = new PersonAttributeExtensionTranslatorImpl(personService);
 
 		phoneType = new PersonAttributeType();
 		phoneType.setUuid("phone-uuid");
@@ -51,9 +52,7 @@ public class PersonAttributeExtensionTranslatorTest {
 	@Test
 	public void toFhirResource_shouldConvertStringAttribute() {
 		PersonAttribute attr = new PersonAttribute(phoneType, "+919876543210");
-
 		Extension ext = translator.toFhirResource(attr);
-
 		assertEquals(PREFIX + "phonenumber", ext.getUrl());
 		assertEquals("+919876543210", ((StringType) ext.getValue()).getValue());
 	}
@@ -61,40 +60,57 @@ public class PersonAttributeExtensionTranslatorTest {
 	@Test
 	public void toFhirResource_shouldConvertBooleanAttribute() {
 		PersonAttribute attr = new PersonAttribute(boolType, "true");
-
 		Extension ext = translator.toFhirResource(attr);
-
 		assertEquals(PREFIX + "isvip", ext.getUrl());
 		assertTrue(((BooleanType) ext.getValue()).booleanValue());
 	}
 
 	@Test
 	public void toFhirResource_shouldReturnNullForNullValue() {
-		PersonAttribute attr = new PersonAttribute(phoneType, null);
+		assertNull(translator.toFhirResource(new PersonAttribute(phoneType, null)));
+	}
 
-		assertNull(translator.toFhirResource(attr));
+	@Test
+	public void toFhirResource_shouldReturnNullForNullName() {
+		PersonAttributeType nullNameType = new PersonAttributeType();
+		nullNameType.setName(null);
+		assertNull(translator.toFhirResource(new PersonAttribute(nullNameType, "val")));
+	}
+
+	@Test
+	public void buildSlugToTypeMap_shouldHandleDuplicateSlugs() {
+		PersonAttributeType duplicate = new PersonAttributeType();
+		duplicate.setUuid("dup-uuid");
+		duplicate.setName("phoneNumber");
+		when(personService.getAllPersonAttributeTypes(false)).thenReturn(Arrays.asList(phoneType, duplicate));
+
+		Map<String, PersonAttributeType> map = translator.buildSlugToTypeMap();
+		assertEquals("phone-uuid", map.get("phonenumber").getUuid());
 	}
 
 	@Test
 	public void resolveType_shouldMatchBySlugName() {
-		PersonAttributeType result = translator.resolveType(PREFIX + "phonenumber");
-
+		Map<String, PersonAttributeType> map = translator.buildSlugToTypeMap();
+		PersonAttributeType result = translator.resolveType(PREFIX + "phonenumber", map);
 		assertNotNull(result);
 		assertEquals("phone-uuid", result.getUuid());
 	}
 
 	@Test
 	public void resolveType_shouldReturnNullForUnknownSlug() {
-		assertNull(translator.resolveType(PREFIX + "unknown"));
+		Map<String, PersonAttributeType> map = translator.buildSlugToTypeMap();
+		assertNull(translator.resolveType(PREFIX + "unknown", map));
 	}
 
 	@Test
 	public void resolveType_shouldReturnNullForNonPatientUrl() {
-		assertNull(translator.resolveType("http://fhir.bahmni.org/ext/service-request/something"));
+		Map<String, PersonAttributeType> map = translator.buildSlugToTypeMap();
+		assertNull(translator.resolveType("http://fhir.bahmni.org/ext/service-request/something", map));
 	}
 
 	@Test
 	public void resolveType_shouldReturnNullForNullUrl() {
-		assertNull(translator.resolveType(null));
+		Map<String, PersonAttributeType> map = translator.buildSlugToTypeMap();
+		assertNull(translator.resolveType(null, map));
 	}
 }

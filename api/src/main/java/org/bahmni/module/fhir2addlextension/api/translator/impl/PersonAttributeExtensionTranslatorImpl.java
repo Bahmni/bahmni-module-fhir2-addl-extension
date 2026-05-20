@@ -8,23 +8,28 @@ import org.hl7.fhir.r4.model.StringType;
 import org.openmrs.PersonAttribute;
 import org.openmrs.PersonAttributeType;
 import org.openmrs.api.PersonService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component
-public class PersonAttributeExtensionTranslator {
+public class PersonAttributeExtensionTranslatorImpl implements org.bahmni.module.fhir2addlextension.api.translator.PersonAttributeExtensionTranslator {
+
+	private static final Logger log = LoggerFactory.getLogger(PersonAttributeExtensionTranslatorImpl.class);
 
 	private static final String BOOLEAN_FORMAT = "org.openmrs.customdatatype.datatype.BooleanDatatype";
 
 	private final PersonService personService;
 
 	@Autowired
-	public PersonAttributeExtensionTranslator(@Qualifier("personService") PersonService personService) {
+	public PersonAttributeExtensionTranslatorImpl(@Qualifier("personService") PersonService personService) {
 		this.personService = personService;
 	}
 
@@ -34,7 +39,12 @@ public class PersonAttributeExtensionTranslator {
 			return null;
 		}
 
-		String slug = ModuleUtils.toSlugCase(attribute.getAttributeType().getName());
+		String name = attribute.getAttributeType().getName();
+		if (name == null) {
+			return null;
+		}
+
+		String slug = ModuleUtils.toSlugCase(name);
 		Extension ext = new Extension(BahmniFhirConstants.FHIR_EXT_PATIENT_ATTRIBUTE_PREFIX + slug);
 
 		if (BOOLEAN_FORMAT.equals(attribute.getAttributeType().getFormat())) {
@@ -46,7 +56,7 @@ public class PersonAttributeExtensionTranslator {
 		return ext;
 	}
 
-	public PersonAttributeType resolveType(String extensionUrl) {
+	public PersonAttributeType resolveType(String extensionUrl, Map<String, PersonAttributeType> slugToTypeMap) {
 		if (extensionUrl == null || !extensionUrl.startsWith(BahmniFhirConstants.FHIR_EXT_PATIENT_ATTRIBUTE_PREFIX)) {
 			return null;
 		}
@@ -56,14 +66,21 @@ public class PersonAttributeExtensionTranslator {
 			return null;
 		}
 
-		return buildSlugToTypeMap().get(slug);
+		return slugToTypeMap.get(slug);
 	}
 
-	private Map<String, PersonAttributeType> buildSlugToTypeMap() {
-		return personService.getAllPersonAttributeTypes(false).stream()
+	public Map<String, PersonAttributeType> buildSlugToTypeMap() {
+		List<PersonAttributeType> types = personService.getAllPersonAttributeTypes(false);
+		return types.stream()
+				.filter(t -> t.getName() != null)
 				.collect(Collectors.toMap(
 						t -> ModuleUtils.toSlugCase(t.getName()),
-						Function.identity()
+						Function.identity(),
+						(existing, duplicate) -> {
+							log.warn("Duplicate slug for attribute types '{}' and '{}'",
+									existing.getName(), duplicate.getName());
+							return existing;
+						}
 				));
 	}
 }
