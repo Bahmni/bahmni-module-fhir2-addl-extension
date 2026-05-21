@@ -74,10 +74,7 @@ public class BahmniFhirConditionServiceImpl extends BaseFhirService<Condition, o
 			throw new InvalidRequestException("Invalid type of Condition Category: " + category);
 	}
 	
-	@Override
-	public Condition update(@Nonnull String uuid, @Nonnull Condition updatedResource) {
-		throw new MethodNotAllowedException("Update not supported");
-	}
+
 	
 	@Override
 	public Condition patch(@Nonnull String uuid, @Nonnull PatchTypeEnum patchType, @Nonnull String body,
