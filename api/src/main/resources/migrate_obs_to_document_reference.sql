@@ -20,7 +20,7 @@ SELECT
     o.encounter_id,
     o.person_id,
     o.creator,
-    NOW(),
+    MAX(om.date_created),
     0
 FROM obs o
     INNER JOIN obs om ON om.obs_group_id = o.obs_id
