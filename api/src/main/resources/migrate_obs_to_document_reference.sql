@@ -18,7 +18,7 @@ SELECT
     MAX(ep.provider_id),
     SUBSTRING(COALESCE(MAX(CASE WHEN om.comments IS NOT NULL THEN om.comments END), ''), 1, 255),
     o.encounter_id,
-    o.person_id,
+    p.patient_id,
     o.creator,
     MAX(om.date_created),
     0
@@ -26,6 +26,7 @@ FROM obs o
     INNER JOIN obs om ON om.obs_group_id = o.obs_id
     INNER JOIN encounter e ON o.encounter_id = e.encounter_id
     INNER JOIN encounter_type et ON e.encounter_type = et.encounter_type_id
+    INNER JOIN patient p ON p.patient_id = o.person_id
     LEFT JOIN encounter_provider ep ON e.encounter_id = ep.encounter_id AND ep.voided = 0
 WHERE et.name = 'Patient Document'
   AND o.obs_group_id IS NULL
@@ -62,7 +63,7 @@ SELECT
     END,
     UUID(),
     om.creator,
-    NOW(),
+    om.date_created,
     0
 FROM obs o
     INNER JOIN obs om ON om.obs_group_id = o.obs_id
