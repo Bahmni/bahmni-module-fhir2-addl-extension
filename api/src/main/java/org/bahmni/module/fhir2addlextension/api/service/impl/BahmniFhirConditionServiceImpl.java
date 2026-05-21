@@ -74,7 +74,16 @@ public class BahmniFhirConditionServiceImpl extends BaseFhirService<Condition, o
 			throw new InvalidRequestException("Invalid type of Condition Category: " + category);
 	}
 	
-
+	@Override
+	public Condition update(@Nonnull String uuid, @Nonnull Condition updatedCondition) {
+		String category = getCategory(updatedCondition);
+		if (category.equals(BahmniFhirConstants.HL7_CONDITION_CATEGORY_CONDITION_CODE))
+			return super.update(uuid, updatedCondition);
+		else if (category.equals(BahmniFhirConstants.HL7_CONDITION_CATEGORY_DIAGNOSIS_CODE))
+			return encounterDiagnosisService.update(uuid, updatedCondition);
+		else
+			throw new InvalidRequestException("Invalid type of Condition Category: " + category);
+	}
 	
 	@Override
 	public Condition patch(@Nonnull String uuid, @Nonnull PatchTypeEnum patchType, @Nonnull String body,
