@@ -188,6 +188,7 @@ public class ConsultationBundleValidatorImplTest {
 		bundleWithAllSupportedTypes.addEntry(createValidBundleEntry(createCondition()));
 		bundleWithAllSupportedTypes.addEntry(createValidBundleEntry(createAllergyIntolerance()));
 		bundleWithAllSupportedTypes.addEntry(createValidBundleEntry(createMedicationRequest()));
+		bundleWithAllSupportedTypes.addEntry(createValidBundleEntry(createMedicationDispense()));
 		bundleWithAllSupportedTypes.addEntry(createValidBundleEntry(createImmunization()));
 		try {
 			validator.validateBundleEntries(bundleWithAllSupportedTypes);
@@ -250,6 +251,14 @@ public class ConsultationBundleValidatorImplTest {
 		immunization.setPatient(new Reference("Patient/123"));
 		immunization.setEncounter(new Reference("Encounter/456"));
 		return immunization;
+	}
+	
+	private MedicationDispense createMedicationDispense() {
+		MedicationDispense medicationDispense = new MedicationDispense();
+		medicationDispense.setSubject(new Reference("Patient/123"));
+		medicationDispense.setContext(new Reference("Encounter/456"));
+		medicationDispense.setStatus(MedicationDispense.MedicationDispenseStatus.COMPLETED);
+		return medicationDispense;
 	}
 	
 	private ImagingStudy createImagingStudy() {

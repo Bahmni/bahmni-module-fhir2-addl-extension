@@ -38,6 +38,7 @@ public final class BahmniFhirConstants {
 					ResourceType.Condition,
 					ResourceType.ServiceRequest,
 					ResourceType.MedicationRequest,
+					ResourceType.MedicationDispense,
 					ResourceType.Observation,
 					ResourceType.Immunization
 			))
