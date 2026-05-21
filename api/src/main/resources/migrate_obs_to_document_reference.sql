@@ -36,7 +36,7 @@ WHERE et.name = 'Patient Document'
     SELECT 1 FROM document_reference dr
     WHERE dr.master_identifier = CONCAT('migration-obs-', o.obs_id)
   )
-GROUP BY o.obs_id, o.person_id, o.encounter_id, o.concept_id
+GROUP BY o.obs_id, o.person_id, o.encounter_id, o.concept_id, o.creator
 ORDER BY o.obs_id;
 
 -- Step 2: Create document_reference_content rows (1 per child obs)
@@ -74,4 +74,9 @@ WHERE et.name = 'Patient Document'
   AND o.voided = 0
   AND om.voided = 0
   AND om.value_text IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM document_reference_content drc
+    WHERE drc.document_reference_id = dr.document_reference_id
+      AND drc.content_url = SUBSTRING(om.value_text, 1, 512)
+  )
 ORDER BY o.obs_id, om.obs_id;
