@@ -21,7 +21,7 @@ SELECT
     p.patient_id,
     o.creator,
     MAX(om.date_created),
-    0
+    o.voided
 FROM obs o
     INNER JOIN obs om ON om.obs_group_id = o.obs_id
     INNER JOIN encounter e ON o.encounter_id = e.encounter_id
@@ -30,14 +30,12 @@ FROM obs o
     LEFT JOIN encounter_provider ep ON e.encounter_id = ep.encounter_id AND ep.voided = 0
 WHERE et.name = 'Patient Document'
   AND o.obs_group_id IS NULL
-  AND o.voided = 0
-  AND om.voided = 0
   AND om.value_text IS NOT NULL
   AND NOT EXISTS (
     SELECT 1 FROM document_reference dr
     WHERE dr.master_identifier = CONCAT('migration-obs-', o.obs_id)
   )
-GROUP BY o.obs_id, o.person_id, o.encounter_id, o.concept_id, o.creator
+GROUP BY o.obs_id, o.person_id, o.encounter_id, o.concept_id, o.creator, o.voided
 ORDER BY o.obs_id;
 
 -- Step 2: Create document_reference_content rows (1 per child obs)
@@ -64,7 +62,7 @@ SELECT
     UUID(),
     om.creator,
     om.date_created,
-    0
+    om.voided
 FROM obs o
     INNER JOIN obs om ON om.obs_group_id = o.obs_id
     INNER JOIN encounter e ON o.encounter_id = e.encounter_id
@@ -72,8 +70,6 @@ FROM obs o
     INNER JOIN document_reference dr ON dr.master_identifier = CONCAT('migration-obs-', o.obs_id)
 WHERE et.name = 'Patient Document'
   AND o.obs_group_id IS NULL
-  AND o.voided = 0
-  AND om.voided = 0
   AND om.value_text IS NOT NULL
   AND NOT EXISTS (
     SELECT 1 FROM document_reference_content drc
