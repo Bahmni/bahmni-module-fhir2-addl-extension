@@ -545,8 +545,8 @@
                        constraintName="pk_imaging_study_quality_assessment"/>
     </changeSet>
 
-    <changeSet id="migrate_obs_to_document_reference_20260520" author="aishwarya" dbms="mysql,mariadb">
-        <preConditions onFail="MARK_RAN" onError="WARN">
+    <changeSet id="migrate_obs_to_document_reference_20260520" author="aishwarya" dbms="mysql,mariadb,postgresql">
+        <preConditions onFail="HALT" onError="WARN">
             <tableExists tableName="document_reference"/>
             <tableExists tableName="document_reference_content"/>
             <tableExists tableName="obs"/>
@@ -554,7 +554,7 @@
             <tableExists tableName="encounter_type"/>
             <tableExists tableName="encounter_provider"/>
         </preConditions>
-        <comment> Migrate legacy obs-based patient documents to FHIR DocumentReference (obs to document_reference tables)</comment>
+        <comment>Migrate legacy obs-based patient documents to FHIR DocumentReference. Supports MySQL, MariaDB, and PostgreSQL.</comment>
         <sqlFile path="migrate_obs_to_document_reference.sql"/>
         <rollback>
             <sql>
