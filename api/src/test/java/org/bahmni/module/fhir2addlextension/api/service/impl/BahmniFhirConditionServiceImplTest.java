@@ -168,9 +168,37 @@ public class BahmniFhirConditionServiceImplTest {
 		conditionService.create(condition);
 	}
 	
-	@Test(expected = MethodNotAllowedException.class)
-	public void shouldThrowNotImplementedExceptionWhenUpdatingCondition() {
-		conditionService.update(CONDITION_UUID, fhirCondition);
+	@Ignore("Find out a way to assert super method is called")
+	@Test
+	public void shouldUpdateConditionUsingParentClassWhenCategoryIsProblemListItem() {
+		Condition condition = createConditionWithCategory(BahmniFhirConstants.HL7_CONDITION_CATEGORY_CONDITION_CODE);
+		when(dao.get(CONDITION_UUID)).thenReturn(openmrsCondition);
+		when(translator.toOpenmrsType(any(), any())).thenReturn(openmrsCondition);
+		when(dao.createOrUpdate(any())).thenReturn(openmrsCondition);
+		when(translator.toFhirResource(any())).thenReturn(condition);
+		
+		Condition result = conditionService.update(CONDITION_UUID, condition);
+		
+		assertThat(result, notNullValue());
+		assertEquals(condition, result);
+	}
+	
+	@Test
+	public void shouldUpdateConditionUsingEncounterDiagnosisServiceWhenCategoryIsEncounterDiagnosis() {
+		Condition condition = createConditionWithCategory(BahmniFhirConstants.HL7_CONDITION_CATEGORY_DIAGNOSIS_CODE);
+		when(encounterDiagnosisService.update(CONDITION_UUID, condition)).thenReturn(condition);
+		
+		Condition result = conditionService.update(CONDITION_UUID, condition);
+		
+		assertThat(result, notNullValue());
+		assertEquals(condition, result);
+		verify(encounterDiagnosisService).update(CONDITION_UUID, condition);
+	}
+	
+	@Test(expected = InvalidRequestException.class)
+	public void shouldThrowInvalidRequestExceptionWhenUpdatingConditionWithInvalidCategory() {
+		Condition condition = createConditionWithCategory("invalid-category");
+		conditionService.update(CONDITION_UUID, condition);
 	}
 	
 	@Test(expected = MethodNotAllowedException.class)
