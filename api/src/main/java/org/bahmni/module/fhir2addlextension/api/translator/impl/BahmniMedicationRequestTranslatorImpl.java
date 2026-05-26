@@ -1,10 +1,10 @@
 package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
+import javax.annotation.Nonnull;
+
 import lombok.AccessLevel;
 import lombok.Setter;
 import org.hl7.fhir.r4.model.MedicationRequest;
-import org.hl7.fhir.r4.model.Period;
-import org.hl7.fhir.r4.model.Timing;
 import org.openmrs.CareSetting;
 import org.openmrs.DrugOrder;
 import org.openmrs.Order;
@@ -13,8 +13,6 @@ import org.openmrs.module.fhir2.api.translators.impl.MedicationRequestTranslator
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
-
-import javax.annotation.Nonnull;
 
 @Component
 @Primary
@@ -31,37 +29,14 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 		//TODO: This should be translated based on an extension of MedicationRequest to set correct CareSetting
 		drugOrder.setCareSetting(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.name()));
 		
+		// Urgency semantics layered on top of the timing translation:
+		// - STAT means "now", not scheduled — drop any scheduledDate the timing translator set.
+		// - Non-STAT with a scheduledDate (whether sourced from timing.event or boundsPeriod.start)
+		//   marks the order as ON_SCHEDULED_DATE so OpenMRS holds it until that date.
 		if (drugOrder.getUrgency() != null && drugOrder.getUrgency().equals(Order.Urgency.STAT)) {
 			drugOrder.setScheduledDate(null);
-			// MedicationRequestTimingRepeatComponentTranslatorImpl silently drops boundsPeriod.
-			// Read it directly here to set autoExpireDate so OpenMRS knows when the STAT order
-			// expires and won't block a new order for the same drug.
-			if (medicationRequest.hasDosageInstruction()) {
-				Timing timing = medicationRequest.getDosageInstructionFirstRep().getTiming();
-				if (timing != null && timing.getRepeat() != null && timing.getRepeat().hasBoundsPeriod()) {
-					Period boundsPeriod = timing.getRepeat().getBoundsPeriod();
-					if (boundsPeriod.hasEnd()) {
-						drugOrder.setAutoExpireDate(boundsPeriod.getEnd());
-					}
-				}
-			}
-		} else {
-			// Non-STAT: parent only reads timing.event for scheduledDate. Frontend now sends the
-			// start date via timing.repeat.boundsPeriod.start, so fall back to that when event is
-			// absent. Without this, scheduledDate stays null and OpenMRS rejects a second order
-			// for the same drug as a duplicate.
-			if (drugOrder.getScheduledDate() == null && medicationRequest.hasDosageInstruction()) {
-				Timing timing = medicationRequest.getDosageInstructionFirstRep().getTiming();
-				if (timing != null && timing.getRepeat() != null && timing.getRepeat().hasBoundsPeriod()) {
-					Period boundsPeriod = timing.getRepeat().getBoundsPeriod();
-					if (boundsPeriod.hasStart()) {
-						drugOrder.setScheduledDate(boundsPeriod.getStart());
-					}
-				}
-			}
-			if (drugOrder.getScheduledDate() != null) {
-				drugOrder.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
-			}
+		} else if (drugOrder.getScheduledDate() != null) {
+			drugOrder.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
 		}
 		return drugOrder;
 	}
