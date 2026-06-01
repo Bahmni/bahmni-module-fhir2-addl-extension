@@ -191,6 +191,31 @@ public class BahmniTaskTranslatorImplTest {
 	}
 	
 	@Test
+	public void toFhirResource_shouldHandleDraftStatusWithoutError() {
+		FhirTask fhirTask = new FhirTask();
+		fhirTask.setStatus(FhirTask.TaskStatus.DRAFT);
+		fhirTask.setIntent(FhirTask.TaskIntent.ORDER);
+		fhirTask.setInput(Collections.emptySet());
+		fhirTask.setOutput(Collections.emptySet());
+		
+		Task result = translator.toFhirResource(fhirTask);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getStatus(), equalTo(Task.TaskStatus.DRAFT));
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldMapDraftStatusFromFhir() {
+		Task task = new Task();
+		task.setStatus(Task.TaskStatus.DRAFT);
+		task.setIntent(Task.TaskIntent.ORDER);
+		
+		FhirTask result = translator.toOpenmrsType(task);
+		
+		assertThat(result.getStatus(), equalTo(FhirTask.TaskStatus.DRAFT));
+	}
+	
+	@Test
 	public void toFhirResource_shouldNotFailWhenOwnerReferenceIsNull() {
 		FhirTask fhirTask = new FhirTask();
 		fhirTask.setStatus(FhirTask.TaskStatus.COMPLETED);

@@ -40,6 +40,11 @@ public class TaskStatusToFulfillerStatusMapperTest {
 	}
 	
 	@Test
+	public void shouldReturnNullForDraftStatus() {
+		assertThat(TaskStatusToFulfillerStatusMapper.toFulfillerStatus(FhirTask.TaskStatus.DRAFT), nullValue());
+	}
+	
+	@Test
 	public void shouldReturnNullForNullStatus() {
 		assertThat(TaskStatusToFulfillerStatusMapper.toFulfillerStatus(null), nullValue());
 	}

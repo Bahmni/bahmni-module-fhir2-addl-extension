@@ -337,6 +337,26 @@ public class BahmniFhirTaskDaoImplTest {
 	}
 	
 	@Test
+	public void getTaskByOrderUuid_shouldQueryByReferenceString() {
+		Criteria criteria = org.mockito.Mockito.mock(Criteria.class);
+		ArgumentCaptor<org.hibernate.criterion.Criterion> criterionCaptor = ArgumentCaptor
+		        .forClass(org.hibernate.criterion.Criterion.class);
+		
+		when(session.createCriteria(FhirTask.class)).thenReturn(criteria);
+		when(criteria.createAlias("basedOnReferences", "bor")).thenReturn(criteria);
+		when(criteria.add(criterionCaptor.capture())).thenReturn(criteria);
+		when(criteria.addOrder(any(org.hibernate.criterion.Order.class))).thenReturn(criteria);
+		when(criteria.setMaxResults(1)).thenReturn(criteria);
+		when(criteria.uniqueResult()).thenReturn(null);
+		
+		taskDao.getTaskByOrderUuid(ORDER_UUID);
+		
+		String capturedCriterion = criterionCaptor.getValue().toString();
+		assertThat(capturedCriterion, org.hamcrest.Matchers.containsString("bor.reference"));
+		assertThat(capturedCriterion, org.hamcrest.Matchers.containsString("ServiceRequest/" + ORDER_UUID));
+	}
+	
+	@Test
 	public void getTaskByOrderUuid_shouldReturnNullWhenNoTaskFound() {
 		Criteria criteria = org.mockito.Mockito.mock(Criteria.class);
 		
