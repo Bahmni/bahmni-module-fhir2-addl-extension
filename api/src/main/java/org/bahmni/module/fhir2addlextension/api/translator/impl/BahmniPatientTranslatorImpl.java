@@ -28,7 +28,7 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 
 	static final String BIRTH_TIME_EXT_URL = "http://hl7.org/fhir/StructureDefinition/patient-birthTime";
 
-	static final String DATE_CREATED_EXT_URL = BahmniFhirConstants.EXTENSION_PREFIX + "/patient/date-created";
+	static final String DATE_CREATED_EXT_URL = BahmniFhirConstants.FHIR_EXT_PATIENT_DATE_CREATED;
 
 	@Autowired
 	private org.bahmni.module.fhir2addlextension.api.translator.PersonAttributeExtensionTranslator personAttributeTranslator;
