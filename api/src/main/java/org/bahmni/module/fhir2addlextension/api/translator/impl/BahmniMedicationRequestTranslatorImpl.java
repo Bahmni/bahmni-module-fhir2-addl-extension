@@ -2,6 +2,8 @@ package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
 import lombok.AccessLevel;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+import org.bahmni.module.fhir2addlextension.api.utils.BahmniFhirUtils;
 import org.hl7.fhir.r4.model.MedicationRequest;
 import org.hl7.fhir.r4.model.Period;
 import org.hl7.fhir.r4.model.Timing;
@@ -17,6 +19,7 @@ import org.springframework.util.StringUtils;
 
 import javax.annotation.Nonnull;
 
+@Slf4j
 @Component
 @Primary
 public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTranslatorImpl {
@@ -65,8 +68,8 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 				return;
 			}
 			
-			String priorUuid = extractUuidFromReference(priorPrescriptionReference);
-			if (!StringUtils.hasText(priorUuid)) {
+			String priorUuid = BahmniFhirUtils.extractId(priorPrescriptionReference);
+			if (priorUuid == null || priorUuid.isEmpty()) {
 				return;
 			}
 			
@@ -79,28 +82,16 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 				return;
 			}
 			
-			drugOrder.setAction(Order.Action.REVISE);
+			if (MedicationRequest.MedicationRequestStatus.STOPPED.equals(medicationRequest.getStatus())) {
+				drugOrder.setAction(Order.Action.DISCONTINUE);
+			} else {
+				drugOrder.setAction(Order.Action.REVISE);
+			}
 			drugOrder.setPreviousOrder(priorOrder);
 		}
 		catch (Exception e) {
-			// Don't throw - allow the order to be created as NEW if translation fails
+			log.warn("Failed to translate priorPrescription reference '{}', order will be created as NEW: {}",
+			    medicationRequest.getPriorPrescription().getReference(), e.getMessage());
 		}
-	}
-	
-	private String extractUuidFromReference(String reference) {
-		if (!StringUtils.hasText(reference)) {
-			return "";
-		}
-		
-		if (reference.contains("/")) {
-			String[] parts = reference.split("/");
-			return parts[parts.length - 1];
-		}
-		
-		if (reference.startsWith("urn:uuid:")) {
-			return reference.substring("urn:uuid:".length());
-		}
-		
-		return reference;
 	}
 }

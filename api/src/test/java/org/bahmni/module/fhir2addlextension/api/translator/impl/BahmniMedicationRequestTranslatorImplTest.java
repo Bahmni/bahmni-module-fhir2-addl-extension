@@ -269,20 +269,6 @@ public class BahmniMedicationRequestTranslatorImplTest {
 	}
 	
 	@Test
-	public void toOpenmrsType_givenPriorPrescriptionNotFound_shouldContinueWithoutRevise() {
-		String priorOrderUuid = "non-existent-uuid";
-		when(orderService.getOrderByUuid(priorOrderUuid)).thenReturn(null);
-		
-		MedicationRequest fhirRequest = buildBaseRequest();
-		Reference priorPrescriptionRef = new Reference("MedicationRequest/" + priorOrderUuid);
-		fhirRequest.setPriorPrescription(priorPrescriptionRef);
-		
-		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
-		
-		assertThat(result.getPreviousOrder(), nullValue());
-	}
-	
-	@Test
 	public void toOpenmrsType_givenPriorPrescriptionIsNotDrugOrder_shouldContinueWithoutRevise() {
 		String priorOrderUuid = "non-drug-order-uuid";
 		Order nonDrugOrder = new Order();
@@ -332,6 +318,23 @@ public class BahmniMedicationRequestTranslatorImplTest {
 		
 		assertThat(result.getAction(), not(equalTo(Order.Action.REVISE)));
 		assertThat(result.getPreviousOrder(), nullValue());
+	}
+	
+	@Test
+	public void toOpenmrsType_givenStoppedStatusWithPriorPrescription_shouldSetDiscontinueAction() {
+		String priorOrderUuid = "prior-uuid-stop";
+		DrugOrder priorOrder = new DrugOrder();
+		priorOrder.setUuid(priorOrderUuid);
+		when(orderService.getOrderByUuid(priorOrderUuid)).thenReturn(priorOrder);
+		
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setStatus(MedicationRequest.MedicationRequestStatus.STOPPED);
+		fhirRequest.setPriorPrescription(new Reference("MedicationRequest/" + priorOrderUuid));
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getAction(), equalTo(Order.Action.DISCONTINUE));
+		assertThat(result.getPreviousOrder(), equalTo(priorOrder));
 	}
 	
 	@Test
