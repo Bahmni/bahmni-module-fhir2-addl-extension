@@ -66,7 +66,8 @@ public class BahmniMedicationRequestFhirR4Provider extends MedicationRequestFhir
 		}
 		
 		if (!(existingOrder instanceof DrugOrder)) {
-			throw new ResourceNotFoundException("Order with id " + uuid + " is not a DrugOrder");
+			throw new ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException("Order with id " + uuid
+			        + " is not a DrugOrder");
 		}
 		
 		DrugOrder drugOrder = (DrugOrder) existingOrder;
@@ -83,15 +84,16 @@ public class BahmniMedicationRequestFhirR4Provider extends MedicationRequestFhir
 		Encounter encounter = drugOrder.getEncounter();
 		
 		try {
-			// Check if stop date is in the future
+			// OpenMRS discontinueOrder rejects future dates with IllegalArgumentException.
+			// For future stop dates: discontinue immediately (with today) and set autoExpireDate
+			// so OpenMRS knows when the order should expire.
 			Date now = new Date();
 			boolean isFutureDate = stopDate.after(now) && !isSameDay(stopDate, now);
 			
 			if (isFutureDate) {
-				// Future date: discontinue with today, then set autoExpireDate to scheduled stop
+				drugOrder.setAutoExpireDate(stopDate);
 				orderService.discontinueOrder(drugOrder, reasonText, now, drugOrder.getOrderer(), encounter);
 			} else {
-				// Today or past: discontinue immediately with the given date
 				orderService.discontinueOrder(drugOrder, reasonText, stopDate, drugOrder.getOrderer(), encounter);
 			}
 		}
