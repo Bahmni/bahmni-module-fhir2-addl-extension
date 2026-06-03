@@ -28,6 +28,8 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 
 	static final String BIRTH_TIME_EXT_URL = "http://hl7.org/fhir/StructureDefinition/patient-birthTime";
 
+	static final String DATE_CREATED_EXT_URL = BahmniFhirConstants.FHIR_EXT_PATIENT_DATE_CREATED;
+
 	@Autowired
 	private org.bahmni.module.fhir2addlextension.api.translator.PersonAttributeExtensionTranslator personAttributeTranslator;
 
@@ -40,6 +42,7 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 		Patient patient = super.toFhirResource(openmrsPatient);
 		addPersonAttributeExtensions(patient, openmrsPatient);
 		addBirthTimeExtension(patient, openmrsPatient);
+		addDateCreatedExtension(patient, openmrsPatient);
 		return patient;
 	}
 
@@ -65,6 +68,13 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 		Date birthtime = openmrsPatient.getBirthtime();
 		if (birthtime != null && fhirPatient.hasBirthDateElement()) {
 			fhirPatient.getBirthDateElement().addExtension(BIRTH_TIME_EXT_URL, new DateTimeType(birthtime));
+		}
+	}
+
+	void addDateCreatedExtension(Patient fhirPatient, org.openmrs.Patient openmrsPatient) {
+		Date dateCreated = openmrsPatient.getDateCreated();
+		if (dateCreated != null) {
+			fhirPatient.addExtension(DATE_CREATED_EXT_URL, new DateTimeType(dateCreated));
 		}
 	}
 

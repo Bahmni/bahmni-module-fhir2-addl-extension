@@ -108,6 +108,32 @@ public class BahmniPatientTranslatorImplTest {
 		assertNull(fhirPatient.getBirthDateElement().getExtensionByUrl(BahmniPatientTranslatorImpl.BIRTH_TIME_EXT_URL));
 	}
 
+	// --- addDateCreatedExtension ---
+
+	@Test
+	public void addDateCreatedExtension_shouldAddExtensionWhenDateExists() {
+		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
+		Date created = new Date();
+		openmrsPatient.setDateCreated(created);
+
+		Patient fhirPatient = new Patient();
+		translator.addDateCreatedExtension(fhirPatient, openmrsPatient);
+
+		Extension ext = fhirPatient.getExtensionByUrl(BahmniPatientTranslatorImpl.DATE_CREATED_EXT_URL);
+		assertNotNull(ext);
+		assertEquals(created, ((DateTimeType) ext.getValue()).getValue());
+	}
+
+	@Test
+	public void addDateCreatedExtension_shouldNotAddWhenDateIsNull() {
+		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
+		Patient fhirPatient = new Patient();
+
+		translator.addDateCreatedExtension(fhirPatient, openmrsPatient);
+
+		assertNull(fhirPatient.getExtensionByUrl(BahmniPatientTranslatorImpl.DATE_CREATED_EXT_URL));
+	}
+
 	// --- readBirthTime ---
 
 	@Test
