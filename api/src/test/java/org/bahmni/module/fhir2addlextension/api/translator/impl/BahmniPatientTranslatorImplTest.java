@@ -13,6 +13,7 @@ import org.mockito.junit.MockitoJUnitRunner.Silent;
 import org.openmrs.PersonAddress;
 import org.openmrs.PersonAttribute;
 import org.openmrs.PersonAttributeType;
+import org.openmrs.PersonName;
 
 import java.util.Collections;
 import java.util.Date;
@@ -244,6 +245,40 @@ public class BahmniPatientTranslatorImplTest {
 		translator.processPersonAttributeExtensions(openmrsPatient, fhirPatient);
 
 		assertTrue(openmrsPatient.getActiveAttributes().isEmpty());
+	}
+
+	// --- setPreferredNameFlag ---
+
+	@Test
+	public void setPreferredNameFlag_shouldSetPreferredTrueOnFirstName() {
+		org.openmrs.Patient patient = new org.openmrs.Patient();
+		PersonName name = new PersonName("John", null, "Doe");
+		patient.addName(name);
+
+		translator.setPreferredNameFlag(patient);
+
+		assertTrue(name.getPreferred());
+	}
+
+	@Test
+	public void setPreferredNameFlag_shouldNotChangeIfAlreadyPreferred() {
+		org.openmrs.Patient patient = new org.openmrs.Patient();
+		PersonName name = new PersonName("John", null, "Doe");
+		name.setPreferred(true);
+		patient.addName(name);
+
+		translator.setPreferredNameFlag(patient);
+
+		assertTrue(name.getPreferred());
+	}
+
+	@Test
+	public void setPreferredNameFlag_shouldHandlePatientWithNoNames() {
+		org.openmrs.Patient patient = new org.openmrs.Patient();
+
+		translator.setPreferredNameFlag(patient);
+
+		assertNull(patient.getPersonName());
 	}
 
 	// --- voidExistingAddresses ---

@@ -12,6 +12,7 @@ import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Type;
 import org.openmrs.PersonAttribute;
 import org.openmrs.PersonAttributeType;
+import org.openmrs.PersonName;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.fhir2.api.translators.impl.PatientTranslatorImpl;
 import org.slf4j.Logger;
@@ -50,6 +51,7 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 	public org.openmrs.Patient toOpenmrsType(@Nonnull org.openmrs.Patient currentPatient, @Nonnull Patient patient) {
 		voidExistingAddresses(currentPatient, patient);
 		org.openmrs.Patient openmrsPatient = super.toOpenmrsType(currentPatient, patient);
+		setPreferredNameFlag(openmrsPatient);
 		readBirthTime(openmrsPatient, patient);
 		processPersonAttributeExtensions(openmrsPatient, patient);
 		return openmrsPatient;
@@ -95,6 +97,13 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 				addr.setVoidedBy(Context.getAuthenticatedUser());
 				addr.setDateVoided(new Date());
 			});
+		}
+	}
+
+	void setPreferredNameFlag(org.openmrs.Patient openmrsPatient) {
+		PersonName preferredName = openmrsPatient.getPersonName();
+		if (preferredName != null && !preferredName.getPreferred()) {
+			preferredName.setPreferred(true);
 		}
 	}
 
