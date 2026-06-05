@@ -51,7 +51,7 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 	public org.openmrs.Patient toOpenmrsType(@Nonnull org.openmrs.Patient currentPatient, @Nonnull Patient patient) {
 		voidExistingAddresses(currentPatient, patient);
 		org.openmrs.Patient openmrsPatient = super.toOpenmrsType(currentPatient, patient);
-		ensurePreferredName(openmrsPatient);
+		setPreferredNameFlag(openmrsPatient);
 		readBirthTime(openmrsPatient, patient);
 		processPersonAttributeExtensions(openmrsPatient, patient);
 		return openmrsPatient;
@@ -100,7 +100,7 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 		}
 	}
 
-	void ensurePreferredName(org.openmrs.Patient openmrsPatient) {
+	void setPreferredNameFlag(org.openmrs.Patient openmrsPatient) {
 		PersonName preferredName = openmrsPatient.getPersonName();
 		if (preferredName != null && !preferredName.getPreferred()) {
 			preferredName.setPreferred(true);
