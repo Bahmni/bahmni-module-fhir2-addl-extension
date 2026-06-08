@@ -24,7 +24,7 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 @RunWith(PowerMockRunner.class)
-@PowerMockIgnore({ "javax.management.*", "javax.xml.*", "org.xml.*", "org.w3c.*" })
+@PowerMockIgnore({ "javax.*", "org.apache.*", "org.slf4j.*" })
 @PrepareForTest(Context.class)
 public class BahmniPatientTranslatorPhotoTest {
 
