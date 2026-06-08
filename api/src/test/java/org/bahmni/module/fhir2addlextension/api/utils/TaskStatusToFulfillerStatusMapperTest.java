@@ -45,6 +45,11 @@ public class TaskStatusToFulfillerStatusMapperTest {
 	}
 	
 	@Test
+	public void shouldReturnNullForOnHoldStatus() {
+		assertThat(TaskStatusToFulfillerStatusMapper.toFulfillerStatus(FhirTask.TaskStatus.ONHOLD), nullValue());
+	}
+	
+	@Test
 	public void shouldReturnNullForNullStatus() {
 		assertThat(TaskStatusToFulfillerStatusMapper.toFulfillerStatus(null), nullValue());
 	}
