@@ -351,6 +351,28 @@ public class ConsultationBundleEntriesHelperTest {
 		ConsultationBundleEntriesHelper.resolveReferences(conditionEntry, processedEntries);
 	}
 	
+	@Test
+	public void shouldReturnDeleteEntryUnchangedWithoutResolvingReferences() {
+		// Given - DELETE entry whose encounter reference is NOT in processedEntries
+		// (a POST entry with the same missing reference would throw InternalErrorException)
+		AllergyIntolerance allergyIntolerance = createAllergyIntolerance();
+		allergyIntolerance.setEncounter(new Reference("urn:uuid:nonexistent-encounter"));
+		Bundle.BundleEntryComponent deleteEntry = new Bundle.BundleEntryComponent();
+		deleteEntry.setFullUrl("urn:uuid:allergy");
+		deleteEntry.setResource(allergyIntolerance);
+		deleteEntry.setRequest(new Bundle.BundleEntryRequestComponent().setMethod(Bundle.HTTPVerb.DELETE).setUrl(
+		    "AllergyIntolerance/some-uuid"));
+		
+		// When - should NOT throw even though the reference cannot be resolved
+		Bundle.BundleEntryComponent result = ConsultationBundleEntriesHelper
+		        .resolveReferences(deleteEntry, processedEntries);
+		
+		// Then - same entry returned unchanged
+		assertSame(deleteEntry, result);
+		assertEquals("urn:uuid:nonexistent-encounter", ((AllergyIntolerance) result.getResource()).getEncounter()
+		        .getReference());
+	}
+	
 	// Helper methods to create test resources
 	
 	private Bundle.BundleEntryComponent createBundleEntry(Resource resource, String fullUrl) {
