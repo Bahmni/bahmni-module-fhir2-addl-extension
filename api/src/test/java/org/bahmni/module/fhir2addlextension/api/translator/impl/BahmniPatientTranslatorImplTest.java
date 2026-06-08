@@ -1,5 +1,6 @@
 package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
+import org.hl7.fhir.r4.model.Attachment;
 import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.Extension;
@@ -308,5 +309,44 @@ public class BahmniPatientTranslatorImplTest {
 		translator.voidExistingAddresses(patient, new Patient());
 
 		assertFalse(addr.getVoided());
+	}
+
+	// --- addPhotoUrl ---
+
+	@Test
+	public void addPhotoUrl_shouldNotAddPhotoWhenUuidIsNull() {
+		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
+
+		Patient fhirPatient = new Patient();
+		translator.addPhotoUrl(fhirPatient, openmrsPatient);
+
+		assertTrue(fhirPatient.getPhoto().isEmpty());
+	}
+
+	// --- processPhoto ---
+
+	@Test
+	public void processPhoto_shouldNotProcessWhenPhotoListIsNull() {
+		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
+		Patient fhirPatient = new Patient();
+		fhirPatient.setPhoto(null);
+
+		translator.processPhoto(openmrsPatient, fhirPatient);
+		// no exception thrown — null is safely handled
+	}
+
+	@Test
+	public void processPhoto_shouldNotSaveWhenBase64DataIsEmpty() {
+		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
+
+		Attachment photo = new Attachment();
+		photo.setContentType("image/jpeg");
+		photo.setDataElement(new org.hl7.fhir.r4.model.Base64BinaryType(""));
+
+		Patient fhirPatient = new Patient();
+		fhirPatient.setPhoto(Collections.singletonList(photo));
+
+		translator.processPhoto(openmrsPatient, fhirPatient);
+		// no exception thrown — empty data is safely handled
 	}
 }

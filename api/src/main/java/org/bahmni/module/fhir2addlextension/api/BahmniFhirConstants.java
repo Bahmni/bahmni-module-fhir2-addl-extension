@@ -67,4 +67,8 @@ public final class BahmniFhirConstants {
 	// Appointment System URIs
 	public static final String BAHMNI_APPOINTMENT_SYSTEM = BAHMNI_CODE_SYSTEM_PREFIX + "/appointments";
 	public static final String BAHMNI_APPOINTMENT_SERVICE_SYSTEM = BAHMNI_CODE_SYSTEM_PREFIX + "/appointment-services";
+
+	// Patient Photo
+	public static final String PATIENT_PHOTO_CONTENT_TYPE = "image/jpeg";
+	public static final String PATIENT_PHOTO_URL_TEMPLATE = "/openmrs/ws/fhir2/R4/Patient/%s/$photo";
 }
