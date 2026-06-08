@@ -14,8 +14,10 @@ public class BahmniFhirAllergyIntoleranceServiceImpl extends FhirAllergyIntolera
 	@Override
 	public void delete(@Nonnull String uuid) {
 		super.delete(uuid);
-		// Flush so the voided allergy is visible to the allergyapi duplicate-allergen
-		// DB check when a replacement POST follows in the same transaction (e.g. bundle update).
+		// Context.flushSession() flushes ALL pending Hibernate operations in the current
+		// persistence context to the DB (without committing the transaction), ensuring the
+		// voided AllergyIntolerance is persisted before the allergyapi duplicate-allergen
+		// DB check runs on a subsequent POST within the same transaction.
 		Context.flushSession();
 	}
 }
