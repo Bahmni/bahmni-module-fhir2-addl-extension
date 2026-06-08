@@ -20,6 +20,7 @@ import org.bahmni.module.fhir2addlextension.api.service.FhirResourceHandler;
 import org.bahmni.module.fhir2addlextension.api.validators.ConsultationBundleValidator;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Resource;
+import org.openmrs.api.context.Context;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -67,6 +68,13 @@ public class ConsultationBundleServiceImpl implements ConsultationBundleService 
 			try {
 				Bundle.BundleEntryComponent referenceResolvedEntry = ConsultationBundleEntriesHelper.resolveReferences(orderedEntry, processedResourceEntryMap);
 				Optional<Bundle.BundleEntryComponent> bundleEntryComponent = createOrUpdateResource(referenceResolvedEntry);
+				// After a DELETE (void), flush the Hibernate session so the voided record is
+				// visible to validators in subsequent POST entries within the same transaction.
+				// Without this, allergyapi's duplicate-allergen check finds the not-yet-flushed
+				// voided allergy in the Hibernate first-level cache and rejects the new POST.
+				if (referenceResolvedEntry.getRequest().getMethod() == Bundle.HTTPVerb.DELETE) {
+					Context.flushSession();
+				}
 				if (bundleEntryComponent.isPresent()) {
 					processedResourceEntryMap.put(orderedEntry.getFullUrl(), bundleEntryComponent.get());
 				} else {

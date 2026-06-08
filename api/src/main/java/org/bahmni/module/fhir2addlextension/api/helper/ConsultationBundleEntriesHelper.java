@@ -96,6 +96,10 @@ public class ConsultationBundleEntriesHelper {
 	
 	public static Bundle.BundleEntryComponent resolveReferences(Bundle.BundleEntryComponent entry,
 	        Map<String, Bundle.BundleEntryComponent> processedEntries) {
+		// DELETE entries are identified solely by resource ID — no placeholder references to resolve.
+		if (entry.getRequest().getMethod() == Bundle.HTTPVerb.DELETE) {
+			return entry;
+		}
 		Resource resource = entry.getResource();
 		ResourceType resourceType = resource.getResourceType();
 		switch (resourceType) {
