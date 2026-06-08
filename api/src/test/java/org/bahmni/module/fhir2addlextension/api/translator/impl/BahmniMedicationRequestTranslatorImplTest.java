@@ -15,6 +15,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Calendar;
@@ -388,6 +389,7 @@ public class BahmniMedicationRequestTranslatorImplTest {
 		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
 		
 		assertThat(result, not(nullValue()));
+		verify(medicationReferenceTranslator).toOpenmrsType(medRef);
 	}
 	
 	@Test
@@ -401,6 +403,7 @@ public class BahmniMedicationRequestTranslatorImplTest {
 		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
 		
 		assertThat(result.getUrgency(), equalTo(Order.Urgency.ROUTINE));
+		verify(medicationRequestPriorityTranslator).toOpenmrsType(MedicationRequest.MedicationRequestPriority.ROUTINE);
 	}
 	
 	@Test

@@ -2,6 +2,7 @@ package org.bahmni.module.fhir2addlextension.api.providers;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -13,6 +14,8 @@ import static org.mockito.Mockito.when;
 
 import java.util.Calendar;
 import java.util.Date;
+
+import org.mockito.ArgumentCaptor;
 
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
@@ -155,11 +158,20 @@ public class BahmniMedicationRequestFhirR4ProviderTest {
 		cal.add(Calendar.DAY_OF_YEAR, 7);
 		Date futureDate = cal.getTime();
 		
+		Date beforeCall = new Date();
 		provider.stopMedicationRequest(new IdType(ORDER_UUID), new StringType("Tapering"), new DateType(futureDate), null);
 		
 		assertThat(drugOrder.getAutoExpireDate(), equalTo(futureDate));
-		verify(orderService).discontinueOrder(eq(drugOrder), eq("Tapering"), any(Date.class), eq(drugOrder.getOrderer()),
-		    eq(drugOrder.getEncounter()));
+		ArgumentCaptor<Date> dateCaptor = ArgumentCaptor.forClass(Date.class);
+		verify(orderService).discontinueOrder(eq(drugOrder), eq("Tapering"), dateCaptor.capture(),
+		    eq(drugOrder.getOrderer()), eq(drugOrder.getEncounter()));
+		
+		// The date passed to discontinueOrder must be near "now", not the future date
+		Date capturedDate = dateCaptor.getValue();
+		assertThat("discontinueOrder should be called with 'now', not the future date", capturedDate.before(futureDate),
+		    equalTo(true));
+		assertThat("discontinueOrder date should be near 'now'", capturedDate.getTime() - beforeCall.getTime(),
+		    lessThan(5000L));
 	}
 	
 	@Test(expected = UnprocessableEntityException.class)
