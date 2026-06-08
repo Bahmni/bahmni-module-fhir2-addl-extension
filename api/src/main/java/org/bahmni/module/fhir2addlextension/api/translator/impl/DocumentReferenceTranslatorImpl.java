@@ -106,6 +106,7 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
         Optional.ofNullable(securityConcept).ifPresent(codeableConcept -> documentReference.setSecurityLabel(Collections.singletonList(codeableConcept)));
         documentReference.setStatus(statusTranslator.toFhirType(docRef.getStatus()));
         documentReference.setDocStatus(statusTranslator.toFhirType(docRef.getDocStatus()));
+        documentReference.setDate(docRef.getDateCreated());
 		if (docRef.getOrder() != null) {
 			documentReference.addExtension(BahmniFhirConstants.FHIR_EXT_DOCUMENT_REFERENCE_BASED_ON, basedOnReferenceTranslator.toFhirResource(docRef.getOrder()));
 		}

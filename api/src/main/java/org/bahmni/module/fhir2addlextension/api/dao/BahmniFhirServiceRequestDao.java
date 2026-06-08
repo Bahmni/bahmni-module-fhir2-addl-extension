@@ -7,14 +7,15 @@ import org.openmrs.Auditable;
 import org.openmrs.OpenmrsObject;
 import org.openmrs.annotation.Authorized;
 import org.openmrs.module.fhir2.api.dao.FhirServiceRequestDao;
+import org.openmrs.util.PrivilegeConstants;
 
 public interface BahmniFhirServiceRequestDao<T extends OpenmrsObject & Auditable> extends FhirServiceRequestDao<T> {
 	
-	@Authorized({ "Get Orders" })
+	@Authorized({ PrivilegeConstants.GET_ORDERS })
 	ReferenceAndListParam getEncounterReferencesByNumberOfVisit(NumberParam numberOfVisitsParam,
 	        ReferenceParam patientReferenceParam);
 	
-	@Authorized({ "Edit Orders" })
+	@Authorized({ PrivilegeConstants.EDIT_ORDERS })
 	T updateOrder(T order);
 	
 }

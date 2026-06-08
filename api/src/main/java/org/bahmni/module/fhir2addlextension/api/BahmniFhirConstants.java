@@ -38,7 +38,8 @@ public final class BahmniFhirConstants {
 					ResourceType.Condition,
 					ResourceType.ServiceRequest,
 					ResourceType.MedicationRequest,
-					ResourceType.Observation
+					ResourceType.Observation,
+					ResourceType.Immunization
 			))
 	);
 	public static final String HL7_CONDITION_CATEGORY_CODE_SYSTEM = FhirConstants.HL7_FHIR_CODE_SYSTEM_PREFIX + "/condition-category";
@@ -51,8 +52,12 @@ public final class BahmniFhirConstants {
 	public static final String EPISODE_OF_CARE_REFERENCE_SEARCH_PARAM = "episodeOfCare.reference.search.handler";
 	public static final String FHIR_EXT_DOCUMENT_REFERENCE_ATTRIBUTE = EXTENSION_PREFIX + "/document-reference/attribute";
 	public static final String FHIR_EXT_DOCUMENT_REFERENCE_BASED_ON = EXTENSION_PREFIX + "/document-reference/based-on-service-request";
+	public static final String FHIR_EXT_PATIENT_ATTRIBUTE_PREFIX = EXTENSION_PREFIX + "/patient/";
+	public static final String FHIR_EXT_PATIENT_DATE_CREATED = EXTENSION_PREFIX + "/patient-record/date-created";
+	public static final String FHIR_EXT_SERVICE_REQUEST_ATTRIBUTE_PREFIX = EXTENSION_PREFIX + "/service-request/";
 	public static final String FHIR_EXT_IMAGING_STUDY_PERFORMER = EXTENSION_PREFIX + "/imaging-study/performer";
 	public static final String FHIR_EXT_IMAGING_STUDY_COMPLETION_DATE = EXTENSION_PREFIX + "/imaging-study/completion-date";
+	public static final String FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION = EXTENSION_PREFIX + "/imaging-study/quality-observation";
 	public static final String FHIR_EXT_OBSERVATION_FORM_NAMESPACE_PATH = EXTENSION_PREFIX + "/observation/form-namespace-path";
 	public static final String FHIR_EXT_OBSERVATION_ATTACHMENT_VALUE = EXTENSION_PREFIX + "/observation/obs-value-attachment";
 	public static final String INCLUDE_BASED_ON_PARAM = "basedon";

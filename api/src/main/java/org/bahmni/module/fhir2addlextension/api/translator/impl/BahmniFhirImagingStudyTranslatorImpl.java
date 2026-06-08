@@ -13,10 +13,12 @@ import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.ImagingStudy;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.Type;
+import org.openmrs.Encounter;
 import org.openmrs.Location;
 import org.openmrs.Provider;
 import org.openmrs.User;
 import org.openmrs.api.context.Context;
+import org.openmrs.module.fhir2.api.translators.EncounterReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.LocationReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
@@ -55,14 +57,18 @@ public class BahmniFhirImagingStudyTranslatorImpl implements BahmniFhirImagingSt
 	
 	private final PractitionerReferenceTranslator<Provider> practitionerReferenceTranslator;
 	
+	private final EncounterReferenceTranslator<Encounter> encounterReferenceTranslator;
+	
 	@Autowired
 	public BahmniFhirImagingStudyTranslatorImpl(BahmniOrderReferenceTranslator basedOnReferenceTranslator,
 	    PatientReferenceTranslator patientReferenceTranslator, LocationReferenceTranslator locationReferenceTranslator,
-	    PractitionerReferenceTranslator<Provider> practitionerReferenceTranslator) {
+	    PractitionerReferenceTranslator<Provider> practitionerReferenceTranslator,
+	    EncounterReferenceTranslator<Encounter> encounterReferenceTranslator) {
 		this.basedOnReferenceTranslator = basedOnReferenceTranslator;
 		this.patientReferenceTranslator = patientReferenceTranslator;
 		this.locationReferenceTranslator = locationReferenceTranslator;
 		this.practitionerReferenceTranslator = practitionerReferenceTranslator;
+		this.encounterReferenceTranslator = encounterReferenceTranslator;
 	}
 	
 	@Override
@@ -76,6 +82,7 @@ public class BahmniFhirImagingStudyTranslatorImpl implements BahmniFhirImagingSt
         resource.setLocation(locationReferenceTranslator.toFhirResource(study.getLocation()));
         resource.setDescription(study.getDescription());
         resource.setStarted(study.getDateStarted());
+        resource.setEncounter(encounterReferenceTranslator.toFhirResource(study.getEncounter()));
         if (study.getNotes() != null && !study.getNotes().isEmpty()) {
             resource.setNote(
                 study.getNotes().stream().map(note -> {
@@ -94,6 +101,7 @@ public class BahmniFhirImagingStudyTranslatorImpl implements BahmniFhirImagingSt
         if (study.getDateCompleted() != null) {
             resource.addExtension(FHIR_EXT_IMAGING_STUDY_COMPLETION_DATE, new DateTimeType(study.getDateCompleted()));
         }
+        
         return resource;
     }
 	
@@ -136,6 +144,10 @@ public class BahmniFhirImagingStudyTranslatorImpl implements BahmniFhirImagingSt
 		
 		if (resource.hasStatus()) {
 			existingObject.setStatus(toOmrsStatusType(resource.getStatus()));
+		}
+		
+		if (resource.hasEncounter()) {
+			existingObject.setEncounter(encounterReferenceTranslator.toOpenmrsType(resource.getEncounter()));
 		}
 		
 		if (resource.hasLocation()) {

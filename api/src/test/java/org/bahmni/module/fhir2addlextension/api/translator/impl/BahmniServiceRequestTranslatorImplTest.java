@@ -6,17 +6,33 @@ import org.bahmni.module.fhir2addlextension.api.context.AppContext;
 import org.bahmni.module.fhir2addlextension.api.dao.OrderAttributeTypeDao;
 import org.bahmni.module.fhir2addlextension.api.service.impl.ServiceRequestLocationReferenceResolverImpl;
 import org.bahmni.module.fhir2addlextension.api.translator.OrderTypeTranslator;
+import org.bahmni.module.fhir2addlextension.api.translator.ServiceRequestExtensionTranslator;
 import org.bahmni.module.fhir2addlextension.api.translator.ServiceRequestPriorityTranslator;
 import org.bahmni.module.fhir2addlextension.api.validators.ServiceRequestValidator;
-import org.hl7.fhir.r4.model.*;
+import org.hl7.fhir.r4.model.Annotation;
+import org.hl7.fhir.r4.model.CodeableConcept;
+import org.hl7.fhir.r4.model.Coding;
+import org.hl7.fhir.r4.model.Extension;
+import org.hl7.fhir.r4.model.Period;
+import org.hl7.fhir.r4.model.Reference;
+import org.hl7.fhir.r4.model.ServiceRequest;
+import org.hl7.fhir.r4.model.StringType;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.openmrs.*;
+import org.openmrs.CareSetting;
+import org.openmrs.Concept;
+import org.openmrs.ConceptClass;
 import org.openmrs.Encounter;
+import org.openmrs.Order;
+import org.openmrs.OrderAttribute;
+import org.openmrs.OrderAttributeType;
+import org.openmrs.OrderType;
 import org.openmrs.Patient;
+import org.openmrs.Provider;
 import org.openmrs.api.OrderService;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
@@ -29,13 +45,35 @@ import org.openmrs.order.OrderUtilTest;
 import org.bahmni.module.fhir2addlextension.api.translator.BahmniOrderReferenceTranslator;
 
 import java.lang.reflect.Field;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
 
+import static org.bahmni.module.fhir2addlextension.api.TestDataFactory.exampleOrderAttrTypeIsBillingExempt;
+import static org.bahmni.module.fhir2addlextension.api.TestDataFactory.exampleOrderAttrTypePriority;
 import static org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants.ORDER_TYPE_SYSTEM_URI;
+import static org.bahmni.module.fhir2addlextension.api.TestUtils.minusDays;
+import static org.bahmni.module.fhir2addlextension.api.TestUtils.plusDays;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasProperty;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.mockito.Mockito.*;
+import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BahmniServiceRequestTranslatorImplTest {
@@ -91,7 +129,10 @@ public class BahmniServiceRequestTranslatorImplTest {
 	private OrderService orderService;
 	
 	@Mock
-	OrderAttributeTypeDao orderAttributeTypeDao;
+	private OrderAttributeTypeDao orderAttributeTypeDao;
+	
+	@Mock
+	private OrderAttributeTypeDao mockAttributeTypeDao;
 	
 	@Mock
 	LocationReferenceTranslator locationReferenceTranslator;
@@ -101,6 +142,8 @@ public class BahmniServiceRequestTranslatorImplTest {
 	
 	@Mock
 	BahmniOrderReferenceTranslator bahmniOrderReferenceTranslator;
+	
+	private ServiceRequestExtensionTranslator extensionTranslator;
 	
 	private Order discontinuedOrder;
 	
@@ -124,6 +167,14 @@ public class BahmniServiceRequestTranslatorImplTest {
 	
 	@Before
 	public void setup() throws Exception {
+		List<OrderAttributeType> supportedAttributes = Arrays.asList(exampleOrderAttrTypeIsBillingExempt(),
+		    exampleOrderAttrTypePriority());
+		when(mockAttributeTypeDao.getOrderAttributeTypes(false)).thenReturn(supportedAttributes);
+		
+		ServiceRequestAttributeTranslatorImpl attributeTranslator = new ServiceRequestAttributeTranslatorImpl(
+		        mockAttributeTypeDao);
+		extensionTranslator = new ServiceRequestExtensionTranslatorImpl(attributeTranslator);
+		
 		translator = new BahmniServiceRequestTranslatorImpl();
 		translator.setConceptTranslator(conceptTranslator);
 		translator.setPatientReferenceTranslator(patientReferenceTranslator);
@@ -135,6 +186,8 @@ public class BahmniServiceRequestTranslatorImplTest {
 		translator.setServiceRequestValidator(serviceRequestValidator);
 		translator.setOrderService(orderService);
 		translator.setBahmniOrderReferenceTranslator(bahmniOrderReferenceTranslator);
+		translator.setExtensionTranslator(extensionTranslator);
+		translator.setServiceRequestStatusTranslator(new ServiceRequestStatusTranslatorImpl());
 		
 		ServiceRequestLocationReferenceResolverImpl orderLocationReferenceResolver = new ServiceRequestLocationReferenceResolverImpl(
 		        locationReferenceTranslator, orderAttributeTypeDao, appContext);
@@ -269,6 +322,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 		linkedOrder.setAction(Order.Action.NEW);
 		linkedOrder.setConcept(testConcept);
 		linkedOrder.setPreviousOrder(order);
+		linkedOrder.setDateActivated(new Date());
 		
 		ServiceRequest result = translator.toFhirResource(linkedOrder);
 		
@@ -281,7 +335,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 	
 	@Test
 	public void toFhirResource_shouldNotSetBasedOnFieldWhenNewOrderHasNoPreviousOrder() {
-		
+		order.setDateActivated(new Date());
 		ServiceRequest result = translator.toFhirResource(order);
 		
 		assertThat(result, notNullValue());
@@ -290,7 +344,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 	
 	@Test
 	public void toFhirResource_shouldTranslateOpenmrsOrderToFhirServiceRequest() {
-		
+		order.setDateActivated(new Date());
 		ServiceRequest result = translator.toFhirResource(order);
 		
 		assertThat(result, notNullValue());
@@ -299,7 +353,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 	
 	@Test
 	public void toFhirResource_shouldAddIdentifierToServiceRequest() {
-		
+		order.setDateActivated(new Date());
 		ServiceRequest result = translator.toFhirResource(order);
 		
 		assertThat(result, notNullValue());
@@ -324,87 +378,60 @@ public class BahmniServiceRequestTranslatorImplTest {
 	
 	@Test
 	public void toFhirResource_shouldTranslateOrderFromAutoExpireToCompleteServiceRequest() throws Exception {
-		
-		Calendar date = Calendar.getInstance();
-		date.set(2000, Calendar.APRIL, 16);
-		order.setDateActivated(date.getTime());
-		date.set(2070, Calendar.APRIL, 16);
-		order.setAutoExpireDate(date.getTime());
-		date.set(2010, Calendar.APRIL, 16);
-		OrderUtilTest.setDateStopped(order, date.getTime());
-		
+		Date currentDate = new Date();
+		Date dateOfActivation = minusDays(currentDate, 2);
+		order.setDateActivated(dateOfActivation);
+		order.setAutoExpireDate(minusDays(currentDate, 1));
 		ServiceRequest result = translator.toFhirResource(order);
-		
 		assertThat(result, notNullValue());
 		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.COMPLETED));
 	}
 	
 	@Test
 	public void toFhirResource_shouldTranslateOrderToActiveServiceRequest() throws Exception {
-		
-		Calendar date = Calendar.getInstance();
-		date.set(2000, Calendar.APRIL, 16);
-		order.setDateActivated(date.getTime());
-		date.set(2070, Calendar.APRIL, 16);
-		order.setAutoExpireDate(date.getTime());
-		date.set(2069, Calendar.APRIL, 16);
-		OrderUtilTest.setDateStopped(order, date.getTime());
-		
+		Date currentDate = new Date();
+		order.setDateActivated(minusDays(currentDate, 5));
+		order.setAutoExpireDate(plusDays(currentDate, 2)); //2 days from now
 		ServiceRequest result = translator.toFhirResource(order);
-		
 		assertThat(result, notNullValue());
 		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.ACTIVE));
 	}
 	
 	@Test
 	public void toFhirResource_shouldTranslateOrderToCompletedServiceRequest() throws Exception {
-		
-		Calendar date = Calendar.getInstance();
-		date.set(2000, Calendar.APRIL, 16);
-		order.setDateActivated(date.getTime());
-		date.set(2011, Calendar.APRIL, 16);
-		order.setAutoExpireDate(date.getTime());
-		date.set(2010, Calendar.APRIL, 16);
-		OrderUtilTest.setDateStopped(order, date.getTime());
-		
+		Date currentDate = new Date();
+		order.setDateActivated(minusDays(currentDate, 5));
+		order.setAutoExpireDate(minusDays(currentDate, 1));
 		ServiceRequest result = translator.toFhirResource(order);
-		
+		assertThat(result, notNullValue());
+		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.COMPLETED));
+	}
+	
+	/**
+	 * The order here is the order for discontinuing the previous order. This order by itself is
+	 * completed, since no further action is required
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void toFhirResource_shouldTranslateWrongOrderFromActiveToUnknownServiceRequest() throws Exception {
+		Date currentDate = new Date();
+		order.setDateActivated(minusDays(currentDate, 5));
+		order.setAutoExpireDate(minusDays(currentDate, 1));
+		order.setAction(Order.Action.DISCONTINUE);
+		ServiceRequest result = translator.toFhirResource(order);
 		assertThat(result, notNullValue());
 		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.COMPLETED));
 	}
 	
 	@Test
-	public void toFhirResource_shouldTranslateWrongOrderFromActiveToUnknownServiceRequest() throws Exception {
-		
-		Calendar date = Calendar.getInstance();
-		date.set(2000, Calendar.APRIL, 16);
-		order.setDateActivated(date.getTime());
-		date.set(2015, Calendar.APRIL, 16);
-		order.setAutoExpireDate(date.getTime());
-		date.set(2010, Calendar.APRIL, 16);
-		order.setAction(Order.Action.DISCONTINUE);
-		OrderUtilTest.setDateStopped(order, date.getTime());
-		
-		ServiceRequest result = translator.toFhirResource(order);
-		
-		assertThat(result, notNullValue());
-		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.UNKNOWN));
-	}
-	
-	@Test
 	public void toFhirResource_shouldTranslateWrongOrderFromCompleteToUnknownServiceRequest() throws Exception {
-		
-		Calendar date = Calendar.getInstance();
-		date.set(2000, Calendar.APRIL, 16);
-		order.setDateActivated(date.getTime());
-		date.set(2070, Calendar.APRIL, 16);
-		order.setAutoExpireDate(date.getTime());
-		date.set(2069, Calendar.APRIL, 16);
-		order.setAction(Order.Action.DISCONTINUE);
-		OrderUtilTest.setDateStopped(order, date.getTime());
-		
+		Date currentDate = new Date();
+		order.setDateActivated(minusDays(currentDate, 2));
+		order.setAutoExpireDate(plusDays(currentDate, 2));
+		order.setAction(Order.Action.NEW);
+		OrderUtilTest.setDateStopped(order, currentDate);
 		ServiceRequest result = translator.toFhirResource(order);
-		
 		assertThat(result, notNullValue());
 		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.REVOKED));
 	}
@@ -425,23 +452,18 @@ public class BahmniServiceRequestTranslatorImplTest {
 	}
 	
 	@Test
-	public void toFhirResource_shouldTranslateOrderFromOnlyDateStoppedToCompleteServiceRequest() throws Exception {
-		
-		Calendar date = Calendar.getInstance();
-		date.set(2000, Calendar.APRIL, 16);
-		order.setDateActivated(date.getTime());
-		date.set(2015, Calendar.APRIL, 16);
-		OrderUtilTest.setDateStopped(order, date.getTime());
-		
+	public void toFhirResource_shouldTranslateOrderFromAutoExpireDateToCompleteServiceRequest() throws Exception {
+		Date currentDate = new Date();
+		order.setDateActivated(minusDays(currentDate, 2));
+		order.setAutoExpireDate(minusDays(currentDate, 1));
 		ServiceRequest result = translator.toFhirResource(order);
-		
 		assertThat(result, notNullValue());
 		assertThat(result.getStatus(), equalTo(ServiceRequest.ServiceRequestStatus.COMPLETED));
 	}
 	
 	@Test
 	public void toFhirResource_shouldTranslateFromNoDataToActiveServiceRequest() {
-		
+		order.setDateActivated(new Date());
 		ServiceRequest result = translator.toFhirResource(order);
 		
 		assertThat(result, notNullValue());
@@ -464,6 +486,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 		loincCoding.setCode(LOINC_CODE);
 		
 		when(conceptTranslator.toFhirResource(openmrsConcept)).thenReturn(codeableConcept);
+		order.setDateActivated(new Date());
 		
 		CodeableConcept result = translator.toFhirResource(order).getCode();
 		
@@ -489,16 +512,10 @@ public class BahmniServiceRequestTranslatorImplTest {
 	}
 	
 	@Test
-	public void toFhirResource_shouldTranslateOccurrenceWithMissingEffectiveStart() {
-		Date toDate = new Date();
-		
-		order.setAutoExpireDate(toDate);
-		
-		Period result = translator.toFhirResource(order).getOccurrencePeriod();
-		
-		assertThat(result, notNullValue());
-		assertThat(result.getStart(), nullValue());
-		assertThat(result.getEnd(), equalTo(toDate));
+	public void toFhirResource_shouldThrowErrorWithoutEffectiveStartDate() {
+        order.setAutoExpireDate(new Date());
+		IllegalArgumentException exception = Assert.assertThrows(IllegalArgumentException.class, () -> translator.toFhirResource(order));
+		Assert.assertEquals("Can not determine status for order with no effective start date", exception.getMessage());
 	}
 	
 	@Test
@@ -531,6 +548,50 @@ public class BahmniServiceRequestTranslatorImplTest {
 	}
 	
 	@Test
+	public void toFhirResource_shouldAddOrderAttributesAsExtensions() {
+		OrderAttributeType attrType = exampleOrderAttrTypeIsBillingExempt();
+		
+		OrderAttribute attribute = mock(OrderAttribute.class);
+		when(attribute.getAttributeType()).thenReturn(attrType);
+		when(attribute.getValue()).thenReturn(true);
+		order.addAttribute(attribute);
+		order.setDateActivated(new Date());
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getExtension(), notNullValue());
+		assertThat(result.getExtension().size(), greaterThanOrEqualTo(1));
+		assertThat(result.getExtension(),
+		    hasItem(hasProperty("url", equalTo("http://fhir.bahmni.org/ext/service-request/is-billing-exempt"))));
+		// Verify that the value is a BooleanType with value true
+		assertThat(result.getExtension(), hasItem(hasProperty("value", hasProperty("value", equalTo(true)))));
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldAddAttributesFromExtensions() {
+		Extension extension = new Extension();
+		extension.setUrl("http://fhir.bahmni.org/ext/service-request/is-billing-exempt");
+		extension.setValue(new org.hl7.fhir.r4.model.StringType("true"));
+		serviceRequest.addExtension(extension);
+		
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		
+		Order result = translator.toOpenmrsType(serviceRequest);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getAttributes(), notNullValue());
+		assertThat(result.getAttributes().size(), equalTo(1));
+	}
+	
+	@Test
 	public void toFhirResource_shouldTranslateSubject() {
 		Patient subject = new Patient();
 		Reference subjectReference = new Reference();
@@ -538,6 +599,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 		subject.setUuid(PATIENT_UUID);
 		order.setUuid(SERVICE_REQUEST_UUID);
 		order.setPatient(subject);
+		order.setDateActivated(new Date());
 		subjectReference.setType(FhirConstants.PATIENT).setReference(FhirConstants.PATIENT + "/" + PATIENT_UUID);
 		when(patientReferenceTranslator.toFhirResource(subject)).thenReturn(subjectReference);
 		
@@ -555,6 +617,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 		encounter.setUuid(ENCOUNTER_UUID);
 		order.setUuid(SERVICE_REQUEST_UUID);
 		order.setEncounter(encounter);
+		order.setDateActivated(new Date());
 		encounterReference.setType(FhirConstants.ENCOUNTER).setReference(FhirConstants.ENCOUNTER + "/" + ENCOUNTER_UUID);
 		when(encounterReferenceTranslator.toFhirResource(encounter)).thenReturn(encounterReference);
 		
@@ -573,6 +636,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 		requester.setUuid(PRACTITIONER_UUID);
 		order.setUuid(SERVICE_REQUEST_UUID);
 		order.setOrderer(requester);
+		order.setDateActivated(new Date());
 		requesterReference.setType(FhirConstants.PRACTITIONER).setReference(
 		    FhirConstants.PRACTITIONER + "/" + PRACTITIONER_UUID);
 		when(practitionerReferenceTranslator.toFhirResource(requester)).thenReturn(requesterReference);
@@ -586,6 +650,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 	@Test
 	public void shouldTranslateOpenMrsDateChangedToLastUpdatedDate() {
 		order.setDateChanged(new Date());
+		order.setDateActivated(new Date());
 		
 		ServiceRequest result = translator.toFhirResource(order);
 		assertThat(result, notNullValue());
@@ -595,6 +660,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 	@Test
 	public void shouldTranslateOpenMrsDateChangedToVersionId() {
 		order.setDateChanged(new Date());
+		order.setDateActivated(new Date());
 		
 		org.hl7.fhir.r4.model.ServiceRequest result = translator.toFhirResource(order);
 		
@@ -609,6 +675,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 		ordertype.setName(ORDER_TYPE_NAME);
 		order.setOrderType(ordertype);
 		order.setOrderType(ordertype);
+		order.setDateActivated(new Date());
 		
 		CodeableConcept codeableConcept = new CodeableConcept();
 		Coding coding = new Coding();
@@ -629,7 +696,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 	@Test
 	public void toFhirResource_shouldSetPriorityUsingPriorityTranslator() {
 		order.setUrgency(Order.Urgency.STAT);
-		
+		order.setDateActivated(new Date());
 		when(serviceRequestPriorityTranslator.toFhirResource(Order.Urgency.STAT)).thenReturn(
 		    ServiceRequest.ServiceRequestPriority.STAT);
 		
@@ -647,6 +714,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 		conceptClass.setName("LabTest");
 		concept.setConceptClass(conceptClass);
 		order.setConcept(concept);
+		order.setDateActivated(new Date());
 		
 		ServiceRequest result = translator.toFhirResource(order);
 		
@@ -665,6 +733,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 		conceptClass.setName("Test");
 		concept.setConceptClass(conceptClass);
 		order.setConcept(concept);
+		order.setDateActivated(new Date());
 		
 		ServiceRequest result = translator.toFhirResource(order);
 		
@@ -683,6 +752,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 		conceptClass.setName("LabSet");
 		concept.setConceptClass(conceptClass);
 		order.setConcept(concept);
+		order.setDateActivated(new Date());
 		
 		ServiceRequest result = translator.toFhirResource(order);
 		
@@ -701,6 +771,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 		conceptClass.setName("Other");
 		concept.setConceptClass(conceptClass);
 		order.setConcept(concept);
+		order.setDateActivated(new Date());
 		
 		ServiceRequest result = translator.toFhirResource(order);
 		
@@ -1164,6 +1235,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 	public void toFhirResource_shouldAddNoteWhenOrderHasCommentToFulfiller() {
 		String commentText = "Please process urgently";
 		order.setCommentToFulfiller(commentText);
+		order.setDateActivated(new Date());
 		
 		ServiceRequest result = translator.toFhirResource(order);
 		
@@ -1176,6 +1248,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 	@Test
 	public void toFhirResource_shouldNotAddNoteWhenOrderHasNullCommentToFulfiller() {
 		order.setCommentToFulfiller(null);
+		order.setDateActivated(new Date());
 		
 		ServiceRequest result = translator.toFhirResource(order);
 		
@@ -1186,6 +1259,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 	@Test
 	public void toFhirResource_shouldNotAddNoteWhenOrderHasEmptyCommentToFulfiller() {
 		order.setCommentToFulfiller("");
+		order.setDateActivated(new Date());
 		
 		ServiceRequest result = translator.toFhirResource(order);
 		

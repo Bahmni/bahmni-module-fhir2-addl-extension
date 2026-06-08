@@ -117,4 +117,16 @@ public class BahmniEncounterValidatorImplTest {
         ValidationException exception = assertThrows(ValidationException.class, () -> validator.validate(existingEncounter, fhirEncounter));
         assertEquals("Invalid Location reference.", exception.getMessage());
     }
+	
+	@Test
+	public void shouldValidateSuccessfullyWhenPartOfIsNotProvided() {
+		Encounter encounterWithoutPartOf = new Encounter();
+		encounterWithoutPartOf.setSubject(patientReference);
+		encounterWithoutPartOf.addLocation(locationComponent);
+		
+		when(patientReferenceTranslator.toOpenmrsType(patientReference)).thenReturn(existingPatient);
+		when(encounterLocationTranslator.toOpenmrsType(locationComponent)).thenReturn(location);
+		
+		validator.validate(existingEncounter, encounterWithoutPartOf);
+	}
 }

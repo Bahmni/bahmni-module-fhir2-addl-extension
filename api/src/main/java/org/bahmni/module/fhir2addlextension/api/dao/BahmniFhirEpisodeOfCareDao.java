@@ -1,5 +1,6 @@
 package org.bahmni.module.fhir2addlextension.api.dao;
 
+import org.bahmni.module.fhir2addlextension.api.PrivilegeConstants;
 import org.openmrs.annotation.Authorized;
 import org.openmrs.module.episodes.Episode;
 import org.openmrs.module.fhir2.api.dao.FhirDao;
@@ -11,20 +12,27 @@ import java.util.List;
 
 public interface BahmniFhirEpisodeOfCareDao extends FhirDao<Episode> {
 	
-	@Authorized({ "Get Episodes" })
+	@Override
+	@Authorized({ PrivilegeConstants.GET_EPISODES })
 	Episode get(@Nonnull String uuid);
 	
-	@Authorized({ "Get Episodes" })
+	@Override
+	@Authorized({ PrivilegeConstants.GET_EPISODES })
 	List<Episode> get(@Nonnull Collection<String> uuids);
 	
-	@Authorized({ "Add Episodes" })
+	@Override
+	@Authorized({ PrivilegeConstants.ADD_EPISODES, PrivilegeConstants.EDIT_EPISODES })
 	Episode createOrUpdate(@Nonnull Episode newEntry);
 	
-	@Authorized({ "Delete Episodes" })
+	@Override
+	@Authorized({ PrivilegeConstants.DELETE_EPISODES })
 	Episode delete(@Nonnull String uuid);
 	
+	@Override
+	@Authorized({ PrivilegeConstants.GET_EPISODES })
 	int getSearchResultsCount(@Nonnull SearchParameterMap theParams);
 	
-	@Authorized({ "Get Episodes" })
+	@Override
+	@Authorized({ PrivilegeConstants.GET_EPISODES })
 	List<Episode> getSearchResults(@Nonnull SearchParameterMap theParams);
 }

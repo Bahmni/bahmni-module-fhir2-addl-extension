@@ -13,6 +13,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.openmrs.Encounter;
 import org.openmrs.Location;
 import org.openmrs.Order;
 import org.openmrs.Patient;
@@ -21,7 +22,10 @@ import org.openmrs.User;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.context.UserContext;
 import org.openmrs.api.db.ContextDAO;
+import org.openmrs.module.fhir2.api.translators.EncounterReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.LocationReferenceTranslator;
+import org.openmrs.module.fhir2.api.translators.ObservationReferenceTranslator;
+import org.openmrs.module.fhir2.api.translators.ObservationTranslator;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 
@@ -63,6 +67,9 @@ public class BahmniFhirImagingStudyTranslatorImplTest {
 	@Mock
 	private User user;
 	
+	@Mock
+	private EncounterReferenceTranslator<Encounter> encounterReferenceTranslator;
+	
 	@Before
 	public void setUp() {
 		when(userContext.getAuthenticatedUser()).thenReturn(user);
@@ -71,7 +78,7 @@ public class BahmniFhirImagingStudyTranslatorImplTest {
 		Context.setUserContext(userContext);
 		
 		translator = new BahmniFhirImagingStudyTranslatorImpl(basedOnReferenceTranslator, patientReferenceTranslator,
-		        locationReferenceTranslator, practitionerReferenceTranslator);
+		        locationReferenceTranslator, practitionerReferenceTranslator, encounterReferenceTranslator);
 	}
 	
 	private Annotation createAnnotation(String id, String text, Reference author, Date time) {
@@ -104,12 +111,18 @@ public class BahmniFhirImagingStudyTranslatorImplTest {
 		location.setUuid("location-uuid");
 		study.setLocation(location);
 		
+		Encounter encounter = new Encounter();
+		encounter.setUuid("encounter-uuid");
+		study.setEncounter(encounter);
+		
 		when(patientReferenceTranslator.toFhirResource(any(Patient.class)))
 		        .thenReturn(new Reference("Patient/patient-uuid"));
 		when(basedOnReferenceTranslator.toFhirResource(any(Order.class))).thenReturn(
 		    new Reference("ServiceRequest/order-uuid"));
 		when(locationReferenceTranslator.toFhirResource(any(Location.class))).thenReturn(
 		    new Reference("Location/location-uuid"));
+		when(encounterReferenceTranslator.toFhirResource(any(Encounter.class))).thenReturn(
+		    new Reference("Encounter/encounter-uuid"));
 		
 		ImagingStudy result = translator.toFhirResource(study);
 		
@@ -121,6 +134,7 @@ public class BahmniFhirImagingStudyTranslatorImplTest {
 		Assert.assertEquals("Patient/patient-uuid", result.getSubject().getReference());
 		Assert.assertEquals("ServiceRequest/order-uuid", result.getBasedOnFirstRep().getReference());
 		Assert.assertEquals("Location/location-uuid", result.getLocation().getReference());
+		Assert.assertEquals("Encounter/encounter-uuid", result.getEncounter().getReference());
 	}
 	
 	@Test
@@ -483,5 +497,50 @@ public class BahmniFhirImagingStudyTranslatorImplTest {
 		Assert.assertEquals("Chest X-ray ordered for suspected pneumonia", note.getNote());
 		Assert.assertEquals(radiologist, note.getPerformer());
 		Assert.assertEquals(result, note.getImagingStudy());
+	}
+	
+	@Test
+	public void toFhirResource_shouldHandleNullEncounter() {
+		FhirImagingStudy study = new FhirImagingStudy();
+		study.setUuid("test-uuid");
+		study.setStudyInstanceUuid("urn:oid:2.16.124.113543.6003.1154777499");
+		study.setStatus(FhirImagingStudy.FhirImagingStudyStatus.REGISTERED);
+		study.setEncounter(null);
+		
+		ImagingStudy result = translator.toFhirResource(study);
+		
+		Assert.assertNotNull(result);
+		Assert.assertFalse(result.hasEncounter());
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldHandleNullEncounter() {
+		ImagingStudy resource = new ImagingStudy();
+		resource.setId("test-uuid");
+		resource.setStatus(ImagingStudy.ImagingStudyStatus.REGISTERED);
+		
+		FhirImagingStudy result = translator.toOpenmrsType(resource);
+		
+		Assert.assertNotNull(result);
+		Assert.assertNull(result.getEncounter());
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldTranslateEncounterReference() {
+		ImagingStudy resource = new ImagingStudy();
+		resource.setId("test-uuid");
+		resource.setStatus(ImagingStudy.ImagingStudyStatus.REGISTERED);
+		resource.setEncounter(new Reference("Encounter/encounter-uuid"));
+		
+		Encounter encounter = new Encounter();
+		encounter.setUuid("encounter-uuid");
+		
+		when(encounterReferenceTranslator.toOpenmrsType(any(Reference.class))).thenReturn(encounter);
+		
+		FhirImagingStudy result = translator.toOpenmrsType(resource);
+		
+		Assert.assertNotNull(result);
+		Assert.assertNotNull(result.getEncounter());
+		Assert.assertEquals("encounter-uuid", result.getEncounter().getUuid());
 	}
 }

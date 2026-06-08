@@ -9,30 +9,22 @@
  */
 package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
+
 import javax.annotation.Nonnull;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.bahmni.module.fhir2addlextension.api.translator.MedicationStatusCalculator;
+import org.bahmni.module.fhir2addlextension.api.utils.ModuleUtils;
 import org.hl7.fhir.r4.model.MedicationRequest;
 import org.openmrs.DrugOrder;
+import org.openmrs.Order;
 import org.openmrs.module.fhir2.api.translators.MedicationRequestStatusTranslator;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
-/**
- * Calculates FHIR medication request status based on DrugOrder state. Delegates to
- * MedicationStatusCalculator implementation for status calculation logic.
- */
 @Component
 @Primary
 public class BahmniMedicationRequestStatusTranslatorImpl implements MedicationRequestStatusTranslator {
-	
-	private static final Log log = LogFactory.getLog(BahmniMedicationRequestStatusTranslatorImpl.class);
-	
-	@Autowired
-	private MedicationStatusCalculator statusCalculator;
 	
 	@Override
 	public MedicationRequest.MedicationRequestStatus toFhirResource(@Nonnull DrugOrder drugOrder) {
@@ -40,6 +32,62 @@ public class BahmniMedicationRequestStatusTranslatorImpl implements MedicationRe
 			return null;
 		}
 		
-		return statusCalculator.calculateStatus(drugOrder);
+		Date now = new Date();
+		
+		if (drugOrder.getVoided()) {
+			return MedicationRequest.MedicationRequestStatus.ENTEREDINERROR;
+		}
+		
+		MedicationRequest.MedicationRequestStatus fulfillerStatusResult = fromFulfillerStatus(drugOrder);
+		if (fulfillerStatusResult != null) {
+			return fulfillerStatusResult;
+		}
+		
+		if (Order.Action.DISCONTINUE.equals(drugOrder.getAction())) {
+			return MedicationRequest.MedicationRequestStatus.COMPLETED;
+		}
+		
+		Date effectiveStartDate = drugOrder.getEffectiveStartDate();
+		if (effectiveStartDate == null) {
+			throw new IllegalArgumentException("Can not determine status for order with no effective start date");
+		}
+		
+		if (drugOrder.getDateStopped() != null) {
+			return ModuleUtils.compareDates(drugOrder.getDateStopped(), effectiveStartDate, ChronoUnit.MINUTES) < 0 ? MedicationRequest.MedicationRequestStatus.CANCELLED
+			        : MedicationRequest.MedicationRequestStatus.STOPPED;
+		}
+		
+		int activated = ModuleUtils.compareDates(now, effectiveStartDate, ChronoUnit.MINUTES);
+		if (activated < 0) {
+			return MedicationRequest.MedicationRequestStatus.ACTIVE;
+		}
+		
+		Date autoExpireDate = drugOrder.getAutoExpireDate();
+		if (autoExpireDate == null) {
+			return MedicationRequest.MedicationRequestStatus.ACTIVE;
+		}
+		
+		int comparisonResult = ModuleUtils.compareDates(autoExpireDate, now, ChronoUnit.MINUTES);
+		return comparisonResult < 0 ? MedicationRequest.MedicationRequestStatus.COMPLETED
+		        : MedicationRequest.MedicationRequestStatus.ACTIVE;
+	}
+	
+	private MedicationRequest.MedicationRequestStatus fromFulfillerStatus(DrugOrder drugOrder) {
+		Order.FulfillerStatus fulfillerStatus = drugOrder.getFulfillerStatus();
+		if (fulfillerStatus == null) {
+			return null;
+		}
+		switch (fulfillerStatus) {
+			case COMPLETED:
+				return MedicationRequest.MedicationRequestStatus.COMPLETED;
+			case IN_PROGRESS:
+			case RECEIVED:
+				return MedicationRequest.MedicationRequestStatus.ACTIVE;
+			case EXCEPTION:
+				return drugOrder.getDateStopped() != null ? MedicationRequest.MedicationRequestStatus.STOPPED
+				        : MedicationRequest.MedicationRequestStatus.UNKNOWN;
+			default:
+				return null;
+		}
 	}
 }

@@ -111,10 +111,6 @@ public class BahmniFhirDiagnosticReportServiceTest {
 	}
 	
 	@Test
-	public void searchForDiagnosticReports() {
-	}
-	
-	@Test
 	public void createObsBasedReport() {
 	}
 }

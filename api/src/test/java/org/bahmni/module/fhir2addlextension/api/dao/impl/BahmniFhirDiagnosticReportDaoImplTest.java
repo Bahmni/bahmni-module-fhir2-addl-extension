@@ -1,5 +1,7 @@
 package org.bahmni.module.fhir2addlextension.api.dao.impl;
 
+import org.bahmni.module.fhir2addlextension.api.PrivilegeConstants;
+import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirDiagnosticReportDao;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDiagnosticReportExt;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -10,17 +12,24 @@ import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.openmrs.annotation.Authorized;
+import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 
+import javax.annotation.Nonnull;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Join;
 import javax.persistence.criteria.Path;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -131,5 +140,30 @@ public class BahmniFhirDiagnosticReportDaoImplTest {
 		
 		verify(root).get("voided");
 		verify(criteriaBuilder).equal(any(), eq(false));
+	}
+	
+	@Test
+	public void getSearchResults_shouldHaveAuthorizedAnnotationOnDaoInterface() throws NoSuchMethodException {
+		Method method = BahmniFhirDiagnosticReportDao.class.getMethod("getSearchResults", SearchParameterMap.class);
+		Authorized authorized = method.getAnnotation(Authorized.class);
+		assertNotNull("getSearchResults must have @Authorized annotation", authorized);
+	}
+	
+	@Test
+	public void getSearchResults_shouldRequireGetDiagnosticReportPrivilege() throws NoSuchMethodException {
+		Method method = BahmniFhirDiagnosticReportDao.class.getMethod("getSearchResults", SearchParameterMap.class);
+		Authorized authorized = method.getAnnotation(Authorized.class);
+		List<String> privileges = Arrays.asList(authorized.value());
+		assertTrue("getSearchResults must require GET_DIAGNOSTIC_REPORT privilege",
+		    privileges.contains(PrivilegeConstants.GET_DIAGNOSTIC_REPORT));
+	}
+	
+	@Test
+	public void getSearchResults_shouldRequireGetObsPrivilege() throws NoSuchMethodException {
+		Method method = BahmniFhirDiagnosticReportDao.class.getMethod("getSearchResults", SearchParameterMap.class);
+		Authorized authorized = method.getAnnotation(Authorized.class);
+		List<String> privileges = Arrays.asList(authorized.value());
+		assertTrue("getSearchResults must require GET_OBS privilege",
+		    privileges.contains(org.openmrs.util.PrivilegeConstants.GET_OBS));
 	}
 }
