@@ -225,6 +225,7 @@ public class BahmniMedicationRequestTranslatorImplTest {
 		when(orderService.getOrderByUuid(priorOrderUuid)).thenReturn(priorOrder);
 		
 		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setStatus(MedicationRequest.MedicationRequestStatus.ACTIVE);
 		Reference priorPrescriptionRef = new Reference("MedicationRequest/" + priorOrderUuid);
 		fhirRequest.setPriorPrescription(priorPrescriptionRef);
 		
@@ -243,6 +244,7 @@ public class BahmniMedicationRequestTranslatorImplTest {
 		when(orderService.getOrderByUuid(priorOrderUuid)).thenReturn(priorOrder);
 		
 		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setStatus(MedicationRequest.MedicationRequestStatus.ACTIVE);
 		Reference priorPrescriptionRef = new Reference("http://example.com/fhir/MedicationRequest/" + priorOrderUuid);
 		fhirRequest.setPriorPrescription(priorPrescriptionRef);
 		
@@ -260,6 +262,7 @@ public class BahmniMedicationRequestTranslatorImplTest {
 		when(orderService.getOrderByUuid(priorOrderUuid)).thenReturn(priorOrder);
 		
 		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setStatus(MedicationRequest.MedicationRequestStatus.ACTIVE);
 		Reference priorPrescriptionRef = new Reference("urn:uuid:" + priorOrderUuid);
 		fhirRequest.setPriorPrescription(priorPrescriptionRef);
 		
@@ -346,6 +349,7 @@ public class BahmniMedicationRequestTranslatorImplTest {
 		when(orderService.getOrderByUuid(priorOrderUuid)).thenReturn(priorOrder);
 		
 		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setStatus(MedicationRequest.MedicationRequestStatus.ACTIVE);
 		fhirRequest.setPriorPrescription(new Reference(priorOrderUuid));
 		
 		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);

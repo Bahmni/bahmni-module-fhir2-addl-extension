@@ -84,10 +84,13 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 			
 			if (MedicationRequest.MedicationRequestStatus.STOPPED.equals(medicationRequest.getStatus())) {
 				drugOrder.setAction(Order.Action.DISCONTINUE);
-			} else {
+				drugOrder.setPreviousOrder(priorOrder);
+			} else if (MedicationRequest.MedicationRequestStatus.ACTIVE.equals(medicationRequest.getStatus())) {
+				// Explicit REVISE for edit flow — when REFILL is added, it should be handled
+				// as a separate condition rather than falling into this branch.
 				drugOrder.setAction(Order.Action.REVISE);
+				drugOrder.setPreviousOrder(priorOrder);
 			}
-			drugOrder.setPreviousOrder(priorOrder);
 		}
 		catch (Exception e) {
 			log.warn("Failed to translate priorPrescription reference '{}', order will be created as NEW: {}",
