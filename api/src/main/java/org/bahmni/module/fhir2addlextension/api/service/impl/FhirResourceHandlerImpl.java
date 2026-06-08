@@ -116,6 +116,7 @@ public class FhirResourceHandlerImpl implements FhirResourceHandler {
     private void initialize() {
         httpVerbToRequestTypeEnum.put(Bundle.HTTPVerb.POST, RequestTypeEnum.POST);
         httpVerbToRequestTypeEnum.put(Bundle.HTTPVerb.PUT, RequestTypeEnum.PUT);
+        httpVerbToRequestTypeEnum.put(Bundle.HTTPVerb.DELETE, RequestTypeEnum.DELETE);
     }
 
     private Map<String, ResourceBinding> getResourceBindingMap(final IResourceProvider resourceProvider) {
