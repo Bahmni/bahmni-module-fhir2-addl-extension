@@ -46,6 +46,20 @@ public class FhirResourceHandlerTest {
 	}
 	
 	@Test
+	public void shouldDeleteEncounter() {
+		Encounter encounter = new Encounter();
+		encounter.setId("tempEncounterId");
+		encounter.setSubject(new Reference("Patient/123"));
+		EncounterFhirResourceProvider resourceProvider = createEncounterResourceProvider(mockFhirEncounterService(encounter));
+		FhirResourceHandler resourceHandler = new FhirResourceHandlerImpl(FhirContext.forR4());
+		
+		Optional<MethodOutcome> result = resourceHandler.invokeResourceProvider(Bundle.HTTPVerb.DELETE, encounter,
+		    resourceProvider);
+		
+		Assert.assertTrue(result.isPresent());
+	}
+	
+	@Test
 	public void shouldUpdateEncounter() {
 		Encounter encounter = new Encounter();
 		encounter.setId("tempEncounterId");
