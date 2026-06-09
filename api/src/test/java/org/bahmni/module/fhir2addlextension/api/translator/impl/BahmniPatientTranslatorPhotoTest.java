@@ -74,14 +74,14 @@ public class BahmniPatientTranslatorPhotoTest {
 	// --- processPhoto ---
 
 	@Test
-	public void processPhoto_shouldNotProcessWhenPhotoListIsNull() {
+	public void processPhoto_shouldDeleteWhenPhotoListIsSetToNull() {
 		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
 		Patient fhirPatient = new Patient();
 		fhirPatient.setPhoto(null);
 
 		translator.processPhoto(openmrsPatient, fhirPatient);
 
-		verifyNoInteractions(photoService);
+		verify(photoService).deletePhoto(openmrsPatient);
 	}
 
 	@Test
