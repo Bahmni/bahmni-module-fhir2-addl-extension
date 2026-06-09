@@ -309,4 +309,5 @@ public class BahmniPatientTranslatorImplTest {
 
 		assertFalse(addr.getVoided());
 	}
+
 }

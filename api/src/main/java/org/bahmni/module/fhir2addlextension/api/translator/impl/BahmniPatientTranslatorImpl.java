@@ -1,11 +1,15 @@
 package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
 
 import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniPatientPhotoService;
+import org.hl7.fhir.r4.model.Attachment;
 import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Patient;
@@ -34,8 +38,15 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 	@Autowired
 	private org.bahmni.module.fhir2addlextension.api.translator.PersonAttributeExtensionTranslator personAttributeTranslator;
 
+	@Autowired
+	private BahmniPatientPhotoService photoService;
+
 	void setPersonAttributeTranslator(org.bahmni.module.fhir2addlextension.api.translator.PersonAttributeExtensionTranslator translator) {
 		this.personAttributeTranslator = translator;
+	}
+
+	void setPhotoService(BahmniPatientPhotoService photoService) {
+		this.photoService = photoService;
 	}
 
 	@Override
@@ -44,6 +55,7 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 		addPersonAttributeExtensions(patient, openmrsPatient);
 		addBirthTimeExtension(patient, openmrsPatient);
 		addDateCreatedExtension(patient, openmrsPatient);
+		addPhotoUrl(patient, openmrsPatient);
 		return patient;
 	}
 
@@ -54,6 +66,7 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 		setPreferredNameFlag(openmrsPatient);
 		readBirthTime(openmrsPatient, patient);
 		processPersonAttributeExtensions(openmrsPatient, patient);
+		processPhoto(openmrsPatient, patient);
 		return openmrsPatient;
 	}
 
@@ -139,5 +152,40 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 				openmrsPatient.addAttribute(attr);
 			}
 		}
+	}
+	
+	void addPhotoUrl(Patient fhirPatient, org.openmrs.Patient openmrsPatient) {
+		String uuid = openmrsPatient.getUuid();
+		if (uuid == null || !photoService.hasPhoto(openmrsPatient)) {
+			return;
+		}
+		Attachment attachment = new Attachment();
+		attachment.setContentType(BahmniFhirConstants.PATIENT_PHOTO_CONTENT_TYPE);
+		attachment.setUrl(String.format(BahmniFhirConstants.PATIENT_PHOTO_URL_TEMPLATE, uuid));
+		fhirPatient.setPhoto(Collections.singletonList(attachment));
+	}
+
+	void processPhoto(org.openmrs.Patient openmrsPatient, Patient fhirPatient) {
+		List<Attachment> photos = fhirPatient.getPhoto();
+		if (photos == null) {
+			return;
+		}
+		if (photos.isEmpty()) {
+			photoService.deletePhoto(openmrsPatient);
+			return;
+		}
+		Attachment firstPhoto = photos.get(0);
+		if (firstPhoto.getDataElement() == null) {
+			return;
+		}
+		String base64Data = firstPhoto.getDataElement().getValueAsString();
+		if (base64Data == null || base64Data.isEmpty()) {
+			return;
+		}
+		if (openmrsPatient.getUuid() == null) {
+			log.warn("Skipping photo save — UUID not yet assigned");
+			return;
+		}
+		photoService.savePhoto(openmrsPatient, base64Data);
 	}
 }

@@ -91,6 +91,10 @@
 		<name>Add Conditions</name>
 		<description>Allows user to create new condition records</description>
 	</privilege>
+	<privilege>
+		<name>Get Patient Photo</name>
+		<description>Allows user to view patient photo</description>
+	</privilege>
 
 	<!-- Required Global Properties -->
 	<globalProperty>
