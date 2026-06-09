@@ -174,7 +174,11 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 			photoService.deletePhoto(openmrsPatient);
 			return;
 		}
-		String base64Data = photos.get(0).getDataElement().getValueAsString();
+		Attachment firstPhoto = photos.get(0);
+		if (firstPhoto.getDataElement() == null) {
+			return;
+		}
+		String base64Data = firstPhoto.getDataElement().getValueAsString();
 		if (base64Data == null || base64Data.isEmpty()) {
 			return;
 		}
