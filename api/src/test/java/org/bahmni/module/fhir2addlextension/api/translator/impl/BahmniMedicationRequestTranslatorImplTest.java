@@ -215,6 +215,30 @@ public class BahmniMedicationRequestTranslatorImplTest {
 		assertThat(result.getScheduledDate(), nullValue());
 	}
 	
+	@Test
+	public void toOpenmrsType_givenNonStatOrderWithBoundsPeriodStart_shouldSetScheduledDateAndUrgency() {
+		MedicationRequest fhirRequest = buildRequestWithBoundsPeriod(today, null);
+
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+
+		assertThat(result.getScheduledDate(), equalTo(today));
+		assertThat(result.getUrgency(), equalTo(Order.Urgency.ON_SCHEDULED_DATE));
+	}
+
+	@Test
+	public void toOpenmrsType_givenNonStatOrderWithBoundsPeriodButNoStart_shouldNotSetScheduledDate() {
+		when(medicationRequestPriorityTranslator.toOpenmrsType(MedicationRequest.MedicationRequestPriority.ROUTINE))
+		        .thenReturn(Order.Urgency.ROUTINE);
+
+		MedicationRequest fhirRequest = buildRequestWithBoundsPeriod(null, endOfDay);
+		fhirRequest.setPriority(MedicationRequest.MedicationRequestPriority.ROUTINE);
+
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+
+		assertThat(result.getScheduledDate(), nullValue());
+		assertThat(result.getAutoExpireDate(), equalTo(endOfDay));
+	}
+
 	// ========== PRIOR PRESCRIPTION (REVISE ORDERS) ==========
 	
 	@Test
@@ -473,6 +497,24 @@ public class BahmniMedicationRequestTranslatorImplTest {
 		return request;
 	}
 	
+	private MedicationRequest buildRequestWithBoundsPeriod(Date start, Date end) {
+		Period boundsPeriod = new Period();
+		if (start != null) {
+			boundsPeriod.setStart(start);
+		}
+		if (end != null) {
+			boundsPeriod.setEnd(end);
+		}
+		Timing.TimingRepeatComponent repeat = new Timing.TimingRepeatComponent();
+		repeat.setBounds(boundsPeriod);
+		Timing timing = new Timing();
+		timing.setRepeat(repeat);
+
+		MedicationRequest request = buildBaseRequest();
+		request.addDosageInstruction().setTiming(timing);
+		return request;
+	}
+
 	private MedicationRequest buildStatRequestWithBoundsPeriod(Date start, Date end) {
 		Period boundsPeriod = new Period();
 		if (start != null) {
