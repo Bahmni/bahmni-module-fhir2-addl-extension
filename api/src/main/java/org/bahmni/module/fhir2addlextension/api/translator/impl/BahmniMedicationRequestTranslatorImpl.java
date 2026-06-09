@@ -36,27 +36,34 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 		drugOrder.setCareSetting(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.name()));
 		
 		translatePriorPrescription(drugOrder, medicationRequest);
-		
+
+		readBoundsPeriod(drugOrder, medicationRequest);
+
 		if (drugOrder.getUrgency() != null && drugOrder.getUrgency().equals(Order.Urgency.STAT)) {
 			drugOrder.setScheduledDate(null);
-			// MedicationRequestTimingRepeatComponentTranslatorImpl silently drops boundsPeriod.
-			// Read it directly here to set autoExpireDate so OpenMRS knows when the STAT order
-			// expires and won't block a new order for the same drug.
-			if (medicationRequest.hasDosageInstruction()) {
-				Timing timing = medicationRequest.getDosageInstructionFirstRep().getTiming();
-				if (timing != null && timing.getRepeat() != null && timing.getRepeat().hasBoundsPeriod()) {
-					Period boundsPeriod = timing.getRepeat().getBoundsPeriod();
-					if (boundsPeriod.hasEnd()) {
-						drugOrder.setAutoExpireDate(boundsPeriod.getEnd());
-					}
-				}
-			}
 		} else if (drugOrder.getScheduledDate() != null) {
 			drugOrder.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
 		}
 		return drugOrder;
 	}
 	
+	private void readBoundsPeriod(DrugOrder drugOrder, MedicationRequest medicationRequest) {
+		if (!medicationRequest.hasDosageInstruction()) {
+			return;
+		}
+		Timing timing = medicationRequest.getDosageInstructionFirstRep().getTiming();
+		if (timing == null || timing.getRepeat() == null || !timing.getRepeat().hasBoundsPeriod()) {
+			return;
+		}
+		Period boundsPeriod = timing.getRepeat().getBoundsPeriod();
+		if (drugOrder.getScheduledDate() == null && boundsPeriod.hasStart()) {
+			drugOrder.setScheduledDate(boundsPeriod.getStart());
+		}
+		if (drugOrder.getAutoExpireDate() == null && boundsPeriod.hasEnd()) {
+			drugOrder.setAutoExpireDate(boundsPeriod.getEnd());
+		}
+	}
+
 	private void translatePriorPrescription(@Nonnull DrugOrder drugOrder, @Nonnull MedicationRequest medicationRequest) {
 		if (!medicationRequest.hasPriorPrescription()) {
 			return;
