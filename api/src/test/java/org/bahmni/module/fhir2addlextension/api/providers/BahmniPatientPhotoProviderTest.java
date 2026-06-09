@@ -10,7 +10,11 @@ import java.io.FileOutputStream;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 
+import ca.uhn.fhir.rest.server.exceptions.ForbiddenOperationException;
+import ca.uhn.fhir.rest.server.exceptions.InternalErrorException;
+import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import org.bahmni.module.fhir2addlextension.api.PrivilegeConstants;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniPatientPhotoService;
 import org.hl7.fhir.r4.model.IdType;
 import org.hl7.fhir.r4.model.Patient;
 import org.junit.Before;
@@ -19,8 +23,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.openmrs.Person;
-import org.openmrs.api.PersonService;
+import org.openmrs.api.PatientService;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.context.UserContext;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
@@ -45,7 +48,10 @@ public class BahmniPatientPhotoProviderTest {
 	private ServletOutputStream outputStream;
 
 	@Mock
-	private PersonService personService;
+	private PatientService patientService;
+
+	@Mock
+	private BahmniPatientPhotoService photoService;
 
 	private BahmniPatientPhotoProvider provider;
 
@@ -53,10 +59,13 @@ public class BahmniPatientPhotoProviderTest {
 	public void setUp() throws Exception {
 		mockStatic(Context.class);
 		when(Context.getUserContext()).thenReturn(userContext);
-		when(Context.getPersonService()).thenReturn(personService);
+		when(Context.getPatientService()).thenReturn(patientService);
 		when(response.getOutputStream()).thenReturn(outputStream);
 
 		provider = new BahmniPatientPhotoProvider();
+		java.lang.reflect.Field field = BahmniPatientPhotoProvider.class.getDeclaredField("photoService");
+		field.setAccessible(true);
+		field.set(provider, photoService);
 	}
 
 	@Test
@@ -64,47 +73,42 @@ public class BahmniPatientPhotoProviderTest {
 		assertEquals(Patient.class, provider.getResourceType());
 	}
 
-	@Test
-	public void getPhoto_shouldReturnForbiddenWhenLacksPrivilege() throws Exception {
+	@Test(expected = ForbiddenOperationException.class)
+	public void getPhoto_shouldThrowForbiddenWhenLacksPrivilege() throws Exception {
 		when(userContext.hasPrivilege(PrivilegeConstants.GET_PATIENT_PHOTO)).thenReturn(false);
 
 		provider.getPhoto(new IdType("patient-uuid"), response);
-
-		verify(response).setStatus(HttpServletResponse.SC_FORBIDDEN);
 	}
 
-	@Test
-	public void getPhoto_shouldReturnNotFoundWhenPersonNotFound() throws Exception {
+	@Test(expected = ResourceNotFoundException.class)
+	public void getPhoto_shouldThrowNotFoundWhenPatientNotFound() throws Exception {
 		when(userContext.hasPrivilege(PrivilegeConstants.GET_PATIENT_PHOTO)).thenReturn(true);
-		when(personService.getPersonByUuid("nonexistent-uuid")).thenReturn(null);
-		mockEmrImageService(new PersonImageStub(null));
+		when(patientService.getPatientByUuid("nonexistent-uuid")).thenReturn(null);
 
 		provider.getPhoto(new IdType("nonexistent-uuid"), response);
-
-		verify(response).setStatus(HttpServletResponse.SC_NOT_FOUND);
 	}
 
-	@Test
-	public void getPhoto_shouldReturnNotFoundWhenImageFileDoesNotExist() throws Exception {
+	@Test(expected = ResourceNotFoundException.class)
+	public void getPhoto_shouldThrowNotFoundWhenImageFileDoesNotExist() throws Exception {
 		when(userContext.hasPrivilege(PrivilegeConstants.GET_PATIENT_PHOTO)).thenReturn(true);
-		when(personService.getPersonByUuid("patient-uuid")).thenReturn(new Person());
-		mockEmrImageService(new PersonImageStub(new File("/nonexistent/path.jpeg")));
+		org.openmrs.Patient patient = new org.openmrs.Patient();
+		when(patientService.getPatientByUuid("patient-uuid")).thenReturn(patient);
+		when(photoService.getImageFile(patient)).thenReturn(new File("/nonexistent/path.jpeg"));
 
 		provider.getPhoto(new IdType("patient-uuid"), response);
-
-		verify(response).setStatus(HttpServletResponse.SC_NOT_FOUND);
 	}
 
 	@Test
 	public void getPhoto_shouldReturnImageWhenFileExists() throws Exception {
 		when(userContext.hasPrivilege(PrivilegeConstants.GET_PATIENT_PHOTO)).thenReturn(true);
-		when(personService.getPersonByUuid("patient-uuid")).thenReturn(new Person());
+		org.openmrs.Patient patient = new org.openmrs.Patient();
+		when(patientService.getPatientByUuid("patient-uuid")).thenReturn(patient);
 
 		File imageFile = tempFolder.newFile("test.jpeg");
 		try (FileOutputStream fos = new FileOutputStream(imageFile)) {
 			fos.write(new byte[] { 1, 2, 3 });
 		}
-		mockEmrImageService(new PersonImageStub(imageFile));
+		when(photoService.getImageFile(patient)).thenReturn(imageFile);
 
 		provider.getPhoto(new IdType("patient-uuid"), response);
 
@@ -112,51 +116,13 @@ public class BahmniPatientPhotoProviderTest {
 		verify(response).setStatus(HttpServletResponse.SC_OK);
 	}
 
-	@Test
-	public void getPhoto_shouldReturn500WhenExceptionOccurs() throws Exception {
+	@Test(expected = InternalErrorException.class)
+	public void getPhoto_shouldThrowInternalErrorWhenExceptionOccurs() throws Exception {
 		when(userContext.hasPrivilege(PrivilegeConstants.GET_PATIENT_PHOTO)).thenReturn(true);
-		when(Context.loadClass("org.openmrs.module.emrapi.person.image.EmrPersonImageService"))
-				.thenThrow(new ClassNotFoundException("not found"));
+		org.openmrs.Patient patient = new org.openmrs.Patient();
+		when(patientService.getPatientByUuid("patient-uuid")).thenReturn(patient);
+		when(photoService.getImageFile(patient)).thenThrow(new RuntimeException("service error"));
 
 		provider.getPhoto(new IdType("patient-uuid"), response);
-
-		verify(response).setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-	}
-
-	@SuppressWarnings("unchecked")
-	private void mockEmrImageService(PersonImageStub personImage) throws Exception {
-		EmrImageServiceStub serviceStub = new EmrImageServiceStub(personImage);
-		when(Context.loadClass("org.openmrs.module.emrapi.person.image.EmrPersonImageService"))
-				.thenReturn((Class) EmrImageServiceStub.class);
-		when(Context.getRegisteredComponent("emrPersonImageService", EmrImageServiceStub.class))
-				.thenReturn(serviceStub);
-	}
-
-	/** Stub to simulate emrapi PersonImage — provides getSavedImage() for reflection calls */
-	public static class PersonImageStub {
-
-		private final File savedImage;
-
-		public PersonImageStub(File savedImage) {
-			this.savedImage = savedImage;
-		}
-
-		public File getSavedImage() {
-			return savedImage;
-		}
-	}
-
-	/** Stub to simulate EmrPersonImageService — provides getCurrentPersonImage() for reflection calls */
-	public static class EmrImageServiceStub {
-
-		private final PersonImageStub personImage;
-
-		public EmrImageServiceStub(PersonImageStub personImage) {
-			this.personImage = personImage;
-		}
-
-		public PersonImageStub getCurrentPersonImage(Person person) {
-			return personImage;
-		}
 	}
 }

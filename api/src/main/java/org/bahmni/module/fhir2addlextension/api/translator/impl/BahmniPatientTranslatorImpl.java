@@ -1,6 +1,5 @@
 package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
-import java.io.File;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -9,6 +8,7 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 
 import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2addlextension.api.service.BahmniPatientPhotoService;
 import org.hl7.fhir.r4.model.Attachment;
 import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.Extension;
@@ -38,8 +38,15 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 	@Autowired
 	private org.bahmni.module.fhir2addlextension.api.translator.PersonAttributeExtensionTranslator personAttributeTranslator;
 
+	@Autowired
+	private BahmniPatientPhotoService photoService;
+
 	void setPersonAttributeTranslator(org.bahmni.module.fhir2addlextension.api.translator.PersonAttributeExtensionTranslator translator) {
 		this.personAttributeTranslator = translator;
+	}
+
+	void setPhotoService(BahmniPatientPhotoService photoService) {
+		this.photoService = photoService;
 	}
 
 	@Override
@@ -149,7 +156,7 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 	
 	void addPhotoUrl(Patient fhirPatient, org.openmrs.Patient openmrsPatient) {
 		String uuid = openmrsPatient.getUuid();
-		if (uuid == null || !hasPhotoOnDisk(openmrsPatient)) {
+		if (uuid == null || !photoService.hasPhoto(openmrsPatient)) {
 			return;
 		}
 		Attachment attachment = new Attachment();
@@ -158,66 +165,23 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 		fhirPatient.setPhoto(Collections.singletonList(attachment));
 	}
 
-	private boolean hasPhotoOnDisk(org.openmrs.Patient openmrsPatient) {
-		try {
-			File imageFile = getImageFile(openmrsPatient);
-			return imageFile != null && imageFile.exists();
-		} catch (Exception e) {
-			log.warn("Could not check photo for patient {}: {}", openmrsPatient.getUuid(), e.getMessage());
-			return false;
-		}
-	}
-
 	void processPhoto(org.openmrs.Patient openmrsPatient, Patient fhirPatient) {
 		List<Attachment> photos = fhirPatient.getPhoto();
 		if (photos == null) {
 			return;
 		}
 		if (photos.isEmpty()) {
-			deletePhoto(openmrsPatient);
+			photoService.deletePhoto(openmrsPatient);
 			return;
 		}
 		String base64Data = photos.get(0).getDataElement().getValueAsString();
 		if (base64Data == null || base64Data.isEmpty()) {
 			return;
 		}
-		savePhoto(openmrsPatient, base64Data);
-	}
-
-	private void savePhoto(org.openmrs.Patient openmrsPatient, String base64Data) {
-		try {
-			Object imageService = getEmrImageService();
-			Class<?> personImageClass = Context.loadClass("org.openmrs.module.emrapi.person.image.PersonImage");
-			Object personImage = personImageClass.getConstructor().newInstance();
-			personImageClass.getMethod("setPerson", org.openmrs.Person.class).invoke(personImage, openmrsPatient);
-			personImageClass.getMethod("setBase64EncodedImage", String.class).invoke(personImage, base64Data);
-			imageService.getClass().getMethod("savePersonImage", personImageClass).invoke(imageService, personImage);
-		} catch (Exception e) {
-			log.error("Failed to save patient photo for {}", openmrsPatient.getUuid(), e);
+		if (openmrsPatient.getUuid() == null) {
+			log.warn("Skipping photo save — UUID not yet assigned");
+			return;
 		}
-	}
-
-	void deletePhoto(org.openmrs.Patient openmrsPatient) {
-		try {
-			File imageFile = getImageFile(openmrsPatient);
-			if (imageFile != null && imageFile.exists() && imageFile.delete()) {
-				log.info("Deleted patient photo for {}", openmrsPatient.getUuid());
-			}
-		} catch (Exception e) {
-			log.error("Failed to delete patient photo for {}", openmrsPatient.getUuid(), e);
-		}
-	}
-
-	private Object getEmrImageService() throws Exception {
-		Class<?> serviceClass = Context.loadClass("org.openmrs.module.emrapi.person.image.EmrPersonImageService");
-		return Context.getRegisteredComponent("emrPersonImageService", serviceClass);
-	}
-
-	private File getImageFile(org.openmrs.Patient openmrsPatient) throws Exception {
-		Object imageService = getEmrImageService();
-		Object personImage = imageService.getClass()
-				.getMethod("getCurrentPersonImage", org.openmrs.Person.class)
-				.invoke(imageService, openmrsPatient);
-		return (File) personImage.getClass().getMethod("getSavedImage").invoke(personImage);
+		photoService.savePhoto(openmrsPatient, base64Data);
 	}
 }
