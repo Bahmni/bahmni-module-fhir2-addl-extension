@@ -3,6 +3,7 @@ package org.bahmni.module.fhir2addlextension.api.translator.impl;
 import lombok.AccessLevel;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
 import org.bahmni.module.fhir2addlextension.api.utils.BahmniFhirUtils;
 import org.hl7.fhir.r4.model.Annotation;
 import org.hl7.fhir.r4.model.CodeableConcept;
@@ -28,8 +29,6 @@ import javax.annotation.Nonnull;
 @Primary
 public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTranslatorImpl {
 	
-	private static final String DATE_STOPPED_EXTENSION_URL = "http://fhir.bahmni.org/ext/medicationRequest/dateStopped";
-	
 	@Autowired
 	@Setter(value = AccessLevel.PACKAGE)
 	private OrderService orderService;
@@ -38,47 +37,38 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 	public MedicationRequest toFhirResource(@Nonnull DrugOrder drugOrder) {
 		MedicationRequest medicationRequest = super.toFhirResource(drugOrder);
 		
-		// Map dateStopped → extension, and look up stop reason from discontinuation order
 		if (drugOrder.getDateStopped() != null) {
-			medicationRequest.addExtension(new Extension(DATE_STOPPED_EXTENSION_URL, new DateTimeType(drugOrder
-			        .getDateStopped())));
+			// Map dateStopped → extension
+			medicationRequest.addExtension(new Extension(BahmniFhirConstants.FHIR_EXT_MEDICATION_REQUEST_DATE_STOPPED,
+			        new DateTimeType(drugOrder.getDateStopped())));
 			
-			// The stop reason and note live on the discontinuation order, not the original.
-			// Find orders that reference this order as previousOrder.
+			// Stop reason and note live on the discontinuation order — look it up directly.
 			try {
-				java.util.List<Order> allOrders = orderService.getAllOrdersByPatient(drugOrder.getPatient());
-				for (Order o : allOrders) {
-					if (o.getPreviousOrder() != null && o.getPreviousOrder().equals(drugOrder)
-					        && Order.Action.DISCONTINUE.equals(o.getAction())) {
-						String reason = o.getOrderReasonNonCoded();
-						if (reason != null && !reason.isEmpty()) {
-							CodeableConcept statusReason = new CodeableConcept();
-							statusReason.setText(reason);
-							medicationRequest.setStatusReason(statusReason);
-						}
-						if (o.getCommentToFulfiller() != null && !o.getCommentToFulfiller().isEmpty()) {
-							medicationRequest.addNote(new Annotation().setText(o.getCommentToFulfiller()));
-						}
-						break;
+				Order discontinuationOrder = orderService.getDiscontinuationOrder(drugOrder);
+				if (discontinuationOrder != null) {
+					String reason = discontinuationOrder.getOrderReasonNonCoded();
+					if (reason != null && !reason.isEmpty()) {
+						CodeableConcept statusReason = new CodeableConcept();
+						statusReason.setText(reason);
+						medicationRequest.setStatusReason(statusReason);
+					}
+					if (discontinuationOrder.getCommentToFulfiller() != null
+					        && !discontinuationOrder.getCommentToFulfiller().isEmpty()) {
+						medicationRequest.addNote(new Annotation().setText(discontinuationOrder.getCommentToFulfiller()));
 					}
 				}
 			}
 			catch (Exception e) {
 				log.warn("Failed to look up discontinuation order for {}: {}", drugOrder.getUuid(), e.getMessage());
 			}
-		}
-		
-		// Map orderReasonNonCoded → statusReason.text (for orders that have it directly)
-		if (!medicationRequest.hasStatusReason() && drugOrder.getOrderReasonNonCoded() != null
-		        && !drugOrder.getOrderReasonNonCoded().isEmpty()) {
-			CodeableConcept statusReason = new CodeableConcept();
-			statusReason.setText(drugOrder.getOrderReasonNonCoded());
-			medicationRequest.setStatusReason(statusReason);
-		}
-		
-		// Map commentToFulfiller → note (for orders that have it directly)
-		if (drugOrder.getCommentToFulfiller() != null && !drugOrder.getCommentToFulfiller().isEmpty()) {
-			medicationRequest.addNote(new Annotation().setText(drugOrder.getCommentToFulfiller()));
+			
+			// Fallback: orderReasonNonCoded on the original order (if discontinuation order had none)
+			if (!medicationRequest.hasStatusReason() && drugOrder.getOrderReasonNonCoded() != null
+			        && !drugOrder.getOrderReasonNonCoded().isEmpty()) {
+				CodeableConcept statusReason = new CodeableConcept();
+				statusReason.setText(drugOrder.getOrderReasonNonCoded());
+				medicationRequest.setStatusReason(statusReason);
+			}
 		}
 		
 		return medicationRequest;

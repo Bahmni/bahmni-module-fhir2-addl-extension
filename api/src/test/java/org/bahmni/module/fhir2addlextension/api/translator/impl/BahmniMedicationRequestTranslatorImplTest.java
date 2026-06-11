@@ -21,6 +21,8 @@ import static org.mockito.Mockito.when;
 import java.util.Calendar;
 import java.util.Date;
 
+import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
+
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Dosage;
 import org.hl7.fhir.r4.model.MedicationRequest;
@@ -537,14 +539,28 @@ public class BahmniMedicationRequestTranslatorImplTest {
 	// ========== toFhirResource: statusReason, dateStopped, note ==========
 	
 	@Test
-	public void toFhirResource_givenOrderReasonNonCoded_shouldSetStatusReasonText() {
-		DrugOrder drugOrder = new DrugOrder();
+	public void toFhirResource_givenStoppedOrderWithOrderReasonNonCoded_andNoDiscontinuationOrder_shouldUseReasonAsFallback() {
+		DrugOrder drugOrder = org.mockito.Mockito.spy(new DrugOrder());
 		drugOrder.setOrderReasonNonCoded("Patient refused");
 		drugOrder.setDrug(new org.openmrs.Drug());
+		drugOrder.setPatient(new org.openmrs.Patient());
+		when(drugOrder.getDateStopped()).thenReturn(new Date());
+		when(orderService.getDiscontinuationOrder(drugOrder)).thenReturn(null);
 		
 		MedicationRequest result = translator.toFhirResource(drugOrder);
 		
 		assertThat(result.getStatusReason().getText(), equalTo("Patient refused"));
+	}
+	
+	@Test
+	public void toFhirResource_givenActiveOrderWithOrderReasonNonCoded_shouldNotSetStatusReason() {
+		DrugOrder drugOrder = new DrugOrder();
+		drugOrder.setOrderReasonNonCoded("Some reason");
+		drugOrder.setDrug(new org.openmrs.Drug());
+		
+		MedicationRequest result = translator.toFhirResource(drugOrder);
+		
+		assertThat(result.getStatusReason().isEmpty(), equalTo(true));
 	}
 	
 	@Test
@@ -564,7 +580,21 @@ public class BahmniMedicationRequestTranslatorImplTest {
 		
 		MedicationRequest result = translator.toFhirResource(drugOrder);
 		
-		assertThat(result.getExtensionByUrl("http://fhir.bahmni.org/ext/medicationRequest/dateStopped"), nullValue());
+		assertThat(result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_MEDICATION_REQUEST_DATE_STOPPED), nullValue());
+	}
+	
+	@Test
+	public void toFhirResource_givenDateStopped_shouldAddDateStoppedExtension() {
+		DrugOrder drugOrder = org.mockito.Mockito.spy(new DrugOrder());
+		drugOrder.setDrug(new org.openmrs.Drug());
+		drugOrder.setPatient(new org.openmrs.Patient());
+		Date stoppedDate = new Date();
+		when(drugOrder.getDateStopped()).thenReturn(stoppedDate);
+		when(orderService.getDiscontinuationOrder(drugOrder)).thenReturn(null);
+		
+		MedicationRequest result = translator.toFhirResource(drugOrder);
+		
+		assertThat(result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_MEDICATION_REQUEST_DATE_STOPPED), not(nullValue()));
 	}
 	
 	@Test
@@ -604,14 +634,13 @@ public class BahmniMedicationRequestTranslatorImplTest {
 		discontinuationOrder.setOrderReasonNonCoded("Adverse reaction");
 		discontinuationOrder.setCommentToFulfiller("Patient reported rash");
 
-		when(orderService.getAllOrdersByPatient(originalOrder.getPatient()))
-		    .thenReturn(java.util.Arrays.asList(originalOrder, discontinuationOrder));
+		when(orderService.getDiscontinuationOrder(originalOrder)).thenReturn(discontinuationOrder);
 
 		MedicationRequest result = translator.toFhirResource(originalOrder);
 
 		assertThat(result.getStatusReason().getText(), equalTo("Adverse reaction"));
 		assertThat(result.getNote().stream().anyMatch(n -> "Patient reported rash".equals(n.getText())), equalTo(true));
-		assertThat(result.getExtensionByUrl("http://fhir.bahmni.org/ext/medicationRequest/dateStopped"), not(nullValue()));
+		assertThat(result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_MEDICATION_REQUEST_DATE_STOPPED), not(nullValue()));
 	}
 	
 	@Test
@@ -620,9 +649,7 @@ public class BahmniMedicationRequestTranslatorImplTest {
 		originalOrder.setDrug(new org.openmrs.Drug());
 		originalOrder.setPatient(new org.openmrs.Patient());
 		when(originalOrder.getDateStopped()).thenReturn(new Date());
-		
-		when(orderService.getAllOrdersByPatient(originalOrder.getPatient())).thenReturn(
-		    java.util.Arrays.asList(originalOrder));
+		when(orderService.getDiscontinuationOrder(originalOrder)).thenReturn(null);
 		
 		MedicationRequest result = translator.toFhirResource(originalOrder);
 		
@@ -635,14 +662,13 @@ public class BahmniMedicationRequestTranslatorImplTest {
 		originalOrder.setDrug(new org.openmrs.Drug());
 		originalOrder.setPatient(new org.openmrs.Patient());
 		when(originalOrder.getDateStopped()).thenReturn(new Date());
-		
-		when(orderService.getAllOrdersByPatient(originalOrder.getPatient())).thenThrow(new RuntimeException("DB error"));
+		when(orderService.getDiscontinuationOrder(originalOrder)).thenThrow(new RuntimeException("DB error"));
 		
 		MedicationRequest result = translator.toFhirResource(originalOrder);
 		
 		// Should not throw — gracefully continues
 		assertThat(result.getStatusReason().isEmpty(), equalTo(true));
 		// dateStopped extension should still be set
-		assertThat(result.getExtensionByUrl("http://fhir.bahmni.org/ext/medicationRequest/dateStopped"), not(nullValue()));
+		assertThat(result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_MEDICATION_REQUEST_DATE_STOPPED), not(nullValue()));
 	}
 }
