@@ -172,7 +172,6 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 					new DateTimeType(order.getDateChanged()));
 			}
 		}
-
 		if (order.getConcept() != null && Context.getLocale() != null) {
 			ConceptName concept = order.getConcept().getShortNameInLocale(Context.getLocale());
 			if(concept != null) {
@@ -180,7 +179,8 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 			}
 		}
 
-		mapTaskFields(serviceRequest, order.getUuid());
+		FhirTask task = taskDao.getTaskByOrderUuid(order.getUuid());
+		mapTaskFields(serviceRequest, task);
 
 		return serviceRequest;
 	}
@@ -247,8 +247,7 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 		return reference;
 	}
 	
-	private void mapTaskFields(ServiceRequest serviceRequest, String orderUuid) {
-		FhirTask task = taskDao.getTaskByOrderUuid(orderUuid);
+	private void mapTaskFields(ServiceRequest serviceRequest, FhirTask task) {
 		if (task == null) {
 			return;
 		}

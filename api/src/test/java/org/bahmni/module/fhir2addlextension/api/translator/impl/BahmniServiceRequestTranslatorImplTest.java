@@ -1518,15 +1518,31 @@ public class BahmniServiceRequestTranslatorImplTest {
 	}
 	
 	@Test
+	public void toFhirResource_shouldMapReadyTaskStatusToOrderStatusExtension() {
+		FhirTask task = new FhirTask();
+		task.setStatus(FhirTask.TaskStatus.READY);
+		task.setDateCreated(new Date());
+
+		when(taskDao.getTaskByOrderUuid(SERVICE_REQUEST_UUID)).thenReturn(task);
+
+		ServiceRequest result = translator.toFhirResource(order);
+
+		assertThat(result, notNullValue());
+		Extension ext = result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_ORDER_STATUS);
+		assertThat(ext, notNullValue());
+		assertThat(((StringType) ext.getValue()).getValue(), equalTo("READY"));
+	}
+
+	@Test
 	public void toFhirResource_shouldNotAddOrderStatusExtensionWhenTaskStatusIsNull() {
 		FhirTask task = new FhirTask();
 		task.setStatus(null);
 		task.setDateCreated(new Date());
-		
+
 		when(taskDao.getTaskByOrderUuid(SERVICE_REQUEST_UUID)).thenReturn(task);
-		
+
 		ServiceRequest result = translator.toFhirResource(order);
-		
+
 		assertThat(result, notNullValue());
 		assertThat(result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_ORDER_STATUS), nullValue());
 	}

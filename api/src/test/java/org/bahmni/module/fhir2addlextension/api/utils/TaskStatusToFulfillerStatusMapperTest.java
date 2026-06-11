@@ -53,4 +53,10 @@ public class TaskStatusToFulfillerStatusMapperTest {
 	public void shouldReturnNullForNullStatus() {
 		assertThat(TaskStatusToFulfillerStatusMapper.toFulfillerStatus(null), nullValue());
 	}
+	
+	@Test
+	public void shouldReturnNullForReadyStatus() {
+		// READY has no Order.FulfillerStatus equivalent — fulfillerStatus stays null intentionally
+		assertThat(TaskStatusToFulfillerStatusMapper.toFulfillerStatus(FhirTask.TaskStatus.READY), nullValue());
+	}
 }
