@@ -59,7 +59,7 @@ public class BahmniMedicationRequestStatusTranslatorImpl implements MedicationRe
 		
 		int activated = ModuleUtils.compareDates(now, effectiveStartDate, ChronoUnit.MINUTES);
 		if (activated < 0) {
-			return MedicationRequest.MedicationRequestStatus.ACTIVE;
+			return MedicationRequest.MedicationRequestStatus.ONHOLD;
 		}
 		
 		Date autoExpireDate = drugOrder.getAutoExpireDate();
