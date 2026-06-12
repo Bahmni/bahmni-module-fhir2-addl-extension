@@ -204,16 +204,16 @@ public class BahmniMedicationRequestStatusTranslatorImplTest {
 	}
 	
 	@Test
-	public void toFhirResource_shouldReturnActive_whenDateActivatedIsInFuture() {
+	public void toFhirResource_shouldReturnOnHold_whenDateActivatedIsInFuture() {
 		drugOrder.setDateActivated(tomorrow);
-		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.ACTIVE));
+		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.ONHOLD));
 	}
 	
 	@Test
-	public void toFhirResource_shouldReturnActive_whenScheduledForFutureWithOnScheduledDateUrgency() {
+	public void toFhirResource_shouldReturnOnHold_whenScheduledForFutureWithOnScheduledDateUrgency() {
 		drugOrder.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
 		drugOrder.setScheduledDate(tomorrow);
-		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.ACTIVE));
+		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.ONHOLD));
 	}
 	
 	@Test

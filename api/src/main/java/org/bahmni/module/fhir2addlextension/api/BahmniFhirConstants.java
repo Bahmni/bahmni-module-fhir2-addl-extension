@@ -55,6 +55,7 @@ public final class BahmniFhirConstants {
 	public static final String FHIR_EXT_PATIENT_ATTRIBUTE_PREFIX = EXTENSION_PREFIX + "/patient/";
 	public static final String FHIR_EXT_PATIENT_DATE_CREATED = EXTENSION_PREFIX + "/patient-record/date-created";
 	public static final String FHIR_EXT_SERVICE_REQUEST_ATTRIBUTE_PREFIX = EXTENSION_PREFIX + "/service-request/";
+	public static final String FHIR_EXT_MEDICATION_REQUEST_DATE_STOPPED = EXTENSION_PREFIX + "/medicationRequest/dateStopped";
 	public static final String FHIR_EXT_IMAGING_STUDY_PERFORMER = EXTENSION_PREFIX + "/imaging-study/performer";
 	public static final String FHIR_EXT_IMAGING_STUDY_COMPLETION_DATE = EXTENSION_PREFIX + "/imaging-study/completion-date";
 	public static final String FHIR_EXT_IMAGING_STUDY_QUALITY_OBSERVATION = EXTENSION_PREFIX + "/imaging-study/quality-observation";

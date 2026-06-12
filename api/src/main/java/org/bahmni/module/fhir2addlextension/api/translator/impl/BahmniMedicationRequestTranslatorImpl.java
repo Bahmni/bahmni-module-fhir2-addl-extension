@@ -3,7 +3,12 @@ package org.bahmni.module.fhir2addlextension.api.translator.impl;
 import lombok.AccessLevel;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
 import org.bahmni.module.fhir2addlextension.api.utils.BahmniFhirUtils;
+import org.hl7.fhir.r4.model.Annotation;
+import org.hl7.fhir.r4.model.CodeableConcept;
+import org.hl7.fhir.r4.model.DateTimeType;
+import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.MedicationRequest;
 import org.hl7.fhir.r4.model.Period;
 import org.hl7.fhir.r4.model.Timing;
@@ -29,6 +34,47 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 	private OrderService orderService;
 	
 	@Override
+	public MedicationRequest toFhirResource(@Nonnull DrugOrder drugOrder) {
+		MedicationRequest medicationRequest = super.toFhirResource(drugOrder);
+		
+		if (drugOrder.getDateStopped() != null) {
+			// Map dateStopped → extension
+			medicationRequest.addExtension(new Extension(BahmniFhirConstants.FHIR_EXT_MEDICATION_REQUEST_DATE_STOPPED,
+			        new DateTimeType(drugOrder.getDateStopped())));
+			
+			// Stop reason and note live on the discontinuation order — look it up directly.
+			try {
+				Order discontinuationOrder = orderService.getDiscontinuationOrder(drugOrder);
+				if (discontinuationOrder != null) {
+					String reason = discontinuationOrder.getOrderReasonNonCoded();
+					if (reason != null && !reason.isEmpty()) {
+						CodeableConcept statusReason = new CodeableConcept();
+						statusReason.setText(reason);
+						medicationRequest.setStatusReason(statusReason);
+					}
+					if (discontinuationOrder.getCommentToFulfiller() != null
+					        && !discontinuationOrder.getCommentToFulfiller().isEmpty()) {
+						medicationRequest.addNote(new Annotation().setText(discontinuationOrder.getCommentToFulfiller()));
+					}
+				}
+			}
+			catch (Exception e) {
+				log.warn("Failed to look up discontinuation order for {}: {}", drugOrder.getUuid(), e.getMessage());
+			}
+			
+			// Fallback: orderReasonNonCoded on the original order (if discontinuation order had none)
+			if (!medicationRequest.hasStatusReason() && drugOrder.getOrderReasonNonCoded() != null
+			        && !drugOrder.getOrderReasonNonCoded().isEmpty()) {
+				CodeableConcept statusReason = new CodeableConcept();
+				statusReason.setText(drugOrder.getOrderReasonNonCoded());
+				medicationRequest.setStatusReason(statusReason);
+			}
+		}
+		
+		return medicationRequest;
+	}
+	
+	@Override
 	public DrugOrder toOpenmrsType(@Nonnull DrugOrder existingDrugOrder, @Nonnull MedicationRequest medicationRequest) {
 		DrugOrder drugOrder = super.toOpenmrsType(existingDrugOrder, medicationRequest);
 		
@@ -36,9 +82,9 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 		drugOrder.setCareSetting(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.name()));
 		
 		translatePriorPrescription(drugOrder, medicationRequest);
-
+		
 		readBoundsPeriod(drugOrder, medicationRequest);
-
+		
 		if (drugOrder.getUrgency() != null && drugOrder.getUrgency().equals(Order.Urgency.STAT)) {
 			drugOrder.setScheduledDate(null);
 		} else if (drugOrder.getScheduledDate() != null) {
@@ -63,7 +109,7 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 			drugOrder.setAutoExpireDate(boundsPeriod.getEnd());
 		}
 	}
-
+	
 	private void translatePriorPrescription(@Nonnull DrugOrder drugOrder, @Nonnull MedicationRequest medicationRequest) {
 		if (!medicationRequest.hasPriorPrescription()) {
 			return;
