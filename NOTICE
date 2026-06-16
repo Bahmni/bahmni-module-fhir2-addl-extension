@@ -1,11 +1,36 @@
-Copyright 2025 (C) Thoughtworks Inc.
+# NOTICE
 
-This product includes software developed at Thoughtworks Inc (https://www.thoughtworks.com/)
+## Bahmni Module FHIR2 Additional Extension
 
+Copyright © 2026 Thoughtworks, Inc.
 
-The Initial Developer of the fhir2AddlExtension/providers/BahmniBaseFhirIntegrationTest, is OpenMRS Inc (http://www.openmrs.org/)
-and Licensed under MPLv2
+### Contributors
 
-The Initial Developer of some parts of /fhir2AddlExtension/api/service/FhirResourceHandlerImpl, which are copied from, derived from, or
-inspired by HAPI FHIR Base, is James Agnew (http://jamesagnew.github.io/hapi-fhir/), and licensed under Apache 2.0
+This repository has got source code generated at Thoughtworks.
 
+This release includes features developed with the International
+Organization for Migration (IOM) under its MiHealth initiative, aligned
+with IOM's commitment to advancing open-source digital public health
+solutions for migration health assessments to promote orderly and safe
+migration.
+
+### Third-Party Components
+
+This repository includes third-party source code that is licensed
+separately:
+
+- Maven Wrapper (`mvnw`, `mvnw.cmd`, `.mvn/wrapper/*`)
+  Licensed under the Apache License, Version 2.0.
+  Copyright © the original authors.
+
+- BahmniBaseFhirIntegrationTest
+  (`api/src/test/java/.../providers/BahmniBaseFhirIntegrationTest`)
+  The initial developer is OpenMRS Inc. (http://www.openmrs.org/)
+  Licensed under the Mozilla Public License, Version 2.0.
+
+- FhirResourceHandlerImpl
+  (`api/src/main/java/.../service/FhirResourceHandlerImpl`)
+  Portions of this file are copied from, derived from, or inspired by
+  HAPI FHIR Base. The initial developer is James Agnew
+  (http://jamesagnew.github.io/hapi-fhir/).
+  Licensed under the Apache License, Version 2.0.
