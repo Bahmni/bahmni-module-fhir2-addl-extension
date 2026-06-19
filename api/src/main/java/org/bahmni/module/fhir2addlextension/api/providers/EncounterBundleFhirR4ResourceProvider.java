@@ -46,13 +46,13 @@ public class EncounterBundleFhirR4ResourceProvider implements IResourceProvider 
 	}
 	
 	@Create
-	public MethodOutcome createConsultation(@ResourceParam EncounterBundle bundle) {
+	public MethodOutcome createEncounterBundle(@ResourceParam EncounterBundle bundle) {
 		Bundle responseBundle = encounterBundleService.create(bundle);
 		return FhirProviderUtils.buildCreate(responseBundle);
 	}
-	
+
 	@Read
-	public EncounterBundle getConsultationByUuid(@IdParam @Nonnull IdType encounterUuid) {
+	public EncounterBundle getEncounterBundleByUuid(@IdParam @Nonnull IdType encounterUuid) {
 		return null;
 	}
 }
