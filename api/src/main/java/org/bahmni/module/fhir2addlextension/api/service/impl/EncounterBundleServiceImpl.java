@@ -13,11 +13,11 @@ import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.extern.slf4j.Slf4j;
-import org.bahmni.module.fhir2addlextension.api.domain.ConsultationBundle;
-import org.bahmni.module.fhir2addlextension.api.helper.ConsultationBundleEntriesHelper;
-import org.bahmni.module.fhir2addlextension.api.service.ConsultationBundleService;
+import org.bahmni.module.fhir2addlextension.api.domain.EncounterBundle;
+import org.bahmni.module.fhir2addlextension.api.helper.EncounterBundleEntriesHelper;
+import org.bahmni.module.fhir2addlextension.api.service.EncounterBundleService;
 import org.bahmni.module.fhir2addlextension.api.service.FhirResourceHandler;
-import org.bahmni.module.fhir2addlextension.api.validators.ConsultationBundleValidator;
+import org.bahmni.module.fhir2addlextension.api.validators.EncounterBundleValidator;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,18 +33,17 @@ import java.util.Optional;
 @Component
 @Transactional
 @Slf4j
-public class ConsultationBundleServiceImpl implements ConsultationBundleService {
+public class EncounterBundleServiceImpl implements EncounterBundleService {
 	
 	final private FhirResourceHandler resourceHandler;
 	
 	//@Autowired
-	private ConsultationBundleValidator consultationBundleValidator;
+	private EncounterBundleValidator encounterBundleValidator;
 	
 	@Autowired
-	public ConsultationBundleServiceImpl(FhirResourceHandler resourceHandler,
-	    ConsultationBundleValidator consultationBundleValidator) {
+	public EncounterBundleServiceImpl(FhirResourceHandler resourceHandler, EncounterBundleValidator encounterBundleValidator) {
 		this.resourceHandler = resourceHandler;
-		this.consultationBundleValidator = consultationBundleValidator;
+		this.encounterBundleValidator = encounterBundleValidator;
 	}
 	
 	@Override
@@ -55,17 +54,17 @@ public class ConsultationBundleServiceImpl implements ConsultationBundleService 
 		  - ensure all entries contain resources and request element
 		  - resource references: can have server side references e.g. Patient/ABC12345
 		 */
-		consultationBundleValidator.validateBundleType(bundle);
-		consultationBundleValidator.validateBundleEntries(bundle);
+		encounterBundleValidator.validateBundleType(bundle);
+		encounterBundleValidator.validateBundleEntries(bundle);
 
 		List<Bundle.BundleEntryComponent> bundleEntryComponents = bundle.getEntry();
 		
-		List<Bundle.BundleEntryComponent> orderedEntries = ConsultationBundleEntriesHelper.orderEntriesByReference(bundleEntryComponents);
+		List<Bundle.BundleEntryComponent> orderedEntries = EncounterBundleEntriesHelper.orderEntriesByReference(bundleEntryComponents);
 
 		Map<String, Bundle.BundleEntryComponent> processedResourceEntryMap = new HashMap<>();
 		for (Bundle.BundleEntryComponent orderedEntry : orderedEntries) {
 			try {
-				Bundle.BundleEntryComponent referenceResolvedEntry = ConsultationBundleEntriesHelper.resolveReferences(orderedEntry, processedResourceEntryMap);
+				Bundle.BundleEntryComponent referenceResolvedEntry = EncounterBundleEntriesHelper.resolveReferences(orderedEntry, processedResourceEntryMap);
 				Optional<Bundle.BundleEntryComponent> bundleEntryComponent = createOrUpdateResource(referenceResolvedEntry);
 				if (bundleEntryComponent.isPresent()) {
 					processedResourceEntryMap.put(orderedEntry.getFullUrl(), bundleEntryComponent.get());
@@ -91,7 +90,7 @@ public class ConsultationBundleServiceImpl implements ConsultationBundleService 
 		}
 
 
-		Bundle responseBundle = new ConsultationBundle();
+		Bundle responseBundle = new EncounterBundle();
 		for(Bundle.BundleEntryComponent entry: bundleEntryComponents) {
 			responseBundle.addEntry(processedResourceEntryMap.get(entry.getFullUrl()));
 		}

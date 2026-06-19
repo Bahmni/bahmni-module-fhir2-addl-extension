@@ -2,13 +2,13 @@ package org.bahmni.module.fhir2addlextension.api.validators.impl;
 
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
-import org.bahmni.module.fhir2addlextension.api.validators.ConsultationBundleValidator;
+import org.bahmni.module.fhir2addlextension.api.validators.EncounterBundleValidator;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.ResourceType;
 import org.springframework.stereotype.Component;
 
 @Component
-public class ConsultationBundleValidatorImpl implements ConsultationBundleValidator {
+public class EncounterBundleValidatorImpl implements EncounterBundleValidator {
 	
 	@Override
 	public void validateBundleType(Bundle bundle) {
@@ -27,7 +27,7 @@ public class ConsultationBundleValidatorImpl implements ConsultationBundleValida
 			}
 		}
 		if (encounterEntryCount != 1) {
-			throw new InvalidRequestException("Consultation bundle should contain only one Encounter entry. Found "
+			throw new InvalidRequestException("Encounter bundle should contain only one Encounter entry. Found "
 			        + encounterEntryCount + " instead.");
 		}
 	}
@@ -39,10 +39,10 @@ public class ConsultationBundleValidatorImpl implements ConsultationBundleValida
 			throw new InvalidRequestException("Bundle entries must contain fullUrl, resource and request fields");
 		}
 		ResourceType resourceType = entryComponent.getResource().getResourceType();
-		boolean isResourceSupported = BahmniFhirConstants.CONSULTATION_BUNDLE_SUPPORTED_RESOURCES.contains(resourceType);
+		boolean isResourceSupported = BahmniFhirConstants.ENCOUNTER_BUNDLE_SUPPORTED_RESOURCES.contains(resourceType);
 		if (!isResourceSupported) {
 			throw new InvalidRequestException(String.format(
-			    "Entry of resource type %s is not supported as part of Consultation Bundle", resourceType));
+			    "Entry of resource type %s is not supported as part of Encounter Bundle", resourceType));
 		}
 	}
 }

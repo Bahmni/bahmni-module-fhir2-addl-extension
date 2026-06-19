@@ -11,7 +11,7 @@ package org.bahmni.module.fhir2addlextension.providers;
 
 import lombok.AccessLevel;
 import lombok.Getter;
-import org.bahmni.module.fhir2addlextension.api.providers.ConsultationBundleFhirR4ResourceProvider;
+import org.bahmni.module.fhir2addlextension.api.providers.EncounterBundleFhirR4ResourceProvider;
 import org.hl7.fhir.r4.model.Bundle;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -25,13 +25,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.openmrs.module.fhir2.api.util.GeneralUtils.inputStreamToString;
 
 @Ignore("Need to work with OMRS for the improvement on the BaseFHIRR4IntegrationTest class. Right now the code is copied and modified locally")
-public class ConsultationBundleFhirResourceProviderIntegrationTest extends BahmniBaseFhirR4IntegrationTest<ConsultationBundleFhirR4ResourceProvider, Bundle> {
+public class EncounterBundleFhirResourceProviderIntegrationTest extends BahmniBaseFhirR4IntegrationTest<EncounterBundleFhirR4ResourceProvider, Bundle> {
 	
-	private static final String BUNDLE_JSON_CREATE_ENCOUNTER_PATH = "consultation_bundle_create_encounter.json";
+	private static final String BUNDLE_JSON_CREATE_ENCOUNTER_PATH = "encounter_bundle_create_encounter.json";
 	
 	@Autowired
 	@Getter(AccessLevel.PUBLIC)
-	private ConsultationBundleFhirR4ResourceProvider resourceProvider;
+	private EncounterBundleFhirR4ResourceProvider resourceProvider;
 	
 	@Test
     public void shouldCreateEncounterFromBundleAsJson() throws Exception {

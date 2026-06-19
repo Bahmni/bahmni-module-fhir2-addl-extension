@@ -6,7 +6,7 @@ import ca.uhn.fhir.rest.api.server.RequestDetails;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirDiagnosticReportDao;
-import org.bahmni.module.fhir2addlextension.api.helper.ConsultationBundleEntriesHelper;
+import org.bahmni.module.fhir2addlextension.api.helper.EncounterBundleEntriesHelper;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDiagnosticReportExt;
 import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirDiagnosticReportBundleService;
 import org.bahmni.module.fhir2addlextension.api.service.LabResultsEncounterService;
@@ -254,7 +254,7 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 
 		Function<String, Optional<Order>> orderReferenceLocator = orderUuid -> basedOnOrders.stream().filter(order -> order.getUuid().equals(orderUuid)).findFirst();
 
-		List<Observation> sortedObservations = ConsultationBundleEntriesHelper.sortObservationsByDepth(resultResources);
+		List<Observation> sortedObservations = EncounterBundleEntriesHelper.sortObservationsByDepth(resultResources);
 		Map<String, Reference> observationsReferenceMap = new HashMap<>();
 		for (Observation observation : sortedObservations) {
 			String resourceId = Optional.ofNullable(observation.getIdElement().getValue()).orElseGet(() -> resultObservationReferenceMap.get(observation));

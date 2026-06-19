@@ -1,5 +1,5 @@
 {
-  "resourceType": "ConsultationBundle",
+  "resourceType": "EncounterBundle",
   "id": "temp-id-consultation",
   "type": "transaction",
   "timestamp": "2025-06-16T23:25:26.605+05:30",

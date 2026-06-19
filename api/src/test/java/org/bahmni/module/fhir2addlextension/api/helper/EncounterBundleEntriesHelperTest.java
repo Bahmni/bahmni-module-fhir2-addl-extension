@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.Assert.*;
 
-public class ConsultationBundleEntriesHelperTest {
+public class EncounterBundleEntriesHelperTest {
 	
 	private List<Bundle.BundleEntryComponent> entries;
 	
@@ -34,7 +34,7 @@ public class ConsultationBundleEntriesHelperTest {
 	@Test
 	public void shouldReturnEmptyListWhenEntriesIsNull() {
 		// When
-		List<Bundle.BundleEntryComponent> result = ConsultationBundleEntriesHelper.orderEntriesByReference(null);
+		List<Bundle.BundleEntryComponent> result = EncounterBundleEntriesHelper.orderEntriesByReference(null);
 		
 		// Then
 		assertNotNull(result);
@@ -44,7 +44,7 @@ public class ConsultationBundleEntriesHelperTest {
 	@Test
 	public void shouldReturnSameListWhenEntriesIsEmpty() {
 		// When
-		List<Bundle.BundleEntryComponent> result = ConsultationBundleEntriesHelper.orderEntriesByReference(entries);
+		List<Bundle.BundleEntryComponent> result = EncounterBundleEntriesHelper.orderEntriesByReference(entries);
 		
 		// Then
 		assertNotNull(result);
@@ -58,7 +58,7 @@ public class ConsultationBundleEntriesHelperTest {
 		entries.add(entry);
 		
 		// When
-		List<Bundle.BundleEntryComponent> result = ConsultationBundleEntriesHelper.orderEntriesByReference(entries);
+		List<Bundle.BundleEntryComponent> result = EncounterBundleEntriesHelper.orderEntriesByReference(entries);
 		
 		// Then
 		assertEquals(1, result.size());
@@ -87,7 +87,7 @@ public class ConsultationBundleEntriesHelperTest {
 		entries.add(encounterEntry);
 		
 		// When
-		List<Bundle.BundleEntryComponent> result = ConsultationBundleEntriesHelper.orderEntriesByReference(entries);
+		List<Bundle.BundleEntryComponent> result = EncounterBundleEntriesHelper.orderEntriesByReference(entries);
 		
 		// Then
 		assertEquals(3, result.size());
@@ -116,7 +116,7 @@ public class ConsultationBundleEntriesHelperTest {
 		entries.add(entry2);
 		
 		// When
-		List<Bundle.BundleEntryComponent> result = ConsultationBundleEntriesHelper.orderEntriesByReference(entries);
+		List<Bundle.BundleEntryComponent> result = EncounterBundleEntriesHelper.orderEntriesByReference(entries);
 		
 		// Then
 		assertEquals(2, result.size());
@@ -137,7 +137,7 @@ public class ConsultationBundleEntriesHelperTest {
 		entries.add(normalEntry);
 		
 		// When
-		List<Bundle.BundleEntryComponent> result = ConsultationBundleEntriesHelper.orderEntriesByReference(entries);
+		List<Bundle.BundleEntryComponent> result = EncounterBundleEntriesHelper.orderEntriesByReference(entries);
 		
 		// Then
 		assertEquals(2, result.size());
@@ -158,7 +158,7 @@ public class ConsultationBundleEntriesHelperTest {
 		entries.add(normalEntry);
 		
 		// When
-		List<Bundle.BundleEntryComponent> result = ConsultationBundleEntriesHelper.orderEntriesByReference(entries);
+		List<Bundle.BundleEntryComponent> result = EncounterBundleEntriesHelper.orderEntriesByReference(entries);
 		
 		// Then
 		assertEquals(2, result.size());
@@ -194,7 +194,7 @@ public class ConsultationBundleEntriesHelperTest {
 		entries.add(encounterEntry);
 		
 		// When
-		List<Bundle.BundleEntryComponent> result = ConsultationBundleEntriesHelper.orderEntriesByReference(entries);
+		List<Bundle.BundleEntryComponent> result = EncounterBundleEntriesHelper.orderEntriesByReference(entries);
 		
 		// Then
 		assertEquals(4, result.size());
@@ -222,8 +222,8 @@ public class ConsultationBundleEntriesHelperTest {
 		processedEntries.put("urn:uuid:placeholder", encounterEntry);
 		
 		// When
-		Bundle.BundleEntryComponent result = ConsultationBundleEntriesHelper.resolveReferences(conditionEntry,
-		    processedEntries);
+		Bundle.BundleEntryComponent result = EncounterBundleEntriesHelper
+		        .resolveReferences(conditionEntry, processedEntries);
 		
 		// Then
 		Condition resultCondition = (Condition) result.getResource();
@@ -245,8 +245,7 @@ public class ConsultationBundleEntriesHelperTest {
 		processedEntries.put("urn:uuid:placeholder", encounterEntry);
 		
 		// When
-		Bundle.BundleEntryComponent result = ConsultationBundleEntriesHelper.resolveReferences(allergyEntry,
-		    processedEntries);
+		Bundle.BundleEntryComponent result = EncounterBundleEntriesHelper.resolveReferences(allergyEntry, processedEntries);
 		
 		// Then
 		AllergyIntolerance resultAllergy = (AllergyIntolerance) result.getResource();
@@ -268,7 +267,7 @@ public class ConsultationBundleEntriesHelperTest {
 		processedEntries.put("urn:uuid:placeholder", encounterEntry);
 		
 		// When
-		Bundle.BundleEntryComponent result = ConsultationBundleEntriesHelper.resolveReferences(serviceRequestEntry,
+		Bundle.BundleEntryComponent result = EncounterBundleEntriesHelper.resolveReferences(serviceRequestEntry,
 		    processedEntries);
 		
 		// Then
@@ -291,7 +290,7 @@ public class ConsultationBundleEntriesHelperTest {
 		processedEntries.put("urn:uuid:placeholder", encounterEntry);
 		
 		// When
-		Bundle.BundleEntryComponent result = ConsultationBundleEntriesHelper.resolveReferences(medicationRequestEntry,
+		Bundle.BundleEntryComponent result = EncounterBundleEntriesHelper.resolveReferences(medicationRequestEntry,
 		    processedEntries);
 		
 		// Then
@@ -314,7 +313,7 @@ public class ConsultationBundleEntriesHelperTest {
 		processedEntries.put("urn:uuid:placeholder", encounterEntry);
 		
 		// When
-		Bundle.BundleEntryComponent result = ConsultationBundleEntriesHelper.resolveReferences(observationEntry,
+		Bundle.BundleEntryComponent result = EncounterBundleEntriesHelper.resolveReferences(observationEntry,
 		    processedEntries);
 		
 		// Then
@@ -331,8 +330,8 @@ public class ConsultationBundleEntriesHelperTest {
 		Bundle.BundleEntryComponent conditionEntry = createBundleEntry(condition, "urn:uuid:condition");
 		
 		// When
-		Bundle.BundleEntryComponent result = ConsultationBundleEntriesHelper.resolveReferences(conditionEntry,
-		    processedEntries);
+		Bundle.BundleEntryComponent result = EncounterBundleEntriesHelper
+		        .resolveReferences(conditionEntry, processedEntries);
 		
 		// Then
 		Condition resultCondition = (Condition) result.getResource();
@@ -351,7 +350,7 @@ public class ConsultationBundleEntriesHelperTest {
 		Bundle.BundleEntryComponent encounterEntry = createBundleEntry(encounter, "urn:uuid:placeholder");
 		processedEntries.put("urn:uuid:placeholder", encounterEntry);
 		
-		Bundle.BundleEntryComponent result = ConsultationBundleEntriesHelper.resolveReferences(immunizationEntry,
+		Bundle.BundleEntryComponent result = EncounterBundleEntriesHelper.resolveReferences(immunizationEntry,
 		    processedEntries);
 		
 		Immunization resultImmunization = (Immunization) result.getResource();
@@ -365,7 +364,7 @@ public class ConsultationBundleEntriesHelperTest {
 		assertFalse(immunization.hasEncounter());
 		Bundle.BundleEntryComponent immunizationEntry = createBundleEntry(immunization, "urn:uuid:immunization");
 		
-		Bundle.BundleEntryComponent result = ConsultationBundleEntriesHelper.resolveReferences(immunizationEntry,
+		Bundle.BundleEntryComponent result = EncounterBundleEntriesHelper.resolveReferences(immunizationEntry,
 		    processedEntries);
 		
 		Immunization resultImmunization = (Immunization) result.getResource();
@@ -384,7 +383,7 @@ public class ConsultationBundleEntriesHelperTest {
 		entries.add(immunizationEntry);
 		entries.add(encounterEntry);
 		
-		List<Bundle.BundleEntryComponent> result = ConsultationBundleEntriesHelper.orderEntriesByReference(entries);
+		List<Bundle.BundleEntryComponent> result = EncounterBundleEntriesHelper.orderEntriesByReference(entries);
 		
 		assertEquals(2, result.size());
 		assertEquals(encounterEntry, result.get(0));
@@ -399,7 +398,7 @@ public class ConsultationBundleEntriesHelperTest {
 		Bundle.BundleEntryComponent conditionEntry = createBundleEntry(condition, "urn:uuid:condition");
 		
 		// When - should throw exception
-		ConsultationBundleEntriesHelper.resolveReferences(conditionEntry, processedEntries);
+		EncounterBundleEntriesHelper.resolveReferences(conditionEntry, processedEntries);
 	}
 	
 	@Test
@@ -415,8 +414,7 @@ public class ConsultationBundleEntriesHelperTest {
 		    "AllergyIntolerance/some-uuid"));
 		
 		// When - should NOT throw even though the reference cannot be resolved
-		Bundle.BundleEntryComponent result = ConsultationBundleEntriesHelper
-		        .resolveReferences(deleteEntry, processedEntries);
+		Bundle.BundleEntryComponent result = EncounterBundleEntriesHelper.resolveReferences(deleteEntry, processedEntries);
 		
 		// Then - same entry returned unchanged
 		assertSame(deleteEntry, result);
@@ -513,7 +511,7 @@ public class ConsultationBundleEntriesHelperTest {
 		entries.add(encounterEntry);
 		
 		// When
-		List<Bundle.BundleEntryComponent> result = ConsultationBundleEntriesHelper.orderEntriesByReference(entries);
+		List<Bundle.BundleEntryComponent> result = EncounterBundleEntriesHelper.orderEntriesByReference(entries);
 		
 		// Then
 		assertEquals(4, result.size());
@@ -535,7 +533,7 @@ public class ConsultationBundleEntriesHelperTest {
 				.filter(resource -> resource != null && resource.getResourceType().name().equals("Observation"))
 				.map(resource -> (Observation) resource )
 				.collect(Collectors.toList());
-		List<Observation> list = ConsultationBundleEntriesHelper.sortObservationsByDepth(observations);
+		List<Observation> list = EncounterBundleEntriesHelper.sortObservationsByDepth(observations);
 		Assert.assertEquals("urn:uuid:49a86246-4004-42eb-9bdc-f542f93f9228", list.get(0).getId());
 		Assert.assertEquals("urn:uuid:60613a43-c4cb-4502-b3e2-cf9215feaa70", list.get(1).getId());
 		Assert.assertEquals("Observation/29b5f5c4-b256-4f8f-809b-f87d8384b5cb", list.get(2).getId());
