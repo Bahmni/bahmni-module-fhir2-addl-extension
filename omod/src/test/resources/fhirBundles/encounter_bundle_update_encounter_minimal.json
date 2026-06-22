@@ -1,19 +1,14 @@
 {
-  "resourceType": "ConsultationBundle",
+  "resourceType": "EncounterBundle",
   "id": "temp-id-consultation",
   "type": "transaction",
-  "timestamp": "2025-03-21T15:02:26.605+05:30",
+  "timestamp": "2025-04-06T10:51:26.605+05:30",
   "entry": [
     {
-      "fullUrl": "urn:uuid:1d87ab20-8b86-4b41-a30d-984b2208d945",
+      "fullUrl": "Encounter/36da6e8b-491b-4105-a7d5-08924bd064bf",
       "resource": {
         "resourceType": "Encounter",
-        "identifier": [
-          {
-            "use": "temp",
-            "value": "1d87ab20-8b86-4b41-a30d-984b2208d945"
-          }
-        ],
+        "id": "36da6e8b-491b-4105-a7d5-08924bd064bf",
         "status": "in-progress",
         "class": {
           "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
@@ -62,11 +57,11 @@
           }
         ],
         "period": {
-          "start": "2025-03-21T15:02:26.605+05:30"
+          "start": "2025-04-06T10:51:26.605+05:30"
         }
       },
       "request": {
-        "method": "POST",
+        "method": "PUT",
         "url": "Encounter"
       }
     }

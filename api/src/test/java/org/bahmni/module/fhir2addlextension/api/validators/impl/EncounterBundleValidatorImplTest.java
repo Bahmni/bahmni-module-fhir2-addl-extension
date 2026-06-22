@@ -10,15 +10,15 @@ import org.mockito.junit.MockitoJUnitRunner;
 import static org.junit.Assert.*;
 
 @RunWith(MockitoJUnitRunner.class)
-public class ConsultationBundleValidatorImplTest {
+public class EncounterBundleValidatorImplTest {
 	
-	private ConsultationBundleValidatorImpl validator;
+	private EncounterBundleValidatorImpl validator;
 	
 	private Bundle validBundle;
 	
 	@Before
 	public void setup() {
-		validator = new ConsultationBundleValidatorImpl();
+		validator = new EncounterBundleValidatorImpl();
 		
 		// Create a valid bundle with transaction type
 		validBundle = new Bundle();
@@ -76,7 +76,7 @@ public class ConsultationBundleValidatorImplTest {
         // When & Then
         InvalidRequestException exception = assertThrows(InvalidRequestException.class,
                 () -> validator.validateBundleEntries(bundleWithNoEncounter));
-        assertEquals("Consultation bundle should contain only one Encounter entry. Found 0 instead.",
+        assertEquals("Encounter bundle should contain only one Encounter entry. Found 0 instead.",
                 exception.getMessage());
     }
 	
@@ -95,7 +95,7 @@ public class ConsultationBundleValidatorImplTest {
         // When & Then
         InvalidRequestException exception = assertThrows(InvalidRequestException.class,
                 () -> validator.validateBundleEntries(bundleWithMultipleEncounters));
-        assertEquals("Consultation bundle should contain only one Encounter entry. Found 2 instead.",
+        assertEquals("Encounter bundle should contain only one Encounter entry. Found 2 instead.",
                 exception.getMessage());
     }
 	
@@ -173,7 +173,7 @@ public class ConsultationBundleValidatorImplTest {
         // When & Then
         InvalidRequestException exception = assertThrows(InvalidRequestException.class,
                 () -> validator.validateBundleEntries(bundleWithUnsupportedResource));
-        assertEquals("Entry of resource type ImagingStudy is not supported as part of Consultation Bundle",
+        assertEquals("Entry of resource type ImagingStudy is not supported as part of Encounter Bundle",
                 exception.getMessage());
     }
 	

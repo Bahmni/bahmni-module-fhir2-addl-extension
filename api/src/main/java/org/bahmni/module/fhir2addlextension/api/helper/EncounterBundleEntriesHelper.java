@@ -11,7 +11,7 @@ import org.openmrs.module.fhir2.FhirConstants;
 
 import java.util.*;
 
-public class ConsultationBundleEntriesHelper {
+public class EncounterBundleEntriesHelper {
 	
 	public static List<Bundle.BundleEntryComponent> orderEntriesByReference(List<Bundle.BundleEntryComponent> entries) {
         List<Bundle.BundleEntryComponent> orderedEntries = new ArrayList<>();

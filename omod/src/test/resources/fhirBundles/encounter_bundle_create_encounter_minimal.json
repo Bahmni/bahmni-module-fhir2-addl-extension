@@ -1,15 +1,20 @@
 {
-  "resourceType": "ConsultationBundle",
+  "resourceType": "EncounterBundle",
   "id": "temp-id-consultation",
   "type": "transaction",
-  "timestamp": "2025-04-02T23:25:26.605+05:30",
+  "timestamp": "2025-03-21T15:02:26.605+05:30",
   "entry": [
     {
-      "fullUrl": "Encounter/478c0efb-65e0-4808-b6d5-ff25e13b404e",
+      "fullUrl": "urn:uuid:1d87ab20-8b86-4b41-a30d-984b2208d945",
       "resource": {
         "resourceType": "Encounter",
-        "id": "478c0efb-65e0-4808-b6d5-ff25e13b404e",
-        "status": "unknown",
+        "identifier": [
+          {
+            "use": "temp",
+            "value": "1d87ab20-8b86-4b41-a30d-984b2208d945"
+          }
+        ],
+        "status": "in-progress",
         "class": {
           "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
           "code": "AMB",
@@ -57,43 +62,13 @@
           }
         ],
         "period": {
-          "start": "2025-04-02T23:23:26.605+05:30"
-        }
-      },
-      "request": {
-        "method": "PUT",
-        "url": "Encounter"
-      }
-    },
-    {
-      "fullUrl": "urn:uuid:86d3636a-6b20",
-      "resource": {
-        "resourceType": "Observation",
-        "status": "preliminary",
-        "code": {
-          "coding": [
-            {
-              "code": "5089AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-            }
-          ]
-        },
-        "subject": {
-          "reference": "Patient/1571ac14-f055-4830-8bb2-7d15c2cde753"
-        },
-        "encounter": {
-          "reference": "Encounter/478c0efb-65e0-4808-b6d5-ff25e13b404e"
-        },
-        "effectiveDateTime": "2025-04-02T23:25:26.605+05:30",
-        "valueQuantity": {
-          "value": 85,
-          "unit": "kg"
+          "start": "2025-03-21T15:02:26.605+05:30"
         }
       },
       "request": {
         "method": "POST",
-        "url": "Observation"
+        "url": "Encounter"
       }
     }
   ]
 }
-

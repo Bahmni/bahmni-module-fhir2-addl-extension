@@ -5,7 +5,7 @@ import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirImagingStudyDao;
-import org.bahmni.module.fhir2addlextension.api.helper.ConsultationBundleEntriesHelper;
+import org.bahmni.module.fhir2addlextension.api.helper.EncounterBundleEntriesHelper;
 import org.bahmni.module.fhir2addlextension.api.model.FhirImagingStudy;
 import org.bahmni.module.fhir2addlextension.api.search.param.BahmniImagingStudySearchParams;
 import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirImagingStudyService;
@@ -264,7 +264,7 @@ public class BahmniFhirImagingStudyServiceImpl extends BaseFhirService<ImagingSt
 
 		collectObservationsFromExtensions(qualityObsExtensions, containedMap, observationReferenceMap, preExistingObservationIds);
 
-		List<Observation> sortedObservations = ConsultationBundleEntriesHelper.sortObservationsByDepth(
+		List<Observation> sortedObservations = EncounterBundleEntriesHelper.sortObservationsByDepth(
 				new ArrayList<>(observationReferenceMap.keySet()));
 
 		return persistObservations(sortedObservations, observationReferenceMap, preExistingObservationIds);

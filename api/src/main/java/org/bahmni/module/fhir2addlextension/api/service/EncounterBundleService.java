@@ -11,7 +11,7 @@ package org.bahmni.module.fhir2addlextension.api.service;
 
 import org.hl7.fhir.r4.model.Bundle;
 
-public interface ConsultationBundleService {
+public interface EncounterBundleService {
 	
 	Bundle create(Bundle bundle);
 }

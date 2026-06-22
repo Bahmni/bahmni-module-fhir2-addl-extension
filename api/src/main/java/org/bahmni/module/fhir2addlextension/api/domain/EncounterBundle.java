@@ -13,5 +13,5 @@ import ca.uhn.fhir.model.api.annotation.ResourceDef;
 import org.hl7.fhir.r4.model.Bundle;
 
 //TODO define IG
-@ResourceDef(name = "ConsultationBundle", profile = "http://fhir.bahmni.org/R4/StructureDefinition/BahmniConsultationBundle")
-public class ConsultationBundle extends Bundle {}
+@ResourceDef(name = "EncounterBundle", profile = "http://fhir.bahmni.org/R4/StructureDefinition/BahmniEncounterBundle")
+public class EncounterBundle extends Bundle {}

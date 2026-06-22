@@ -31,7 +31,7 @@ public final class BahmniFhirConstants {
 	public static final String LAB_ORDER_CONCEPT_TYPE_EXTENSION_URL = EXTENSION_PREFIX + "/lab-order-concept-type";
 	public static final String VALUESET_CONCEPT_CLASS_EXTENSION_URL = EXTENSION_PREFIX + "/ValueSet/concept-class";
 
-	public static final Set<ResourceType> CONSULTATION_BUNDLE_SUPPORTED_RESOURCES = Collections.unmodifiableSet(
+	public static final Set<ResourceType> ENCOUNTER_BUNDLE_SUPPORTED_RESOURCES = Collections.unmodifiableSet(
 			new HashSet<>(Arrays.asList(
 					ResourceType.Encounter,
 					ResourceType.AllergyIntolerance,
