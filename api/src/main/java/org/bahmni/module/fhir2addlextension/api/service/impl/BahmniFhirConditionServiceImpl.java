@@ -113,7 +113,22 @@ public class BahmniFhirConditionServiceImpl extends BaseFhirService<Condition, o
 	
 	@Override
 	public IBundleProvider searchConditions(ConditionSearchParams conditionSearchParams) {
-		throw new InvalidRequestException("Search on Condition resource without category is not allowed");
+		BahmniConditionSearchParams conditionSearchParams1 = new BahmniConditionSearchParams(
+		        conditionSearchParams.getPatientParam(), // patientParam
+		        null, // code
+		        null, // clinicalStatus
+		        null, // onsetDate
+		        null, // onsetAge
+		        null, // recordedDate
+		        null, // id
+		        null, // verificationStatus
+		        new StringParam("problem-list-item"), // category
+		        null, // lastUpdated
+		        null, // sort
+		        null // includes
+		);
+		
+		return searchConditions(conditionSearchParams1);
 	}
 	
 	private String getCategory(Condition condition) {
