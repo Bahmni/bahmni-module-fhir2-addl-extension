@@ -1,7 +1,8 @@
 package org.bahmni.module.fhir2addlextension.api.dao.impl;
 
-import org.bahmni.module.fhir2addlextension.api.dao.DocumentReferenceDao;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReference;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.openmrs.Encounter;
@@ -24,7 +25,7 @@ public class DocumentReferenceDaoImplIntegrationTest extends BaseModuleContextSe
 	private static final String PATIENT_UUID = "da7f524f-27ce-4bb2-86d6-6d1d05312bd5";
 
 	@Autowired
-	private DocumentReferenceDao documentReferenceDao;
+	private SessionFactory sessionFactory;
 
 	@Test
 	public void shouldPersistDocumentReferenceWithAllFields() {
@@ -43,12 +44,13 @@ public class DocumentReferenceDaoImplIntegrationTest extends BaseModuleContextSe
 		docRef.setDateCreated(new Date());
 		docRef.setVoided(false);
 
-		documentReferenceDao.createOrUpdate(docRef);
+		Session session = sessionFactory.getCurrentSession();
+		session.saveOrUpdate(docRef);
+		session.flush();
+		session.clear();
 
-		Context.flushSession();
-		Context.clearSession();
-
-		FhirDocumentReference saved = documentReferenceDao.get(docRef.getUuid());
+		FhirDocumentReference saved = (FhirDocumentReference) session.get(FhirDocumentReference.class,
+		    docRef.getDocumentReferenceId());
 
 		assertNotNull(saved);
 		assertNotNull("encounter_id FK must be persisted", saved.getEncounter());
