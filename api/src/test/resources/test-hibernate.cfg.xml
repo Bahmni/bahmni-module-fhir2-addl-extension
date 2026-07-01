@@ -5,6 +5,7 @@
 
 <hibernate-configuration>
 	<session-factory>
+		<property name="hbm2ddl.auto">update</property>
 		<mapping resource="DocumentReference.hbm.xml"/>
 		<mapping resource="DocumentReferenceContent.hbm.xml"/>
 		<mapping resource="DocumentReferenceAttribute.hbm.xml"/>
