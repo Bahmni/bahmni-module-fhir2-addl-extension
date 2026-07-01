@@ -4,12 +4,10 @@ import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReference;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.openmrs.Encounter;
 import org.openmrs.api.context.Context;
 import org.openmrs.test.BaseModuleContextSensitiveTest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.util.Date;
 import java.util.UUID;
@@ -17,7 +15,6 @@ import java.util.UUID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-@RunWith(SpringJUnit4ClassRunner.class)
 public class DocumentReferenceDaoImplIntegrationTest extends BaseModuleContextSensitiveTest {
 
 	private static final String ENCOUNTER_UUID = "6519d653-393b-4118-9c83-a3715b82d4ac";
