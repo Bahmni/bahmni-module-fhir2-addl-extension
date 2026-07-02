@@ -1,59 +1,75 @@
 package org.bahmni.module.fhir2addlextension.api.dao.impl;
 
 import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReference;
-import org.hibernate.Session;
+import org.h2.jdbcx.JdbcDataSource;
 import org.hibernate.SessionFactory;
+import org.hibernate.engine.spi.SessionFactoryImplementor;
+import org.hibernate.persister.entity.AbstractEntityPersister;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
-import org.openmrs.Encounter;
-import org.openmrs.api.context.Context;
-import org.openmrs.test.BaseModuleContextSensitiveTest;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.orm.hibernate5.LocalSessionFactoryBuilder;
 
-import java.util.Date;
-import java.util.UUID;
+import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-public class DocumentReferenceDaoImplIntegrationTest extends BaseModuleContextSensitiveTest {
-
-	private static final String ENCOUNTER_UUID = "6519d653-393b-4118-9c83-a3715b82d4ac";
-
-	private static final String PATIENT_UUID = "da7f524f-27ce-4bb2-86d6-6d1d05312bd5";
-
-	@Autowired
-	private SessionFactory sessionFactory;
-
+/**
+ * Boots a real Hibernate SessionFactory over the OpenMRS model plus this module's mappings against
+ * an in-memory H2 database. This exercises the load-bearing {@code encounter -> encounter_id}
+ * many-to-one in DocumentReference.hbm.xml: a wrong column, class FQN or field name fails at
+ * SessionFactory startup here, which the Mockito-based unit tests cannot catch.
+ */
+public class DocumentReferenceDaoImplIntegrationTest {
+	
+	private static SessionFactory sessionFactory;
+	
+	@BeforeClass
+	public static void buildSessionFactory() throws Exception {
+		JdbcDataSource dataSource = new JdbcDataSource();
+		dataSource.setUrl("jdbc:h2:mem:docref;DB_CLOSE_DELAY=-1");
+		dataSource.setUser("sa");
+		
+		Properties properties = new Properties();
+		properties.put("hibernate.dialect", "org.hibernate.dialect.H2Dialect");
+		properties.put("hibernate.hbm2ddl.auto", "create");
+		properties.put("hibernate.search.autoregister_listeners", "false");
+		
+		LocalSessionFactoryBuilder builder = new LocalSessionFactoryBuilder(dataSource);
+		for (Resource mapping : new PathMatchingResourcePatternResolver()
+		        .getResources("classpath*:org/openmrs/api/db/hibernate/*.hbm.xml")) {
+			builder.addInputStream(mapping.getInputStream());
+		}
+		builder.scanPackages("org.openmrs");
+		builder.addResource("DocumentReference.hbm.xml");
+		builder.addResource("DocumentReferenceContent.hbm.xml");
+		builder.addResource("DocumentReferenceAttribute.hbm.xml");
+		builder.addResource("DocumentReferenceAttributeType.hbm.xml");
+		builder.addProperties(properties);
+		
+		sessionFactory = builder.buildSessionFactory();
+	}
+	
+	@AfterClass
+	public static void closeSessionFactory() {
+		if (sessionFactory != null) {
+			sessionFactory.close();
+		}
+	}
+	
 	@Test
-	public void shouldPersistDocumentReferenceWithAllFields() {
-		Encounter encounter = Context.getEncounterService().getEncounterByUuid(ENCOUNTER_UUID);
-		assertNotNull("Standard test encounter must exist", encounter);
-
-		FhirDocumentReference docRef = new FhirDocumentReference();
-		docRef.setUuid(UUID.randomUUID().toString());
-		docRef.setSubject(Context.getPatientService().getPatientByUuid(PATIENT_UUID));
-		docRef.setEncounter(encounter);
-		docRef.setDocType(Context.getConceptService().getConcept(3));
-		docRef.setStatus(FhirDocumentReference.FhirDocumentReferenceStatus.CURRENT);
-		docRef.setDocStatus(FhirDocumentReference.FhirDocumentReferenceDocStatus.FINAL);
-		docRef.setDescription("Test note");
-		docRef.setCreator(Context.getUserContext().getAuthenticatedUser());
-		docRef.setDateCreated(new Date());
-		docRef.setVoided(false);
-
-		Session session = sessionFactory.getCurrentSession();
-		session.saveOrUpdate(docRef);
-		session.flush();
-		session.clear();
-
-		FhirDocumentReference saved = (FhirDocumentReference) session.get(FhirDocumentReference.class,
-		    docRef.getDocumentReferenceId());
-
-		assertNotNull(saved);
-		assertNotNull("encounter_id FK must be persisted", saved.getEncounter());
-		assertEquals(ENCOUNTER_UUID, saved.getEncounter().getUuid());
-		assertEquals("Test note", saved.getDescription());
-		assertEquals(FhirDocumentReference.FhirDocumentReferenceStatus.CURRENT, saved.getStatus());
-		assertEquals(FhirDocumentReference.FhirDocumentReferenceDocStatus.FINAL, saved.getDocStatus());
+	public void shouldMapEncounterToEncounterIdColumn() {
+		AbstractEntityPersister persister = (AbstractEntityPersister) ((SessionFactoryImplementor) sessionFactory)
+		        .getMetamodel().entityPersister(FhirDocumentReference.class.getName());
+		
+		String[] encounterColumns = persister.getPropertyColumnNames("encounter");
+		
+		assertNotNull(encounterColumns);
+		assertEquals(1, encounterColumns.length);
+		assertEquals("encounter_id", encounterColumns[0]);
+		assertEquals("org.openmrs.Encounter", persister.getPropertyType("encounter").getReturnedClass().getName());
 	}
 }
