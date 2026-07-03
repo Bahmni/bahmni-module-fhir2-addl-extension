@@ -34,70 +34,70 @@ import org.powermock.modules.junit4.PowerMockRunner;
 @PowerMockIgnore({ "javax.*", "org.apache.*", "org.slf4j.*" })
 @PrepareForTest(Context.class)
 public class BahmniPatientPhotoProviderTest {
-
+	
 	@Rule
 	public TemporaryFolder tempFolder = new TemporaryFolder();
-
+	
 	@Mock
 	private UserContext userContext;
-
+	
 	@Mock
 	private HttpServletResponse response;
-
+	
 	@Mock
 	private ServletOutputStream outputStream;
-
+	
 	@Mock
 	private PatientService patientService;
-
+	
 	@Mock
 	private BahmniPatientPhotoService photoService;
-
+	
 	private BahmniPatientPhotoProvider provider;
-
+	
 	@Before
 	public void setUp() throws Exception {
 		mockStatic(Context.class);
 		when(Context.getUserContext()).thenReturn(userContext);
 		when(Context.getPatientService()).thenReturn(patientService);
 		when(response.getOutputStream()).thenReturn(outputStream);
-
+		
 		provider = new BahmniPatientPhotoProvider();
 		java.lang.reflect.Field field = BahmniPatientPhotoProvider.class.getDeclaredField("photoService");
 		field.setAccessible(true);
 		field.set(provider, photoService);
 	}
-
+	
 	@Test
 	public void getResourceType_shouldReturnPatient() {
 		assertEquals(Patient.class, provider.getResourceType());
 	}
-
+	
 	@Test(expected = ForbiddenOperationException.class)
 	public void getPhoto_shouldThrowForbiddenWhenLacksPrivilege() throws Exception {
 		when(userContext.hasPrivilege(PrivilegeConstants.GET_PATIENT_PHOTO)).thenReturn(false);
-
+		
 		provider.getPhoto(new IdType("patient-uuid"), response);
 	}
-
+	
 	@Test(expected = ResourceNotFoundException.class)
 	public void getPhoto_shouldThrowNotFoundWhenPatientNotFound() throws Exception {
 		when(userContext.hasPrivilege(PrivilegeConstants.GET_PATIENT_PHOTO)).thenReturn(true);
 		when(patientService.getPatientByUuid("nonexistent-uuid")).thenReturn(null);
-
+		
 		provider.getPhoto(new IdType("nonexistent-uuid"), response);
 	}
-
+	
 	@Test(expected = ResourceNotFoundException.class)
 	public void getPhoto_shouldThrowNotFoundWhenImageFileDoesNotExist() throws Exception {
 		when(userContext.hasPrivilege(PrivilegeConstants.GET_PATIENT_PHOTO)).thenReturn(true);
 		org.openmrs.Patient patient = new org.openmrs.Patient();
 		when(patientService.getPatientByUuid("patient-uuid")).thenReturn(patient);
 		when(photoService.getImageFile(patient)).thenReturn(new File("/nonexistent/path.jpeg"));
-
+		
 		provider.getPhoto(new IdType("patient-uuid"), response);
 	}
-
+	
 	@Test
 	public void getPhoto_shouldReturnImageWhenFileExists() throws Exception {
 		when(userContext.hasPrivilege(PrivilegeConstants.GET_PATIENT_PHOTO)).thenReturn(true);
@@ -115,14 +115,14 @@ public class BahmniPatientPhotoProviderTest {
 		verify(response).setContentType("image/jpeg");
 		verify(response).setStatus(HttpServletResponse.SC_OK);
 	}
-
+	
 	@Test(expected = InternalErrorException.class)
 	public void getPhoto_shouldThrowInternalErrorWhenExceptionOccurs() throws Exception {
 		when(userContext.hasPrivilege(PrivilegeConstants.GET_PATIENT_PHOTO)).thenReturn(true);
 		org.openmrs.Patient patient = new org.openmrs.Patient();
 		when(patientService.getPatientByUuid("patient-uuid")).thenReturn(patient);
 		when(photoService.getImageFile(patient)).thenThrow(new RuntimeException("service error"));
-
+		
 		provider.getPhoto(new IdType("patient-uuid"), response);
 	}
 }

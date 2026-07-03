@@ -7,10 +7,10 @@ import org.openmrs.PersonAttributeType;
 import java.util.Map;
 
 public interface PersonAttributeExtensionTranslator {
-
+	
 	Extension toFhirResource(PersonAttribute attribute);
-
+	
 	PersonAttributeType resolveType(String extensionUrl, Map<String, PersonAttributeType> slugToTypeMap);
-
+	
 	Map<String, PersonAttributeType> buildSlugToTypeMap();
 }

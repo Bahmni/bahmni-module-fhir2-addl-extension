@@ -74,8 +74,8 @@ public class DocumentReferenceDaoImpl extends BaseFhirDao<FhirDocumentReference>
             }
         });
     }
-
-    private void handleDocType(Criteria criteria, TokenAndListParam type) {
+	
+	private void handleDocType(Criteria criteria, TokenAndListParam type) {
         if (type == null) {
             return;
         }
