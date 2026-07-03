@@ -74,9 +74,9 @@ public class BahmniDocumentReferenceFhirR4ResourceProvider implements IResourceP
 	        @OptionalParam(name = DocumentReference.SP_RES_ID) TokenAndListParam id,
 	        @OptionalParam(name = "_lastUpdated") DateRangeParam lastUpdated,
 	        @OptionalParam(name = ServiceRequest.SP_ENCOUNTER, chainWhitelist = { "" }, targetTypes = Encounter.class) ReferenceAndListParam encounterReference,
-	        @Sort SortSpec sort) {
+	        @OptionalParam(name = DocumentReference.SP_TYPE) TokenAndListParam type, @Sort SortSpec sort) {
 		BahmniDocumentReferenceSearchParams searchParams = new BahmniDocumentReferenceSearchParams(patientReference, id,
-		        lastUpdated, encounterReference, sort);
+		        lastUpdated, encounterReference, type, sort);
 		return fhirDocumentReferenceService.searchDocumentReferences(searchParams);
 	}
 	

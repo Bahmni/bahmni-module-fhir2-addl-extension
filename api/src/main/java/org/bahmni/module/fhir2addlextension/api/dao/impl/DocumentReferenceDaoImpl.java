@@ -1,6 +1,7 @@
 package org.bahmni.module.fhir2addlextension.api.dao.impl;
 
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
+import ca.uhn.fhir.rest.param.TokenAndListParam;
 import org.bahmni.module.fhir2addlextension.api.dao.DocumentReferenceDao;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReference;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceAttribute;
@@ -64,10 +65,23 @@ public class DocumentReferenceDaoImpl extends BaseFhirDao<FhirDocumentReference>
                     param.getValue().forEach(patientReference -> handlePatientReference(criteria,
                             (ReferenceAndListParam) patientReference.getParam(), "subject"));
                     break;
+                case FhirConstants.CODED_SEARCH_HANDLER:
+                    param.getValue().forEach(type -> handleDocType(criteria, (TokenAndListParam) type.getParam()));
+                    break;
                 case FhirConstants.COMMON_SEARCH_HANDLER:
                     handleCommonSearchParameters(param.getValue()).ifPresent(criteria::add);
                     break;
             }
         });
+    }
+
+    private void handleDocType(Criteria criteria, TokenAndListParam type) {
+        if (type == null) {
+            return;
+        }
+        if (lacksAlias(criteria, "dt")) {
+            criteria.createAlias("docType", "dt");
+        }
+        handleCodeableConcept(criteria, type, "dt", "dtcm", "dtcrt").ifPresent(criteria::add);
     }
 }
