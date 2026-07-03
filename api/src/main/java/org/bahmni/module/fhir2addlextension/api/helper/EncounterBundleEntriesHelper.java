@@ -2,6 +2,7 @@ package org.bahmni.module.fhir2addlextension.api.helper;
 
 import ca.uhn.fhir.rest.server.exceptions.InternalErrorException;
 import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.DocumentReference;
 import org.hl7.fhir.r4.model.Immunization;
 import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Reference;
@@ -166,6 +167,15 @@ public class EncounterBundleEntriesHelper {
                     entry.setResource(immunization);
                 }
                 break;
+            case DocumentReference:
+                DocumentReference documentReference = (DocumentReference) resource;
+                if (documentReference.hasContext() && documentReference.getContext().hasEncounter()) {
+                    String placeholderReferenceUrl = documentReference.getContext().getEncounter().get(0).getReference();
+                    documentReference.getContext().getEncounter().set(0,
+                        createEncounterReference(getIdForPlaceHolderReference(placeholderReferenceUrl, processedEntries)));
+                    entry.setResource(documentReference);
+                }
+                break;
 			default:
 				break;
 		}
@@ -255,6 +265,12 @@ public class EncounterBundleEntriesHelper {
                 Immunization immunization = (Immunization) resource;
                 if (immunization.hasEncounter()) {
                     references.add(immunization.getEncounter());
+                }
+                break;
+            case DocumentReference:
+                DocumentReference documentReference = (DocumentReference) resource;
+                if (documentReference.hasContext() && documentReference.getContext().hasEncounter()) {
+                    references.add(documentReference.getContext().getEncounter().get(0));
                 }
                 break;
             default:

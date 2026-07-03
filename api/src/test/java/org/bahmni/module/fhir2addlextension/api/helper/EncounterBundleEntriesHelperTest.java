@@ -254,6 +254,102 @@ public class EncounterBundleEntriesHelperTest {
 	}
 	
 	@Test
+	public void shouldResolveDocumentReferenceContextEncounterReference() {
+		// Given
+		DocumentReference documentReference = new DocumentReference();
+		DocumentReference.DocumentReferenceContextComponent context = new DocumentReference.DocumentReferenceContextComponent();
+		context.addEncounter(new Reference("urn:uuid:placeholder"));
+		documentReference.setContext(context);
+		Bundle.BundleEntryComponent documentEntry = createBundleEntry(documentReference, "urn:uuid:document");
+		
+		// Create a processed encounter entry
+		Encounter encounter = createEncounter();
+		encounter.setId("encounter-uuid");
+		Bundle.BundleEntryComponent encounterEntry = createBundleEntry(encounter, "urn:uuid:placeholder");
+		processedEntries.put("urn:uuid:placeholder", encounterEntry);
+		
+		// When
+		Bundle.BundleEntryComponent result = EncounterBundleEntriesHelper.resolveReferences(documentEntry, processedEntries);
+		
+		// Then
+		DocumentReference resultDocument = (DocumentReference) result.getResource();
+		assertEquals(FhirConstants.ENCOUNTER, resultDocument.getContext().getEncounterFirstRep().getType());
+		assertEquals(FhirConstants.ENCOUNTER + "/encounter-uuid", resultDocument.getContext().getEncounterFirstRep()
+		        .getReference());
+	}
+	
+	@Test
+	public void shouldOrderEncounterBeforeDocumentReferenceThatReferencesIt() {
+		// Given
+		DocumentReference documentReference = new DocumentReference();
+		DocumentReference.DocumentReferenceContextComponent context = new DocumentReference.DocumentReferenceContextComponent();
+		context.addEncounter(new Reference("urn:uuid:example-encounter"));
+		documentReference.setContext(context);
+		Bundle.BundleEntryComponent documentEntry = createBundleEntry(documentReference, "urn:uuid:document");
+		
+		Encounter encounter = createEncounter();
+		encounter.setId("example-encounter");
+		Bundle.BundleEntryComponent encounterEntry = createBundleEntry(encounter, "urn:uuid:example-encounter");
+		
+		// Add entries in an order where the dependency is not respected
+		entries.add(documentEntry);
+		entries.add(encounterEntry);
+		
+		// When
+		List<Bundle.BundleEntryComponent> result = EncounterBundleEntriesHelper.orderEntriesByReference(entries);
+		
+		// Then
+		assertEquals(2, result.size());
+		// Encounter must come first since the DocumentReference references it via context.encounter
+		assertEquals(encounterEntry, result.get(0));
+		assertEquals(documentEntry, result.get(1));
+	}
+	
+	@Test
+	public void shouldLeaveDocumentReferenceUnchangedWhenItHasNoEncounterContext() {
+		// No context at all -> hasContext() == false
+		DocumentReference noContext = new DocumentReference();
+		Bundle.BundleEntryComponent noContextEntry = createBundleEntry(noContext, "urn:uuid:doc-no-context");
+		Bundle.BundleEntryComponent resultNoContext = EncounterBundleEntriesHelper.resolveReferences(noContextEntry,
+		    processedEntries);
+		assertFalse(((DocumentReference) resultNoContext.getResource()).hasContext());
+		
+		// Context present (non-empty) but no encounter -> hasContext() == true, hasEncounter() == false
+		DocumentReference contextWithoutEncounter = new DocumentReference();
+		DocumentReference.DocumentReferenceContextComponent context = new DocumentReference.DocumentReferenceContextComponent();
+		context.addRelated(new Reference("Patient/related"));
+		contextWithoutEncounter.setContext(context);
+		Bundle.BundleEntryComponent contextWithoutEncounterEntry = createBundleEntry(contextWithoutEncounter,
+		    "urn:uuid:doc-context-without-encounter");
+		Bundle.BundleEntryComponent resultContextWithoutEncounter = EncounterBundleEntriesHelper.resolveReferences(
+		    contextWithoutEncounterEntry, processedEntries);
+		assertFalse(((DocumentReference) resultContextWithoutEncounter.getResource()).getContext().hasEncounter());
+	}
+	
+	@Test
+	public void shouldNotAddDependencyForDocumentReferenceWithoutEncounterContext() {
+		// hasContext() == false
+		DocumentReference noContext = new DocumentReference();
+		Bundle.BundleEntryComponent noContextEntry = createBundleEntry(noContext, "urn:uuid:doc-no-context");
+		// hasContext() == true (non-empty), hasEncounter() == false
+		DocumentReference contextWithoutEncounter = new DocumentReference();
+		DocumentReference.DocumentReferenceContextComponent context = new DocumentReference.DocumentReferenceContextComponent();
+		context.addRelated(new Reference("Patient/related"));
+		contextWithoutEncounter.setContext(context);
+		Bundle.BundleEntryComponent emptyContextEntry = createBundleEntry(contextWithoutEncounter,
+		    "urn:uuid:doc-context-without-encounter");
+		
+		entries.add(noContextEntry);
+		entries.add(emptyContextEntry);
+		
+		List<Bundle.BundleEntryComponent> result = EncounterBundleEntriesHelper.orderEntriesByReference(entries);
+		
+		assertEquals(2, result.size());
+		assertTrue(result.contains(noContextEntry));
+		assertTrue(result.contains(emptyContextEntry));
+	}
+	
+	@Test
 	public void shouldResolveServiceRequestEncounterReference() {
 		// Given
 		ServiceRequest serviceRequest = createServiceRequest();
