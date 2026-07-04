@@ -20,6 +20,14 @@ import java.util.Date;
 @Component
 public class DocumentReferenceDaoImpl extends BaseFhirDao<FhirDocumentReference> implements DocumentReferenceDao {
 	
+	private static final String DOC_TYPE_PROPERTY = "docType";
+	
+	private static final String DOC_TYPE_ALIAS = "dt";
+	
+	private static final String DOC_TYPE_CONCEPT_MAP_ALIAS = "dtcm";
+	
+	private static final String DOC_TYPE_CONCEPT_REFERENCE_TERM_ALIAS = "dtcrt";
+	
 	@Override
 	public void voidDocumentReference(@Nonnull FhirDocumentReference documentReference, @Nonnull String voidReason) {
 		User authenticatedUser = Context.getAuthenticatedUser();
@@ -79,9 +87,10 @@ public class DocumentReferenceDaoImpl extends BaseFhirDao<FhirDocumentReference>
         if (type == null) {
             return;
         }
-        if (lacksAlias(criteria, "dt")) {
-            criteria.createAlias("docType", "dt");
+        if (lacksAlias(criteria, DOC_TYPE_ALIAS)) {
+            criteria.createAlias(DOC_TYPE_PROPERTY, DOC_TYPE_ALIAS);
         }
-        handleCodeableConcept(criteria, type, "dt", "dtcm", "dtcrt").ifPresent(criteria::add);
+        handleCodeableConcept(criteria, type, DOC_TYPE_ALIAS, DOC_TYPE_CONCEPT_MAP_ALIAS,
+            DOC_TYPE_CONCEPT_REFERENCE_TERM_ALIAS).ifPresent(criteria::add);
     }
 }
