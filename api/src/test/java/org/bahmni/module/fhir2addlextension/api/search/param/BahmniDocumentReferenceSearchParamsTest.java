@@ -61,6 +61,30 @@ public class BahmniDocumentReferenceSearchParamsTest {
 	}
 	
 	@Test
+	public void shouldAddEncounterReferenceHandlerWhenEncounterIsSupplied() {
+		ReferenceAndListParam encounterReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam("Encounter/encounter-uuid")));
+		BahmniDocumentReferenceSearchParams searchParams = new BahmniDocumentReferenceSearchParams(patientReference(), null,
+		        null, encounterReference, null, null);
+		
+		SearchParameterMap searchParameterMap = searchParams.toSearchParameterMap();
+		
+		assertEquals(1, searchParameterMap.getParameters(FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER).size());
+		assertEquals(encounterReference, searchParameterMap.getParameters(FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER)
+		        .get(0).getParam());
+	}
+	
+	@Test
+	public void shouldNotAddEncounterReferenceHandlerWhenEncounterIsAbsent() {
+		BahmniDocumentReferenceSearchParams searchParams = new BahmniDocumentReferenceSearchParams(patientReference(), null,
+		        null, null, null, null);
+		
+		SearchParameterMap searchParameterMap = searchParams.toSearchParameterMap();
+		
+		assertTrue(searchParameterMap.getParameters(FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER).isEmpty());
+	}
+	
+	@Test
 	public void shouldAlwaysAddPatientReferenceHandler() {
 		BahmniDocumentReferenceSearchParams searchParams = new BahmniDocumentReferenceSearchParams(patientReference(), null,
 		        null, null, null, null);

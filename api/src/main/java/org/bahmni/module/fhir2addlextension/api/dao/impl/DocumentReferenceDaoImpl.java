@@ -28,6 +28,8 @@ public class DocumentReferenceDaoImpl extends BaseFhirDao<FhirDocumentReference>
 	
 	private static final String DOC_TYPE_CONCEPT_REFERENCE_TERM_ALIAS = "dtcrt";
 	
+	private static final String ENCOUNTER_ALIAS = "e";
+	
 	@Override
 	public void voidDocumentReference(@Nonnull FhirDocumentReference documentReference, @Nonnull String voidReason) {
 		User authenticatedUser = Context.getAuthenticatedUser();
@@ -72,6 +74,10 @@ public class DocumentReferenceDaoImpl extends BaseFhirDao<FhirDocumentReference>
                 case FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER :
                     param.getValue().forEach(patientReference -> handlePatientReference(criteria,
                             (ReferenceAndListParam) patientReference.getParam(), "subject"));
+                    break;
+                case FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER:
+                    param.getValue().forEach(encounterReference -> handleEncounterReference(criteria,
+                            (ReferenceAndListParam) encounterReference.getParam(), ENCOUNTER_ALIAS));
                     break;
                 case FhirConstants.CODED_SEARCH_HANDLER:
                     param.getValue().forEach(type -> handleDocType(criteria, (TokenAndListParam) type.getParam()));
