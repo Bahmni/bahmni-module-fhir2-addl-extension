@@ -76,15 +76,30 @@ public class BahmniFhirObservationServiceImpl extends FhirObservationServiceImpl
 		Obs openmrsObj = getTranslator().toOpenmrsType(newResource);
 		Set<Obs> groupMembers = openmrsObj.getGroupMembers();
 		
+		// Set UUID from FHIR resource id BEFORE validateObject().
+		// OpenMRS BaseOpenmrsObject lazily auto-generates UUID on the first getUuid() call
+		// (triggered inside validateObject), so we must set it first to honour the client UUID.
+		if (newResource.hasId()) {
+			openmrsObj.setUuid(newResource.getIdElement().getIdPart());
+		}
+		
 		validateObject(openmrsObj);
 		
-		if (openmrsObj.getUuid() == null) {
-			openmrsObj.setUuid(FhirUtils.newUuid());
+		// If the UUID maps to an existing obs and there are group members to link,
+		// this is an existing parent group obs — do NOT re-create it.
+		// Just link the new children via updateObsMember and return the existing obs.
+		// Note: when ALL children are deleted the frontend sends DELETE for the parent obs too,
+		// so this path is only reached when there are valid new children to link.
+		if (newResource.hasId() && !groupMembers.isEmpty()) {
+			Obs existingObs = getDao().get(openmrsObj.getUuid());
+			if (existingObs != null) {
+				bahmniObsDao.updateObsMember(existingObs, groupMembers);
+				return getTranslator().toFhirResource(existingObs);
+			}
 		}
 		
 		Obs updatedObs = getDao().createOrUpdate(openmrsObj);
 		bahmniObsDao.updateObsMember(updatedObs, groupMembers);
-		Observation resource = getTranslator().toFhirResource(updatedObs);
-		return resource;
+		return getTranslator().toFhirResource(updatedObs);
 	}
 }

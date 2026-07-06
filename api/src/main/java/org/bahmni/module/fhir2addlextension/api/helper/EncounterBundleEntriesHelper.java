@@ -150,12 +150,20 @@ public class EncounterBundleEntriesHelper {
 					entry.setResource(observation);
 				}
                 if (observation.hasHasMember()) {
+                    List<Reference> resolvedMembers = new ArrayList<>();
                     observation.getHasMember().forEach(reference -> {
                         String placeholderReferenceUrl = reference.getReference();
-                        String observationUuid = getIdForPlaceHolderReference(placeholderReferenceUrl, processedEntries);
+                        Bundle.BundleEntryComponent processedEntry = processedEntries.get(placeholderReferenceUrl);
+                        // Skip references to deleted obs — DELETE entries produce no resource in result
+                        if (processedEntry == null || processedEntry.getResource() == null) {
+                            return;
+                        }
+                        String observationUuid = processedEntry.getResource().getId();
                         reference.setReference(FhirConstants.OBSERVATION + "/" + observationUuid);
                         reference.setType(FhirConstants.OBSERVATION);
+                        resolvedMembers.add(reference);
                     });
+                    observation.setHasMember(resolvedMembers);
                     entry.setResource(observation);
                 }
 				break;
