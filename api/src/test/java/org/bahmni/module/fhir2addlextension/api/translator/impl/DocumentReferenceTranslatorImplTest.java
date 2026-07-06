@@ -339,7 +339,7 @@ public class DocumentReferenceTranslatorImplTest {
 		Assert.assertEquals(startDate, fhirDocumentReference.getDateStarted());
 		Assert.assertEquals(endDate, fhirDocumentReference.getDateEnded());
 	}
-
+	
 	@Test
 	public void toFhirResource_shouldMapDescription() {
 		FhirDocumentReference docRef = new FhirDocumentReference();
@@ -347,22 +347,22 @@ public class DocumentReferenceTranslatorImplTest {
 		docRef.setDescription("Test note for the document");
 		docRef.setStatus(FhirDocumentReference.FhirDocumentReferenceStatus.CURRENT);
 		docRef.setDocStatus(FhirDocumentReference.FhirDocumentReferenceDocStatus.PRELIMINARY);
-
+		
 		DocumentReference fhirResource = translator.toFhirResource(docRef);
-
+		
 		Assert.assertTrue(fhirResource.hasDescription());
 		Assert.assertEquals("Test note for the document", fhirResource.getDescription());
 	}
-
+	
 	@Test
 	public void toFhirResource_shouldNotMapDescriptionWhenNull() {
 		FhirDocumentReference docRef = new FhirDocumentReference();
 		docRef.setUuid("test-uuid");
 		docRef.setStatus(FhirDocumentReference.FhirDocumentReferenceStatus.CURRENT);
 		docRef.setDocStatus(FhirDocumentReference.FhirDocumentReferenceDocStatus.PRELIMINARY);
-
+		
 		DocumentReference fhirResource = translator.toFhirResource(docRef);
-
+		
 		Assert.assertFalse(fhirResource.hasDescription());
 	}
 }

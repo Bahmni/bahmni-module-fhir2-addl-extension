@@ -1,6 +1,7 @@
 package org.bahmni.module.fhir2addlextension.api.dao.impl;
 
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
+import ca.uhn.fhir.rest.param.TokenAndListParam;
 import org.bahmni.module.fhir2addlextension.api.dao.DocumentReferenceDao;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReference;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceAttribute;
@@ -18,6 +19,16 @@ import java.util.Date;
 
 @Component
 public class DocumentReferenceDaoImpl extends BaseFhirDao<FhirDocumentReference> implements DocumentReferenceDao {
+	
+	private static final String DOC_TYPE_PROPERTY = "docType";
+	
+	private static final String DOC_TYPE_ALIAS = "dt";
+	
+	private static final String DOC_TYPE_CONCEPT_MAP_ALIAS = "dtcm";
+	
+	private static final String DOC_TYPE_CONCEPT_REFERENCE_TERM_ALIAS = "dtcrt";
+	
+	private static final String ENCOUNTER_ALIAS = "e";
 	
 	@Override
 	public void voidDocumentReference(@Nonnull FhirDocumentReference documentReference, @Nonnull String voidReason) {
@@ -64,10 +75,28 @@ public class DocumentReferenceDaoImpl extends BaseFhirDao<FhirDocumentReference>
                     param.getValue().forEach(patientReference -> handlePatientReference(criteria,
                             (ReferenceAndListParam) patientReference.getParam(), "subject"));
                     break;
+                case FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER:
+                    param.getValue().forEach(encounterReference -> handleEncounterReference(criteria,
+                            (ReferenceAndListParam) encounterReference.getParam(), ENCOUNTER_ALIAS));
+                    break;
+                case FhirConstants.CODED_SEARCH_HANDLER:
+                    param.getValue().forEach(type -> handleDocType(criteria, (TokenAndListParam) type.getParam()));
+                    break;
                 case FhirConstants.COMMON_SEARCH_HANDLER:
                     handleCommonSearchParameters(param.getValue()).ifPresent(criteria::add);
                     break;
             }
         });
+    }
+	
+	private void handleDocType(Criteria criteria, TokenAndListParam type) {
+        if (type == null) {
+            return;
+        }
+        if (lacksAlias(criteria, DOC_TYPE_ALIAS)) {
+            criteria.createAlias(DOC_TYPE_PROPERTY, DOC_TYPE_ALIAS);
+        }
+        handleCodeableConcept(criteria, type, DOC_TYPE_ALIAS, DOC_TYPE_CONCEPT_MAP_ALIAS,
+            DOC_TYPE_CONCEPT_REFERENCE_TERM_ALIAS).ifPresent(criteria::add);
     }
 }

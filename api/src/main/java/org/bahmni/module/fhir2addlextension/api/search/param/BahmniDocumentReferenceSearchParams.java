@@ -14,6 +14,8 @@ import org.springframework.util.StringUtils;
 
 import java.util.Collections;
 
+import static org.openmrs.module.fhir2.FhirConstants.CODED_SEARCH_HANDLER;
+import static org.openmrs.module.fhir2.FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER;
 import static org.openmrs.module.fhir2.FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER;
 
 @Data
@@ -25,17 +27,29 @@ public class BahmniDocumentReferenceSearchParams extends BaseResourceSearchParam
 	
 	private ReferenceAndListParam encounterReference;
 	
+	private TokenAndListParam type;
+	
 	public BahmniDocumentReferenceSearchParams(ReferenceAndListParam patientReference, TokenAndListParam id,
-	    DateRangeParam lastUpdated, ReferenceAndListParam encounterReference, SortSpec sort) {
+	    DateRangeParam lastUpdated, ReferenceAndListParam encounterReference, TokenAndListParam type, SortSpec sort) {
 		super(id, lastUpdated, sort, Collections.emptySet(), Collections.emptySet());
 		
 		this.patientReference = patientReference;
 		this.encounterReference = encounterReference;
+		this.type = type;
 	}
 	
 	@Override
 	public SearchParameterMap toSearchParameterMap() {
-		return baseSearchParameterMap().addParameter(PATIENT_REFERENCE_SEARCH_HANDLER, patientReference);
+		SearchParameterMap searchParameterMap = baseSearchParameterMap().addParameter(PATIENT_REFERENCE_SEARCH_HANDLER,
+		    patientReference).addParameter(ENCOUNTER_REFERENCE_SEARCH_HANDLER, encounterReference);
+		if (hasType()) {
+			searchParameterMap.addParameter(CODED_SEARCH_HANDLER, type);
+		}
+		return searchParameterMap;
+	}
+	
+	public boolean hasType() {
+		return (type != null) && !type.getValuesAsQueryTokens().isEmpty();
 	}
 	
 	public boolean hasPatientReference() {

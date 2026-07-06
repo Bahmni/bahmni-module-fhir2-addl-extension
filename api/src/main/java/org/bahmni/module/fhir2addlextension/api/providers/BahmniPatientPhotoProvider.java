@@ -26,40 +26,42 @@ import java.nio.file.Files;
 @Component
 @R4Provider
 public class BahmniPatientPhotoProvider implements IResourceProvider {
-
+	
 	private static final Logger log = LoggerFactory.getLogger(BahmniPatientPhotoProvider.class);
-
+	
 	@Autowired
 	private BahmniPatientPhotoService photoService;
-
+	
 	@Override
 	public Class<? extends IBaseResource> getResourceType() {
 		return Patient.class;
 	}
-
+	
 	@Operation(name = "$photo", type = Patient.class, idempotent = true, manualResponse = true)
 	public void getPhoto(@IdParam IdType patientId, HttpServletResponse response) throws IOException {
 		if (!Context.getUserContext().hasPrivilege(PrivilegeConstants.GET_PATIENT_PHOTO)) {
 			throw new ForbiddenOperationException("User does not have privilege: " + PrivilegeConstants.GET_PATIENT_PHOTO);
 		}
-
+		
 		org.openmrs.Patient patient = Context.getPatientService().getPatientByUuid(patientId.getIdPart());
 		if (patient == null) {
 			throw new ResourceNotFoundException("Patient not found: " + patientId.getIdPart());
 		}
-
+		
 		try {
 			File imageFile = photoService.getImageFile(patient);
 			if (imageFile == null || !imageFile.exists()) {
 				throw new ResourceNotFoundException("Photo not found for patient: " + patientId.getIdPart());
 			}
-
+			
 			response.setContentType("image/jpeg");
 			response.setStatus(HttpServletResponse.SC_OK);
 			Files.copy(imageFile.toPath(), response.getOutputStream());
-		} catch (ResourceNotFoundException e) {
+		}
+		catch (ResourceNotFoundException e) {
 			throw e;
-		} catch (Exception e) {
+		}
+		catch (Exception e) {
 			log.error("Failed to retrieve patient photo for {}", patientId.getIdPart(), e);
 			throw new InternalErrorException("Failed to retrieve patient photo", e);
 		}
