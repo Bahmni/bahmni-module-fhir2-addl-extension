@@ -15,6 +15,7 @@ import org.springframework.util.StringUtils;
 import java.util.Collections;
 
 import static org.openmrs.module.fhir2.FhirConstants.CODED_SEARCH_HANDLER;
+import static org.openmrs.module.fhir2.FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER;
 import static org.openmrs.module.fhir2.FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER;
 
 @Data
@@ -44,13 +45,20 @@ public class BahmniDocumentReferenceSearchParams extends BaseResourceSearchParam
 		if (hasType()) {
 			searchParameterMap.addParameter(CODED_SEARCH_HANDLER, type);
 		}
+		if (hasEncounterReference()) {
+			searchParameterMap.addParameter(ENCOUNTER_REFERENCE_SEARCH_HANDLER, encounterReference);
+		}
 		return searchParameterMap;
 	}
-	
+
 	public boolean hasType() {
 		return (type != null) && !type.getValuesAsQueryTokens().isEmpty();
 	}
-	
+
+	public boolean hasEncounterReference() {
+		return (encounterReference != null) && !encounterReference.getValuesAsQueryTokens().isEmpty();
+	}
+
 	public boolean hasPatientReference() {
 		if ((patientReference == null) || patientReference.getValuesAsQueryTokens().isEmpty()) {
 			return false;

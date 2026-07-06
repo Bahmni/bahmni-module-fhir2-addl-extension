@@ -24,7 +24,12 @@ public class BahmniDocumentReferenceSearchParamsTest {
 	private TokenAndListParam docType(String system, String code) {
 		return new TokenAndListParam().addAnd(new TokenOrListParam().add(new TokenParam(system, code)));
 	}
-	
+
+	private ReferenceAndListParam encounterReference() {
+		return new ReferenceAndListParam()
+		        .addAnd(new ReferenceOrListParam().add(new ReferenceParam("Encounter/encounter-uuid")));
+	}
+
 	@Test
 	public void shouldAddTypeUnderCodedSearchHandlerWhenTypeIsPresent() {
 		TokenAndListParam type = docType("http://bahmni.org/document-type", "discharge-summary");
@@ -60,6 +65,31 @@ public class BahmniDocumentReferenceSearchParamsTest {
 		assertTrue(searchParameterMap.getParameters(FhirConstants.CODED_SEARCH_HANDLER).isEmpty());
 	}
 	
+	@Test
+	public void shouldAddEncounterReferenceUnderEncounterReferenceSearchHandlerWhenPresent() {
+		ReferenceAndListParam encounterReference = encounterReference();
+		BahmniDocumentReferenceSearchParams searchParams = new BahmniDocumentReferenceSearchParams(patientReference(), null,
+		        null, encounterReference, null, null);
+
+		SearchParameterMap searchParameterMap = searchParams.toSearchParameterMap();
+
+		assertTrue(searchParams.hasEncounterReference());
+		assertEquals(1, searchParameterMap.getParameters(FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER).size());
+		assertEquals(encounterReference,
+		    searchParameterMap.getParameters(FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER).get(0).getParam());
+	}
+
+	@Test
+	public void shouldNotAddEncounterReferenceSearchHandlerWhenAbsent() {
+		BahmniDocumentReferenceSearchParams searchParams = new BahmniDocumentReferenceSearchParams(patientReference(), null,
+		        null, null, null, null);
+
+		SearchParameterMap searchParameterMap = searchParams.toSearchParameterMap();
+
+		assertFalse(searchParams.hasEncounterReference());
+		assertTrue(searchParameterMap.getParameters(FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER).isEmpty());
+	}
+
 	@Test
 	public void shouldAlwaysAddPatientReferenceHandler() {
 		BahmniDocumentReferenceSearchParams searchParams = new BahmniDocumentReferenceSearchParams(patientReference(), null,

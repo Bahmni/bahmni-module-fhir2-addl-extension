@@ -73,6 +73,10 @@ public class DocumentReferenceDaoImpl extends BaseFhirDao<FhirDocumentReference>
                     param.getValue().forEach(patientReference -> handlePatientReference(criteria,
                             (ReferenceAndListParam) patientReference.getParam(), "subject"));
                     break;
+                case FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER:
+                    param.getValue().forEach(encounterReference -> handleEncounterReference(criteria,
+                            (ReferenceAndListParam) encounterReference.getParam(), "e"));
+                    break;
                 case FhirConstants.CODED_SEARCH_HANDLER:
                     param.getValue().forEach(type -> handleDocType(criteria, (TokenAndListParam) type.getParam()));
                     break;

@@ -1,5 +1,8 @@
 package org.bahmni.module.fhir2addlextension.api.dao.impl;
 
+import ca.uhn.fhir.rest.param.ReferenceAndListParam;
+import ca.uhn.fhir.rest.param.ReferenceOrListParam;
+import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.TokenAndListParam;
 import ca.uhn.fhir.rest.param.TokenOrListParam;
 import ca.uhn.fhir.rest.param.TokenParam;
@@ -118,6 +121,29 @@ public class DocumentReferenceDaoImplIntegrationTest {
 		}
 	}
 	
+	@Test
+	public void shouldBuildAndRunCriteriaWhenSearchingByEncounterReference() {
+		ReferenceAndListParam encounterReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam("Encounter/encounter-uuid")));
+		SearchParameterMap params = new SearchParameterMap();
+		params.addParameter(FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER, encounterReference);
+
+		DocumentReferenceDaoImpl dao = daoBackedBySessionFactory();
+		Session session = sessionFactory.openSession();
+		try {
+			Criteria criteria = session.createCriteria(FhirDocumentReference.class);
+			dao.setupSearchParams(criteria, params);
+
+			List<?> results = criteria.list();
+
+			assertNotNull(results);
+			assertTrue(results.isEmpty());
+		}
+		finally {
+			session.close();
+		}
+	}
+
 	private DocumentReferenceDaoImpl daoBackedBySessionFactory() {
 		return new DocumentReferenceDaoImpl() {
 			
