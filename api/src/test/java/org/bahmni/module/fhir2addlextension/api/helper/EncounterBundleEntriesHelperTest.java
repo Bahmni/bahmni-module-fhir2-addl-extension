@@ -279,6 +279,35 @@ public class EncounterBundleEntriesHelperTest {
 	}
 	
 	@Test
+	public void shouldResolveAllDocumentReferenceContextEncounterReferences() {
+		// Given a DocumentReference whose context references more than one encounter
+		DocumentReference documentReference = new DocumentReference();
+		DocumentReference.DocumentReferenceContextComponent context = new DocumentReference.DocumentReferenceContextComponent();
+		context.addEncounter(new Reference("urn:uuid:placeholder-1"));
+		context.addEncounter(new Reference("urn:uuid:placeholder-2"));
+		documentReference.setContext(context);
+		Bundle.BundleEntryComponent documentEntry = createBundleEntry(documentReference, "urn:uuid:document");
+		
+		Encounter encounterOne = createEncounter();
+		encounterOne.setId("encounter-uuid-1");
+		processedEntries.put("urn:uuid:placeholder-1", createBundleEntry(encounterOne, "urn:uuid:placeholder-1"));
+		Encounter encounterTwo = createEncounter();
+		encounterTwo.setId("encounter-uuid-2");
+		processedEntries.put("urn:uuid:placeholder-2", createBundleEntry(encounterTwo, "urn:uuid:placeholder-2"));
+		
+		// When
+		Bundle.BundleEntryComponent result = EncounterBundleEntriesHelper.resolveReferences(documentEntry, processedEntries);
+		
+		// Then every encounter reference is resolved, not just the first
+		DocumentReference resultDocument = (DocumentReference) result.getResource();
+		assertEquals(2, resultDocument.getContext().getEncounter().size());
+		assertEquals(FhirConstants.ENCOUNTER + "/encounter-uuid-1", resultDocument.getContext().getEncounter().get(0)
+		        .getReference());
+		assertEquals(FhirConstants.ENCOUNTER + "/encounter-uuid-2", resultDocument.getContext().getEncounter().get(1)
+		        .getReference());
+	}
+	
+	@Test
 	public void shouldOrderEncounterBeforeDocumentReferenceThatReferencesIt() {
 		// Given
 		DocumentReference documentReference = new DocumentReference();

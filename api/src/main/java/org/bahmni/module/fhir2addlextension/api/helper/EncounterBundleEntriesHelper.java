@@ -170,9 +170,12 @@ public class EncounterBundleEntriesHelper {
             case DocumentReference:
                 DocumentReference documentReference = (DocumentReference) resource;
                 if (documentReference.hasContext() && documentReference.getContext().hasEncounter()) {
-                    String placeholderReferenceUrl = documentReference.getContext().getEncounter().get(0).getReference();
-                    documentReference.getContext().getEncounter().set(0,
-                        createEncounterReference(getIdForPlaceHolderReference(placeholderReferenceUrl, processedEntries)));
+                    List<Reference> encounterReferences = documentReference.getContext().getEncounter();
+                    for (int i = 0; i < encounterReferences.size(); i++) {
+                        String placeholderReferenceUrl = encounterReferences.get(i).getReference();
+                        encounterReferences.set(i,
+                            createEncounterReference(getIdForPlaceHolderReference(placeholderReferenceUrl, processedEntries)));
+                    }
                     entry.setResource(documentReference);
                 }
                 break;
@@ -270,7 +273,7 @@ public class EncounterBundleEntriesHelper {
             case DocumentReference:
                 DocumentReference documentReference = (DocumentReference) resource;
                 if (documentReference.hasContext() && documentReference.getContext().hasEncounter()) {
-                    references.add(documentReference.getContext().getEncounter().get(0));
+                    references.addAll(documentReference.getContext().getEncounter());
                 }
                 break;
             default:
