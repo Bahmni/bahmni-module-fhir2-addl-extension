@@ -110,6 +110,14 @@
 			e.g - "RADIOLOGY ORDER:REFERRAL_RADIOLOGY_CENTER;LAB ORDER:REFERRAL_LABORATORY_CENTER"
 		</description>
 	</globalProperty>
+	<globalProperty>
+		<property>bahmni.documentUpload.maxFileSizeInMB</property>
+		<defaultValue>5</defaultValue>
+		<description>
+			Maximum allowed document upload size in MB. Used by the Patient Documents frontend for a
+			client-side size pre-check; admins can override it in Advanced Settings.
+		</description>
+	</globalProperty>
 	<!-- Required Global Properties -->
 
 	<!-- Servlets -->
