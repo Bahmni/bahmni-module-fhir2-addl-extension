@@ -6,8 +6,11 @@ import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2addlextension.api.context.RequestContextHolder;
 import org.bahmni.module.fhir2addlextension.api.dao.BahmniObsDao;
+import org.bahmni.module.fhir2addlextension.api.dao.BahmniObservationDao;
+import org.bahmni.module.fhir2addlextension.api.search.param.BahmniObservationSearchParams;
 import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirObservationService;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
@@ -15,10 +18,15 @@ import org.hl7.fhir.r4.model.Meta;
 import org.hl7.fhir.r4.model.Observation;
 import org.hl7.fhir.r4.model.Resource;
 import org.openmrs.Obs;
+import org.openmrs.module.fhir2.api.dao.FhirDao;
 import org.openmrs.module.fhir2.api.impl.FhirObservationServiceImpl;
+import org.openmrs.module.fhir2.api.search.SearchQuery;
+import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
 import org.openmrs.module.fhir2.api.search.param.ObservationSearchParams;
+import org.openmrs.module.fhir2.api.translators.OpenmrsFhirTranslator;
 import org.openmrs.module.fhir2.api.util.FhirUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
@@ -29,11 +37,38 @@ import java.util.Set;
 
 @Component
 @Primary
+@Slf4j
 public class BahmniFhirObservationServiceImpl extends FhirObservationServiceImpl implements BahmniFhirObservationService {
 	
-	@Getter(value = AccessLevel.PROTECTED)
-	@Setter(onMethod_ = @Autowired)
-	private BahmniObsDao bahmniObsDao;
+	private final BahmniObsDao bahmniObsDao;
+	
+	private final BahmniObservationDao bahmniObservationDao;
+	
+	private final SearchQueryInclude<Observation> searchQueryInclude;
+	
+	private final SearchQuery<Obs, Observation, FhirDao<Obs>, OpenmrsFhirTranslator<Obs, Observation>, SearchQueryInclude<Observation>> searchQuery;
+	
+	@Autowired
+	public BahmniFhirObservationServiceImpl(
+	    BahmniObsDao bahmniObsDao,
+	    BahmniObservationDao bahmniObservationDao,
+	    SearchQueryInclude<Observation> searchQueryInclude,
+	    SearchQuery<Obs, Observation, FhirDao<Obs>, OpenmrsFhirTranslator<Obs, Observation>, SearchQueryInclude<Observation>> searchQuery) {
+		this.bahmniObsDao = bahmniObsDao;
+		this.bahmniObservationDao = bahmniObservationDao;
+		this.searchQueryInclude = searchQueryInclude;
+		this.searchQuery = searchQuery;
+	}
+	
+	@Override
+	public IBundleProvider searchObservations(BahmniObservationSearchParams searchParams) {
+		if (!searchParams.hasPatientReference() && !searchParams.hasBasedOnReference()) {
+			log.error("Missing patient reference or basedOn reference for Observation search");
+			throw new UnsupportedOperationException("You must specify patient reference or basedOn reference!");
+		}
+		return searchQuery.getQueryResults(searchParams.toSearchParameterMap(), bahmniObservationDao, getTranslator(),
+		    searchQueryInclude);
+	}
 	
 	@Override
 	public Bundle fetchAllByEncounter(ReferenceAndListParam encounterReference) {
