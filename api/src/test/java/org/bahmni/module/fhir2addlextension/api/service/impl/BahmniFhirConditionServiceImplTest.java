@@ -257,9 +257,15 @@ public class BahmniFhirConditionServiceImplTest {
 		conditionService.searchConditions(searchParams);
 	}
 	
-	@Test(expected = InvalidRequestException.class)
-	public void shouldThrowInvalidRequestExceptionWhenSearchingConditionsWithoutCategory() {
-		conditionService.searchConditions(new ConditionSearchParams());
+	@Test
+	public void shouldDefaultToProblemListItemWhenSearchingConditionsWithoutCategory() {
+		when(searchQuery.getQueryResults(any(SearchParameterMap.class), eq(dao), eq(translator), eq(searchQueryInclude)))
+		        .thenReturn(mock(IBundleProvider.class));
+		
+		IBundleProvider result = conditionService.searchConditions(new ConditionSearchParams());
+		
+		assertThat(result, notNullValue());
+		verify(searchQuery).getQueryResults(any(SearchParameterMap.class), eq(dao), eq(translator), eq(searchQueryInclude));
 	}
 	
 	// Helper method to create a condition with a specific category
