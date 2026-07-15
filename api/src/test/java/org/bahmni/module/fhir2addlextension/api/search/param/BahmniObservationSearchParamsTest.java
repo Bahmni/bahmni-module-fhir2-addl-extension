@@ -482,4 +482,80 @@ public class BahmniObservationSearchParamsTest {
 		searchParams = new BahmniObservationSearchParams(null, basedOnRef, null, null);
 		assertTrue("Should handle complex basedOn reference with multiple AND/ORs", searchParams.hasBasedOnReference());
 	}
+	
+	@Test
+	public void shouldReturnFalseWhenPatientReferenceHasEmptyOrListParams() {
+		ReferenceAndListParam patientRef = new ReferenceAndListParam();
+		ReferenceOrListParam emptyOrList = new ReferenceOrListParam();
+		patientRef.addAnd(emptyOrList);
+		ReferenceOrListParam validOrList = new ReferenceOrListParam();
+		validOrList.add(new ReferenceParam("Patient", PATIENT_UUID));
+		patientRef.addAnd(validOrList);
+		
+		searchParams = new BahmniObservationSearchParams(patientRef, null, null, null);
+		assertTrue("Should skip empty OR lists and find valid reference", searchParams.hasPatientReference());
+	}
+	
+	@Test
+	public void shouldReturnFalseWhenBasedOnReferenceHasEmptyOrListParams() {
+		ReferenceAndListParam basedOnRef = new ReferenceAndListParam();
+		ReferenceOrListParam emptyOrList = new ReferenceOrListParam();
+		basedOnRef.addAnd(emptyOrList);
+		ReferenceOrListParam validOrList = new ReferenceOrListParam();
+		validOrList.add(new ReferenceParam("ServiceRequest", SERVICE_REQUEST_UUID));
+		basedOnRef.addAnd(validOrList);
+		
+		searchParams = new BahmniObservationSearchParams(null, basedOnRef, null, null);
+		assertTrue("Should skip empty OR lists and find valid reference", searchParams.hasBasedOnReference());
+	}
+	
+	@Test
+	public void shouldReturnFalseWhenAllPatientOrListParamsAreEmpty() {
+		ReferenceAndListParam patientRef = new ReferenceAndListParam();
+		ReferenceOrListParam emptyOrList1 = new ReferenceOrListParam();
+		patientRef.addAnd(emptyOrList1);
+		ReferenceOrListParam emptyOrList2 = new ReferenceOrListParam();
+		patientRef.addAnd(emptyOrList2);
+		
+		searchParams = new BahmniObservationSearchParams(patientRef, null, null, null);
+		assertFalse("Should return false when all OR lists are empty", searchParams.hasPatientReference());
+	}
+	
+	@Test
+	public void shouldReturnFalseWhenAllBasedOnOrListParamsAreEmpty() {
+		ReferenceAndListParam basedOnRef = new ReferenceAndListParam();
+		ReferenceOrListParam emptyOrList1 = new ReferenceOrListParam();
+		basedOnRef.addAnd(emptyOrList1);
+		ReferenceOrListParam emptyOrList2 = new ReferenceOrListParam();
+		basedOnRef.addAnd(emptyOrList2);
+		
+		searchParams = new BahmniObservationSearchParams(null, basedOnRef, null, null);
+		assertFalse("Should return false when all OR lists are empty", searchParams.hasBasedOnReference());
+	}
+	
+	@Test
+	public void shouldHandlePatientReferenceWithMultipleEmptyAndValidOrLists() {
+		ReferenceAndListParam patientRef = new ReferenceAndListParam();
+		patientRef.addAnd(new ReferenceOrListParam());
+		patientRef.addAnd(new ReferenceOrListParam());
+		ReferenceOrListParam validOrList = new ReferenceOrListParam();
+		validOrList.add(new ReferenceParam("Patient", PATIENT_UUID));
+		patientRef.addAnd(validOrList);
+		
+		searchParams = new BahmniObservationSearchParams(patientRef, null, null, null);
+		assertTrue("Should find valid reference after skipping empty OR lists", searchParams.hasPatientReference());
+	}
+	
+	@Test
+	public void shouldHandleBasedOnReferenceWithMultipleEmptyAndValidOrLists() {
+		ReferenceAndListParam basedOnRef = new ReferenceAndListParam();
+		basedOnRef.addAnd(new ReferenceOrListParam());
+		basedOnRef.addAnd(new ReferenceOrListParam());
+		ReferenceOrListParam validOrList = new ReferenceOrListParam();
+		validOrList.add(new ReferenceParam("ServiceRequest", SERVICE_REQUEST_UUID));
+		basedOnRef.addAnd(validOrList);
+		
+		searchParams = new BahmniObservationSearchParams(null, basedOnRef, null, null);
+		assertTrue("Should find valid reference after skipping empty OR lists", searchParams.hasBasedOnReference());
+	}
 }
