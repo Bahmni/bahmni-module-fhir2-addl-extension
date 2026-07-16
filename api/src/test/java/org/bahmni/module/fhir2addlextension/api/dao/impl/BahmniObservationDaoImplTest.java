@@ -32,6 +32,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.times;
@@ -69,6 +70,8 @@ public class BahmniObservationDaoImplTest {
 		when(criteria.createAlias(anyString(), anyString())).thenReturn(criteria);
 		when(criteria.add(any())).thenReturn(criteria);
 		when(criteria.list()).thenReturn(Collections.emptyList());
+		when(criteria.setFirstResult(anyInt())).thenReturn(criteria);
+		when(criteria.addOrder(any())).thenReturn(criteria);
 	}
 	
 	@Test
@@ -194,7 +197,6 @@ public class BahmniObservationDaoImplTest {
 		List<Obs> results = dao.getSearchResults(theParams);
 		
 		assertThat(results, notNullValue());
-		// Code executed successfully
 	}
 	
 	@Test
@@ -214,7 +216,101 @@ public class BahmniObservationDaoImplTest {
 		List<Obs> results = dao.getSearchResults(theParams);
 		
 		assertThat(results, notNullValue());
-		// Verify criteria interactions - code executed successfully
+		verify(criteria, atLeastOnce()).add(any());
+	}
+	
+	@Test
+	public void shouldCreateAliasWhenLackingForBasedOnReference() {
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam().setValue(ORDER_UUID)));
+		
+		SearchParameterMap theParams = new SearchParameterMap();
+		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
+		
+		List<Obs> results = dao.getSearchResults(theParams);
+		
+		assertThat(results, notNullValue());
+		verify(criteria, atLeastOnce()).add(any());
+	}
+	
+	@Test
+	public void shouldHandleReferenceValueWithoutSlash() {
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam().setValue(ORDER_UUID)));
+		
+		SearchParameterMap theParams = new SearchParameterMap();
+		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
+		
+		List<Obs> results = dao.getSearchResults(theParams);
+		
+		assertThat(results, notNullValue());
+		verify(criteria, atLeastOnce()).add(any());
+	}
+	
+	@Test
+	public void shouldExtractUuidFromReferenceValueWithSlash() {
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam().setValue("ServiceRequest/" + ORDER_UUID)));
+		
+		SearchParameterMap theParams = new SearchParameterMap();
+		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
+		
+		List<Obs> results = dao.getSearchResults(theParams);
+		
+		assertThat(results, notNullValue());
+		verify(criteria, atLeastOnce()).add(any());
+	}
+	
+	@Test
+	public void shouldExtractUuidFromFullUrlWithMultipleSlashes() {
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam().setValue("http://fhir.server.com/base/ServiceRequest/" + ORDER_UUID)));
+		
+		SearchParameterMap theParams = new SearchParameterMap();
+		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
+		
+		List<Obs> results = dao.getSearchResults(theParams);
+		
+		assertThat(results, notNullValue());
+		verify(criteria, atLeastOnce()).add(any());
+	}
+	
+	@Test
+	public void shouldHandleBasedOnReferenceNotNull() {
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam().setValue("test-order-uuid")));
+		
+		SearchParameterMap theParams = new SearchParameterMap();
+		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
+		
+		List<Obs> results = dao.getSearchResults(theParams);
+		
+		assertThat(results, notNullValue());
+		verify(criteria, atLeastOnce()).add(any());
+	}
+	
+	@Test
+	public void shouldHandleBasedOnReferenceIsNull() {
+		SearchParameterMap theParams = new SearchParameterMap();
+		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, null);
+		
+		List<Obs> results = dao.getSearchResults(theParams);
+		
+		assertThat(results, notNullValue());
+		verify(criteria, times(0)).createAlias("order", "o");
+	}
+	
+	@Test
+	public void shouldHandleReferenceValueContainingSlashAtEnd() {
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam().setValue("ServiceRequest/" + ORDER_UUID + "/")));
+		
+		SearchParameterMap theParams = new SearchParameterMap();
+		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
+		
+		List<Obs> results = dao.getSearchResults(theParams);
+		
+		assertThat(results, notNullValue());
 		verify(criteria, atLeastOnce()).add(any());
 	}
 }
