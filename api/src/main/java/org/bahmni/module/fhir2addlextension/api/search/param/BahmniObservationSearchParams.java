@@ -48,32 +48,20 @@ public class BahmniObservationSearchParams extends BaseResourceSearchParams {
 	}
 	
 	public boolean hasPatientReference() {
-		if ((patientReference == null) || patientReference.getValuesAsQueryTokens().isEmpty()) {
-			return false;
-		}
-		
-		boolean hasParam = false;
-		for (ReferenceOrListParam referenceOrListParam : patientReference.getValuesAsQueryTokens()) {
-			if (referenceOrListParam.getValuesAsQueryTokens().isEmpty()) {
-				continue;
-			}
-			boolean match = referenceOrListParam.getValuesAsQueryTokens().stream()
-			        .anyMatch(referenceParam -> StringUtils.isEmpty(referenceParam.getValue()));
-			if (match) {
-				continue;
-			}
-			hasParam = true;
-		}
-		return hasParam;
+		return hasReferenceParam(patientReference);
 	}
 	
 	public boolean hasBasedOnReference() {
-		if ((basedOnReference == null) || basedOnReference.getValuesAsQueryTokens().isEmpty()) {
+		return hasReferenceParam(basedOnReference);
+	}
+	
+	private boolean hasReferenceParam(ReferenceAndListParam reference) {
+		if ((reference == null) || reference.getValuesAsQueryTokens().isEmpty()) {
 			return false;
 		}
 		
 		boolean hasParam = false;
-		for (ReferenceOrListParam referenceOrListParam : basedOnReference.getValuesAsQueryTokens()) {
+		for (ReferenceOrListParam referenceOrListParam : reference.getValuesAsQueryTokens()) {
 			if (referenceOrListParam.getValuesAsQueryTokens().isEmpty()) {
 				continue;
 			}

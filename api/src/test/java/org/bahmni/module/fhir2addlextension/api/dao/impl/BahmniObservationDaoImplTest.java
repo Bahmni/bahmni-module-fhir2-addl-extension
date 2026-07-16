@@ -313,4 +313,56 @@ public class BahmniObservationDaoImplTest {
 		assertThat(results, notNullValue());
 		verify(criteria, atLeastOnce()).add(any());
 	}
+	
+	@Test
+	public void shouldHandleCommonSearchHandlerWithoutBasedOnReference() {
+		SearchParameterMap theParams = new SearchParameterMap();
+		theParams.addParameter(FhirConstants.COMMON_SEARCH_HANDLER, null);
+		
+		List<Obs> results = dao.getSearchResults(theParams);
+		
+		assertThat(results, notNullValue());
+		verify(criteria, times(0)).createAlias("order", "o");
+	}
+	
+	@Test
+	public void shouldHandleReferenceValueWithoutContainingSlash() {
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam().setValue(ORDER_UUID)));
+		
+		SearchParameterMap theParams = new SearchParameterMap();
+		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
+		
+		List<Obs> results = dao.getSearchResults(theParams);
+		
+		assertThat(results, notNullValue());
+		verify(criteria, atLeastOnce()).add(any());
+	}
+	
+	@Test
+	public void shouldExtractUuidWhenReferenceContainsSlash() {
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam().setValue("ServiceRequest/" + ORDER_UUID)));
+		
+		SearchParameterMap theParams = new SearchParameterMap();
+		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
+		
+		List<Obs> results = dao.getSearchResults(theParams);
+		
+		assertThat(results, notNullValue());
+		verify(criteria, atLeastOnce()).add(any());
+	}
+	
+	@Test
+	public void shouldHandleNullReferenceValue() {
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam().setValue(null)));
+		
+		SearchParameterMap theParams = new SearchParameterMap();
+		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
+		
+		List<Obs> results = dao.getSearchResults(theParams);
+		
+		assertThat(results, notNullValue());
+	}
 }
