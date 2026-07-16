@@ -450,7 +450,7 @@ public class BahmniObservationSearchParamsTest {
 		assertNotNull("Last updated should not be null", searchParams.getLastUpdated());
 		assertNotNull("Sort should not be null", searchParams.getSort());
 	}
-
+	
 	@Test
 	public void shouldTestEqualsAndHashCode() {
 		ReferenceAndListParam patientRef = new ReferenceAndListParam();

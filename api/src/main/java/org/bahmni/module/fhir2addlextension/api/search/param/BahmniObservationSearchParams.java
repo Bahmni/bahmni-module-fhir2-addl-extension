@@ -62,12 +62,9 @@ public class BahmniObservationSearchParams extends BaseResourceSearchParams {
 		
 		boolean hasParam = false;
 		for (ReferenceOrListParam referenceOrListParam : reference.getValuesAsQueryTokens()) {
-			if (referenceOrListParam.getValuesAsQueryTokens().isEmpty()) {
-				continue;
-			}
-			boolean match = referenceOrListParam.getValuesAsQueryTokens().stream()
-			        .anyMatch(referenceParam -> StringUtils.isEmpty(referenceParam.getValue()));
-			if (match) {
+			if (referenceOrListParam.getValuesAsQueryTokens().isEmpty() || 
+			    referenceOrListParam.getValuesAsQueryTokens().stream()
+			        .anyMatch(referenceParam -> StringUtils.isEmpty(referenceParam.getValue()))) {
 				continue;
 			}
 			hasParam = true;
