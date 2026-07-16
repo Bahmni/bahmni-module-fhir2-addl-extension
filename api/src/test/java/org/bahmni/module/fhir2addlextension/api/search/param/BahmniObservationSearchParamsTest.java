@@ -450,6 +450,82 @@ public class BahmniObservationSearchParamsTest {
 		assertNotNull("Last updated should not be null", searchParams.getLastUpdated());
 		assertNotNull("Sort should not be null", searchParams.getSort());
 	}
+
+	@Test
+	public void shouldTestEqualsAndHashCode() {
+		ReferenceAndListParam patientRef = new ReferenceAndListParam();
+		ReferenceOrListParam orListParam = new ReferenceOrListParam();
+		orListParam.add(new ReferenceParam("Patient", PATIENT_UUID));
+		patientRef.addAnd(orListParam);
+		
+		BahmniObservationSearchParams params1 = new BahmniObservationSearchParams(patientRef, null, null, null);
+		BahmniObservationSearchParams params2 = new BahmniObservationSearchParams(patientRef, null, null, null);
+		
+		assertTrue("Should be equal with same values", params1.equals(params2));
+		assertTrue("Hash codes should be equal", params1.hashCode() == params2.hashCode());
+	}
+	
+	@Test
+	public void shouldTestEqualsWithDifferentValues() {
+		ReferenceAndListParam patientRef1 = new ReferenceAndListParam();
+		ReferenceOrListParam orListParam1 = new ReferenceOrListParam();
+		orListParam1.add(new ReferenceParam("Patient", PATIENT_UUID));
+		patientRef1.addAnd(orListParam1);
+		
+		ReferenceAndListParam patientRef2 = new ReferenceAndListParam();
+		ReferenceOrListParam orListParam2 = new ReferenceOrListParam();
+		orListParam2.add(new ReferenceParam("Patient", "different-uuid"));
+		patientRef2.addAnd(orListParam2);
+		
+		BahmniObservationSearchParams params1 = new BahmniObservationSearchParams(patientRef1, null, null, null);
+		BahmniObservationSearchParams params2 = new BahmniObservationSearchParams(patientRef2, null, null, null);
+		
+		assertFalse("Should not be equal with different values", params1.equals(params2));
+	}
+	
+	@Test
+	public void shouldTestEqualsWithNull() {
+		BahmniObservationSearchParams params1 = new BahmniObservationSearchParams();
+		
+		assertFalse("Should not be equal to null", params1.equals(null));
+	}
+	
+	@Test
+	public void shouldTestEqualsWithSameInstance() {
+		BahmniObservationSearchParams params1 = new BahmniObservationSearchParams();
+		
+		assertTrue("Should be equal to itself", params1.equals(params1));
+	}
+	
+	@Test
+	public void shouldTestSetBasedOnReference() {
+		searchParams = new BahmniObservationSearchParams();
+		
+		ReferenceAndListParam basedOnRef = new ReferenceAndListParam();
+		ReferenceOrListParam orListParam = new ReferenceOrListParam();
+		orListParam.add(new ReferenceParam("ServiceRequest", SERVICE_REQUEST_UUID));
+		basedOnRef.addAnd(orListParam);
+		
+		searchParams.setBasedOnReference(basedOnRef);
+		
+		assertNotNull("BasedOn reference should be set", searchParams.getBasedOnReference());
+		assertTrue("Should have basedOn reference after setting", searchParams.hasBasedOnReference());
+	}
+	
+	@Test
+	public void shouldTestAllGettersWithConstructor() {
+		ReferenceAndListParam patientRef = new ReferenceAndListParam();
+		ReferenceAndListParam basedOnRef = new ReferenceAndListParam();
+		DateRangeParam lastUpdated = new DateRangeParam();
+		SortSpec sort = new SortSpec("_lastUpdated");
+		
+		BahmniObservationSearchParams params = new BahmniObservationSearchParams(patientRef, basedOnRef, lastUpdated, sort);
+		
+		assertNotNull("Should get patient reference", params.getPatientReference());
+		assertNotNull("Should get basedOn reference", params.getBasedOnReference());
+		assertNotNull("Should get last updated", params.getLastUpdated());
+		assertNotNull("Should get sort", params.getSort());
+	}
 	
 	@Test
 	public void shouldHandleComplexPatientReferenceWithMultipleAndOrs() {

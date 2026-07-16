@@ -365,4 +365,111 @@ public class BahmniObservationDaoImplTest {
 		
 		assertThat(results, notNullValue());
 	}
+	
+	@Test
+	public void shouldHandleBasedOnReferenceWhenValueIsNull() {
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam();
+		ReferenceOrListParam orListParam = new ReferenceOrListParam();
+		ReferenceParam refParam = new ReferenceParam();
+		refParam.setValue(null);
+		orListParam.add(refParam);
+		basedOnReference.addAnd(orListParam);
+		
+		SearchParameterMap theParams = new SearchParameterMap();
+		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
+		
+		List<Obs> results = dao.getSearchResults(theParams);
+		
+		assertThat(results, notNullValue());
+	}
+	
+	@Test
+	public void shouldHandleBasedOnReferenceWhenValueDoesNotContainSlash() {
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam();
+		ReferenceOrListParam orListParam = new ReferenceOrListParam();
+		ReferenceParam refParam = new ReferenceParam();
+		refParam.setValue("simple-uuid-without-slash");
+		orListParam.add(refParam);
+		basedOnReference.addAnd(orListParam);
+		
+		SearchParameterMap theParams = new SearchParameterMap();
+		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
+		
+		List<Obs> results = dao.getSearchResults(theParams);
+		
+		assertThat(results, notNullValue());
+		verify(criteria, atLeastOnce()).add(any());
+	}
+	
+	@Test
+	public void shouldHandleBasedOnReferenceWhenValueContainsSlash() {
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam();
+		ReferenceOrListParam orListParam = new ReferenceOrListParam();
+		ReferenceParam refParam = new ReferenceParam();
+		refParam.setValue("ServiceRequest/uuid-after-slash");
+		orListParam.add(refParam);
+		basedOnReference.addAnd(orListParam);
+		
+		SearchParameterMap theParams = new SearchParameterMap();
+		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
+		
+		List<Obs> results = dao.getSearchResults(theParams);
+		
+		assertThat(results, notNullValue());
+		verify(criteria, atLeastOnce()).add(any());
+	}
+	
+	@Test
+	public void shouldHandleCommonSearchParametersWithMultipleParams() {
+		ReferenceAndListParam patientReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam().setValue(PATIENT_UUID)));
+		
+		SearchParameterMap theParams = new SearchParameterMap();
+		theParams.addParameter(FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER, patientReference);
+		theParams.addParameter(FhirConstants.COMMON_SEARCH_HANDLER, null);
+		
+		List<Obs> results = dao.getSearchResults(theParams);
+		
+		assertThat(results, notNullValue());
+	}
+	
+	@Test
+	public void shouldNotCreateAliasWhenBasedOnReferenceIsNull() {
+		SearchParameterMap theParams = new SearchParameterMap();
+		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, null);
+		
+		List<Obs> results = dao.getSearchResults(theParams);
+		
+		assertThat(results, notNullValue());
+	}
+	
+	@Test
+	public void shouldHandleEmptyBasedOnReference() {
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam();
+		
+		SearchParameterMap theParams = new SearchParameterMap();
+		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
+		
+		List<Obs> results = dao.getSearchResults(theParams);
+		
+		assertThat(results, notNullValue());
+	}
+	
+	@Test
+	public void shouldExtractCorrectUuidFromReferenceWithMultipleSlashes() {
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam();
+		ReferenceOrListParam orListParam = new ReferenceOrListParam();
+		ReferenceParam refParam = new ReferenceParam();
+		refParam.setValue("https://example.com/fhir/ServiceRequest/final-uuid");
+		orListParam.add(refParam);
+		basedOnReference.addAnd(orListParam);
+		
+		SearchParameterMap theParams = new SearchParameterMap();
+		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
+		
+		List<Obs> results = dao.getSearchResults(theParams);
+		
+		assertThat(results, notNullValue());
+		verify(criteria, atLeastOnce()).add(any());
+	}
 }
