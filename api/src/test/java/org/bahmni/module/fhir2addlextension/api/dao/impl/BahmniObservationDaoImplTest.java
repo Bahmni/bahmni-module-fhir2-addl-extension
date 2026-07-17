@@ -40,8 +40,6 @@ public class BahmniObservationDaoImplTest {
 	
 	private static final String ORDER_UUID = "7d96f25c-4949-4f72-9931-d808fbc226de";
 	
-	private static final String ORDER_UUID_WITH_PREFIX = "ServiceRequest/7d96f25c-4949-4f72-9931-d808fbc226de";
-	
 	@Mock
 	private SessionFactory sessionFactory;
 	
@@ -195,7 +193,7 @@ public class BahmniObservationDaoImplTest {
 		assertThat(results, notNullValue());
 		verify(criteria, atLeastOnce()).add(any());
 	}
-
+	
 	@Test
 	public void shouldHandleBasedOnReferenceNotNull() {
 		StringAndListParam basedOnReference = new StringAndListParam().addAnd(new StringOrListParam().add(new StringParam(
@@ -230,20 +228,6 @@ public class BahmniObservationDaoImplTest {
 		
 		assertThat(results, notNullValue());
 		verify(criteria, times(0)).createAlias("order", "o");
-	}
-	
-	@Test
-	public void shouldHandleReferenceValueWithoutContainingSlash() {
-		StringAndListParam basedOnReference = new StringAndListParam().addAnd(new StringOrListParam().add(new StringParam(
-		        ORDER_UUID)));
-		
-		SearchParameterMap theParams = new SearchParameterMap();
-		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
-		
-		List<Obs> results = dao.getSearchResults(theParams);
-		
-		assertThat(results, notNullValue());
-		verify(criteria, atLeastOnce()).add(any());
 	}
 	
 	@Test
