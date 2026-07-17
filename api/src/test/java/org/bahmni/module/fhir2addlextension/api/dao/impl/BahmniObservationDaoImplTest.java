@@ -4,6 +4,9 @@ import ca.uhn.fhir.rest.param.DateRangeParam;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.ReferenceOrListParam;
 import ca.uhn.fhir.rest.param.ReferenceParam;
+import ca.uhn.fhir.rest.param.StringAndListParam;
+import ca.uhn.fhir.rest.param.StringOrListParam;
+import ca.uhn.fhir.rest.param.StringParam;
 import org.hibernate.Criteria;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -80,22 +83,8 @@ public class BahmniObservationDaoImplTest {
 	
 	@Test
 	public void shouldSearchByBasedOnReference() {
-		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam().setValue(ORDER_UUID)));
-		
-		SearchParameterMap theParams = new SearchParameterMap();
-		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
-		
-		List<Obs> results = dao.getSearchResults(theParams);
-		
-		assertThat(results, notNullValue());
-		verify(criteria, atLeastOnce()).add(any());
-	}
-	
-	@Test
-	public void shouldSearchByBasedOnReferenceWithResourceTypePrefix() {
-		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam().setValue(ORDER_UUID_WITH_PREFIX)));
+		StringAndListParam basedOnReference = new StringAndListParam().addAnd(new StringOrListParam().add(new StringParam(
+		        ORDER_UUID)));
 		
 		SearchParameterMap theParams = new SearchParameterMap();
 		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
@@ -110,8 +99,8 @@ public class BahmniObservationDaoImplTest {
 	public void shouldSearchWithMultipleParameters() {
 		ReferenceAndListParam patientReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
 		        .add(new ReferenceParam().setValue(PATIENT_UUID)));
-		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam().setValue(ORDER_UUID)));
+		StringAndListParam basedOnReference = new StringAndListParam().addAnd(new StringOrListParam().add(new StringParam(
+		        ORDER_UUID)));
 		
 		SearchParameterMap theParams = new SearchParameterMap();
 		theParams.addParameter(FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER, patientReference);
@@ -126,8 +115,8 @@ public class BahmniObservationDaoImplTest {
 	
 	@Test
 	public void shouldSearchWithCommonSearchHandler() {
-		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam().setValue(ORDER_UUID)));
+		StringAndListParam basedOnReference = new StringAndListParam().addAnd(new StringOrListParam().add(new StringParam(
+		        ORDER_UUID)));
 		
 		SearchParameterMap theParams = new SearchParameterMap();
 		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
@@ -136,22 +125,6 @@ public class BahmniObservationDaoImplTest {
 		List<Obs> results = dao.getSearchResults(theParams);
 		
 		assertThat(results, notNullValue());
-		// Code executed successfully
-	}
-	
-	@Test
-	public void shouldHandleBasedOnReferenceWithMultipleSlashes() {
-		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam().setValue("http://fhir.server/ServiceRequest/" + ORDER_UUID)));
-		
-		SearchParameterMap theParams = new SearchParameterMap();
-		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
-		
-		List<Obs> results = dao.getSearchResults(theParams);
-		
-		assertThat(results, notNullValue());
-		// Verify criteria interactions - code executed successfully
-		verify(criteria, atLeastOnce()).add(any());
 	}
 	
 	@Test
@@ -175,10 +148,10 @@ public class BahmniObservationDaoImplTest {
 	
 	@Test
 	public void shouldHandleMultipleBasedOnReferencesInOrList() {
-		ReferenceAndListParam basedOnReference = new ReferenceAndListParam();
-		ReferenceOrListParam orListParam = new ReferenceOrListParam();
-		orListParam.add(new ReferenceParam().setValue("ServiceRequest/order-uuid-1"));
-		orListParam.add(new ReferenceParam().setValue("ServiceRequest/order-uuid-2"));
+		StringAndListParam basedOnReference = new StringAndListParam();
+		StringOrListParam orListParam = new StringOrListParam();
+		orListParam.add(new StringParam("order-uuid-1"));
+		orListParam.add(new StringParam("order-uuid-2"));
 		basedOnReference.addAnd(orListParam);
 		
 		SearchParameterMap theParams = new SearchParameterMap();
@@ -193,8 +166,8 @@ public class BahmniObservationDaoImplTest {
 	public void shouldHandleComplexMultiParameterSearch() {
 		ReferenceAndListParam patientReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
 		        .add(new ReferenceParam().setValue(PATIENT_UUID)));
-		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam().setValue("ServiceRequest/" + ORDER_UUID)));
+		StringAndListParam basedOnReference = new StringAndListParam().addAnd(new StringOrListParam().add(new StringParam(
+		        ORDER_UUID)));
 		DateRangeParam lastUpdated = new DateRangeParam();
 		lastUpdated.setLowerBound("2026-01-01");
 		
@@ -211,8 +184,8 @@ public class BahmniObservationDaoImplTest {
 	
 	@Test
 	public void shouldCreateAliasWhenLackingForBasedOnReference() {
-		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam().setValue(ORDER_UUID)));
+		StringAndListParam basedOnReference = new StringAndListParam().addAnd(new StringOrListParam().add(new StringParam(
+		        ORDER_UUID)));
 		
 		SearchParameterMap theParams = new SearchParameterMap();
 		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
@@ -222,53 +195,11 @@ public class BahmniObservationDaoImplTest {
 		assertThat(results, notNullValue());
 		verify(criteria, atLeastOnce()).add(any());
 	}
-	
-	@Test
-	public void shouldHandleReferenceValueWithoutSlash() {
-		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam().setValue(ORDER_UUID)));
-		
-		SearchParameterMap theParams = new SearchParameterMap();
-		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
-		
-		List<Obs> results = dao.getSearchResults(theParams);
-		
-		assertThat(results, notNullValue());
-		verify(criteria, atLeastOnce()).add(any());
-	}
-	
-	@Test
-	public void shouldExtractUuidFromReferenceValueWithSlash() {
-		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam().setValue("ServiceRequest/" + ORDER_UUID)));
-		
-		SearchParameterMap theParams = new SearchParameterMap();
-		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
-		
-		List<Obs> results = dao.getSearchResults(theParams);
-		
-		assertThat(results, notNullValue());
-		verify(criteria, atLeastOnce()).add(any());
-	}
-	
-	@Test
-	public void shouldExtractUuidFromFullUrlWithMultipleSlashes() {
-		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam().setValue("http://fhir.server.com/base/ServiceRequest/" + ORDER_UUID)));
-		
-		SearchParameterMap theParams = new SearchParameterMap();
-		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
-		
-		List<Obs> results = dao.getSearchResults(theParams);
-		
-		assertThat(results, notNullValue());
-		verify(criteria, atLeastOnce()).add(any());
-	}
-	
+
 	@Test
 	public void shouldHandleBasedOnReferenceNotNull() {
-		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam().setValue("test-order-uuid")));
+		StringAndListParam basedOnReference = new StringAndListParam().addAnd(new StringOrListParam().add(new StringParam(
+		        "test-order-uuid")));
 		
 		SearchParameterMap theParams = new SearchParameterMap();
 		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
@@ -291,20 +222,6 @@ public class BahmniObservationDaoImplTest {
 	}
 	
 	@Test
-	public void shouldHandleReferenceValueContainingSlashAtEnd() {
-		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam().setValue("ServiceRequest/" + ORDER_UUID + "/")));
-		
-		SearchParameterMap theParams = new SearchParameterMap();
-		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
-		
-		List<Obs> results = dao.getSearchResults(theParams);
-		
-		assertThat(results, notNullValue());
-		verify(criteria, atLeastOnce()).add(any());
-	}
-	
-	@Test
 	public void shouldHandleCommonSearchHandlerWithoutBasedOnReference() {
 		SearchParameterMap theParams = new SearchParameterMap();
 		theParams.addParameter(FhirConstants.COMMON_SEARCH_HANDLER, null);
@@ -317,22 +234,8 @@ public class BahmniObservationDaoImplTest {
 	
 	@Test
 	public void shouldHandleReferenceValueWithoutContainingSlash() {
-		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam().setValue(ORDER_UUID)));
-		
-		SearchParameterMap theParams = new SearchParameterMap();
-		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
-		
-		List<Obs> results = dao.getSearchResults(theParams);
-		
-		assertThat(results, notNullValue());
-		verify(criteria, atLeastOnce()).add(any());
-	}
-	
-	@Test
-	public void shouldExtractUuidWhenReferenceContainsSlash() {
-		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam().setValue("ServiceRequest/" + ORDER_UUID)));
+		StringAndListParam basedOnReference = new StringAndListParam().addAnd(new StringOrListParam().add(new StringParam(
+		        ORDER_UUID)));
 		
 		SearchParameterMap theParams = new SearchParameterMap();
 		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
@@ -345,8 +248,8 @@ public class BahmniObservationDaoImplTest {
 	
 	@Test
 	public void shouldHandleNullReferenceValue() {
-		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam().setValue(null)));
+		StringAndListParam basedOnReference = new StringAndListParam().addAnd(new StringOrListParam().add(new StringParam(
+		        null)));
 		
 		SearchParameterMap theParams = new SearchParameterMap();
 		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
@@ -358,11 +261,11 @@ public class BahmniObservationDaoImplTest {
 	
 	@Test
 	public void shouldHandleBasedOnReferenceWhenValueIsNull() {
-		ReferenceAndListParam basedOnReference = new ReferenceAndListParam();
-		ReferenceOrListParam orListParam = new ReferenceOrListParam();
-		ReferenceParam refParam = new ReferenceParam();
-		refParam.setValue(null);
-		orListParam.add(refParam);
+		StringAndListParam basedOnReference = new StringAndListParam();
+		StringOrListParam orListParam = new StringOrListParam();
+		StringParam strParam = new StringParam();
+		strParam.setValue(null);
+		orListParam.add(strParam);
 		basedOnReference.addAnd(orListParam);
 		
 		SearchParameterMap theParams = new SearchParameterMap();
@@ -375,29 +278,11 @@ public class BahmniObservationDaoImplTest {
 	
 	@Test
 	public void shouldHandleBasedOnReferenceWhenValueDoesNotContainSlash() {
-		ReferenceAndListParam basedOnReference = new ReferenceAndListParam();
-		ReferenceOrListParam orListParam = new ReferenceOrListParam();
-		ReferenceParam refParam = new ReferenceParam();
-		refParam.setValue("simple-uuid-without-slash");
-		orListParam.add(refParam);
-		basedOnReference.addAnd(orListParam);
-		
-		SearchParameterMap theParams = new SearchParameterMap();
-		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
-		
-		List<Obs> results = dao.getSearchResults(theParams);
-		
-		assertThat(results, notNullValue());
-		verify(criteria, atLeastOnce()).add(any());
-	}
-	
-	@Test
-	public void shouldHandleBasedOnReferenceWhenValueContainsSlash() {
-		ReferenceAndListParam basedOnReference = new ReferenceAndListParam();
-		ReferenceOrListParam orListParam = new ReferenceOrListParam();
-		ReferenceParam refParam = new ReferenceParam();
-		refParam.setValue("ServiceRequest/uuid-after-slash");
-		orListParam.add(refParam);
+		StringAndListParam basedOnReference = new StringAndListParam();
+		StringOrListParam orListParam = new StringOrListParam();
+		StringParam strParam = new StringParam();
+		strParam.setValue("simple-uuid-without-slash");
+		orListParam.add(strParam);
 		basedOnReference.addAnd(orListParam);
 		
 		SearchParameterMap theParams = new SearchParameterMap();
@@ -435,7 +320,7 @@ public class BahmniObservationDaoImplTest {
 	
 	@Test
 	public void shouldHandleEmptyBasedOnReference() {
-		ReferenceAndListParam basedOnReference = new ReferenceAndListParam();
+		StringAndListParam basedOnReference = new StringAndListParam();
 		
 		SearchParameterMap theParams = new SearchParameterMap();
 		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
@@ -445,21 +330,4 @@ public class BahmniObservationDaoImplTest {
 		assertThat(results, notNullValue());
 	}
 	
-	@Test
-	public void shouldExtractCorrectUuidFromReferenceWithMultipleSlashes() {
-		ReferenceAndListParam basedOnReference = new ReferenceAndListParam();
-		ReferenceOrListParam orListParam = new ReferenceOrListParam();
-		ReferenceParam refParam = new ReferenceParam();
-		refParam.setValue("https://example.com/fhir/ServiceRequest/final-uuid");
-		orListParam.add(refParam);
-		basedOnReference.addAnd(orListParam);
-		
-		SearchParameterMap theParams = new SearchParameterMap();
-		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
-		
-		List<Obs> results = dao.getSearchResults(theParams);
-		
-		assertThat(results, notNullValue());
-		verify(criteria, atLeastOnce()).add(any());
-	}
 }

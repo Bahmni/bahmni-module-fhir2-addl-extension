@@ -4,6 +4,8 @@ import ca.uhn.fhir.rest.api.SortSpec;
 import ca.uhn.fhir.rest.param.DateRangeParam;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.ReferenceOrListParam;
+import ca.uhn.fhir.rest.param.StringAndListParam;
+import ca.uhn.fhir.rest.param.StringOrListParam;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -23,9 +25,9 @@ public class BahmniObservationSearchParams extends BaseResourceSearchParams {
 	
 	private ReferenceAndListParam patientReference;
 	
-	private ReferenceAndListParam basedOnReference;
+	private StringAndListParam basedOnReference;
 	
-	public BahmniObservationSearchParams(ReferenceAndListParam patientReference, ReferenceAndListParam basedOnReference,
+	public BahmniObservationSearchParams(ReferenceAndListParam patientReference, StringAndListParam basedOnReference,
 	    DateRangeParam lastUpdated, SortSpec sort) {
 		super(null, lastUpdated, sort, Collections.emptySet(), Collections.emptySet());
 		this.patientReference = patientReference;
@@ -52,7 +54,7 @@ public class BahmniObservationSearchParams extends BaseResourceSearchParams {
 	}
 	
 	public boolean hasBasedOnReference() {
-		return hasReferenceParam(basedOnReference);
+		return hasStringParam(basedOnReference);
 	}
 	
 	private boolean hasReferenceParam(ReferenceAndListParam reference) {
@@ -65,6 +67,23 @@ public class BahmniObservationSearchParams extends BaseResourceSearchParams {
 			if (referenceOrListParam.getValuesAsQueryTokens().isEmpty() || 
 			    referenceOrListParam.getValuesAsQueryTokens().stream()
 			        .anyMatch(referenceParam -> StringUtils.isEmpty(referenceParam.getValue()))) {
+				continue;
+			}
+			hasParam = true;
+		}
+		return hasParam;
+	}
+	
+	private boolean hasStringParam(StringAndListParam stringParam) {
+		if ((stringParam == null) || stringParam.getValuesAsQueryTokens().isEmpty()) {
+			return false;
+		}
+		
+		boolean hasParam = false;
+		for (StringOrListParam stringOrListParam : stringParam.getValuesAsQueryTokens()) {
+			if (stringOrListParam.getValuesAsQueryTokens().isEmpty() || 
+			    stringOrListParam.getValuesAsQueryTokens().stream()
+			        .anyMatch(param -> StringUtils.isEmpty(param.getValue()))) {
 				continue;
 			}
 			hasParam = true;

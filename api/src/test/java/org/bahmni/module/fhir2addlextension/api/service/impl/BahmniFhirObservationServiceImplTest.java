@@ -4,6 +4,9 @@ import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.ReferenceOrListParam;
 import ca.uhn.fhir.rest.param.ReferenceParam;
+import ca.uhn.fhir.rest.param.StringAndListParam;
+import ca.uhn.fhir.rest.param.StringOrListParam;
+import ca.uhn.fhir.rest.param.StringParam;
 import org.bahmni.module.fhir2addlextension.api.context.RequestContextHolder;
 import org.bahmni.module.fhir2addlextension.api.dao.BahmniObsDao;
 import org.bahmni.module.fhir2addlextension.api.dao.BahmniObservationDao;
@@ -152,8 +155,8 @@ public class BahmniFhirObservationServiceImplTest {
 	
 	@Test
 	public void searchObservations_shouldReturnResultsWhenBasedOnReferenceProvided() {
-		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam().setValue(SERVICE_REQUEST_UUID)));
+		StringAndListParam basedOnReference = new StringAndListParam().addAnd(new StringOrListParam().add(new StringParam(
+		        SERVICE_REQUEST_UUID)));
 		
 		BahmniObservationSearchParams searchParams = new BahmniObservationSearchParams(null, basedOnReference, null, null);
 		
@@ -192,8 +195,8 @@ public class BahmniFhirObservationServiceImplTest {
 	public void searchObservations_shouldReturnResultsWhenBothPatientAndBasedOnProvided() {
 		ReferenceAndListParam patientReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
 		        .add(new ReferenceParam().setValue(PATIENT_UUID)));
-		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam().setValue(SERVICE_REQUEST_UUID)));
+		StringAndListParam basedOnReference = new StringAndListParam().addAnd(new StringOrListParam().add(new StringParam(
+		        SERVICE_REQUEST_UUID)));
 		
 		BahmniObservationSearchParams searchParams = new BahmniObservationSearchParams(patientReference, basedOnReference,
 		        null, null);
@@ -219,7 +222,7 @@ public class BahmniFhirObservationServiceImplTest {
 	@Test(expected = UnsupportedOperationException.class)
 	public void searchObservations_shouldThrowExceptionWhenOnlyEmptyParametersProvided() {
 		ReferenceAndListParam emptyPatient = new ReferenceAndListParam();
-		ReferenceAndListParam emptyBasedOn = new ReferenceAndListParam();
+		StringAndListParam emptyBasedOn = new StringAndListParam();
 		
 		BahmniObservationSearchParams searchParams = new BahmniObservationSearchParams(emptyPatient, emptyBasedOn, null,
 		        null);

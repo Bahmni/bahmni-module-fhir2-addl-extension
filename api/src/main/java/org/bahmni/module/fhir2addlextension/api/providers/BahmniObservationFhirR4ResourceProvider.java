@@ -11,6 +11,7 @@ import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.api.server.RequestDetails;
 import ca.uhn.fhir.rest.param.DateRangeParam;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
+import ca.uhn.fhir.rest.param.StringAndListParam;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.bahmni.module.fhir2addlextension.api.context.RequestContextHolder;
 import org.bahmni.module.fhir2addlextension.api.search.param.BahmniObservationSearchParams;
@@ -34,7 +35,7 @@ public class BahmniObservationFhirR4ResourceProvider extends ObservationFhirReso
 	public IBundleProvider searchObservation(
 	        @OptionalParam(name = Observation.SP_PATIENT, chainWhitelist = { "", Patient.SP_IDENTIFIER, Patient.SP_NAME,
 	                Patient.SP_GIVEN, Patient.SP_FAMILY }, targetTypes = Patient.class) ReferenceAndListParam patientReference,
-	        @OptionalParam(name = Observation.SP_BASED_ON, chainWhitelist = { "" }) ReferenceAndListParam basedOnReference,
+	        @OptionalParam(name = Observation.SP_BASED_ON) StringAndListParam basedOnReference,
 	        @OptionalParam(name = "_lastUpdated") DateRangeParam lastUpdated, @Sort SortSpec sort) {
 		BahmniObservationSearchParams searchParams = new BahmniObservationSearchParams(patientReference, basedOnReference,
 		        lastUpdated, sort);

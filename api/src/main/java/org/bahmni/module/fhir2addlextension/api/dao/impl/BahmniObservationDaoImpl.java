@@ -1,6 +1,7 @@
 package org.bahmni.module.fhir2addlextension.api.dao.impl;
 
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
+import ca.uhn.fhir.rest.param.StringAndListParam;
 import org.bahmni.module.fhir2addlextension.api.dao.BahmniObservationDao;
 import org.hibernate.Criteria;
 import org.openmrs.Obs;
@@ -23,7 +24,7 @@ public class BahmniObservationDaoImpl extends BaseFhirDao<Obs> implements Bahmni
 					break;
 				case FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER:
 					param.getValue().forEach(basedOnReference -> handleBasedOnReference(criteria,
-					    (ReferenceAndListParam) basedOnReference.getParam()));
+					    basedOnReference.getParam()));
 					break;
 				case FhirConstants.COMMON_SEARCH_HANDLER:
 					handleCommonSearchParameters(param.getValue()).ifPresent(criteria::add);
@@ -32,18 +33,12 @@ public class BahmniObservationDaoImpl extends BaseFhirDao<Obs> implements Bahmni
 		});
 	}
 	
-	private void handleBasedOnReference(Criteria criteria, ReferenceAndListParam basedOnReference) {
+	private void handleBasedOnReference(Criteria criteria, Object basedOnReference) {
 		if (basedOnReference != null) {
 			if (lacksAlias(criteria, "o")) {
 				criteria.createAlias("order", "o");
 			}
-			handleAndListParam(basedOnReference, param -> {
-				String referenceValue = param.getValue();
-				if (referenceValue != null && referenceValue.contains("/")) {
-					referenceValue = referenceValue.substring(referenceValue.lastIndexOf('/') + 1);
-				}
-				return propertyLike("o.uuid", referenceValue);
-			}).ifPresent(criteria::add);
+			handleAndListParam((StringAndListParam) basedOnReference, param -> propertyLike("o.uuid", param.getValue())).ifPresent(criteria::add);
 		}
 	}
 }

@@ -6,6 +6,9 @@ import ca.uhn.fhir.rest.param.DateRangeParam;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.ReferenceOrListParam;
 import ca.uhn.fhir.rest.param.ReferenceParam;
+import ca.uhn.fhir.rest.param.StringAndListParam;
+import ca.uhn.fhir.rest.param.StringOrListParam;
+import ca.uhn.fhir.rest.param.StringParam;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.bahmni.module.fhir2addlextension.api.search.param.BahmniObservationSearchParams;
 import org.hl7.fhir.r4.model.Bundle;
@@ -81,8 +84,8 @@ public class BahmniObservationFhirR4ResourceProviderTest {
 	
 	@Test
 	public void testSearchObservation_shouldSearchByBasedOn() {
-		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam().setValue(SERVICE_REQUEST_UUID)));
+		StringAndListParam basedOnReference = new StringAndListParam().addAnd(new StringOrListParam().add(new StringParam(
+		        SERVICE_REQUEST_UUID)));
 		
 		IBundleProvider expectedResults = mock(IBundleProvider.class);
 		when(observationService.searchObservations(any(BahmniObservationSearchParams.class))).thenReturn(expectedResults);
@@ -113,8 +116,8 @@ public class BahmniObservationFhirR4ResourceProviderTest {
 	public void testSearchObservation_shouldSearchByPatientAndBasedOn() {
 		ReferenceAndListParam patientReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
 		        .add(new ReferenceParam().setValue(PATIENT_UUID)));
-		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam().setValue(SERVICE_REQUEST_UUID)));
+		StringAndListParam basedOnReference = new StringAndListParam().addAnd(new StringOrListParam().add(new StringParam(
+		        SERVICE_REQUEST_UUID)));
 		
 		IBundleProvider expectedResults = mock(IBundleProvider.class);
 		when(observationService.searchObservations(any(BahmniObservationSearchParams.class))).thenReturn(expectedResults);
