@@ -523,7 +523,9 @@ public class EncounterBundleEntriesHelperTest {
 	public void shouldSkipHasMemberReferenceWhenProcessedEntryResourceIsNull() {
 		// Simulates a DELETE obs result — entry exists but resource is null
 		Bundle.BundleEntryComponent deletedObsEntry = new Bundle.BundleEntryComponent();
-		deletedObsEntry.setResource(null); // DELETE returns OperationOutcome, not Observation
+		deletedObsEntry.setResource(null);
+		deletedObsEntry.setRequest(new Bundle.BundleEntryRequestComponent().setMethod(Bundle.HTTPVerb.DELETE).setUrl(
+		    "Observation/deleted-obs-uuid"));
 		processedEntries.put("urn:uuid:deleted-obs", deletedObsEntry);
 		
 		Observation parentObs = createObservation();
@@ -541,9 +543,10 @@ public class EncounterBundleEntriesHelperTest {
 		assertTrue("hasMember should be empty after deleted ref is skipped", resultObs.getHasMember().isEmpty());
 	}
 	
-	@Test
-	public void shouldSkipHasMemberReferenceWhenProcessedEntryIsAbsent() {
-		// hasMember references an obs whose entry is not in processedEntries at all
+	@Test(expected = InternalErrorException.class)
+	public void shouldThrowExceptionWhenHasMemberReferenceIsAbsentFromProcessedEntries() {
+		// hasMember references an obs whose entry is not in processedEntries at all —
+		// this is a bundle integrity bug and must throw, consistent with other resource types.
 		Observation parentObs = createObservation();
 		parentObs.setEncounter(new Reference("urn:uuid:encounter"));
 		parentObs.addHasMember(new Reference("urn:uuid:not-in-processed-map"));
@@ -553,10 +556,7 @@ public class EncounterBundleEntriesHelperTest {
 		encounter.setId("encounter-uuid");
 		processedEntries.put("urn:uuid:encounter", createBundleEntry(encounter, "urn:uuid:encounter"));
 		
-		Bundle.BundleEntryComponent result = EncounterBundleEntriesHelper.resolveReferences(parentEntry, processedEntries);
-		
-		Observation resultObs = (Observation) result.getResource();
-		assertTrue("hasMember should be empty when referenced entry absent", resultObs.getHasMember().isEmpty());
+		EncounterBundleEntriesHelper.resolveReferences(parentEntry, processedEntries);
 	}
 	
 	@Test
@@ -569,6 +569,8 @@ public class EncounterBundleEntriesHelperTest {
 		
 		Bundle.BundleEntryComponent deletedChildEntry = new Bundle.BundleEntryComponent();
 		deletedChildEntry.setResource(null);
+		deletedChildEntry.setRequest(new Bundle.BundleEntryRequestComponent().setMethod(Bundle.HTTPVerb.DELETE).setUrl(
+		    "Observation/deleted-child-uuid"));
 		processedEntries.put("urn:uuid:deleted-child", deletedChildEntry);
 		
 		Observation parentObs = createObservation();
@@ -620,10 +622,14 @@ public class EncounterBundleEntriesHelperTest {
 	public void shouldSetEmptyHasMemberWhenAllReferencedChildrenAreDeleted() {
 		Bundle.BundleEntryComponent deletedChild1 = new Bundle.BundleEntryComponent();
 		deletedChild1.setResource(null);
+		deletedChild1.setRequest(new Bundle.BundleEntryRequestComponent().setMethod(Bundle.HTTPVerb.DELETE).setUrl(
+		    "Observation/deleted1-uuid"));
 		processedEntries.put("urn:uuid:deleted1", deletedChild1);
 		
 		Bundle.BundleEntryComponent deletedChild2 = new Bundle.BundleEntryComponent();
 		deletedChild2.setResource(null);
+		deletedChild2.setRequest(new Bundle.BundleEntryRequestComponent().setMethod(Bundle.HTTPVerb.DELETE).setUrl(
+		    "Observation/deleted2-uuid"));
 		processedEntries.put("urn:uuid:deleted2", deletedChild2);
 		
 		Observation parentObs = createObservation();
@@ -640,6 +646,118 @@ public class EncounterBundleEntriesHelperTest {
 		
 		Observation resultObs = (Observation) result.getResource();
 		assertTrue("hasMember should be empty when all referenced children are deleted", resultObs.getHasMember().isEmpty());
+	}
+	
+	@Test(expected = InternalErrorException.class)
+	public void shouldThrowWhenHasMemberEntryHasNullResourceButIsNotADeleteEntry() {
+		// A processed entry whose resource is null but whose HTTP verb is NOT DELETE
+		// is an unexpected state — the code must fail loudly, not silently drop the member.
+		Bundle.BundleEntryComponent nonDeleteNullEntry = new Bundle.BundleEntryComponent();
+		nonDeleteNullEntry.setResource(null);
+		nonDeleteNullEntry.setRequest(new Bundle.BundleEntryRequestComponent().setMethod(Bundle.HTTPVerb.POST).setUrl(
+		    "Observation"));
+		processedEntries.put("urn:uuid:bad-entry", nonDeleteNullEntry);
+		
+		Observation parentObs = createObservation();
+		parentObs.setEncounter(new Reference("urn:uuid:encounter"));
+		parentObs.addHasMember(new Reference("urn:uuid:bad-entry"));
+		Bundle.BundleEntryComponent parentEntry = createBundleEntry(parentObs, "urn:uuid:parent");
+		
+		Encounter encounter = createEncounter();
+		encounter.setId("encounter-uuid");
+		processedEntries.put("urn:uuid:encounter", createBundleEntry(encounter, "urn:uuid:encounter"));
+		
+		EncounterBundleEntriesHelper.resolveReferences(parentEntry, processedEntries);
+	}
+	
+	@Test
+	public void shouldExtractObservationUuidCorrectlyWhenResourceIdContainsResourceTypePrefix() {
+		// Verifies BahmniFhirUtils.extractId() is used: if resource.getId() returns
+		// "Observation/<uuid>" the final hasMember reference must not double-prefix to
+		// "Observation/Observation/<uuid>".
+		Observation child = createObservation();
+		child.setId("Observation/child-obs-uuid"); // simulates getId() returning a prefixed value
+		Bundle.BundleEntryComponent childEntry = createBundleEntry(child, "urn:uuid:child");
+		processedEntries.put("urn:uuid:child", childEntry);
+		
+		Observation parentObs = createObservation();
+		parentObs.setEncounter(new Reference("urn:uuid:encounter"));
+		parentObs.addHasMember(new Reference("urn:uuid:child"));
+		Bundle.BundleEntryComponent parentEntry = createBundleEntry(parentObs, "urn:uuid:parent");
+		
+		Encounter encounter = createEncounter();
+		encounter.setId("encounter-uuid");
+		processedEntries.put("urn:uuid:encounter", createBundleEntry(encounter, "urn:uuid:encounter"));
+		
+		Bundle.BundleEntryComponent result = EncounterBundleEntriesHelper.resolveReferences(parentEntry, processedEntries);
+		
+		Observation resultObs = (Observation) result.getResource();
+		assertEquals(1, resultObs.getHasMember().size());
+		// Must be "Observation/child-obs-uuid", NOT "Observation/Observation/child-obs-uuid"
+		assertEquals(FhirConstants.OBSERVATION + "/child-obs-uuid", resultObs.getHasMember().get(0).getReference());
+	}
+	
+	// ── Integration scenarios: BAH-4793 hasMember reference resolution ───────────
+	// These two tests verify the two distinct null-check cases that were previously
+	// folded into a single silent-skip.  Keeping them separate makes the contract explicit:
+	//   • absent entry (processedEntry == null)  → InternalErrorException
+	//   • DELETE result (resource == null)        → silent skip
+	
+	/**
+	 * BAH-4793 fix #2 (NPE guard): when a parent obs POST references a child that was DELETE'd in
+	 * the same bundle, the processed entry exists but has a null resource. resolveReferences must
+	 * silently skip it — the hasMember list shrinks to only the surviving (non-deleted) children.
+	 */
+	@Test
+	public void shouldSkipDeletedChildAndKeepRemainingHasMemberReferences() {
+		// Valid child — POST result
+		Observation validChild = createObservation();
+		validChild.setId("surviving-child-uuid");
+		processedEntries.put("urn:uuid:valid-child", createBundleEntry(validChild, "urn:uuid:valid-child"));
+		
+		// Deleted child — DELETE result produces a null resource entry
+		Bundle.BundleEntryComponent deletedEntry = new Bundle.BundleEntryComponent();
+		deletedEntry.setResource(null);
+		deletedEntry.setRequest(new Bundle.BundleEntryRequestComponent().setMethod(Bundle.HTTPVerb.DELETE).setUrl(
+		    "Observation/deleted-child-uuid"));
+		processedEntries.put("urn:uuid:deleted-child", deletedEntry);
+		
+		Observation parentObs = createObservation();
+		parentObs.setEncounter(new Reference("urn:uuid:encounter"));
+		parentObs.addHasMember(new Reference("urn:uuid:valid-child"));
+		parentObs.addHasMember(new Reference("urn:uuid:deleted-child"));
+		Bundle.BundleEntryComponent parentEntry = createBundleEntry(parentObs, "urn:uuid:parent");
+		
+		Encounter encounter = createEncounter();
+		encounter.setId("encounter-uuid");
+		processedEntries.put("urn:uuid:encounter", createBundleEntry(encounter, "urn:uuid:encounter"));
+		
+		Bundle.BundleEntryComponent result = EncounterBundleEntriesHelper.resolveReferences(parentEntry, processedEntries);
+		
+		Observation resultObs = (Observation) result.getResource();
+		assertEquals("Only the surviving child reference should remain", 1, resultObs.getHasMember().size());
+		assertEquals(FhirConstants.OBSERVATION + "/surviving-child-uuid", resultObs.getHasMember().get(0).getReference());
+	}
+	
+	/**
+	 * BAH-4793 fix #2 (bundle integrity): when a hasMember reference points to an entry that is
+	 * completely absent from processedEntries (not a DELETE, but a genuinely missing entry),
+	 * resolveReferences must throw InternalErrorException — consistent with how all other resource
+	 * types handle missing references via getIdForPlaceHolderReference.
+	 */
+	@Test(expected = InternalErrorException.class)
+	public void shouldThrowWhenHasMemberReferencesAnEntryAbsentFromProcessedEntries() {
+		Observation parentObs = createObservation();
+		parentObs.setEncounter(new Reference("urn:uuid:encounter"));
+		parentObs.addHasMember(new Reference("urn:uuid:missing-from-bundle"));
+		Bundle.BundleEntryComponent parentEntry = createBundleEntry(parentObs, "urn:uuid:parent");
+		
+		Encounter encounter = createEncounter();
+		encounter.setId("encounter-uuid");
+		processedEntries.put("urn:uuid:encounter", createBundleEntry(encounter, "urn:uuid:encounter"));
+		
+		// "urn:uuid:missing-from-bundle" is not in processedEntries at all — must throw
+		EncounterBundleEntriesHelper.resolveReferences(parentEntry, processedEntries);
 	}
 	
 	// ──────────────────────────────────────────────────────────────────────────────

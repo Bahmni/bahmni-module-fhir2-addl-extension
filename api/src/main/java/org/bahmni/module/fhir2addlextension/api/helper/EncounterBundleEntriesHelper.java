@@ -1,6 +1,7 @@
 package org.bahmni.module.fhir2addlextension.api.helper;
 
 import ca.uhn.fhir.rest.server.exceptions.InternalErrorException;
+import org.bahmni.module.fhir2addlextension.api.utils.BahmniFhirUtils;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.DocumentReference;
 import org.hl7.fhir.r4.model.Immunization;
@@ -154,11 +155,27 @@ public class EncounterBundleEntriesHelper {
                     observation.getHasMember().forEach(reference -> {
                         String placeholderReferenceUrl = reference.getReference();
                         Bundle.BundleEntryComponent processedEntry = processedEntries.get(placeholderReferenceUrl);
-                        // Skip references to deleted obs — DELETE entries produce no resource in result
-                        if (processedEntry == null || processedEntry.getResource() == null) {
+                        if (processedEntry == null) {
+                            throw new InternalErrorException("Could not find processed entry for " + placeholderReferenceUrl);
+                        }
+                        // Only DELETE entries are expected to produce a null resource after processing.
+                        // Any other null resource is a bundle integrity error — fail loudly so the
+                        // caller knows a member was not resolved, instead of silently unlinking it.
+                        if (processedEntry.getResource() == null) {
+                            boolean isDeleteEntry = processedEntry.hasRequest()
+                                    && processedEntry.getRequest().getMethod() == Bundle.HTTPVerb.DELETE;
+                            if (!isDeleteEntry) {
+                                throw new InternalErrorException(
+                                    "Unexpected null resource for non-DELETE entry: " + placeholderReferenceUrl);
+                            }
                             return;
                         }
-                        String observationUuid = processedEntry.getResource().getId();
+                        // Use BahmniFhirUtils.extractId() instead of resource.getId() directly.
+                        // getId() can return the full reference string (e.g. "Observation/<uuid>"),
+                        // causing double-prefixing when constructing the hasMember reference.
+                        // extractId() safely strips any ResourceType/ or urn:uuid: prefix,
+                        // always returning only the logical UUID.
+                        String observationUuid = BahmniFhirUtils.extractId(processedEntry.getResource().getId());
                         reference.setReference(FhirConstants.OBSERVATION + "/" + observationUuid);
                         reference.setType(FhirConstants.OBSERVATION);
                         resolvedMembers.add(reference);
