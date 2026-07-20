@@ -5,11 +5,8 @@ import static org.mockito.Mockito.*;
 
 import java.io.File;
 
-import org.apache.logging.log4j.core.config.Configurator;
-import org.apache.logging.log4j.core.config.DefaultConfiguration;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -25,15 +22,6 @@ public class BahmniPatientPhotoServiceTest {
 	private BahmniPatientPhotoService photoService;
 	
 	private MockedStatic<Context> contextMock;
-	
-	@BeforeClass
-	public static void initLogging() {
-		// Pre-configure Log4j2 directly, bypassing ConfigurationFactory discovery, so that
-		// OpenMRS's OpenmrsConfigurationFactory (which reenters Context.getRuntimeProperties()
-		// before Context's own <clinit> has finished) never runs when Context is first
-		// initialized via Mockito's mockStatic below.
-		Configurator.initialize(new DefaultConfiguration());
-	}
 	
 	@Before
 	public void setup() throws Exception {
