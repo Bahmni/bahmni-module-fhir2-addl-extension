@@ -2,24 +2,21 @@ package org.bahmni.module.fhir2addlextension.api.service;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
 
 import java.io.File;
 
+import org.apache.logging.log4j.core.config.Configurator;
+import org.apache.logging.log4j.core.config.DefaultConfiguration;
+import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
+import org.mockito.MockedStatic;
 import org.openmrs.Person;
 import org.openmrs.api.context.Context;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 
-@RunWith(PowerMockRunner.class)
-@PowerMockIgnore({ "javax.*", "org.apache.*", "org.slf4j.*" })
-@PrepareForTest(Context.class)
 public class BahmniPatientPhotoServiceTest {
 	
 	@Rule
@@ -27,10 +24,26 @@ public class BahmniPatientPhotoServiceTest {
 	
 	private BahmniPatientPhotoService photoService;
 	
+	private MockedStatic<Context> contextMock;
+	
+	@BeforeClass
+	public static void initLogging() {
+		// Pre-configure Log4j2 directly, bypassing ConfigurationFactory discovery, so that
+		// OpenMRS's OpenmrsConfigurationFactory (which reenters Context.getRuntimeProperties()
+		// before Context's own <clinit> has finished) never runs when Context is first
+		// initialized via Mockito's mockStatic below.
+		Configurator.initialize(new DefaultConfiguration());
+	}
+	
 	@Before
 	public void setup() throws Exception {
-		mockStatic(Context.class);
+		contextMock = mockStatic(Context.class);
 		photoService = new BahmniPatientPhotoService();
+	}
+	
+	@After
+	public void tearDown() {
+		contextMock.close();
 	}
 	
 	// --- hasPhoto ---
@@ -55,9 +68,9 @@ public class BahmniPatientPhotoServiceTest {
 	@Test
 	public void hasPhoto_shouldReturnFalseWhenExceptionOccurs() throws Exception {
 		org.openmrs.Patient patient = new org.openmrs.Patient();
-		when(Context.loadClass("org.openmrs.module.emrapi.person.image.EmrPersonImageService")).thenThrow(
-		    new ClassNotFoundException("not found"));
-		
+		contextMock.when(() -> Context.loadClass("org.openmrs.module.emrapi.person.image.EmrPersonImageService"))
+		        .thenThrow(new ClassNotFoundException("not found"));
+
 		assertFalse(photoService.hasPhoto(patient));
 	}
 	
@@ -79,9 +92,9 @@ public class BahmniPatientPhotoServiceTest {
 	@Test
 	public void savePhoto_shouldNotThrowWhenExceptionOccurs() throws Exception {
 		org.openmrs.Patient patient = new org.openmrs.Patient();
-		when(Context.loadClass("org.openmrs.module.emrapi.person.image.EmrPersonImageService")).thenThrow(
-		    new ClassNotFoundException("not found"));
-		
+		contextMock.when(() -> Context.loadClass("org.openmrs.module.emrapi.person.image.EmrPersonImageService"))
+		        .thenThrow(new ClassNotFoundException("not found"));
+
 		photoService.savePhoto(patient, "aW1hZ2VkYXRh");
 		// no exception — error logged
 	}
@@ -114,9 +127,9 @@ public class BahmniPatientPhotoServiceTest {
 	@Test
 	public void deletePhoto_shouldNotThrowWhenExceptionOccurs() throws Exception {
 		org.openmrs.Patient patient = new org.openmrs.Patient();
-		when(Context.loadClass("org.openmrs.module.emrapi.person.image.EmrPersonImageService")).thenThrow(
-		    new ClassNotFoundException("not found"));
-		
+		contextMock.when(() -> Context.loadClass("org.openmrs.module.emrapi.person.image.EmrPersonImageService"))
+		        .thenThrow(new ClassNotFoundException("not found"));
+
 		photoService.deletePhoto(patient);
 		// no exception — error logged
 	}
@@ -139,19 +152,20 @@ public class BahmniPatientPhotoServiceTest {
 	@SuppressWarnings("unchecked")
 	private void mockEmrImageService(PersonImageStub personImage) throws Exception {
 		EmrImageServiceStub serviceStub = new EmrImageServiceStub(personImage);
-		when(Context.loadClass("org.openmrs.module.emrapi.person.image.EmrPersonImageService")).thenReturn(
-		    (Class) EmrImageServiceStub.class);
-		when(Context.getRegisteredComponent("emrPersonImageService", EmrImageServiceStub.class)).thenReturn(serviceStub);
+		contextMock.when(() -> Context.loadClass("org.openmrs.module.emrapi.person.image.EmrPersonImageService"))
+		        .thenReturn((Class) EmrImageServiceStub.class);
+		contextMock.when(() -> Context.getRegisteredComponent("emrPersonImageService", EmrImageServiceStub.class))
+		        .thenReturn(serviceStub);
 	}
 	
 	@SuppressWarnings("unchecked")
 	private void mockSaveService(SaveCapturingServiceStub serviceStub) throws Exception {
-		when(Context.loadClass("org.openmrs.module.emrapi.person.image.EmrPersonImageService")).thenReturn(
-		    (Class) SaveCapturingServiceStub.class);
-		when(Context.getRegisteredComponent("emrPersonImageService", SaveCapturingServiceStub.class))
+		contextMock.when(() -> Context.loadClass("org.openmrs.module.emrapi.person.image.EmrPersonImageService"))
+		        .thenReturn((Class) SaveCapturingServiceStub.class);
+		contextMock.when(() -> Context.getRegisteredComponent("emrPersonImageService", SaveCapturingServiceStub.class))
 		        .thenReturn(serviceStub);
-		when(Context.loadClass("org.openmrs.module.emrapi.person.image.PersonImage")).thenReturn(
-		    (Class) SaveCapturingServiceStub.PersonImageStub.class);
+		contextMock.when(() -> Context.loadClass("org.openmrs.module.emrapi.person.image.PersonImage"))
+		        .thenReturn((Class) SaveCapturingServiceStub.PersonImageStub.class);
 	}
 	
 	public static class PersonImageStub {
