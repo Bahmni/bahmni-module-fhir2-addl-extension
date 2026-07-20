@@ -2,6 +2,9 @@ package org.bahmni.module.fhir2addlextension.api.service.impl;
 
 import ca.uhn.fhir.rest.api.PatchTypeEnum;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
+import ca.uhn.fhir.rest.param.ReferenceAndListParam;
+import ca.uhn.fhir.rest.param.ReferenceOrListParam;
+import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.param.StringParam;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.exceptions.MethodNotAllowedException;
@@ -16,14 +19,19 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.dao.FhirConditionDao;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
 import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
 import org.openmrs.module.fhir2.api.search.param.ConditionSearchParams;
+import org.openmrs.module.fhir2.api.search.param.PropParam;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.openmrs.module.fhir2.api.translators.ConditionTranslator;
+
+import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -258,14 +266,29 @@ public class BahmniFhirConditionServiceImplTest {
 	}
 	
 	@Test
-	public void shouldDefaultToProblemListItemWhenSearchingConditionsWithoutCategory() {
-		when(searchQuery.getQueryResults(any(SearchParameterMap.class), eq(dao), eq(translator), eq(searchQueryInclude)))
-		        .thenReturn(mock(IBundleProvider.class));
+	public void shouldDefaultToProblemListItemAndPropagateFiltersWhenSearchingConditionsWithoutCategory() {
+		ReferenceAndListParam patientParam = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam("patient-uuid")));
+		ConditionSearchParams incoming = new ConditionSearchParams();
+		incoming.setPatientParam(patientParam);
 		
-		IBundleProvider result = conditionService.searchConditions(new ConditionSearchParams());
+		ArgumentCaptor<SearchParameterMap> mapCaptor = ArgumentCaptor.forClass(SearchParameterMap.class);
+		when(searchQuery.getQueryResults(mapCaptor.capture(), eq(dao), eq(translator), eq(searchQueryInclude))).thenReturn(
+		    mock(IBundleProvider.class));
+		
+		IBundleProvider result = conditionService.searchConditions(incoming);
 		
 		assertThat(result, notNullValue());
-		verify(searchQuery).getQueryResults(any(SearchParameterMap.class), eq(dao), eq(translator), eq(searchQueryInclude));
+		
+		SearchParameterMap capturedMap = mapCaptor.getValue();
+		List<PropParam<?>> categoryParams = capturedMap.getParameters(FhirConstants.CATEGORY_SEARCH_HANDLER);
+		assertThat(categoryParams, notNullValue());
+		assertThat(((StringParam) categoryParams.get(0).getParam()).getValue(),
+		    equalTo(BahmniFhirConstants.HL7_CONDITION_CATEGORY_CONDITION_CODE));
+		
+		List<PropParam<?>> patientParams = capturedMap.getParameters(FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER);
+		assertThat(patientParams, notNullValue());
+		assertThat(patientParams.get(0).getParam(), equalTo(patientParam));
 	}
 	
 	// Helper method to create a condition with a specific category
