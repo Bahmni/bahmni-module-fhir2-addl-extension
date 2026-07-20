@@ -3,8 +3,8 @@ package org.bahmni.module.fhir2addlextension.api.service.impl;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -15,23 +15,21 @@ import java.util.Set;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
 import org.hl7.fhir.r4.model.ValueSet;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Concept;
 import org.openmrs.ConceptClass;
 import org.openmrs.ConceptSearchResult;
 import org.openmrs.api.ConceptService;
 import org.openmrs.module.fhir2.api.translators.ValueSetTranslator;
 import org.openmrs.util.LocaleUtility;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 
-@RunWith(PowerMockRunner.class)
-@PowerMockIgnore({"javax.*", "org.apache.*", "org.slf4j.*"})
-@PrepareForTest({LocaleUtility.class})
+@RunWith(MockitoJUnitRunner.Silent.class)
 public class BahmniFhirValueSetServiceImplTest {
 	
 	private static final String PARENT_CONCEPT_UUID = "parent-concept-uuid";
@@ -54,13 +52,15 @@ public class BahmniFhirValueSetServiceImplTest {
 	private BahmniFhirValueSetServiceImpl valueSetService;
 	
 	private ValueSet baseValueSet;
-	
+
+	private MockedStatic<LocaleUtility> localeUtilityMock;
+
 	@Before
 	public void setup() {
 		// Mock the static LocaleUtility method
-		mockStatic(LocaleUtility.class);
-		when(LocaleUtility.getLocalesInOrder()).thenReturn(MOCK_LOCALES);
-		
+		localeUtilityMock = mockStatic(LocaleUtility.class);
+		localeUtilityMock.when(LocaleUtility::getLocalesInOrder).thenReturn(MOCK_LOCALES);
+
 		valueSetService = new BahmniFhirValueSetServiceImpl();
 		valueSetService.setConceptService(conceptService);
 		
@@ -70,7 +70,12 @@ public class BahmniFhirValueSetServiceImplTest {
 		baseValueSet.setUrl("http://example.org/ValueSet/test");
 		baseValueSet.setName("TestValueSet");
 	}
-	
+
+	@After
+	public void tearDown() {
+		localeUtilityMock.close();
+	}
+
 	@Test
 	public void shouldCreateHierarchicalExpansion() {
 		// Given
