@@ -36,11 +36,11 @@ public class BahmniObservationSearchParams extends BaseResourceSearchParams {
 	public SearchParameterMap toSearchParameterMap() {
 		SearchParameterMap searchParameterMap = baseSearchParameterMap();
 		
-		if (patientReference != null) {
+		if (hasPatientReference()) {
 			searchParameterMap.addParameter(PATIENT_REFERENCE_SEARCH_HANDLER, patientReference);
 		}
 		
-		if (basedOnReference != null) {
+		if (hasBasedOnReference()) {
 			searchParameterMap.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
 		}
 		

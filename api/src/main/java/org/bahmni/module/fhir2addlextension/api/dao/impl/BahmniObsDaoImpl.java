@@ -42,11 +42,10 @@ public class BahmniObsDaoImpl extends BaseFhirDao<Obs> implements BahmniObsDao {
 			if (lacksAlias(criteria, "o")) {
 				criteria.createAlias("order", "o");
 			}
-			handleAndListParam((ReferenceAndListParam) basedOnReference, param -> {
-				String value = param.getValue();
-				String uuid = value != null && value.contains("/") ? value.substring(value.lastIndexOf("/") + 1) : value;
-				return propertyLike("o.uuid", uuid);
-			}).ifPresent(criteria::add);
+		handleAndListParam((ReferenceAndListParam) basedOnReference, param -> {
+			String uuid = param.getIdPart();
+			return propertyLike("o.uuid", uuid);
+		}).ifPresent(criteria::add);
 		}
 	}
 	
