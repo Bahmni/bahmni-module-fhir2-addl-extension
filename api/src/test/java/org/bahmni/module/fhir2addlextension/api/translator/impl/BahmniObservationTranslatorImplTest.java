@@ -258,51 +258,6 @@ public class BahmniObservationTranslatorImplTest {
 	}
 	
 	@Test
-	public void shouldReturnAttachmentTitleInObservationExtension() {
-		Obs observation = new Obs();
-		ConceptClass conceptClass = new ConceptClass();
-		conceptClass.setName("Image");
-		ConceptComplex concept = new ConceptComplex();
-		concept.setConceptClass(conceptClass);
-		ConceptDatatype conceptDatatype = new ConceptDatatype();
-		conceptDatatype.setUuid(ConceptDatatype.COMPLEX_UUID);
-		concept.setDatatype(conceptDatatype);
-		concept.setHandler("ImageUrlHandler");
-		observation.setConcept(concept);
-		observation.setValueComplex("CT-scan.jpg | /path-to-file.jpg");
-		Observation result = observationTranslator.toFhirResource(observation);
-		Type attachmentValue = result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_OBSERVATION_ATTACHMENT_VALUE)
-		        .getValue();
-		Assert.assertTrue(attachmentValue instanceof Attachment);
-		Assert.assertEquals("/path-to-file.jpg", ((Attachment) attachmentValue).getUrl());
-		Assert.assertEquals("CT-scan.jpg", ((Attachment) attachmentValue).getTitle());
-	}
-	
-	@Test
-	public void shouldConvertAttachmentExtensionWithTitleToObsComplexData() {
-		Obs observation = new Obs();
-		ConceptClass conceptClass = new ConceptClass();
-		conceptClass.setName("Image");
-		ConceptComplex concept = new ConceptComplex();
-		concept.setConceptClass(conceptClass);
-		ConceptDatatype conceptDatatype = new ConceptDatatype();
-		conceptDatatype.setUuid(ConceptDatatype.COMPLEX_UUID);
-		concept.setDatatype(conceptDatatype);
-		concept.setHandler("ImageUrlHandler");
-		observation.setConcept(concept);
-		observation.setValueComplex("CT-scan.jpg | /path-to-file.jpg");
-		Observation resource = observationTranslator.toFhirResource(observation);
-		Type attachmentType = resource.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_OBSERVATION_ATTACHMENT_VALUE)
-		        .getValue();
-		Assert.assertTrue(attachmentType instanceof Attachment);
-		
-		when(conceptTranslator.toOpenmrsType(resource.getCode())).thenReturn(concept);
-		
-		Obs openmrsObs = observationTranslator.toOpenmrsType(resource);
-		Assert.assertEquals("CT-scan.jpg | /path-to-file.jpg", openmrsObs.getValueComplex());
-	}
-	
-	@Test
 	public void shouldReturnObservationInterpretation() {
 		Obs observation = new Obs();
 		ConceptClass conceptClass = new ConceptClass();

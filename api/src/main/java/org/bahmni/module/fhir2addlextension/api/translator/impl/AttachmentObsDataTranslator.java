@@ -40,27 +40,16 @@ class AttachmentObsDataTranslator implements ComplexObsDataTranslator {
 		}
 		Type extValue = attachmentExt.getValue();
 		if (extValue instanceof Attachment) {
-			Attachment attachment = (Attachment) extValue;
-			String url = attachment.getUrl();
-			String title = attachment.getTitle();
-			if (title != null && !title.isEmpty() && url != null) {
-				return title + " | " + url;
-			}
-			return url;
+			return ((Attachment) extValue).getUrl();
 		} else {
 			return null;
 		}
 	}
 	
-	private Type createAttachment(String valueComplex) {
+	private Type createAttachment(String attachmentUrl) {
+		//TODO set content-type
 		Attachment attachment = new Attachment();
-		if (valueComplex != null && valueComplex.contains(" | ")) {
-			String[] parts = valueComplex.split(" \\| ", 2);
-			attachment.setTitle(parts[0]);
-			attachment.setUrl(parts[1]);
-		} else {
-			attachment.setUrl(valueComplex);
-		}
+		attachment.setUrl(attachmentUrl);
 		return attachment;
 	}
 }
