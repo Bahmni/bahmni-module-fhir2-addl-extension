@@ -4,12 +4,8 @@ import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.ReferenceOrListParam;
 import ca.uhn.fhir.rest.param.ReferenceParam;
-import ca.uhn.fhir.rest.param.StringAndListParam;
-import ca.uhn.fhir.rest.param.StringOrListParam;
-import ca.uhn.fhir.rest.param.StringParam;
 import org.bahmni.module.fhir2addlextension.api.context.RequestContextHolder;
 import org.bahmni.module.fhir2addlextension.api.dao.BahmniObsDao;
-import org.bahmni.module.fhir2addlextension.api.dao.BahmniObservationDao;
 import org.bahmni.module.fhir2addlextension.api.search.param.BahmniObservationSearchParams;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
@@ -57,9 +53,6 @@ public class BahmniFhirObservationServiceImplTest {
 	private BahmniObsDao bahmniObsDao;
 	
 	@Mock
-	private BahmniObservationDao bahmniObservationDao;
-	
-	@Mock
 	private SearchQueryInclude<Observation> searchQueryInclude;
 	
 	@Mock
@@ -72,8 +65,8 @@ public class BahmniFhirObservationServiceImplTest {
 	
 	@Before
 	public void setUp() {
-		observationService = org.mockito.Mockito.spy(new BahmniFhirObservationServiceImpl(bahmniObsDao,
-		        bahmniObservationDao, searchQueryInclude, searchQuery));
+		observationService = org.mockito.Mockito.spy(new BahmniFhirObservationServiceImpl(bahmniObsDao, searchQueryInclude,
+		        searchQuery));
 	}
 	
 	@After
@@ -155,22 +148,20 @@ public class BahmniFhirObservationServiceImplTest {
 	
 	@Test
 	public void searchObservations_shouldReturnResultsWhenBasedOnReferenceProvided() {
-		StringAndListParam basedOnReference = new StringAndListParam().addAnd(new StringOrListParam().add(new StringParam(
-		        SERVICE_REQUEST_UUID)));
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam(SERVICE_REQUEST_UUID)));
 		
 		BahmniObservationSearchParams searchParams = new BahmniObservationSearchParams(null, basedOnReference, null, null);
 		
 		IBundleProvider expectedResults = mock(IBundleProvider.class);
-		when(
-		    searchQuery.getQueryResults(any(SearchParameterMap.class), eq(bahmniObservationDao), any(),
-		        eq(searchQueryInclude))).thenReturn(expectedResults);
+		when(searchQuery.getQueryResults(any(SearchParameterMap.class), eq(bahmniObsDao), any(), eq(searchQueryInclude)))
+		        .thenReturn(expectedResults);
 		
 		IBundleProvider result = observationService.searchObservations(searchParams);
 		
 		assertNotNull(result);
 		assertEquals(expectedResults, result);
-		verify(searchQuery).getQueryResults(any(SearchParameterMap.class), eq(bahmniObservationDao), any(),
-		    eq(searchQueryInclude));
+		verify(searchQuery).getQueryResults(any(SearchParameterMap.class), eq(bahmniObsDao), any(), eq(searchQueryInclude));
 	}
 	
 	@Test
@@ -181,9 +172,8 @@ public class BahmniFhirObservationServiceImplTest {
 		BahmniObservationSearchParams searchParams = new BahmniObservationSearchParams(patientReference, null, null, null);
 		
 		IBundleProvider expectedResults = mock(IBundleProvider.class);
-		when(
-		    searchQuery.getQueryResults(any(SearchParameterMap.class), eq(bahmniObservationDao), any(),
-		        eq(searchQueryInclude))).thenReturn(expectedResults);
+		when(searchQuery.getQueryResults(any(SearchParameterMap.class), eq(bahmniObsDao), any(), eq(searchQueryInclude)))
+		        .thenReturn(expectedResults);
 		
 		IBundleProvider result = observationService.searchObservations(searchParams);
 		
@@ -195,16 +185,15 @@ public class BahmniFhirObservationServiceImplTest {
 	public void searchObservations_shouldReturnResultsWhenBothPatientAndBasedOnProvided() {
 		ReferenceAndListParam patientReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
 		        .add(new ReferenceParam().setValue(PATIENT_UUID)));
-		StringAndListParam basedOnReference = new StringAndListParam().addAnd(new StringOrListParam().add(new StringParam(
-		        SERVICE_REQUEST_UUID)));
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam(SERVICE_REQUEST_UUID)));
 		
 		BahmniObservationSearchParams searchParams = new BahmniObservationSearchParams(patientReference, basedOnReference,
 		        null, null);
 		
 		IBundleProvider expectedResults = mock(IBundleProvider.class);
-		when(
-		    searchQuery.getQueryResults(any(SearchParameterMap.class), eq(bahmniObservationDao), any(),
-		        eq(searchQueryInclude))).thenReturn(expectedResults);
+		when(searchQuery.getQueryResults(any(SearchParameterMap.class), eq(bahmniObsDao), any(), eq(searchQueryInclude)))
+		        .thenReturn(expectedResults);
 		
 		IBundleProvider result = observationService.searchObservations(searchParams);
 		
@@ -222,7 +211,7 @@ public class BahmniFhirObservationServiceImplTest {
 	@Test(expected = UnsupportedOperationException.class)
 	public void searchObservations_shouldThrowExceptionWhenOnlyEmptyParametersProvided() {
 		ReferenceAndListParam emptyPatient = new ReferenceAndListParam();
-		StringAndListParam emptyBasedOn = new StringAndListParam();
+		ReferenceAndListParam emptyBasedOn = new ReferenceAndListParam();
 		
 		BahmniObservationSearchParams searchParams = new BahmniObservationSearchParams(emptyPatient, emptyBasedOn, null,
 		        null);

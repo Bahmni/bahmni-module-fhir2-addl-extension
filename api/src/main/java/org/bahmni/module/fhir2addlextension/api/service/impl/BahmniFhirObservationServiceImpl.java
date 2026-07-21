@@ -3,13 +3,9 @@ package org.bahmni.module.fhir2addlextension.api.service.impl;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2addlextension.api.context.RequestContextHolder;
 import org.bahmni.module.fhir2addlextension.api.dao.BahmniObsDao;
-import org.bahmni.module.fhir2addlextension.api.dao.BahmniObservationDao;
 import org.bahmni.module.fhir2addlextension.api.search.param.BahmniObservationSearchParams;
 import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirObservationService;
 import org.hl7.fhir.instance.model.api.IBaseResource;
@@ -26,7 +22,6 @@ import org.openmrs.module.fhir2.api.search.param.ObservationSearchParams;
 import org.openmrs.module.fhir2.api.translators.OpenmrsFhirTranslator;
 import org.openmrs.module.fhir2.api.util.FhirUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
@@ -39,14 +34,12 @@ import java.util.Set;
 @Primary
 @Slf4j
 public class BahmniFhirObservationServiceImpl extends FhirObservationServiceImpl implements BahmniFhirObservationService {
-
-	private static final String MISSING_REFERENCE_LOG_MESSAGE = "Missing patient reference or basedOn reference for Observation search";
-
-	private static final String MISSING_REFERENCE_ERROR_MESSAGE = "You must specify patient reference or basedOn reference!";
-
-	private final BahmniObsDao bahmniObsDao;
 	
-	private final BahmniObservationDao bahmniObservationDao;
+	private static final String MISSING_REFERENCE_LOG_MESSAGE = "Missing patient reference or basedOn reference for Observation search";
+	
+	private static final String MISSING_REFERENCE_ERROR_MESSAGE = "You must specify patient reference or basedOn reference!";
+	
+	private final BahmniObsDao bahmniObsDao;
 	
 	private final SearchQueryInclude<Observation> searchQueryInclude;
 	
@@ -55,11 +48,9 @@ public class BahmniFhirObservationServiceImpl extends FhirObservationServiceImpl
 	@Autowired
 	public BahmniFhirObservationServiceImpl(
 	    BahmniObsDao bahmniObsDao,
-	    BahmniObservationDao bahmniObservationDao,
 	    SearchQueryInclude<Observation> searchQueryInclude,
 	    SearchQuery<Obs, Observation, FhirDao<Obs>, OpenmrsFhirTranslator<Obs, Observation>, SearchQueryInclude<Observation>> searchQuery) {
 		this.bahmniObsDao = bahmniObsDao;
-		this.bahmniObservationDao = bahmniObservationDao;
 		this.searchQueryInclude = searchQueryInclude;
 		this.searchQuery = searchQuery;
 	}
@@ -70,7 +61,7 @@ public class BahmniFhirObservationServiceImpl extends FhirObservationServiceImpl
 			log.error(MISSING_REFERENCE_LOG_MESSAGE);
 			throw new UnsupportedOperationException(MISSING_REFERENCE_ERROR_MESSAGE);
 		}
-		return searchQuery.getQueryResults(searchParams.toSearchParameterMap(), bahmniObservationDao, getTranslator(),
+		return searchQuery.getQueryResults(searchParams.toSearchParameterMap(), bahmniObsDao, getTranslator(),
 		    searchQueryInclude);
 	}
 	

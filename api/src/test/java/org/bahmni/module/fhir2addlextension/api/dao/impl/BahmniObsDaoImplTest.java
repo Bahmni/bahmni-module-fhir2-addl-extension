@@ -4,9 +4,6 @@ import ca.uhn.fhir.rest.param.DateRangeParam;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.ReferenceOrListParam;
 import ca.uhn.fhir.rest.param.ReferenceParam;
-import ca.uhn.fhir.rest.param.StringAndListParam;
-import ca.uhn.fhir.rest.param.StringOrListParam;
-import ca.uhn.fhir.rest.param.StringParam;
 import org.hibernate.Criteria;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -34,7 +31,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.atLeastOnce;
 
 @RunWith(MockitoJUnitRunner.class)
-public class BahmniObservationDaoImplTest {
+public class BahmniObsDaoImplTest {
 	
 	private static final String PATIENT_UUID = "da7f524f-27ce-4bb2-86d6-6d1d05312bd5";
 	
@@ -49,11 +46,11 @@ public class BahmniObservationDaoImplTest {
 	@Mock
 	private Criteria criteria;
 	
-	private BahmniObservationDaoImpl dao;
+	private BahmniObsDaoImpl dao;
 	
 	@Before
 	public void setUp() {
-		dao = new BahmniObservationDaoImpl();
+		dao = new BahmniObsDaoImpl();
 		ReflectionTestUtils.setField(dao, "sessionFactory", sessionFactory);
 		
 		when(sessionFactory.getCurrentSession()).thenReturn(session);
@@ -81,8 +78,8 @@ public class BahmniObservationDaoImplTest {
 	
 	@Test
 	public void shouldSearchByBasedOnReference() {
-		StringAndListParam basedOnReference = new StringAndListParam().addAnd(new StringOrListParam().add(new StringParam(
-		        ORDER_UUID)));
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam(ORDER_UUID)));
 		
 		SearchParameterMap theParams = new SearchParameterMap();
 		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
@@ -97,8 +94,8 @@ public class BahmniObservationDaoImplTest {
 	public void shouldSearchWithMultipleParameters() {
 		ReferenceAndListParam patientReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
 		        .add(new ReferenceParam().setValue(PATIENT_UUID)));
-		StringAndListParam basedOnReference = new StringAndListParam().addAnd(new StringOrListParam().add(new StringParam(
-		        ORDER_UUID)));
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam(ORDER_UUID)));
 		
 		SearchParameterMap theParams = new SearchParameterMap();
 		theParams.addParameter(FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER, patientReference);
@@ -113,8 +110,8 @@ public class BahmniObservationDaoImplTest {
 	
 	@Test
 	public void shouldSearchWithCommonSearchHandler() {
-		StringAndListParam basedOnReference = new StringAndListParam().addAnd(new StringOrListParam().add(new StringParam(
-		        ORDER_UUID)));
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam(ORDER_UUID)));
 		
 		SearchParameterMap theParams = new SearchParameterMap();
 		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
@@ -146,10 +143,10 @@ public class BahmniObservationDaoImplTest {
 	
 	@Test
 	public void shouldHandleMultipleBasedOnReferencesInOrList() {
-		StringAndListParam basedOnReference = new StringAndListParam();
-		StringOrListParam orListParam = new StringOrListParam();
-		orListParam.add(new StringParam("order-uuid-1"));
-		orListParam.add(new StringParam("order-uuid-2"));
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam();
+		ReferenceOrListParam orListParam = new ReferenceOrListParam();
+		orListParam.add(new ReferenceParam("order-uuid-1"));
+		orListParam.add(new ReferenceParam("order-uuid-2"));
 		basedOnReference.addAnd(orListParam);
 		
 		SearchParameterMap theParams = new SearchParameterMap();
@@ -164,8 +161,8 @@ public class BahmniObservationDaoImplTest {
 	public void shouldHandleComplexMultiParameterSearch() {
 		ReferenceAndListParam patientReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
 		        .add(new ReferenceParam().setValue(PATIENT_UUID)));
-		StringAndListParam basedOnReference = new StringAndListParam().addAnd(new StringOrListParam().add(new StringParam(
-		        ORDER_UUID)));
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam(ORDER_UUID)));
 		DateRangeParam lastUpdated = new DateRangeParam();
 		lastUpdated.setLowerBound("2026-01-01");
 		
@@ -182,8 +179,8 @@ public class BahmniObservationDaoImplTest {
 	
 	@Test
 	public void shouldCreateAliasWhenLackingForBasedOnReference() {
-		StringAndListParam basedOnReference = new StringAndListParam().addAnd(new StringOrListParam().add(new StringParam(
-		        ORDER_UUID)));
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam(ORDER_UUID)));
 		
 		SearchParameterMap theParams = new SearchParameterMap();
 		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
@@ -196,8 +193,8 @@ public class BahmniObservationDaoImplTest {
 	
 	@Test
 	public void shouldHandleBasedOnReferenceNotNull() {
-		StringAndListParam basedOnReference = new StringAndListParam().addAnd(new StringOrListParam().add(new StringParam(
-		        "test-order-uuid")));
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam("test-order-uuid")));
 		
 		SearchParameterMap theParams = new SearchParameterMap();
 		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
@@ -232,8 +229,10 @@ public class BahmniObservationDaoImplTest {
 	
 	@Test
 	public void shouldHandleNullReferenceValue() {
-		StringAndListParam basedOnReference = new StringAndListParam().addAnd(new StringOrListParam().add(new StringParam(
-		        null)));
+		ReferenceParam refParam = new ReferenceParam();
+		refParam.setValue(null);
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam()
+		        .addAnd(new ReferenceOrListParam().add(refParam));
 		
 		SearchParameterMap theParams = new SearchParameterMap();
 		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
@@ -245,11 +244,11 @@ public class BahmniObservationDaoImplTest {
 	
 	@Test
 	public void shouldHandleBasedOnReferenceWhenValueIsNull() {
-		StringAndListParam basedOnReference = new StringAndListParam();
-		StringOrListParam orListParam = new StringOrListParam();
-		StringParam strParam = new StringParam();
-		strParam.setValue(null);
-		orListParam.add(strParam);
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam();
+		ReferenceOrListParam orListParam = new ReferenceOrListParam();
+		ReferenceParam refParam = new ReferenceParam();
+		refParam.setValue(null);
+		orListParam.add(refParam);
 		basedOnReference.addAnd(orListParam);
 		
 		SearchParameterMap theParams = new SearchParameterMap();
@@ -262,11 +261,10 @@ public class BahmniObservationDaoImplTest {
 	
 	@Test
 	public void shouldHandleBasedOnReferenceWhenValueDoesNotContainSlash() {
-		StringAndListParam basedOnReference = new StringAndListParam();
-		StringOrListParam orListParam = new StringOrListParam();
-		StringParam strParam = new StringParam();
-		strParam.setValue("simple-uuid-without-slash");
-		orListParam.add(strParam);
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam();
+		ReferenceOrListParam orListParam = new ReferenceOrListParam();
+		ReferenceParam refParam = new ReferenceParam("simple-uuid-without-slash");
+		orListParam.add(refParam);
 		basedOnReference.addAnd(orListParam);
 		
 		SearchParameterMap theParams = new SearchParameterMap();
@@ -304,7 +302,7 @@ public class BahmniObservationDaoImplTest {
 	
 	@Test
 	public void shouldHandleEmptyBasedOnReference() {
-		StringAndListParam basedOnReference = new StringAndListParam();
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam();
 		
 		SearchParameterMap theParams = new SearchParameterMap();
 		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);

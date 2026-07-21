@@ -5,9 +5,7 @@ import ca.uhn.fhir.rest.param.DateRangeParam;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.ReferenceOrListParam;
 import ca.uhn.fhir.rest.param.ReferenceParam;
-import ca.uhn.fhir.rest.param.StringAndListParam;
-import ca.uhn.fhir.rest.param.StringOrListParam;
-import ca.uhn.fhir.rest.param.StringParam;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
@@ -60,9 +58,9 @@ public class BahmniObservationSearchParamsTest {
 	
 	@Test
 	public void shouldReturnTrueWhenBasedOnReferenceProvided() {
-		StringAndListParam basedOnRef = new StringAndListParam();
-		StringOrListParam orListParam = new StringOrListParam();
-		StringParam strParam = new StringParam(SERVICE_REQUEST_UUID);
+		ReferenceAndListParam basedOnRef = new ReferenceAndListParam();
+		ReferenceOrListParam orListParam = new ReferenceOrListParam();
+		ReferenceParam strParam = new ReferenceParam(SERVICE_REQUEST_UUID);
 		orListParam.add(strParam);
 		basedOnRef.addAnd(orListParam);
 		
@@ -72,7 +70,7 @@ public class BahmniObservationSearchParamsTest {
 	
 	@Test
 	public void shouldReturnFalseWhenEmptyBasedOnReferenceProvided() {
-		StringAndListParam basedOnRef = new StringAndListParam();
+		ReferenceAndListParam basedOnRef = new ReferenceAndListParam();
 		searchParams = new BahmniObservationSearchParams(null, basedOnRef, null, null);
 		assertFalse("Should return false for empty basedOn reference", searchParams.hasBasedOnReference());
 	}
@@ -84,9 +82,9 @@ public class BahmniObservationSearchParamsTest {
 		patientOrList.add(new ReferenceParam("Patient", PATIENT_UUID));
 		patientRef.addAnd(patientOrList);
 		
-		StringAndListParam basedOnRef = new StringAndListParam();
-		StringOrListParam basedOnOrList = new StringOrListParam();
-		basedOnOrList.add(new StringParam(SERVICE_REQUEST_UUID));
+		ReferenceAndListParam basedOnRef = new ReferenceAndListParam();
+		ReferenceOrListParam basedOnOrList = new ReferenceOrListParam();
+		basedOnOrList.add(new ReferenceParam(SERVICE_REQUEST_UUID));
 		basedOnRef.addAnd(basedOnOrList);
 		
 		searchParams = new BahmniObservationSearchParams(patientRef, basedOnRef, null, null);
@@ -115,9 +113,9 @@ public class BahmniObservationSearchParamsTest {
 		patientOrList.add(new ReferenceParam("Patient", PATIENT_UUID));
 		patientRef.addAnd(patientOrList);
 		
-		StringAndListParam basedOnRef = new StringAndListParam();
-		StringOrListParam basedOnOrList = new StringOrListParam();
-		basedOnOrList.add(new StringParam(SERVICE_REQUEST_UUID));
+		ReferenceAndListParam basedOnRef = new ReferenceAndListParam();
+		ReferenceOrListParam basedOnOrList = new ReferenceOrListParam();
+		basedOnOrList.add(new ReferenceParam(SERVICE_REQUEST_UUID));
 		basedOnRef.addAnd(basedOnOrList);
 		
 		DateRangeParam lastUpdated = new DateRangeParam("2026-01-01", "2026-12-31");
@@ -157,9 +155,9 @@ public class BahmniObservationSearchParamsTest {
 	
 	@Test
 	public void shouldHandleBasedOnReferenceAsPlainUuid() {
-		StringAndListParam basedOnRef = new StringAndListParam();
-		StringOrListParam orListParam = new StringOrListParam();
-		orListParam.add(new StringParam(SERVICE_REQUEST_UUID));
+		ReferenceAndListParam basedOnRef = new ReferenceAndListParam();
+		ReferenceOrListParam orListParam = new ReferenceOrListParam();
+		orListParam.add(new ReferenceParam(SERVICE_REQUEST_UUID));
 		basedOnRef.addAnd(orListParam);
 		
 		searchParams = new BahmniObservationSearchParams(null, basedOnRef, null, null);
@@ -180,10 +178,10 @@ public class BahmniObservationSearchParamsTest {
 	
 	@Test
 	public void shouldHandleMultipleBasedOnReferences() {
-		StringAndListParam basedOnRef = new StringAndListParam();
-		StringOrListParam orListParam = new StringOrListParam();
-		orListParam.add(new StringParam("order-uuid-1"));
-		orListParam.add(new StringParam("order-uuid-2"));
+		ReferenceAndListParam basedOnRef = new ReferenceAndListParam();
+		ReferenceOrListParam orListParam = new ReferenceOrListParam();
+		orListParam.add(new ReferenceParam("order-uuid-1"));
+		orListParam.add(new ReferenceParam("order-uuid-2"));
 		basedOnRef.addAnd(orListParam);
 		
 		searchParams = new BahmniObservationSearchParams(null, basedOnRef, null, null);
@@ -258,9 +256,9 @@ public class BahmniObservationSearchParamsTest {
 	
 	@Test
 	public void shouldReturnFalseWhenBasedOnReferenceHasEmptyValue() {
-		StringAndListParam basedOnRef = new StringAndListParam();
-		StringOrListParam orListParam = new StringOrListParam();
-		StringParam strParam = new StringParam();
+		ReferenceAndListParam basedOnRef = new ReferenceAndListParam();
+		ReferenceOrListParam orListParam = new ReferenceOrListParam();
+		ReferenceParam strParam = new ReferenceParam();
 		strParam.setValue("");
 		orListParam.add(strParam);
 		basedOnRef.addAnd(orListParam);
@@ -284,9 +282,9 @@ public class BahmniObservationSearchParamsTest {
 	
 	@Test
 	public void shouldReturnFalseWhenBasedOnReferenceHasOnlyNullValues() {
-		StringAndListParam basedOnRef = new StringAndListParam();
-		StringOrListParam orListParam = new StringOrListParam();
-		StringParam strParam = new StringParam();
+		ReferenceAndListParam basedOnRef = new ReferenceAndListParam();
+		ReferenceOrListParam orListParam = new ReferenceOrListParam();
+		ReferenceParam strParam = new ReferenceParam();
 		strParam.setValue(null);
 		orListParam.add(strParam);
 		basedOnRef.addAnd(orListParam);
@@ -310,10 +308,10 @@ public class BahmniObservationSearchParamsTest {
 	
 	@Test
 	public void shouldReturnFalseWhenMixedEmptyAndValidBasedOnReferencesInSameOrList() {
-		StringAndListParam basedOnRef = new StringAndListParam();
-		StringOrListParam orListParam = new StringOrListParam();
-		orListParam.add(new StringParam().setValue(""));
-		orListParam.add(new StringParam(SERVICE_REQUEST_UUID));
+		ReferenceAndListParam basedOnRef = new ReferenceAndListParam();
+		ReferenceOrListParam orListParam = new ReferenceOrListParam();
+		orListParam.add(new ReferenceParam().setValue(""));
+		orListParam.add(new ReferenceParam(SERVICE_REQUEST_UUID));
 		basedOnRef.addAnd(orListParam);
 		
 		searchParams = new BahmniObservationSearchParams(null, basedOnRef, null, null);
@@ -350,9 +348,9 @@ public class BahmniObservationSearchParamsTest {
 	
 	@Test
 	public void shouldReturnTrueForBasedOnReferenceAsPlainString() {
-		StringAndListParam basedOnRef = new StringAndListParam();
-		StringOrListParam orListParam = new StringOrListParam();
-		orListParam.add(new StringParam(SERVICE_REQUEST_UUID));
+		ReferenceAndListParam basedOnRef = new ReferenceAndListParam();
+		ReferenceOrListParam orListParam = new ReferenceOrListParam();
+		orListParam.add(new ReferenceParam(SERVICE_REQUEST_UUID));
 		basedOnRef.addAnd(orListParam);
 		
 		searchParams = new BahmniObservationSearchParams(null, basedOnRef, null, null);
@@ -376,9 +374,9 @@ public class BahmniObservationSearchParamsTest {
 	
 	@Test
 	public void shouldVerifySearchParameterMapContainsBasedOnReference() {
-		StringAndListParam basedOnRef = new StringAndListParam();
-		StringOrListParam orListParam = new StringOrListParam();
-		orListParam.add(new StringParam(SERVICE_REQUEST_UUID));
+		ReferenceAndListParam basedOnRef = new ReferenceAndListParam();
+		ReferenceOrListParam orListParam = new ReferenceOrListParam();
+		orListParam.add(new ReferenceParam(SERVICE_REQUEST_UUID));
 		basedOnRef.addAnd(orListParam);
 		
 		searchParams = new BahmniObservationSearchParams(null, basedOnRef, null, null);
@@ -442,7 +440,7 @@ public class BahmniObservationSearchParamsTest {
 	@Test
 	public void shouldVerifyGettersAndSetters() {
 		ReferenceAndListParam patientRef = new ReferenceAndListParam();
-		StringAndListParam basedOnRef = new StringAndListParam();
+		ReferenceAndListParam basedOnRef = new ReferenceAndListParam();
 		DateRangeParam lastUpdated = new DateRangeParam("2026-01-01", "2026-12-31");
 		SortSpec sort = new SortSpec("_lastUpdated");
 		
@@ -504,9 +502,9 @@ public class BahmniObservationSearchParamsTest {
 	public void shouldTestSetBasedOnReference() {
 		searchParams = new BahmniObservationSearchParams();
 		
-		StringAndListParam basedOnRef = new StringAndListParam();
-		StringOrListParam orListParam = new StringOrListParam();
-		orListParam.add(new StringParam(SERVICE_REQUEST_UUID));
+		ReferenceAndListParam basedOnRef = new ReferenceAndListParam();
+		ReferenceOrListParam orListParam = new ReferenceOrListParam();
+		orListParam.add(new ReferenceParam(SERVICE_REQUEST_UUID));
 		basedOnRef.addAnd(orListParam);
 		
 		searchParams.setBasedOnReference(basedOnRef);
@@ -518,7 +516,7 @@ public class BahmniObservationSearchParamsTest {
 	@Test
 	public void shouldTestAllGettersWithConstructor() {
 		ReferenceAndListParam patientRef = new ReferenceAndListParam();
-		StringAndListParam basedOnRef = new StringAndListParam();
+		ReferenceAndListParam basedOnRef = new ReferenceAndListParam();
 		DateRangeParam lastUpdated = new DateRangeParam();
 		SortSpec sort = new SortSpec("_lastUpdated");
 		
@@ -549,13 +547,13 @@ public class BahmniObservationSearchParamsTest {
 	
 	@Test
 	public void shouldHandleComplexBasedOnReferenceWithMultipleAndOrs() {
-		StringAndListParam basedOnRef = new StringAndListParam();
-		StringOrListParam orList1 = new StringOrListParam();
-		orList1.add(new StringParam("order-uuid-1"));
-		orList1.add(new StringParam("order-uuid-2"));
+		ReferenceAndListParam basedOnRef = new ReferenceAndListParam();
+		ReferenceOrListParam orList1 = new ReferenceOrListParam();
+		orList1.add(new ReferenceParam("order-uuid-1"));
+		orList1.add(new ReferenceParam("order-uuid-2"));
 		basedOnRef.addAnd(orList1);
-		StringOrListParam orList2 = new StringOrListParam();
-		orList2.add(new StringParam("order-uuid-3"));
+		ReferenceOrListParam orList2 = new ReferenceOrListParam();
+		orList2.add(new ReferenceParam("order-uuid-3"));
 		basedOnRef.addAnd(orList2);
 		
 		searchParams = new BahmniObservationSearchParams(null, basedOnRef, null, null);
@@ -577,11 +575,11 @@ public class BahmniObservationSearchParamsTest {
 	
 	@Test
 	public void shouldReturnFalseWhenBasedOnReferenceHasEmptyOrListParams() {
-		StringAndListParam basedOnRef = new StringAndListParam();
-		StringOrListParam emptyOrList = new StringOrListParam();
+		ReferenceAndListParam basedOnRef = new ReferenceAndListParam();
+		ReferenceOrListParam emptyOrList = new ReferenceOrListParam();
 		basedOnRef.addAnd(emptyOrList);
-		StringOrListParam validOrList = new StringOrListParam();
-		validOrList.add(new StringParam(SERVICE_REQUEST_UUID));
+		ReferenceOrListParam validOrList = new ReferenceOrListParam();
+		validOrList.add(new ReferenceParam(SERVICE_REQUEST_UUID));
 		basedOnRef.addAnd(validOrList);
 		
 		searchParams = new BahmniObservationSearchParams(null, basedOnRef, null, null);
@@ -602,10 +600,10 @@ public class BahmniObservationSearchParamsTest {
 	
 	@Test
 	public void shouldReturnFalseWhenAllBasedOnOrListParamsAreEmpty() {
-		StringAndListParam basedOnRef = new StringAndListParam();
-		StringOrListParam emptyOrList1 = new StringOrListParam();
+		ReferenceAndListParam basedOnRef = new ReferenceAndListParam();
+		ReferenceOrListParam emptyOrList1 = new ReferenceOrListParam();
 		basedOnRef.addAnd(emptyOrList1);
-		StringOrListParam emptyOrList2 = new StringOrListParam();
+		ReferenceOrListParam emptyOrList2 = new ReferenceOrListParam();
 		basedOnRef.addAnd(emptyOrList2);
 		
 		searchParams = new BahmniObservationSearchParams(null, basedOnRef, null, null);
@@ -627,11 +625,11 @@ public class BahmniObservationSearchParamsTest {
 	
 	@Test
 	public void shouldHandleBasedOnReferenceWithMultipleEmptyAndValidOrLists() {
-		StringAndListParam basedOnRef = new StringAndListParam();
-		basedOnRef.addAnd(new StringOrListParam());
-		basedOnRef.addAnd(new StringOrListParam());
-		StringOrListParam validOrList = new StringOrListParam();
-		validOrList.add(new StringParam(SERVICE_REQUEST_UUID));
+		ReferenceAndListParam basedOnRef = new ReferenceAndListParam();
+		basedOnRef.addAnd(new ReferenceOrListParam());
+		basedOnRef.addAnd(new ReferenceOrListParam());
+		ReferenceOrListParam validOrList = new ReferenceOrListParam();
+		validOrList.add(new ReferenceParam(SERVICE_REQUEST_UUID));
 		basedOnRef.addAnd(validOrList);
 		
 		searchParams = new BahmniObservationSearchParams(null, basedOnRef, null, null);
