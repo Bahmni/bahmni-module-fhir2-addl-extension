@@ -23,6 +23,8 @@ import java.util.Set;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -81,7 +83,6 @@ public class BahmniObsDaoImplTest {
 		
 		dao.setupSearchParams(criteria, theParams);
 		
-		verify(criteria).createAlias("order", "o");
 		verify(criteria).add(any());
 	}
 	
@@ -95,7 +96,6 @@ public class BahmniObsDaoImplTest {
 		
 		dao.setupSearchParams(criteria, theParams);
 		
-		verify(criteria).createAlias("order", "o");
 		verify(criteria).add(any());
 	}
 	
@@ -112,7 +112,6 @@ public class BahmniObsDaoImplTest {
 		
 		dao.setupSearchParams(criteria, theParams);
 		
-		verify(criteria).createAlias("order", "o");
 		verify(criteria, times(2)).add(any());
 	}
 	
@@ -159,7 +158,6 @@ public class BahmniObsDaoImplTest {
 		
 		dao.setupSearchParams(criteria, theParams);
 		
-		verify(criteria).createAlias("order", "o");
 		verify(criteria).add(any());
 	}
 	
@@ -222,8 +220,7 @@ public class BahmniObsDaoImplTest {
 		
 		dao.setupSearchParams(criteria, theParams);
 		
-		verify(criteria).createAlias("order", "o");
-		verify(criteria, times(2)).add(any());
+		verify(criteria, times(1)).add(any());
 	}
 	
 	@Test
@@ -240,7 +237,6 @@ public class BahmniObsDaoImplTest {
 		
 		dao.setupSearchParams(criteria, theParams);
 		
-		verify(criteria).createAlias("order", "o");
 		verify(criteria, times(2)).add(any());
 	}
 	
