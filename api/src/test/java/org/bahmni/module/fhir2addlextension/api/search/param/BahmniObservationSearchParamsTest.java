@@ -218,4 +218,46 @@ public class BahmniObservationSearchParamsTest {
 		
 		assertNotNull(paramMap);
 	}
+	
+	@Test
+	public void hasPatientReference_shouldReturnFalseWhenValuesAsQueryTokensIsEmpty() {
+		ReferenceAndListParam patientRef = new ReferenceAndListParam();
+		ReferenceOrListParam orListParam = new ReferenceOrListParam();
+		patientRef.addAnd(orListParam);
+		
+		BahmniObservationSearchParams searchParams = new BahmniObservationSearchParams(patientRef, null, null, null);
+		assertFalse(searchParams.hasPatientReference());
+	}
+	
+	@Test
+	public void hasBasedOnReference_shouldReturnFalseWhenValuesAsQueryTokensIsEmpty() {
+		ReferenceAndListParam basedOnRef = new ReferenceAndListParam();
+		ReferenceOrListParam orListParam = new ReferenceOrListParam();
+		basedOnRef.addAnd(orListParam);
+		
+		BahmniObservationSearchParams searchParams = new BahmniObservationSearchParams(null, basedOnRef, null, null);
+		assertFalse(searchParams.hasBasedOnReference());
+	}
+	
+	@Test
+	public void shouldAccessPatientReferenceField() {
+		ReferenceAndListParam patientRef = new ReferenceAndListParam();
+		patientRef.addAnd(new ReferenceOrListParam().add(new ReferenceParam("Patient", PATIENT_UUID)));
+		
+		BahmniObservationSearchParams searchParams = new BahmniObservationSearchParams(patientRef, null, null, null);
+		
+		assertNotNull(searchParams.getPatientReference());
+		assertTrue(searchParams.hasPatientReference());
+	}
+	
+	@Test
+	public void shouldAccessBasedOnReferenceField() {
+		ReferenceAndListParam basedOnRef = new ReferenceAndListParam();
+		basedOnRef.addAnd(new ReferenceOrListParam().add(new ReferenceParam(SERVICE_REQUEST_UUID)));
+		
+		BahmniObservationSearchParams searchParams = new BahmniObservationSearchParams(null, basedOnRef, null, null);
+		
+		assertNotNull(searchParams.getBasedOnReference());
+		assertTrue(searchParams.hasBasedOnReference());
+	}
 }
