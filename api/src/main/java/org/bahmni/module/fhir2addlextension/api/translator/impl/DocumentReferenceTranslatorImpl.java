@@ -107,6 +107,9 @@ public class DocumentReferenceTranslatorImpl implements DocumentReferenceTransla
         documentReference.setStatus(statusTranslator.toFhirType(docRef.getStatus()));
         documentReference.setDocStatus(statusTranslator.toFhirType(docRef.getDocStatus()));
         documentReference.setDate(docRef.getDateCreated());
+		if (docRef.getDescription() != null) {
+			documentReference.setDescription(docRef.getDescription());
+		}
 		if (docRef.getOrder() != null) {
 			documentReference.addExtension(BahmniFhirConstants.FHIR_EXT_DOCUMENT_REFERENCE_BASED_ON, basedOnReferenceTranslator.toFhirResource(docRef.getOrder()));
 		}

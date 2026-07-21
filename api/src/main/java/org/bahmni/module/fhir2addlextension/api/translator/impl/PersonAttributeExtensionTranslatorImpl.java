@@ -21,54 +21,54 @@ import java.util.stream.Collectors;
 
 @Component
 public class PersonAttributeExtensionTranslatorImpl implements org.bahmni.module.fhir2addlextension.api.translator.PersonAttributeExtensionTranslator {
-
+	
 	private static final Logger log = LoggerFactory.getLogger(PersonAttributeExtensionTranslatorImpl.class);
-
+	
 	private static final String BOOLEAN_FORMAT = "org.openmrs.customdatatype.datatype.BooleanDatatype";
-
+	
 	private final PersonService personService;
-
+	
 	@Autowired
 	public PersonAttributeExtensionTranslatorImpl(@Qualifier("personService") PersonService personService) {
 		this.personService = personService;
 	}
-
+	
 	public Extension toFhirResource(PersonAttribute attribute) {
 		String value = attribute.getValue();
 		if (value == null) {
 			return null;
 		}
-
+		
 		String name = attribute.getAttributeType().getName();
 		if (name == null) {
 			return null;
 		}
-
+		
 		String slug = ModuleUtils.toSlugCase(name);
 		Extension ext = new Extension(BahmniFhirConstants.FHIR_EXT_PATIENT_ATTRIBUTE_PREFIX + slug);
-
+		
 		if (BOOLEAN_FORMAT.equals(attribute.getAttributeType().getFormat())) {
 			ext.setValue(new BooleanType(Boolean.parseBoolean(value)));
 		} else {
 			ext.setValue(new StringType(value));
 		}
-
+		
 		return ext;
 	}
-
+	
 	public PersonAttributeType resolveType(String extensionUrl, Map<String, PersonAttributeType> slugToTypeMap) {
 		if (extensionUrl == null || !extensionUrl.startsWith(BahmniFhirConstants.FHIR_EXT_PATIENT_ATTRIBUTE_PREFIX)) {
 			return null;
 		}
-
+		
 		String slug = extensionUrl.substring(BahmniFhirConstants.FHIR_EXT_PATIENT_ATTRIBUTE_PREFIX.length());
 		if (slug.isEmpty()) {
 			return null;
 		}
-
+		
 		return slugToTypeMap.get(slug);
 	}
-
+	
 	public Map<String, PersonAttributeType> buildSlugToTypeMap() {
 		List<PersonAttributeType> types = personService.getAllPersonAttributeTypes(false);
 		return types.stream()

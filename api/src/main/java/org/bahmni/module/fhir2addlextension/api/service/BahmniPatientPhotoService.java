@@ -9,19 +9,20 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class BahmniPatientPhotoService {
-
+	
 	private static final Logger log = LoggerFactory.getLogger(BahmniPatientPhotoService.class);
-
+	
 	public boolean hasPhoto(org.openmrs.Patient patient) {
 		try {
 			File imageFile = getImageFile(patient);
 			return imageFile != null && imageFile.exists();
-		} catch (Exception e) {
+		}
+		catch (Exception e) {
 			log.warn("Could not check photo for patient {}: {}", patient.getUuid(), e.getMessage());
 			return false;
 		}
 	}
-
+	
 	public void savePhoto(org.openmrs.Patient patient, String base64Data) {
 		try {
 			Object imageService = getEmrImageService();
@@ -30,11 +31,12 @@ public class BahmniPatientPhotoService {
 			personImageClass.getMethod("setPerson", org.openmrs.Person.class).invoke(personImage, patient);
 			personImageClass.getMethod("setBase64EncodedImage", String.class).invoke(personImage, base64Data);
 			imageService.getClass().getMethod("savePersonImage", personImageClass).invoke(imageService, personImage);
-		} catch (Exception e) {
+		}
+		catch (Exception e) {
 			log.error("Failed to save patient photo for {}", patient.getUuid(), e);
 		}
 	}
-
+	
 	public void deletePhoto(org.openmrs.Patient patient) {
 		try {
 			File imageFile = getImageFile(patient);
@@ -45,19 +47,19 @@ public class BahmniPatientPhotoService {
 					log.warn("Failed to delete patient photo file: {}", imageFile.getAbsolutePath());
 				}
 			}
-		} catch (Exception e) {
+		}
+		catch (Exception e) {
 			log.error("Failed to delete patient photo for {}", patient.getUuid(), e);
 		}
 	}
-
+	
 	public File getImageFile(org.openmrs.Patient patient) throws Exception {
 		Object imageService = getEmrImageService();
-		Object personImage = imageService.getClass()
-				.getMethod("getCurrentPersonImage", org.openmrs.Person.class)
-				.invoke(imageService, patient);
+		Object personImage = imageService.getClass().getMethod("getCurrentPersonImage", org.openmrs.Person.class)
+		        .invoke(imageService, patient);
 		return (File) personImage.getClass().getMethod("getSavedImage").invoke(personImage);
 	}
-
+	
 	private Object getEmrImageService() throws Exception {
 		Class<?> serviceClass = Context.loadClass("org.openmrs.module.emrapi.person.image.EmrPersonImageService");
 		return Context.getRegisteredComponent("emrPersonImageService", serviceClass);

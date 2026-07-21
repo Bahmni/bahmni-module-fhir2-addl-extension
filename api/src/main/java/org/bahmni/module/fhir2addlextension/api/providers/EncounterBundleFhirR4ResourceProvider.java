@@ -50,7 +50,7 @@ public class EncounterBundleFhirR4ResourceProvider implements IResourceProvider 
 		Bundle responseBundle = encounterBundleService.create(bundle);
 		return FhirProviderUtils.buildCreate(responseBundle);
 	}
-
+	
 	@Read
 	public EncounterBundle getEncounterBundleByUuid(@IdParam @Nonnull IdType encounterUuid) {
 		return null;
