@@ -1,15 +1,17 @@
 package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-
+import java.util.Set;
 import javax.annotation.Nonnull;
-
 import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
 import org.bahmni.module.fhir2addlextension.api.service.BahmniPatientPhotoService;
+import org.bahmni.module.fhir2addlextension.api.translator.PatientTelecomTranslator;
 import org.hl7.fhir.r4.model.Attachment;
+import org.hl7.fhir.r4.model.ContactPoint;
 import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Patient;
@@ -41,6 +43,9 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 	@Autowired
 	private BahmniPatientPhotoService photoService;
 	
+	@Autowired
+	private PatientTelecomTranslator patientTelecomTranslator;
+	
 	void setPersonAttributeTranslator(
 	        org.bahmni.module.fhir2addlextension.api.translator.PersonAttributeExtensionTranslator translator) {
 		this.personAttributeTranslator = translator;
@@ -48,6 +53,10 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 	
 	void setPhotoService(BahmniPatientPhotoService photoService) {
 		this.photoService = photoService;
+	}
+	
+	void setPatientTelecomTranslator(PatientTelecomTranslator patientTelecomTranslator) {
+		this.patientTelecomTranslator = patientTelecomTranslator;
 	}
 	
 	@Override
@@ -61,18 +70,39 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 	}
 	
 	@Override
+	public java.util.List<ContactPoint> getPatientContactDetails(@Nonnull org.openmrs.Patient patient) {
+		return patientTelecomTranslator.getContactPoints(patient);
+	}
+	
+	@Override
 	public org.openmrs.Patient toOpenmrsType(@Nonnull org.openmrs.Patient currentPatient, @Nonnull Patient patient) {
+		// Capture and clear telecom before super to prevent base null-type attribute write
+		List<ContactPoint> telecom = patient.hasTelecom() ? new ArrayList<>(patient.getTelecom()) : null;
+		patient.setTelecom(null);
+
 		voidExistingAddresses(currentPatient, patient);
 		org.openmrs.Patient openmrsPatient = super.toOpenmrsType(currentPatient, patient);
 		setPreferredNameFlag(openmrsPatient);
 		readBirthTime(openmrsPatient, patient);
 		processPersonAttributeExtensions(openmrsPatient, patient);
 		processPhoto(openmrsPatient, patient);
+
+		// Process telecom into person attributes
+		patientTelecomTranslator.updateAttributes(openmrsPatient, telecom);
+
+		// Restore telecom on the FHIR object
+		patient.setTelecom(telecom);
+
 		return openmrsPatient;
 	}
 	
 	void addPersonAttributeExtensions(Patient fhirPatient, org.openmrs.Patient openmrsPatient) {
+		Set<String> telecomMappedTypes = patientTelecomTranslator.getMappedAttributeTypeNames();
 		for (PersonAttribute attr : openmrsPatient.getActiveAttributes()) {
+			if (attr.getAttributeType() != null && telecomMappedTypes.contains(attr.getAttributeType().getName())) {
+				// This attribute type is mapped to telecom; skip extension to avoid duplication
+				continue;
+			}
 			Extension ext = personAttributeTranslator.toFhirResource(attr);
 			if (ext != null) {
 				fhirPatient.addExtension(ext);

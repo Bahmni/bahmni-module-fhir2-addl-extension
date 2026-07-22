@@ -118,6 +118,16 @@
 			client-side size pre-check; admins can override it in Advanced Settings.
 		</description>
 	</globalProperty>
+	<globalProperty>
+		<property>fhir2Extension.patientContactAttributeTypeToTelecomSystemMap</property>
+		<defaultValue></defaultValue>
+		<description>
+			Maps a person attribute type name to a FHIR ContactPoint system so the attribute is exposed
+			under Patient.telecom instead of as an extension. Format: semicolon-separated
+			attributeTypeName:system pairs, case-sensitive. Valid systems: phone, email, fax, url, sms,
+			pager, other. e.g. "phoneNumber:phone;email:email"
+		</description>
+	</globalProperty>
 	<!-- Required Global Properties -->
 
 	<!-- Servlets -->

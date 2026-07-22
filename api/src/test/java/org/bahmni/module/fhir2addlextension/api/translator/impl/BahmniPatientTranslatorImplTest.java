@@ -1,5 +1,7 @@
 package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
+import org.bahmni.module.fhir2addlextension.api.translator.PatientTelecomTranslator;
+import org.hl7.fhir.r4.model.ContactPoint;
 import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.Extension;
@@ -15,12 +17,19 @@ import org.openmrs.PersonAttribute;
 import org.openmrs.PersonAttributeType;
 import org.openmrs.PersonName;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(Silent.class)
@@ -30,6 +39,9 @@ public class BahmniPatientTranslatorImplTest {
 	
 	@Mock
 	private org.bahmni.module.fhir2addlextension.api.translator.PersonAttributeExtensionTranslator personAttributeTranslator;
+	
+	@Mock
+	private PatientTelecomTranslator patientTelecomTranslator;
 	
 	private BahmniPatientTranslatorImpl translator;
 	
@@ -41,6 +53,7 @@ public class BahmniPatientTranslatorImplTest {
 	public void setup() {
 		translator = new BahmniPatientTranslatorImpl();
 		translator.setPersonAttributeTranslator(personAttributeTranslator);
+		translator.setPatientTelecomTranslator(patientTelecomTranslator);
 		
 		phoneType = new PersonAttributeType();
 		phoneType.setUuid("phone-uuid");
@@ -49,6 +62,7 @@ public class BahmniPatientTranslatorImplTest {
 		
 		slugToTypeMap = Collections.singletonMap("phonenumber", phoneType);
 		when(personAttributeTranslator.buildSlugToTypeMap()).thenReturn(slugToTypeMap);
+		when(patientTelecomTranslator.getMappedAttributeTypeNames()).thenReturn(Collections.emptySet());
 	}
 	
 	// --- addPersonAttributeExtensions ---
@@ -312,4 +326,66 @@ public class BahmniPatientTranslatorImplTest {
 		assertFalse(addr.getVoided());
 	}
 	
+	// --- getPatientContactDetails delegates to patientTelecomTranslator ---
+	
+	@Test
+	public void getPatientContactDetails_shouldDelegateToTelecomTranslator() {
+		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
+		ContactPoint cp = new ContactPoint();
+		cp.setSystem(ContactPoint.ContactPointSystem.PHONE);
+		cp.setValue("+919876543210");
+		when(patientTelecomTranslator.getContactPoints(openmrsPatient)).thenReturn(Collections.singletonList(cp));
+		
+		List<ContactPoint> result = translator.getPatientContactDetails(openmrsPatient);
+		
+		assertEquals(1, result.size());
+		assertEquals(ContactPoint.ContactPointSystem.PHONE, result.get(0).getSystem());
+		assertEquals("+919876543210", result.get(0).getValue());
+	}
+	
+	@Test
+	public void getPatientContactDetails_shouldReturnEmptyListWhenTranslatorReturnsEmpty() {
+		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
+		when(patientTelecomTranslator.getContactPoints(openmrsPatient)).thenReturn(Collections.emptyList());
+		
+		List<ContactPoint> result = translator.getPatientContactDetails(openmrsPatient);
+		
+		assertTrue(result.isEmpty());
+	}
+	
+	// --- addPersonAttributeExtensions excludes telecom-mapped types ---
+	
+	@Test
+	public void addPersonAttributeExtensions_shouldSkipMappedTelecomAttributes() {
+		Set<String> mappedTypes = new HashSet<>(Collections.singletonList("phoneNumber"));
+		when(patientTelecomTranslator.getMappedAttributeTypeNames()).thenReturn(mappedTypes);
+
+		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
+		openmrsPatient.addAttribute(new PersonAttribute(phoneType, "+919876543210"));
+
+		Extension mockExt = new Extension(PREFIX + "phonenumber", new StringType("+919876543210"));
+		when(personAttributeTranslator.toFhirResource(any(PersonAttribute.class))).thenReturn(mockExt);
+
+		Patient fhirPatient = new Patient();
+		translator.addPersonAttributeExtensions(fhirPatient, openmrsPatient);
+
+		assertTrue("Telecom-mapped attribute should not appear as extension", fhirPatient.getExtension().isEmpty());
+	}
+	
+	@Test
+	public void addPersonAttributeExtensions_shouldNotSkipUnmappedAttributes() {
+		Set<String> mappedTypes = new HashSet<>(Collections.singletonList("email"));
+		when(patientTelecomTranslator.getMappedAttributeTypeNames()).thenReturn(mappedTypes);
+
+		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
+		openmrsPatient.addAttribute(new PersonAttribute(phoneType, "+919876543210"));
+
+		Extension mockExt = new Extension(PREFIX + "phonenumber", new StringType("+919876543210"));
+		when(personAttributeTranslator.toFhirResource(any(PersonAttribute.class))).thenReturn(mockExt);
+
+		Patient fhirPatient = new Patient();
+		translator.addPersonAttributeExtensions(fhirPatient, openmrsPatient);
+
+		assertEquals("Non-telecom attribute should still appear as extension", 1, fhirPatient.getExtension().size());
+	}
 }
