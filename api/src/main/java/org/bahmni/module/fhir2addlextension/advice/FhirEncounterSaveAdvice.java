@@ -9,6 +9,7 @@ import org.ict4h.atomfeed.server.service.EventServiceImpl;
 import org.ict4h.atomfeed.transaction.AFTransactionWorkWithoutResult;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.atomfeed.transaction.support.AtomFeedSpringTransactionManager;
+import org.openmrs.module.fhir2.api.util.FhirUtils;
 import org.springframework.aop.AfterReturningAdvice;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -18,6 +19,7 @@ import javax.annotation.PostConstruct;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -44,7 +46,11 @@ public class FhirEncounterSaveAdvice implements AfterReturningAdvice {
 	@Override
 	public void afterReturning(Object returnValue, Method method, Object[] args, Object emrEncounterService)
 	        throws Throwable {
-		String encounterUuid = ((Encounter) returnValue).getId();
+		Encounter encounter = (Encounter) returnValue;
+		if (!shouldRaiseEvent(encounter)) {
+			return;
+		}
+		String encounterUuid = encounter.getId();
 		String encounterFeedUrl = getEncounterFeedUrl();
 		String url = String.format(encounterFeedUrl, encounterUuid);
 		final Event event = new Event(UUID.randomUUID().toString(), TITLE, LocalDateTime.now(), (URI) null, url, CATEGORY);
@@ -65,5 +71,13 @@ public class FhirEncounterSaveAdvice implements AfterReturningAdvice {
 	
 	private String getEncounterFeedUrl() {
 		return Context.getAdministrationService().getGlobalProperty("encounter.feed.publish.url");
+	}
+	
+	private boolean shouldRaiseEvent(Encounter encounter) {
+		if (encounter == null) {
+			return false;
+		}
+		Optional<FhirUtils.OpenmrsEncounterType> encounterResourceType = FhirUtils.getOpenmrsEncounterType(encounter);
+		return encounterResourceType.isPresent() && encounterResourceType.get() == FhirUtils.OpenmrsEncounterType.ENCOUNTER;
 	}
 }
