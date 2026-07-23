@@ -28,6 +28,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
+import java.util.HashSet;
 import java.util.List;
 
 @Component
@@ -113,7 +114,21 @@ public class BahmniFhirConditionServiceImpl extends BaseFhirService<Condition, o
 	
 	@Override
 	public IBundleProvider searchConditions(ConditionSearchParams conditionSearchParams) {
-		throw new InvalidRequestException("Search on Condition resource without category is not allowed");
+		BahmniConditionSearchParams params = new BahmniConditionSearchParams(
+		        conditionSearchParams.getPatientParam(),
+		        conditionSearchParams.getCode(),
+		        conditionSearchParams.getClinicalStatus(),
+		        conditionSearchParams.getOnsetDate(),
+		        conditionSearchParams.getOnsetAge(),
+		        conditionSearchParams.getRecordedDate(),
+		        conditionSearchParams.getId(),
+		        null,
+		        new StringParam(BahmniFhirConstants.HL7_CONDITION_CATEGORY_CONDITION_CODE),
+		        conditionSearchParams.getLastUpdated(),
+		        conditionSearchParams.getSort(),
+		        conditionSearchParams.getIncludes() != null ? new HashSet<>(conditionSearchParams.getIncludes()) : null
+		);
+		return searchConditions(params);
 	}
 	
 	private String getCategory(Condition condition) {

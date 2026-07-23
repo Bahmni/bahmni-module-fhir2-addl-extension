@@ -3,13 +3,21 @@ package org.bahmni.module.fhir2addlextension.api.providers;
 import ca.uhn.fhir.model.api.annotation.Description;
 import ca.uhn.fhir.rest.annotation.Operation;
 import ca.uhn.fhir.rest.annotation.OperationParam;
+import ca.uhn.fhir.rest.annotation.OptionalParam;
+import ca.uhn.fhir.rest.annotation.Search;
+import ca.uhn.fhir.rest.annotation.Sort;
+import ca.uhn.fhir.rest.api.SortSpec;
+import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.api.server.RequestDetails;
+import ca.uhn.fhir.rest.param.DateRangeParam;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.bahmni.module.fhir2addlextension.api.context.RequestContextHolder;
+import org.bahmni.module.fhir2addlextension.api.search.param.BahmniObservationSearchParams;
 import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirObservationService;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Observation;
+import org.hl7.fhir.r4.model.Patient;
 import org.openmrs.module.fhir2.api.annotations.R4Provider;
 import org.openmrs.module.fhir2.providers.r4.ObservationFhirResourceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +29,17 @@ public class BahmniObservationFhirR4ResourceProvider extends ObservationFhirReso
 	
 	@Autowired
 	private BahmniFhirObservationService observationService;
+	
+	@Search
+	public IBundleProvider searchObservation(
+	        @OptionalParam(name = Observation.SP_PATIENT, chainWhitelist = { "", Patient.SP_IDENTIFIER, Patient.SP_NAME,
+	                Patient.SP_GIVEN, Patient.SP_FAMILY }, targetTypes = Patient.class) ReferenceAndListParam patientReference,
+	        @OptionalParam(name = Observation.SP_BASED_ON) ReferenceAndListParam basedOnReference,
+	        @OptionalParam(name = "_lastUpdated") DateRangeParam lastUpdated, @Sort SortSpec sort) {
+		BahmniObservationSearchParams searchParams = new BahmniObservationSearchParams(patientReference, basedOnReference,
+		        lastUpdated, sort);
+		return observationService.searchObservations(searchParams);
+	}
 	
 	@Description(shortDefinition = "Retrieves all Observations for an encounter without paging limit", value = "This operation returns all Observations linked to the specified encounter as a Bundle, "
 	        + "bypassing the default FHIR paging maximum limit.")
