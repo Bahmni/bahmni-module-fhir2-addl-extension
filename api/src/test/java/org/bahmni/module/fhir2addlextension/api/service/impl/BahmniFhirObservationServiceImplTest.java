@@ -19,15 +19,20 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Obs;
 import org.openmrs.module.fhir2.api.dao.FhirDao;
+import org.openmrs.module.fhir2.api.dao.FhirObservationDao;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
 import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
 import org.openmrs.module.fhir2.api.search.param.ObservationSearchParams;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
+import org.openmrs.module.fhir2.api.translators.ObservationTranslator;
 import org.openmrs.module.fhir2.api.translators.OpenmrsFhirTranslator;
 
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -35,6 +40,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -63,15 +69,53 @@ public class BahmniFhirObservationServiceImplTest {
 	@Mock
 	private OpenmrsFhirTranslator<Obs, Observation> translator;
 	
+	// Separate service instance for create() tests — uses anonymous subclass to bypass
+	// validateObject() which requires an OpenMRS Spring context.
+	private BahmniFhirObservationServiceImpl createTestService;
+	
+	private BahmniObsDao mockBahmniObsDao;
+	
+	private FhirObservationDao mockDao;
+	
+	private ObservationTranslator mockTranslator;
+	
 	@Before
 	public void setUp() {
 		observationService = org.mockito.Mockito.spy(new BahmniFhirObservationServiceImpl(bahmniObsDao, searchQueryInclude,
 		        searchQuery));
 	}
 	
+	@Before
+	public void setUpCreateTestService() throws NoSuchFieldException, IllegalAccessException {
+		mockBahmniObsDao = mock(BahmniObsDao.class);
+		mockDao = mock(FhirObservationDao.class);
+		mockTranslator = mock(ObservationTranslator.class);
+		
+		createTestService = new BahmniFhirObservationServiceImpl(
+		                                                         mockBahmniObsDao, searchQueryInclude, searchQuery) {
+			
+			@Override
+			protected void validateObject(Obs object) {
+				// no-op — bypasses OpenMRS ValidateUtil static context requirement
+			}
+		};
+		setFieldOnSuperClass(createTestService, "dao", mockDao);
+		setFieldOnSuperClass(createTestService, "translator", mockTranslator);
+	}
+	
 	@After
 	public void tearDown() {
 		RequestContextHolder.clear();
+	}
+	
+	private void setFieldOnSuperClass(BahmniFhirObservationServiceImpl service, String fieldName, Object value)
+	        throws NoSuchFieldException, IllegalAccessException {
+		// Anonymous subclass → BahmniFhirObservationServiceImpl → FhirObservationServiceImpl
+		// dao and translator fields are declared in FhirObservationServiceImpl
+		Class<?> clazz = service.getClass().getSuperclass().getSuperclass();
+		Field field = clazz.getDeclaredField(fieldName);
+		field.setAccessible(true);
+		field.set(service, value);
 	}
 	
 	@Test
@@ -122,6 +166,106 @@ public class BahmniFhirObservationServiceImplTest {
 		assertEquals(0, result.getTotal());
 		assertEquals(0, result.getEntry().size());
 	}
+	
+	// ──────────────────────────────────────────────────────────────────────────────
+	// Tests for create() — UUID handling and existing parent obs detection
+	// ──────────────────────────────────────────────────────────────────────────────
+	
+	@Test
+	public void create_shouldSetUuidFromResourceIdSoClientUuidIsStoredInDb() {
+		String resourceId = "client-obs-uuid-123";
+		Observation fhirObs = new Observation();
+		fhirObs.setId(resourceId);
+		
+		Obs obsFromTranslator = new Obs();
+		obsFromTranslator.setGroupMembers(new HashSet<>()); // translator always initialises groupMembers
+		when(mockTranslator.toOpenmrsType(fhirObs)).thenReturn(obsFromTranslator);
+		// no getDao().get() stub needed — groupMembers is empty so the existing-obs check is skipped
+		when(mockDao.createOrUpdate(obsFromTranslator)).thenReturn(obsFromTranslator);
+		when(mockTranslator.toFhirResource(obsFromTranslator)).thenReturn(new Observation());
+		
+		createTestService.create(fhirObs);
+		
+		assertEquals("UUID from resource.id must be set on the obs before createOrUpdate", resourceId,
+		    obsFromTranslator.getUuid());
+	}
+	
+	@Test
+	public void create_shouldReturnExistingObsAndLinkNewChildrenWhenParentUuidExistsInDb() {
+		String parentUuid = "existing-parent-group-obs-uuid";
+		Observation fhirParentObs = new Observation();
+		fhirParentObs.setId(parentUuid);
+
+		Obs childObs = new Obs();
+		Set<Obs> groupMembers = new HashSet<>();
+		groupMembers.add(childObs);
+
+		Obs translatedObs = new Obs();
+		translatedObs.setGroupMembers(groupMembers);
+
+		Obs existingParentObs = new Obs();
+		existingParentObs.setUuid(parentUuid);
+
+		Observation returnedFhirObs = new Observation();
+		returnedFhirObs.setId(parentUuid);
+
+		when(mockTranslator.toOpenmrsType(fhirParentObs)).thenReturn(translatedObs);
+		when(mockDao.get((String) parentUuid)).thenReturn(existingParentObs);
+		when(mockTranslator.toFhirResource(existingParentObs)).thenReturn(returnedFhirObs);
+
+		Observation result = createTestService.create(fhirParentObs);
+
+		assertEquals(parentUuid, result.getId());
+		verify(mockBahmniObsDao).updateObsMember(existingParentObs, groupMembers);
+		verify(mockDao, never()).createOrUpdate(any());
+	}
+	
+	@Test
+	public void create_shouldCreateNewObsWhenResourceUuidNotFoundInDb() {
+		String newObsUuid = "brand-new-obs-uuid";
+		Observation fhirObs = new Observation();
+		fhirObs.setId(newObsUuid);
+
+		Obs obsFromTranslator = new Obs();
+		Set<Obs> groupMembers = new HashSet<>();
+		groupMembers.add(new Obs());
+		obsFromTranslator.setGroupMembers(groupMembers);
+
+		Observation createdFhirObs = new Observation();
+
+		when(mockTranslator.toOpenmrsType(fhirObs)).thenReturn(obsFromTranslator);
+		when(mockDao.get((String) newObsUuid)).thenReturn(null);  // UUID not in DB
+		when(mockDao.createOrUpdate(obsFromTranslator)).thenReturn(obsFromTranslator);
+		when(mockTranslator.toFhirResource(obsFromTranslator)).thenReturn(createdFhirObs);
+
+		Observation result = createTestService.create(fhirObs);
+
+		assertEquals(createdFhirObs, result);
+		verify(mockDao).createOrUpdate(obsFromTranslator);
+		verify(mockBahmniObsDao).updateObsMember(obsFromTranslator, groupMembers);
+	}
+	
+	@Test
+	public void create_shouldCreateNewObsNormallyWhenResourceHasNoId() {
+		Observation fhirObs = new Observation();
+		// no id set
+		
+		Obs obsFromTranslator = new Obs();
+		obsFromTranslator.setGroupMembers(new HashSet<>()); // translator always initialises groupMembers
+		Observation createdFhirObs = new Observation();
+
+		when(mockTranslator.toOpenmrsType(fhirObs)).thenReturn(obsFromTranslator);
+		when(mockDao.createOrUpdate(obsFromTranslator)).thenReturn(obsFromTranslator);
+		when(mockTranslator.toFhirResource(obsFromTranslator)).thenReturn(createdFhirObs);
+
+		Observation result = createTestService.create(fhirObs);
+
+		assertEquals(createdFhirObs, result);
+		verify(mockDao).createOrUpdate(obsFromTranslator);
+		verify(mockDao, never()).get(any(String.class));
+	}
+	
+	// ──────────────────────────────────────────────────────────────────────────────
 	
 	@Test
 	public void fetchAllByEncounter_shouldPopulateBundleMetadata() {

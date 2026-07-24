@@ -97,6 +97,17 @@ public class BahmniFhirObservationServiceImpl extends FhirObservationServiceImpl
 		}
 	}
 	
+	/**
+	 * Creates or updates an observation via the Bahmni EncounterBundle API.
+	 * <p>
+	 * Upsert behaviour (Bahmni-specific): if the resource carries a client-supplied id that already
+	 * exists in the database AND has hasMember references, the existing parent group observation is
+	 * reused and its children are re-linked via {@code updateObsMember} rather than creating a
+	 * duplicate parent. This accommodates the EncounterBundle edit contract where editing a grouped
+	 * observation requires POSTing the parent with an updated hasMember list.
+	 * <p>
+	 * For all other cases (new id, no id, or no hasMember) the standard create path is taken.
+	 */
 	@Override
 	public Observation create(@Nonnull Observation newResource) {
 		if (newResource == null) {
@@ -106,15 +117,30 @@ public class BahmniFhirObservationServiceImpl extends FhirObservationServiceImpl
 		Obs openmrsObj = getTranslator().toOpenmrsType(newResource);
 		Set<Obs> groupMembers = openmrsObj.getGroupMembers();
 		
+		// Set UUID from FHIR resource id BEFORE validateObject() and createOrUpdate().
+		// OpenMRS BaseOpenmrsObject eagerly assigns a random UUID in the constructor, so we
+		// must override it with the client-supplied id here to ensure the correct UUID is persisted.
+		if (newResource.hasId()) {
+			openmrsObj.setUuid(newResource.getIdElement().getIdPart());
+		}
+		
 		validateObject(openmrsObj);
 		
-		if (openmrsObj.getUuid() == null) {
-			openmrsObj.setUuid(FhirUtils.newUuid());
+		// If the UUID maps to an existing obs and there are group members to link,
+		// this is an existing parent group obs — do NOT re-create it.
+		// Just link the new children via updateObsMember and return the existing obs.
+		// Note: when ALL children are deleted the frontend sends DELETE for the parent obs too,
+		// so this path is only reached when there are valid new children to link.
+		if (newResource.hasId() && groupMembers != null && !groupMembers.isEmpty()) {
+			Obs existingObs = getDao().get(openmrsObj.getUuid());
+			if (existingObs != null) {
+				bahmniObsDao.updateObsMember(existingObs, groupMembers);
+				return getTranslator().toFhirResource(existingObs);
+			}
 		}
 		
 		Obs updatedObs = getDao().createOrUpdate(openmrsObj);
 		bahmniObsDao.updateObsMember(updatedObs, groupMembers);
-		Observation resource = getTranslator().toFhirResource(updatedObs);
-		return resource;
+		return getTranslator().toFhirResource(updatedObs);
 	}
 }
