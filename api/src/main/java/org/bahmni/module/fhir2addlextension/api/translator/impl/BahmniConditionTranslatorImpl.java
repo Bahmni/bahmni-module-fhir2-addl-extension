@@ -1,7 +1,5 @@
 package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
-import lombok.AccessLevel;
-import lombok.Setter;
 import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
@@ -18,7 +16,6 @@ import java.util.Collections;
 
 @Component
 @Primary
-@Setter(AccessLevel.PACKAGE)
 public class BahmniConditionTranslatorImpl extends ConditionTranslatorImpl {
 	
 	@Autowired

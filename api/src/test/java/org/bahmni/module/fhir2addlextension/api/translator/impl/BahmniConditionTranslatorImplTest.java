@@ -124,6 +124,22 @@ public class BahmniConditionTranslatorImplTest {
 		assertThat(result.getEncounter(), nullValue());
 	}
 	
+	@Test
+	public void toFhirResource_setsEncounterToNullWhenTranslatorReturnsNull() {
+		Encounter encounter = new Encounter();
+		encounter.setUuid("enc-uuid-null");
+		
+		Condition condition = buildBaseCondition();
+		condition.setEncounter(encounter);
+		
+		when(encounterReferenceTranslator.toFhirResource(encounter)).thenReturn(null);
+		
+		org.hl7.fhir.r4.model.Condition fhirCondition = translator.toFhirResource(condition);
+		
+		assertThat(fhirCondition.getEncounter().isEmpty(), org.hamcrest.Matchers.equalTo(true));
+		verify(encounterReferenceTranslator).toFhirResource(encounter);
+	}
+	
 	// ========== HELPERS ==========
 	
 	private Condition buildBaseCondition() {
