@@ -25,6 +25,9 @@ public class BahmniConditionTranslatorImpl extends ConditionTranslatorImpl {
 	public Condition toFhirResource(@Nonnull org.openmrs.Condition condition) {
 		Condition fhirCondition = super.toFhirResource(condition);
 		fhirCondition.setCategory(Collections.singletonList(createCategoryCodeableConcept()));
+		if (condition.getEncounter() != null) {
+			fhirCondition.setEncounter(encounterReferenceTranslator.toFhirResource(condition.getEncounter()));
+		}
 		return fhirCondition;
 	}
 	
