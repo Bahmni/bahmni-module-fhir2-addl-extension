@@ -98,15 +98,12 @@ public class BahmniFhirObservationServiceImpl extends FhirObservationServiceImpl
 	}
 	
 	/**
-	 * Creates or updates an observation via the Bahmni EncounterBundle API.
+	 * Creates a brand-new observation via the Bahmni EncounterBundle API.
 	 * <p>
-	 * Upsert behaviour (Bahmni-specific): if the resource carries a client-supplied id that already
-	 * exists in the database AND has hasMember references, the existing parent group observation is
-	 * reused and its children are re-linked via {@code updateObsMember} rather than creating a
-	 * duplicate parent. This accommodates the EncounterBundle edit contract where editing a grouped
-	 * observation requires POSTing the parent with an updated hasMember list.
-	 * <p>
-	 * For all other cases (new id, no id, or no hasMember) the standard create path is taken.
+	 * Editing an existing obsGroup no longer goes through this method — the frontend sends a real
+	 * PUT for that, handled by {@link #applyUpdate(Obs, Observation)}. This method only ever sees
+	 * new observations (no client-supplied id), so it always creates and links any group members
+	 * via {@code updateObsMember}.
 	 */
 	@Override
 	public Observation create(@Nonnull Observation newResource) {
@@ -117,30 +114,43 @@ public class BahmniFhirObservationServiceImpl extends FhirObservationServiceImpl
 		Obs openmrsObj = getTranslator().toOpenmrsType(newResource);
 		Set<Obs> groupMembers = openmrsObj.getGroupMembers();
 		
-		// Set UUID from FHIR resource id BEFORE validateObject() and createOrUpdate().
-		// OpenMRS BaseOpenmrsObject eagerly assigns a random UUID in the constructor, so we
-		// must override it with the client-supplied id here to ensure the correct UUID is persisted.
-		if (newResource.hasId()) {
-			openmrsObj.setUuid(newResource.getIdElement().getIdPart());
-		}
-		
 		validateObject(openmrsObj);
-		
-		// If the UUID maps to an existing obs and there are group members to link,
-		// this is an existing parent group obs — do NOT re-create it.
-		// Just link the new children via updateObsMember and return the existing obs.
-		// Note: when ALL children are deleted the frontend sends DELETE for the parent obs too,
-		// so this path is only reached when there are valid new children to link.
-		if (newResource.hasId() && groupMembers != null && !groupMembers.isEmpty()) {
-			Obs existingObs = getDao().get(openmrsObj.getUuid());
-			if (existingObs != null) {
-				bahmniObsDao.updateObsMember(existingObs, groupMembers);
-				return getTranslator().toFhirResource(existingObs);
-			}
-		}
 		
 		Obs updatedObs = getDao().createOrUpdate(openmrsObj);
 		bahmniObsDao.updateObsMember(updatedObs, groupMembers);
 		return getTranslator().toFhirResource(updatedObs);
+	}
+	
+	/**
+	 * Merges an incoming FHIR PUT into the existing OpenMRS Obs.
+	 * <p>
+	 * The inherited default (core {@code FhirObservationServiceImpl#applyUpdate}) translates the
+	 * incoming resource into a fresh {@code Obs} from scratch and persists it directly — it never
+	 * calls {@code updateObsMember}, so it does not safely, additively re-link an obsGroup's
+	 * children the way the EncounterBundle edit contract requires. When the EXISTING obs is itself
+	 * an obsGroup, we instead keep the already-loaded existing parent ({@code obs}, supplied by
+	 * {@code BaseFhirService#update}) as-is and re-link its children via {@code updateObsMember}.
+	 * This is what lets callers use a real PUT to update an existing obsGroup.
+	 * <p>
+	 * Branching on {@code obs.isObsGrouping()} (the EXISTING obs) rather than on whether the
+	 * INCOMING resource's hasMember happens to be non-empty matters: the EncounterBundle edit
+	 * contract omits unchanged group members from hasMember as an optimisation (see the frontend's
+	 * observationResourceCreator.ts), so a PUT for a group where every remaining member happens to
+	 * be unchanged legitimately carries an EMPTY hasMember. {@code updateObsMember} already no-ops
+	 * on an empty/null set, so that's safe — but checking the incoming resource for emptiness would
+	 * wrongly fall through to the core default path below, which tries to persist the group parent
+	 * itself as a valueless, member-less Obs and fails OpenMRS's ObsValidator with "error.noValue".
+	 * <p>
+	 * For all other cases (the existing obs is a plain leaf) the standard core update path is
+	 * taken.
+	 */
+	@Override
+	protected Observation applyUpdate(Obs obs, Observation observation) {
+		if (obs.isObsGrouping()) {
+			Set<Obs> groupMembers = getTranslator().toOpenmrsType(observation).getGroupMembers();
+			bahmniObsDao.updateObsMember(obs, groupMembers);
+			return getTranslator().toFhirResource(obs);
+		}
+		return super.applyUpdate(obs, observation);
 	}
 }

@@ -168,88 +168,17 @@ public class BahmniFhirObservationServiceImplTest {
 	}
 	
 	// ──────────────────────────────────────────────────────────────────────────────
-	// Tests for create() — UUID handling and existing parent obs detection
+	// Tests for create() — brand-new observations only. Editing an existing
+	// obsGroup no longer routes through create() (it uses a real PUT, handled by
+	// applyUpdate() below), so create() no longer reads/honours a client-supplied
+	// resource id at all.
 	// ──────────────────────────────────────────────────────────────────────────────
 	
 	@Test
-	public void create_shouldSetUuidFromResourceIdSoClientUuidIsStoredInDb() {
-		String resourceId = "client-obs-uuid-123";
+	public void create_shouldCreateNewLeafObsAndNotTouchDaoGet() {
 		Observation fhirObs = new Observation();
-		fhirObs.setId(resourceId);
-		
-		Obs obsFromTranslator = new Obs();
-		obsFromTranslator.setGroupMembers(new HashSet<>()); // translator always initialises groupMembers
-		when(mockTranslator.toOpenmrsType(fhirObs)).thenReturn(obsFromTranslator);
-		// no getDao().get() stub needed — groupMembers is empty so the existing-obs check is skipped
-		when(mockDao.createOrUpdate(obsFromTranslator)).thenReturn(obsFromTranslator);
-		when(mockTranslator.toFhirResource(obsFromTranslator)).thenReturn(new Observation());
-		
-		createTestService.create(fhirObs);
-		
-		assertEquals("UUID from resource.id must be set on the obs before createOrUpdate", resourceId,
-		    obsFromTranslator.getUuid());
-	}
-	
-	@Test
-	public void create_shouldReturnExistingObsAndLinkNewChildrenWhenParentUuidExistsInDb() {
-		String parentUuid = "existing-parent-group-obs-uuid";
-		Observation fhirParentObs = new Observation();
-		fhirParentObs.setId(parentUuid);
+		// no id set — create() always treats the incoming resource as brand new
 
-		Obs childObs = new Obs();
-		Set<Obs> groupMembers = new HashSet<>();
-		groupMembers.add(childObs);
-
-		Obs translatedObs = new Obs();
-		translatedObs.setGroupMembers(groupMembers);
-
-		Obs existingParentObs = new Obs();
-		existingParentObs.setUuid(parentUuid);
-
-		Observation returnedFhirObs = new Observation();
-		returnedFhirObs.setId(parentUuid);
-
-		when(mockTranslator.toOpenmrsType(fhirParentObs)).thenReturn(translatedObs);
-		when(mockDao.get((String) parentUuid)).thenReturn(existingParentObs);
-		when(mockTranslator.toFhirResource(existingParentObs)).thenReturn(returnedFhirObs);
-
-		Observation result = createTestService.create(fhirParentObs);
-
-		assertEquals(parentUuid, result.getId());
-		verify(mockBahmniObsDao).updateObsMember(existingParentObs, groupMembers);
-		verify(mockDao, never()).createOrUpdate(any());
-	}
-	
-	@Test
-	public void create_shouldCreateNewObsWhenResourceUuidNotFoundInDb() {
-		String newObsUuid = "brand-new-obs-uuid";
-		Observation fhirObs = new Observation();
-		fhirObs.setId(newObsUuid);
-
-		Obs obsFromTranslator = new Obs();
-		Set<Obs> groupMembers = new HashSet<>();
-		groupMembers.add(new Obs());
-		obsFromTranslator.setGroupMembers(groupMembers);
-
-		Observation createdFhirObs = new Observation();
-
-		when(mockTranslator.toOpenmrsType(fhirObs)).thenReturn(obsFromTranslator);
-		when(mockDao.get((String) newObsUuid)).thenReturn(null);  // UUID not in DB
-		when(mockDao.createOrUpdate(obsFromTranslator)).thenReturn(obsFromTranslator);
-		when(mockTranslator.toFhirResource(obsFromTranslator)).thenReturn(createdFhirObs);
-
-		Observation result = createTestService.create(fhirObs);
-
-		assertEquals(createdFhirObs, result);
-		verify(mockDao).createOrUpdate(obsFromTranslator);
-		verify(mockBahmniObsDao).updateObsMember(obsFromTranslator, groupMembers);
-	}
-	
-	@Test
-	public void create_shouldCreateNewObsNormallyWhenResourceHasNoId() {
-		Observation fhirObs = new Observation();
-		// no id set
-		
 		Obs obsFromTranslator = new Obs();
 		obsFromTranslator.setGroupMembers(new HashSet<>()); // translator always initialises groupMembers
 		Observation createdFhirObs = new Observation();
@@ -264,6 +193,113 @@ public class BahmniFhirObservationServiceImplTest {
 		verify(mockDao).createOrUpdate(obsFromTranslator);
 		verify(mockDao, never()).get(any(String.class));
 	}
+	
+	@Test
+	public void create_shouldCreateNewGroupAndLinkItsMembers() {
+		Observation fhirObs = new Observation();
+
+		Obs obsFromTranslator = new Obs();
+		Set<Obs> groupMembers = new HashSet<>();
+		groupMembers.add(new Obs());
+		obsFromTranslator.setGroupMembers(groupMembers);
+
+		Observation createdFhirObs = new Observation();
+
+		when(mockTranslator.toOpenmrsType(fhirObs)).thenReturn(obsFromTranslator);
+		when(mockDao.createOrUpdate(obsFromTranslator)).thenReturn(obsFromTranslator);
+		when(mockTranslator.toFhirResource(obsFromTranslator)).thenReturn(createdFhirObs);
+
+		Observation result = createTestService.create(fhirObs);
+
+		assertEquals(createdFhirObs, result);
+		verify(mockDao).createOrUpdate(obsFromTranslator);
+		verify(mockBahmniObsDao).updateObsMember(obsFromTranslator, groupMembers);
+		verify(mockDao, never()).get(any(String.class));
+	}
+	
+	// ──────────────────────────────────────────────────────────────────────────────
+	// Tests for applyUpdate() — PUT should behave the same as the POST-with-id
+	// workaround for obsGroup parents, instead of falling through to core's
+	// default (non-additive) update behaviour.
+	// ──────────────────────────────────────────────────────────────────────────────
+	
+	@Test
+	public void applyUpdate_shouldReuseExistingParentAndLinkChildrenWhenExistingObsIsAGroup() {
+		Obs existingParentObs = new Obs();
+		existingParentObs.setUuid("existing-parent-group-obs-uuid");
+		// Marks this Obs as an obsGroup in the DB — this, not the incoming
+		// resource's hasMember, is what applyUpdate() branches on.
+		Set<Obs> existingGroupMembers = new HashSet<>();
+		existingGroupMembers.add(new Obs());
+		existingParentObs.setGroupMembers(existingGroupMembers);
+
+		Observation incomingFhirObs = new Observation();
+		incomingFhirObs.setId("existing-parent-group-obs-uuid");
+
+		Obs childObs = new Obs();
+		Set<Obs> incomingGroupMembers = new HashSet<>();
+		incomingGroupMembers.add(childObs);
+
+		Obs translatedObs = new Obs();
+		translatedObs.setGroupMembers(incomingGroupMembers);
+
+		Observation returnedFhirObs = new Observation();
+		returnedFhirObs.setId("existing-parent-group-obs-uuid");
+
+		when(mockTranslator.toOpenmrsType(incomingFhirObs)).thenReturn(translatedObs);
+		when(mockTranslator.toFhirResource(existingParentObs)).thenReturn(returnedFhirObs);
+
+		Observation result = createTestService.applyUpdate(existingParentObs, incomingFhirObs);
+
+		assertEquals(returnedFhirObs, result);
+		verify(mockBahmniObsDao).updateObsMember(existingParentObs, incomingGroupMembers);
+		// Must NOT go through the default create/replace path — the existing
+		// parent obs is kept as-is, only its children are re-linked.
+		verify(mockDao, never()).createOrUpdate(any());
+	}
+	
+	@Test
+	public void applyUpdate_shouldStillTakeSafePathWhenExistingGroupHasNoNewOrChangedMembersToLink() {
+		// Regression: if every remaining member of an existing group is
+		// unchanged, the frontend legitimately sends an EMPTY hasMember
+		// (see observationResourceCreator.ts). Branching on the EXISTING
+		// obs's group-ness (not on whether the incoming resource's
+		// hasMember happens to be non-empty) means this still takes the
+		// safe, no-op updateObsMember path instead of falling through to
+		// core's default update — which would try to persist the group
+		// parent as a valueless, member-less Obs and fail OpenMRS's
+		// ObsValidator with "error.noValue".
+		Obs existingParentObs = new Obs();
+		existingParentObs.setUuid("existing-parent-group-obs-uuid");
+		Set<Obs> existingGroupMembers = new HashSet<>();
+		existingGroupMembers.add(new Obs());
+		existingParentObs.setGroupMembers(existingGroupMembers);
+
+		Observation incomingFhirObs = new Observation();
+		incomingFhirObs.setId("existing-parent-group-obs-uuid");
+
+		Obs translatedObs = new Obs();
+		translatedObs.setGroupMembers(new HashSet<>()); // no new/changed members this save
+
+		Observation returnedFhirObs = new Observation();
+		returnedFhirObs.setId("existing-parent-group-obs-uuid");
+
+		when(mockTranslator.toOpenmrsType(incomingFhirObs)).thenReturn(translatedObs);
+		when(mockTranslator.toFhirResource(existingParentObs)).thenReturn(returnedFhirObs);
+
+		Observation result = createTestService.applyUpdate(existingParentObs, incomingFhirObs);
+
+		assertEquals(returnedFhirObs, result);
+		verify(mockBahmniObsDao).updateObsMember(existingParentObs, new HashSet<>());
+		verify(mockDao, never()).createOrUpdate(any());
+	}
+	
+	// Note: the "existing obs is not a group → delegates to super.applyUpdate()"
+	// branch is intentionally not unit-tested here. Core FhirObservationServiceImpl#applyUpdate
+	// reaches into live OpenMRS static Context (ObsService), which these unit tests
+	// don't bootstrap (the same reason create()'s tests bypass validateObject() via
+	// an anonymous override rather than exercising it directly). That branch is
+	// covered by this module's integration test suite instead.
 	
 	// ──────────────────────────────────────────────────────────────────────────────
 	
