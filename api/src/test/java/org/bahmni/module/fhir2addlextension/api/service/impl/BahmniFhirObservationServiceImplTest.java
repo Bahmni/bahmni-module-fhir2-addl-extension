@@ -221,9 +221,7 @@ public class BahmniFhirObservationServiceImplTest {
 	}
 	
 	// ──────────────────────────────────────────────────────────────────────────────
-	// Tests for applyUpdate() — PUT should behave the same as the POST-with-id
-	// workaround for obsGroup parents, instead of falling through to core's
-	// default (non-additive) update behaviour.
+	// Tests for applyUpdate()
 	// ──────────────────────────────────────────────────────────────────────────────
 	
 	@Test

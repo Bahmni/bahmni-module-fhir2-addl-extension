@@ -99,11 +99,6 @@ public class BahmniFhirObservationServiceImpl extends FhirObservationServiceImpl
 	
 	/**
 	 * Creates a brand-new observation via the Bahmni EncounterBundle API.
-	 * <p>
-	 * Editing an existing obsGroup no longer goes through this method — the frontend sends a real
-	 * PUT for that, handled by {@link #applyUpdate(Obs, Observation)}. This method only ever sees
-	 * new observations (no client-supplied id), so it always creates and links any group members
-	 * via {@code updateObsMember}.
 	 */
 	@Override
 	public Observation create(@Nonnull Observation newResource) {
@@ -122,27 +117,9 @@ public class BahmniFhirObservationServiceImpl extends FhirObservationServiceImpl
 	}
 	
 	/**
-	 * Merges an incoming FHIR PUT into the existing OpenMRS Obs.
-	 * <p>
-	 * The inherited default (core {@code FhirObservationServiceImpl#applyUpdate}) translates the
-	 * incoming resource into a fresh {@code Obs} from scratch and persists it directly — it never
-	 * calls {@code updateObsMember}, so it does not safely, additively re-link an obsGroup's
-	 * children the way the EncounterBundle edit contract requires. When the EXISTING obs is itself
-	 * an obsGroup, we instead keep the already-loaded existing parent ({@code obs}, supplied by
-	 * {@code BaseFhirService#update}) as-is and re-link its children via {@code updateObsMember}.
-	 * This is what lets callers use a real PUT to update an existing obsGroup.
-	 * <p>
-	 * Branching on {@code obs.isObsGrouping()} (the EXISTING obs) rather than on whether the
-	 * INCOMING resource's hasMember happens to be non-empty matters: the EncounterBundle edit
-	 * contract omits unchanged group members from hasMember as an optimisation (see the frontend's
-	 * observationResourceCreator.ts), so a PUT for a group where every remaining member happens to
-	 * be unchanged legitimately carries an EMPTY hasMember. {@code updateObsMember} already no-ops
-	 * on an empty/null set, so that's safe — but checking the incoming resource for emptiness would
-	 * wrongly fall through to the core default path below, which tries to persist the group parent
-	 * itself as a valueless, member-less Obs and fails OpenMRS's ObsValidator with "error.noValue".
-	 * <p>
-	 * For all other cases (the existing obs is a plain leaf) the standard core update path is
-	 * taken.
+	 * Merges an incoming FHIR PUT into the existing OpenMRS Obs. When the existing obs is an
+	 * obsGroup, re-links its members via {@code updateObsMember} instead of the core default
+	 * behaviour; otherwise delegates to the standard update path.
 	 */
 	@Override
 	protected Observation applyUpdate(Obs obs, Observation observation) {
