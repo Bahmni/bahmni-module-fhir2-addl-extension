@@ -16,8 +16,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Obs;
+import org.openmrs.api.ObsService;
+import org.openmrs.api.context.Context;
 import org.openmrs.module.fhir2.api.dao.FhirDao;
 import org.openmrs.module.fhir2.api.dao.FhirObservationDao;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
@@ -294,12 +297,39 @@ public class BahmniFhirObservationServiceImplTest {
 		verify(mockDao, never()).createOrUpdate(any());
 	}
 	
-	// Note: the "existing obs is not a group → delegates to super.applyUpdate()"
-	// branch is intentionally not unit-tested here. Core FhirObservationServiceImpl#applyUpdate
-	// reaches into live OpenMRS static Context (ObsService), which these unit tests
-	// don't bootstrap (the same reason create()'s tests bypass validateObject() via
-	// an anonymous override rather than exercising it directly). That branch is
-	// covered by this module's integration test suite instead.
+	@Test
+	public void applyUpdate_shouldDelegateToCoreUpdateWhenExistingObsIsAPlainLeaf() {
+		Obs existingLeafObs = new Obs();
+		existingLeafObs.setUuid("existing-leaf-obs-uuid");
+		// No group members set — isObsGrouping() is false, so this must fall
+		// through to the core (non-additive) update path instead of the
+		// obsGroup re-linking shortcut above.
+
+		Observation incomingFhirObs = new Observation();
+		incomingFhirObs.setId("existing-leaf-obs-uuid");
+
+		Obs translatedObs = new Obs();
+		Obs savedObs = new Obs();
+		Observation returnedFhirObs = new Observation();
+		returnedFhirObs.setId("existing-leaf-obs-uuid");
+
+		// ObservationTranslator is an UpdatableOpenmrsTranslator, so core applyUpdate()
+		// calls the two-arg overload rather than the plain toOpenmrsType(resource).
+		when(mockTranslator.toOpenmrsType(existingLeafObs, incomingFhirObs)).thenReturn(translatedObs);
+		when(mockTranslator.toFhirResource(savedObs)).thenReturn(returnedFhirObs);
+
+		ObsService mockObsService = mock(ObsService.class);
+		when(mockObsService.saveObs(translatedObs, "Updated via the FHIR2 API")).thenReturn(savedObs);
+
+		try (MockedStatic<Context> mockedContext = org.mockito.Mockito.mockStatic(Context.class)) {
+			mockedContext.when(Context::getObsService).thenReturn(mockObsService);
+
+			Observation result = createTestService.applyUpdate(existingLeafObs, incomingFhirObs);
+
+			assertEquals(returnedFhirObs, result);
+		}
+		verify(mockBahmniObsDao, never()).updateObsMember(any(), any());
+	}
 	
 	// ──────────────────────────────────────────────────────────────────────────────
 	
