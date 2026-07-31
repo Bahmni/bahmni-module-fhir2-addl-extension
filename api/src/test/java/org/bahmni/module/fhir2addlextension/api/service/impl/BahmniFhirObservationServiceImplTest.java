@@ -180,7 +180,6 @@ public class BahmniFhirObservationServiceImplTest {
 	@Test
 	public void create_shouldCreateNewLeafObsAndNotTouchDaoGet() {
 		Observation fhirObs = new Observation();
-		// no id set — create() always treats the incoming resource as brand new
 
 		Obs obsFromTranslator = new Obs();
 		obsFromTranslator.setGroupMembers(new HashSet<>()); // translator always initialises groupMembers
@@ -261,15 +260,6 @@ public class BahmniFhirObservationServiceImplTest {
 	
 	@Test
 	public void applyUpdate_shouldStillTakeSafePathWhenExistingGroupHasNoNewOrChangedMembersToLink() {
-		// Regression: if every remaining member of an existing group is
-		// unchanged, the frontend legitimately sends an EMPTY hasMember
-		// (see observationResourceCreator.ts). Branching on the EXISTING
-		// obs's group-ness (not on whether the incoming resource's
-		// hasMember happens to be non-empty) means this still takes the
-		// safe, no-op updateObsMember path instead of falling through to
-		// core's default update — which would try to persist the group
-		// parent as a valueless, member-less Obs and fail OpenMRS's
-		// ObsValidator with "error.noValue".
 		Obs existingParentObs = new Obs();
 		existingParentObs.setUuid("existing-parent-group-obs-uuid");
 		Set<Obs> existingGroupMembers = new HashSet<>();

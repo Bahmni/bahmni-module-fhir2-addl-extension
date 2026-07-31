@@ -97,9 +97,6 @@ public class BahmniFhirObservationServiceImpl extends FhirObservationServiceImpl
 		}
 	}
 	
-	/**
-	 * Creates a brand-new observation via the Bahmni EncounterBundle API.
-	 */
 	@Override
 	public Observation create(@Nonnull Observation newResource) {
 		if (newResource == null) {
@@ -116,15 +113,11 @@ public class BahmniFhirObservationServiceImpl extends FhirObservationServiceImpl
 		return getTranslator().toFhirResource(updatedObs);
 	}
 	
-	/**
-	 * Merges an incoming FHIR PUT into the existing OpenMRS Obs. When the existing obs is an
-	 * obsGroup, re-links its members via {@code updateObsMember} instead of the core default
-	 * behaviour; otherwise delegates to the standard update path.
-	 */
 	@Override
 	protected Observation applyUpdate(Obs obs, Observation observation) {
 		if (obs.isObsGrouping()) {
 			Set<Obs> groupMembers = getTranslator().toOpenmrsType(observation).getGroupMembers();
+			validateObject(obs);
 			bahmniObsDao.updateObsMember(obs, groupMembers);
 			return getTranslator().toFhirResource(obs);
 		}
