@@ -21,6 +21,7 @@ import org.openmrs.ConceptComplex;
 import org.openmrs.ConceptDatatype;
 import org.openmrs.Encounter;
 import org.openmrs.Obs;
+import org.openmrs.Order;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
 import org.openmrs.module.fhir2.api.translators.EncounterReferenceTranslator;
@@ -274,6 +275,72 @@ public class BahmniObservationTranslatorImplTest {
 		observation.setFormNamespaceAndPath(EXAMPLE_OBS_FORM_NAMESPACE_PATH);
 		Observation result = observationTranslator.toFhirResource(observation);
 		Assert.assertEquals("Normal", result.getInterpretationFirstRep().getCodingFirstRep().getDisplay());
+	}
+	
+	@Test
+	public void shouldClearCommentWhenIncomingObservationHasNoNote() {
+		String CONCEPT_UUID = "obs_concept_uuid";
+		Concept concept = new Concept();
+		ConceptDatatype conceptDatatype = new ConceptDatatype();
+		concept.setUuid(CONCEPT_UUID);
+		concept.setDatatype(conceptDatatype);
+		
+		Obs existingObs = new Obs();
+		existingObs.setComment("Existing comment");
+		
+		Observation resource = new Observation();
+		CodeableConcept codeableConcept = new CodeableConcept();
+		codeableConcept.setId(CONCEPT_UUID);
+		resource.setCode(codeableConcept);
+		when(conceptTranslator.toOpenmrsType(codeableConcept)).thenReturn(concept);
+		
+		Obs result = observationTranslator.toOpenmrsType(existingObs, resource);
+		
+		Assert.assertNull(result.getComment());
+	}
+	
+	@Test
+	public void shouldClearInterpretationWhenIncomingObservationHasNoInterpretation() {
+		String CONCEPT_UUID = "obs_concept_uuid";
+		Concept concept = new Concept();
+		ConceptDatatype conceptDatatype = new ConceptDatatype();
+		concept.setUuid(CONCEPT_UUID);
+		concept.setDatatype(conceptDatatype);
+		
+		Obs existingObs = new Obs();
+		existingObs.setInterpretation(Obs.Interpretation.NORMAL);
+		
+		Observation resource = new Observation();
+		CodeableConcept codeableConcept = new CodeableConcept();
+		codeableConcept.setId(CONCEPT_UUID);
+		resource.setCode(codeableConcept);
+		when(conceptTranslator.toOpenmrsType(codeableConcept)).thenReturn(concept);
+		
+		Obs result = observationTranslator.toOpenmrsType(existingObs, resource);
+		
+		Assert.assertNull(result.getInterpretation());
+	}
+	
+	@Test
+	public void shouldClearOrderWhenIncomingObservationHasNoBasedOn() {
+		String CONCEPT_UUID = "obs_concept_uuid";
+		Concept concept = new Concept();
+		ConceptDatatype conceptDatatype = new ConceptDatatype();
+		concept.setUuid(CONCEPT_UUID);
+		concept.setDatatype(conceptDatatype);
+		
+		Obs existingObs = new Obs();
+		existingObs.setOrder(new Order());
+		
+		Observation resource = new Observation();
+		CodeableConcept codeableConcept = new CodeableConcept();
+		codeableConcept.setId(CONCEPT_UUID);
+		resource.setCode(codeableConcept);
+		when(conceptTranslator.toOpenmrsType(codeableConcept)).thenReturn(concept);
+		
+		Obs result = observationTranslator.toOpenmrsType(existingObs, resource);
+		
+		Assert.assertNull(result.getOrder());
 	}
 	
 	/**

@@ -154,6 +154,7 @@ public class BahmniObservationTranslatorImpl implements ObservationTranslator {
 		}
 		
 		obs.setFormNamespaceAndPath(mapFormNamespacePathExtension(resource));
+		unsetMissingFields(obs, resource);
 		return obs;
 	}
 	
@@ -365,6 +366,18 @@ public class BahmniObservationTranslatorImpl implements ObservationTranslator {
 		@Override
 		public Concept getConcept() {
 			return this.concept;
+		}
+	}
+	
+	private void unsetMissingFields(Obs existingObject, Observation incomingObservation) {
+		if (existingObject.getComment() != null && !incomingObservation.hasNote()) {
+			existingObject.setComment(null);
+		}
+		if (existingObject.getInterpretation() != null && incomingObservation.getInterpretation().isEmpty()) {
+			existingObject.setInterpretation(null);
+		}
+		if (existingObject.getOrder() != null && !incomingObservation.hasBasedOn()) {
+			existingObject.setOrder(null);
 		}
 	}
 	
