@@ -9,6 +9,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Encounter;
 import org.openmrs.User;
+import org.openmrs.Visit;
 import org.openmrs.api.AdministrationService;
 import org.openmrs.api.context.UserContext;
 import org.openmrs.api.db.ContextDAO;
@@ -103,6 +104,20 @@ public class BahmniFhirEncounterServiceImplTest {
 		when(translator.toOpenmrsType(fhirEncounter)).thenReturn(emrEncounter);
 		when(translator.toFhirResource(emrEncounter)).thenReturn(fhirEncounter);
 		org.hl7.fhir.r4.model.Encounter encounter = encounterService.create(fhirEncounter);
+		verify(episodeOfCareDao).createOrUpdate(any(Episode.class));
+	}
+	
+	@Test
+	public void shouldAssociateVisitIfEpisodeReferenceIsMentioned() throws IOException {
+		String existingEpisodeUuid = "12b8dec4-28f4-4b17-ac62-099510a35f35";
+		Episode episode = new Episode();
+		episode.setUuid(existingEpisodeUuid);
+		org.hl7.fhir.r4.model.Encounter fhirEncounter = (org.hl7.fhir.r4.model.Encounter) loadResourceFromFile("example-visit-resource.json");
+		when(episodeOfCareDao.get(existingEpisodeUuid)).thenReturn(episode);
+		Visit visit = new Visit();
+		when(visitService.create(fhirEncounter)).thenReturn(fhirEncounter);
+		when(visitDao.get(fhirEncounter.getId())).thenReturn(visit);
+		encounterService.create(fhirEncounter);
 		verify(episodeOfCareDao).createOrUpdate(any(Episode.class));
 	}
 	

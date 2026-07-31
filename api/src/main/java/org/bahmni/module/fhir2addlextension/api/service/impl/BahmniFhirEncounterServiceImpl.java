@@ -7,6 +7,7 @@ import lombok.Setter;
 import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirEpisodeOfCareDao;
 import org.hl7.fhir.r4.model.Encounter;
 import org.hl7.fhir.r4.model.Reference;
+import org.openmrs.Visit;
 import org.openmrs.module.episodes.Episode;
 import org.openmrs.module.fhir2.api.dao.FhirVisitDao;
 import org.openmrs.module.fhir2.api.impl.FhirEncounterServiceImpl;
@@ -58,9 +59,11 @@ public class BahmniFhirEncounterServiceImpl extends FhirEncounterServiceImpl {
 				episode.addEncounter(openmrsEncounter);
 				episodeOfCareDao.createOrUpdate(episode);
 				fhirEncounter.getEpisodeOfCare().add(episodeRef);
-			} else {
-				//TBD
-				//Visit visit = visitDao.get(fhirEncounter.getId());
+			} else if (encounterType == FhirUtils.OpenmrsEncounterType.VISIT) {
+				Visit visit = visitDao.get(fhirEncounter.getId());
+				episode.getVisits().add(visit);
+				episodeOfCareDao.createOrUpdate(episode);
+				fhirEncounter.getEpisodeOfCare().add(episodeRef);
 			}
 		}
 		return fhirEncounter;
