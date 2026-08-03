@@ -5,6 +5,7 @@ import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirEpisodeOfCareDao;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Encounter;
@@ -25,6 +26,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 
 import static org.bahmni.module.fhir2addlextension.api.TestDataFactory.loadResourceFromFile;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -117,8 +119,13 @@ public class BahmniFhirEncounterServiceImplTest {
 		Visit visit = new Visit();
 		when(visitService.create(fhirEncounter)).thenReturn(fhirEncounter);
 		when(visitDao.get(fhirEncounter.getId())).thenReturn(visit);
-		encounterService.create(fhirEncounter);
-		verify(episodeOfCareDao).createOrUpdate(any(Episode.class));
+		org.hl7.fhir.r4.model.Encounter result = encounterService.create(fhirEncounter);
+		
+		ArgumentCaptor<Episode> episodeCaptor = ArgumentCaptor.forClass(Episode.class);
+		verify(episodeOfCareDao).createOrUpdate(episodeCaptor.capture());
+		assertTrue(episodeCaptor.getValue().getVisits().contains(visit));
+		assertTrue(result.getEpisodeOfCare().stream()
+		        .anyMatch(ref -> ref.getReference().contains(existingEpisodeUuid)));
 	}
 	
 	@Test(expected = InvalidRequestException.class)
