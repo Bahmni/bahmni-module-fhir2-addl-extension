@@ -5,10 +5,12 @@ import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirEpisodeOfCareDao;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Encounter;
 import org.openmrs.User;
+import org.openmrs.Visit;
 import org.openmrs.api.AdministrationService;
 import org.openmrs.api.context.UserContext;
 import org.openmrs.api.db.ContextDAO;
@@ -24,6 +26,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 
 import static org.bahmni.module.fhir2addlextension.api.TestDataFactory.loadResourceFromFile;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -104,6 +107,25 @@ public class BahmniFhirEncounterServiceImplTest {
 		when(translator.toFhirResource(emrEncounter)).thenReturn(fhirEncounter);
 		org.hl7.fhir.r4.model.Encounter encounter = encounterService.create(fhirEncounter);
 		verify(episodeOfCareDao).createOrUpdate(any(Episode.class));
+	}
+	
+	@Test
+	public void shouldAssociateVisitIfEpisodeReferenceIsMentioned() throws IOException {
+		String existingEpisodeUuid = "12b8dec4-28f4-4b17-ac62-099510a35f35";
+		Episode episode = new Episode();
+		episode.setUuid(existingEpisodeUuid);
+		org.hl7.fhir.r4.model.Encounter fhirEncounter = (org.hl7.fhir.r4.model.Encounter) loadResourceFromFile("example-visit-resource.json");
+		when(episodeOfCareDao.get(existingEpisodeUuid)).thenReturn(episode);
+		Visit visit = new Visit();
+		when(visitService.create(fhirEncounter)).thenReturn(fhirEncounter);
+		when(visitDao.get(fhirEncounter.getId())).thenReturn(visit);
+		org.hl7.fhir.r4.model.Encounter result = encounterService.create(fhirEncounter);
+		
+		ArgumentCaptor<Episode> episodeCaptor = ArgumentCaptor.forClass(Episode.class);
+		verify(episodeOfCareDao).createOrUpdate(episodeCaptor.capture());
+		assertTrue(episodeCaptor.getValue().getVisits().contains(visit));
+		assertTrue(result.getEpisodeOfCare().stream()
+		        .anyMatch(ref -> ref.getReference().contains(existingEpisodeUuid)));
 	}
 	
 	@Test(expected = InvalidRequestException.class)
