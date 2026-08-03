@@ -94,8 +94,18 @@ public class FhirEncounterSaveAdviceTest {
 	}
 	
 	private void setField(Object target, String fieldName, Object value) throws Exception {
-		Field field = target.getClass().getDeclaredField(fieldName);
-		field.setAccessible(true);
-		field.set(target, value);
+		Class<?> type = target.getClass();
+		while (type != null) {
+			try {
+				Field field = type.getDeclaredField(fieldName);
+				field.setAccessible(true);
+				field.set(target, value);
+				return;
+			}
+			catch (NoSuchFieldException e) {
+				type = type.getSuperclass();
+			}
+		}
+		throw new NoSuchFieldException(fieldName);
 	}
 }

@@ -2,8 +2,6 @@ package org.bahmni.module.fhir2addlextension.spring;
 
 import ca.uhn.fhir.rest.api.PatchTypeEnum;
 import ca.uhn.fhir.rest.api.server.RequestDetails;
-import org.bahmni.module.fhir2addlextension.advice.FhirEncounterSaveAdvice;
-import org.bahmni.module.fhir2addlextension.advice.FhirPatientSaveAdvice;
 import org.hl7.fhir.instance.model.api.IAnyResource;
 import org.junit.Before;
 import org.junit.Test;
@@ -18,20 +16,26 @@ import static org.junit.Assert.assertTrue;
 
 public class Fhir2AddlExtensionAopConfigurationTest {
 	
+	private Fhir2AddlExtensionAopConfiguration configuration;
+	
 	private StaticMethodMatcherPointcutAdvisor patientAdvisor;
+	
+	private StaticMethodMatcherPointcutAdvisor encounterAdvisor;
 	
 	@Before
 	public void setUp() {
-		Fhir2AddlExtensionAopConfiguration configuration = new Fhir2AddlExtensionAopConfiguration();
-		patientAdvisor = (StaticMethodMatcherPointcutAdvisor) configuration
-		        .createFhirPatientSaveAdvisor(new FhirPatientSaveAdvice());
+		configuration = new Fhir2AddlExtensionAopConfiguration();
+		patientAdvisor = (StaticMethodMatcherPointcutAdvisor) configuration.createFhirPatientSaveAdvisor(configuration
+		        .fhirPatientSaveAdvice());
+		encounterAdvisor = (StaticMethodMatcherPointcutAdvisor) configuration.createFhirEncounterSaveAdvisor(configuration
+		        .fhirEncounterSaveAdvice());
 	}
 	
 	@Test
-	public void shouldMatchCreateUpdateAndPatchOnFhirPatientService() throws Exception {
+	public void shouldMatchCreateAndUpdateOnFhirPatientService() throws Exception {
 		assertTrue(patientAdvisor.matches(createMethod(), FhirPatientService.class));
 		assertTrue(patientAdvisor.matches(updateMethod(), FhirPatientService.class));
-		assertTrue(patientAdvisor.matches(patchMethod(), FhirPatientService.class));
+		assertFalse(patientAdvisor.matches(patchMethod(), FhirPatientService.class));
 	}
 	
 	@Test
@@ -48,10 +52,6 @@ public class Fhir2AddlExtensionAopConfigurationTest {
 	
 	@Test
 	public void encounterAdvisorShouldOnlyMatchCreateAndUpdateOnFhirEncounterService() throws Exception {
-		Fhir2AddlExtensionAopConfiguration configuration = new Fhir2AddlExtensionAopConfiguration();
-		StaticMethodMatcherPointcutAdvisor encounterAdvisor = (StaticMethodMatcherPointcutAdvisor) configuration
-		        .createFhirEncounterSaveAdvisor(new FhirEncounterSaveAdvice());
-		
 		assertTrue(encounterAdvisor.matches(createMethod(), FhirEncounterService.class));
 		assertTrue(encounterAdvisor.matches(updateMethod(), FhirEncounterService.class));
 		assertFalse(encounterAdvisor.matches(patchMethod(), FhirEncounterService.class));
