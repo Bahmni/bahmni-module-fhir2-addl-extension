@@ -30,7 +30,7 @@ import org.openmrs.api.context.Context;
 import org.openmrs.api.context.UserContext;
 
 @RunWith(MockitoJUnitRunner.class)
-public class BahmniPatientPhotoProviderTest {
+public class BahmniPatientProviderTest {
 	
 	@Rule
 	public TemporaryFolder tempFolder = new TemporaryFolder();
@@ -50,7 +50,7 @@ public class BahmniPatientPhotoProviderTest {
 	@Mock
 	private BahmniPatientPhotoService photoService;
 	
-	private BahmniPatientPhotoProvider provider;
+	private BahmniPatientProvider provider;
 	
 	private MockedStatic<Context> contextMock;
 	
@@ -61,8 +61,8 @@ public class BahmniPatientPhotoProviderTest {
 		contextMock.when(Context::getPatientService).thenReturn(patientService);
 		when(response.getOutputStream()).thenReturn(outputStream);
 
-		provider = new BahmniPatientPhotoProvider();
-		java.lang.reflect.Field field = BahmniPatientPhotoProvider.class.getDeclaredField("photoService");
+		provider = new BahmniPatientProvider();
+		java.lang.reflect.Field field = BahmniPatientProvider.class.getDeclaredField("photoService");
 		field.setAccessible(true);
 		field.set(provider, photoService);
 	}

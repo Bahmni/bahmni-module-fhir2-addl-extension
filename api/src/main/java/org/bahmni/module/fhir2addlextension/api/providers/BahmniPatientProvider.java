@@ -2,17 +2,16 @@ package org.bahmni.module.fhir2addlextension.api.providers;
 
 import ca.uhn.fhir.rest.annotation.IdParam;
 import ca.uhn.fhir.rest.annotation.Operation;
-import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.ForbiddenOperationException;
 import ca.uhn.fhir.rest.server.exceptions.InternalErrorException;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import org.bahmni.module.fhir2addlextension.api.PrivilegeConstants;
 import org.bahmni.module.fhir2addlextension.api.service.BahmniPatientPhotoService;
-import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.IdType;
 import org.hl7.fhir.r4.model.Patient;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.fhir2.api.annotations.R4Provider;
+import org.openmrs.module.fhir2.providers.r4.PatientFhirResourceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,19 +22,14 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
-@Component
+@Component("bahmniPatientFhirR4ResourceProvider")
 @R4Provider
-public class BahmniPatientPhotoProvider implements IResourceProvider {
+public class BahmniPatientProvider extends PatientFhirResourceProvider {
 	
-	private static final Logger log = LoggerFactory.getLogger(BahmniPatientPhotoProvider.class);
+	private static final Logger log = LoggerFactory.getLogger(BahmniPatientProvider.class);
 	
 	@Autowired
 	private BahmniPatientPhotoService photoService;
-	
-	@Override
-	public Class<? extends IBaseResource> getResourceType() {
-		return Patient.class;
-	}
 	
 	@Operation(name = "$photo", type = Patient.class, idempotent = true, manualResponse = true)
 	public void getPhoto(@IdParam IdType patientId, HttpServletResponse response) throws IOException {
