@@ -5,7 +5,9 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.bahmni.module.fhir2addlextension.advice.FhirEncounterSaveAdvice;
+import org.bahmni.module.fhir2addlextension.advice.FhirPatientSaveAdvice;
 import org.openmrs.module.fhir2.api.FhirEncounterService;
+import org.openmrs.module.fhir2.api.FhirPatientService;
 import org.springframework.aop.Advisor;
 import org.springframework.aop.support.StaticMethodMatcherPointcutAdvisor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +31,25 @@ public class Fhir2AddlExtensionAopConfiguration {
 			@Override
 			public boolean matches(Method method, Class<?> targetClass) {
 				return FhirEncounterService.class.isAssignableFrom(targetClass)
+				        && SUPPORTED_METHODS.contains(method.getName());
+			}
+		};
+	}
+	
+	@Bean
+	public FhirPatientSaveAdvice fhirPatientSaveAdvice() {
+		return new FhirPatientSaveAdvice();
+	}
+	
+	@Bean
+	public Advisor createFhirPatientSaveAdvisor(@Autowired FhirPatientSaveAdvice fhirPatientSaveAdvice) {
+		final List<String> SUPPORTED_METHODS = Arrays.asList("create", "update", "patch");
+		return new StaticMethodMatcherPointcutAdvisor(
+		                                              fhirPatientSaveAdvice) {
+			
+			@Override
+			public boolean matches(Method method, Class<?> targetClass) {
+				return FhirPatientService.class.isAssignableFrom(targetClass)
 				        && SUPPORTED_METHODS.contains(method.getName());
 			}
 		};
