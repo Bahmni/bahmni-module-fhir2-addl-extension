@@ -55,14 +55,14 @@ public class BahmniFhirMedicationRequestServiceImplTest {
 	public void stopMedicationRequest_givenOrderNotFound_shouldThrowResourceNotFound() {
 		when(orderService.getOrderByUuid(ORDER_UUID)).thenReturn(null);
 		
-		service.stopMedicationRequest(ORDER_UUID, null, null, null);
+		service.stopMedicationRequest(ORDER_UUID, null, null, null, null);
 	}
 	
 	@Test(expected = UnprocessableEntityException.class)
 	public void stopMedicationRequest_givenOrderIsNotDrugOrder_shouldThrowUnprocessableEntity() {
 		when(orderService.getOrderByUuid(ORDER_UUID)).thenReturn(new Order());
 		
-		service.stopMedicationRequest(ORDER_UUID, null, null, null);
+		service.stopMedicationRequest(ORDER_UUID, null, null, null, null);
 	}
 	
 	// --- Reason extraction ---
@@ -76,7 +76,7 @@ public class BahmniFhirMedicationRequestServiceImplTest {
 		CodeableConcept reason = new CodeableConcept().addCoding(
 		    new Coding().setCode("uuid-1").setDisplay("Adverse reaction")).setText("Adverse reaction");
 		
-		service.stopMedicationRequest(ORDER_UUID, reason, null, null);
+		service.stopMedicationRequest(ORDER_UUID, reason, null, null, null);
 		
 		verify(orderService).discontinueOrder(eq(drugOrder), eq("Adverse reaction"), any(Date.class),
 		    eq(drugOrder.getOrderer()), eq(drugOrder.getEncounter()));
@@ -91,7 +91,7 @@ public class BahmniFhirMedicationRequestServiceImplTest {
 		CodeableConcept reason = new CodeableConcept().addCoding(new Coding().setCode("uuid-1")
 		        .setDisplay("Patient request"));
 		
-		service.stopMedicationRequest(ORDER_UUID, reason, null, null);
+		service.stopMedicationRequest(ORDER_UUID, reason, null, null, null);
 		
 		verify(orderService).discontinueOrder(eq(drugOrder), eq("Patient request"), any(Date.class),
 		    eq(drugOrder.getOrderer()), eq(drugOrder.getEncounter()));
@@ -103,7 +103,7 @@ public class BahmniFhirMedicationRequestServiceImplTest {
 		when(orderService.getOrderByUuid(ORDER_UUID)).thenReturn(drugOrder);
 		doReturn(new MedicationRequest()).when(service).get(ORDER_UUID);
 		
-		service.stopMedicationRequest(ORDER_UUID, null, null, null);
+		service.stopMedicationRequest(ORDER_UUID, null, null, null, null);
 		
 		verify(orderService).discontinueOrder(eq(drugOrder), isNull(String.class), any(Date.class),
 		    eq(drugOrder.getOrderer()), eq(drugOrder.getEncounter()));
@@ -117,7 +117,7 @@ public class BahmniFhirMedicationRequestServiceImplTest {
 		
 		CodeableConcept reason = new CodeableConcept().setText("Side effects");
 		
-		service.stopMedicationRequest(ORDER_UUID, reason, null, "Rash observed");
+		service.stopMedicationRequest(ORDER_UUID, reason, null, "Rash observed", null);
 		
 		verify(orderService).discontinueOrder(eq(drugOrder), eq("Side effects - Rash observed"), any(Date.class),
 		    eq(drugOrder.getOrderer()), eq(drugOrder.getEncounter()));
@@ -129,7 +129,7 @@ public class BahmniFhirMedicationRequestServiceImplTest {
 		when(orderService.getOrderByUuid(ORDER_UUID)).thenReturn(drugOrder);
 		doReturn(new MedicationRequest()).when(service).get(ORDER_UUID);
 		
-		service.stopMedicationRequest(ORDER_UUID, null, null, "Patient declined");
+		service.stopMedicationRequest(ORDER_UUID, null, null, "Patient declined", null);
 		
 		verify(orderService).discontinueOrder(eq(drugOrder), eq("Patient declined"), any(Date.class),
 		    eq(drugOrder.getOrderer()), eq(drugOrder.getEncounter()));
@@ -144,7 +144,7 @@ public class BahmniFhirMedicationRequestServiceImplTest {
 		doReturn(new MedicationRequest()).when(service).get(ORDER_UUID);
 		
 		Date before = new Date();
-		service.stopMedicationRequest(ORDER_UUID, null, null, null);
+		service.stopMedicationRequest(ORDER_UUID, null, null, null, null);
 		
 		ArgumentCaptor<Date> dateCaptor = ArgumentCaptor.forClass(Date.class);
 		verify(orderService).discontinueOrder(eq(drugOrder), isNull(String.class), dateCaptor.capture(),
@@ -159,7 +159,7 @@ public class BahmniFhirMedicationRequestServiceImplTest {
 		doReturn(new MedicationRequest()).when(service).get(ORDER_UUID);
 		
 		Date today = new Date();
-		service.stopMedicationRequest(ORDER_UUID, null, today, null);
+		service.stopMedicationRequest(ORDER_UUID, null, today, null, null);
 		
 		verify(orderService).discontinueOrder(eq(drugOrder), isNull(String.class), eq(today), eq(drugOrder.getOrderer()),
 		    eq(drugOrder.getEncounter()));
@@ -176,7 +176,7 @@ public class BahmniFhirMedicationRequestServiceImplTest {
 		Date futureDate = cal.getTime();
 		
 		Date beforeCall = new Date();
-		service.stopMedicationRequest(ORDER_UUID, null, futureDate, null);
+		service.stopMedicationRequest(ORDER_UUID, null, futureDate, null, null);
 		
 		assertThat(drugOrder.getAutoExpireDate(), equalTo(futureDate));
 		ArgumentCaptor<Date> dateCaptor = ArgumentCaptor.forClass(Date.class);
@@ -198,7 +198,7 @@ public class BahmniFhirMedicationRequestServiceImplTest {
 		updated.setId(ORDER_UUID);
 		doReturn(updated).when(service).get(ORDER_UUID);
 		
-		MedicationRequest result = service.stopMedicationRequest(ORDER_UUID, null, null, null);
+		MedicationRequest result = service.stopMedicationRequest(ORDER_UUID, null, null, null, null);
 		
 		assertThat(result, notNullValue());
 		assertThat(result.getId(), equalTo(ORDER_UUID));
@@ -214,7 +214,7 @@ public class BahmniFhirMedicationRequestServiceImplTest {
 		    orderService.discontinueOrder(any(Order.class), nullable(String.class), any(Date.class), any(Provider.class),
 		        any(Encounter.class))).thenThrow(new RuntimeException("DB error"));
 		
-		service.stopMedicationRequest(ORDER_UUID, null, null, null);
+		service.stopMedicationRequest(ORDER_UUID, null, null, null, null);
 	}
 	
 	@Test(expected = UnprocessableEntityException.class)
@@ -225,7 +225,7 @@ public class BahmniFhirMedicationRequestServiceImplTest {
 		    orderService.discontinueOrder(any(Order.class), nullable(String.class), any(Date.class), any(Provider.class),
 		        any(Encounter.class))).thenThrow(new UnprocessableEntityException("already stopped"));
 		
-		service.stopMedicationRequest(ORDER_UUID, null, null, null);
+		service.stopMedicationRequest(ORDER_UUID, null, null, null, null);
 	}
 	
 	private DrugOrder buildDrugOrder() {

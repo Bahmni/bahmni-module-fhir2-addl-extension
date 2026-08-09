@@ -55,26 +55,27 @@ public class BahmniMedicationRequestFhirR4ProviderTest {
 		MedicationRequest expected = new MedicationRequest();
 		expected.setId(ORDER_UUID);
 		when(
-		    bahmniFhirMedicationRequestService
-		            .stopMedicationRequest(eq(ORDER_UUID), eq(reason), any(Date.class), eq("rash"))).thenReturn(expected);
+		    bahmniFhirMedicationRequestService.stopMedicationRequest(eq(ORDER_UUID), eq(reason), any(Date.class),
+		        eq("rash"), isNull())).thenReturn(expected);
 		
 		MedicationRequest result = provider.stopMedicationRequest(new IdType(ORDER_UUID), reason, new DateType(date),
-		    new StringType("rash"));
+		    new StringType("rash"), null);
 		
 		assertThat(result, notNullValue());
 		assertThat(result.getId(), equalTo(ORDER_UUID));
 		verify(bahmniFhirMedicationRequestService).stopMedicationRequest(eq(ORDER_UUID), eq(reason), any(Date.class),
-		    eq("rash"));
+		    eq("rash"), isNull());
 	}
 	
 	@Test
 	public void stopMedicationRequest_givenNullOptionalParams_shouldPassNulls() {
 		MedicationRequest expected = new MedicationRequest();
-		when(bahmniFhirMedicationRequestService.stopMedicationRequest(eq(ORDER_UUID), isNull(), isNull(), isNull()))
+		when(
+		    bahmniFhirMedicationRequestService.stopMedicationRequest(eq(ORDER_UUID), isNull(), isNull(), isNull(), isNull()))
 		        .thenReturn(expected);
 		
-		provider.stopMedicationRequest(new IdType(ORDER_UUID), null, null, null);
+		provider.stopMedicationRequest(new IdType(ORDER_UUID), null, null, null, null);
 		
-		verify(bahmniFhirMedicationRequestService).stopMedicationRequest(ORDER_UUID, null, null, null);
+		verify(bahmniFhirMedicationRequestService).stopMedicationRequest(ORDER_UUID, null, null, null, null);
 	}
 }

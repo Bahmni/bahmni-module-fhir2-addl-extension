@@ -38,9 +38,11 @@ public class BahmniMedicationRequestFhirR4Provider extends MedicationRequestFhir
 	@Operation(name = "$stop", idempotent = false)
 	public MedicationRequest stopMedicationRequest(@IdParam IdType theId,
 	        @OperationParam(name = "reason") CodeableConcept reason,
-	        @OperationParam(name = "effectiveDate") DateType effectiveDate, @OperationParam(name = "note") StringType note) {
+	        @OperationParam(name = "effectiveDate") DateType effectiveDate, @OperationParam(name = "note") StringType note,
+	        @OperationParam(name = "encounter") StringType encounter) {
 		
 		return bahmniFhirMedicationRequestService.stopMedicationRequest(theId.getIdPart(), reason,
-		    effectiveDate != null ? effectiveDate.getValue() : null, note != null ? note.getValue() : null);
+		    effectiveDate != null ? effectiveDate.getValue() : null, note != null ? note.getValue() : null,
+		    encounter != null ? encounter.getValue() : null);
 	}
 }

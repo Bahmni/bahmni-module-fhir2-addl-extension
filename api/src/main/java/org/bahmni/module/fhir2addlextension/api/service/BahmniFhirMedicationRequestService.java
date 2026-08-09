@@ -10,5 +10,5 @@ import java.util.Date;
 public interface BahmniFhirMedicationRequestService extends FhirMedicationRequestService {
 	
 	MedicationRequest stopMedicationRequest(String medicationRequestUuid, @Nullable CodeableConcept reason,
-	        @Nullable Date effectiveDate, @Nullable String note);
+	        @Nullable Date effectiveDate, @Nullable String note, @Nullable String encounterUuid);
 }

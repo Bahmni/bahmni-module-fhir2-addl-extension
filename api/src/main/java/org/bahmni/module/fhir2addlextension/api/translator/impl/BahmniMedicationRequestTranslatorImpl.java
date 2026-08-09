@@ -11,11 +11,13 @@ import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.MedicationRequest;
 import org.hl7.fhir.r4.model.Period;
+import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.Timing;
 import org.openmrs.CareSetting;
 import org.openmrs.DrugOrder;
 import org.openmrs.Order;
 import org.openmrs.api.OrderService;
+import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
 import org.openmrs.module.fhir2.api.translators.impl.MedicationRequestTranslatorImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
@@ -33,6 +35,10 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 	@Setter(value = AccessLevel.PACKAGE)
 	private OrderService orderService;
 	
+	@Autowired
+	@Setter(value = AccessLevel.PACKAGE)
+	private ConceptTranslator conceptTranslator;
+	
 	@Override
 	public MedicationRequest toFhirResource(@Nonnull DrugOrder drugOrder) {
 		MedicationRequest medicationRequest = super.toFhirResource(drugOrder);
@@ -46,28 +52,33 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 			try {
 				Order discontinuationOrder = orderService.getDiscontinuationOrder(drugOrder);
 				if (discontinuationOrder != null) {
+					CodeableConcept statusReason = new CodeableConcept();
+					if (discontinuationOrder.getOrderReason() != null) {
+						CodeableConcept coded = conceptTranslator.toFhirResource(discontinuationOrder.getOrderReason());
+						if (coded != null) {
+							statusReason.setCoding(coded.getCoding());
+						}
+					}
 					String reason = discontinuationOrder.getOrderReasonNonCoded();
 					if (reason != null && !reason.isEmpty()) {
-						CodeableConcept statusReason = new CodeableConcept();
 						statusReason.setText(reason);
+					}
+					if (!statusReason.isEmpty()) {
 						medicationRequest.setStatusReason(statusReason);
 					}
 					if (discontinuationOrder.getCommentToFulfiller() != null
 					        && !discontinuationOrder.getCommentToFulfiller().isEmpty()) {
-						medicationRequest.addNote(new Annotation().setText(discontinuationOrder.getCommentToFulfiller()));
+						medicationRequest.addNote(new Annotation().setAuthor(new StringType("stop")).setText(
+						    discontinuationOrder.getCommentToFulfiller()));
 					}
 				}
 			}
 			catch (Exception e) {
 				log.warn("Failed to look up discontinuation order for {}: {}", drugOrder.getUuid(), e.getMessage());
 			}
-			
-			// Fallback: orderReasonNonCoded on the original order (if discontinuation order had none)
 			if (!medicationRequest.hasStatusReason() && drugOrder.getOrderReasonNonCoded() != null
 			        && !drugOrder.getOrderReasonNonCoded().isEmpty()) {
-				CodeableConcept statusReason = new CodeableConcept();
-				statusReason.setText(drugOrder.getOrderReasonNonCoded());
-				medicationRequest.setStatusReason(statusReason);
+				medicationRequest.setStatusReason(new CodeableConcept().setText(drugOrder.getOrderReasonNonCoded()));
 			}
 		}
 		
