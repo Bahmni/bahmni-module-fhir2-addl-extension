@@ -14,6 +14,7 @@ import org.hl7.fhir.r4.model.MedicationRequest;
 import org.hl7.fhir.r4.model.Period;
 import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.Timing;
+import org.openmrs.Concept;
 import org.openmrs.CareSetting;
 import org.openmrs.DrugOrder;
 import org.openmrs.Order;
@@ -26,6 +27,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.Nonnull;
+import java.util.Date;
 
 @Slf4j
 @Component
@@ -134,6 +136,54 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 		}
 	}
 	
+	private void translateStopMedicationOrder(@Nonnull DrugOrder drugOrder, @Nonnull MedicationRequest medicationRequest) {
+		if (medicationRequest.hasStatusReason()) {
+			CodeableConcept statusReason = medicationRequest.getStatusReason();
+			if (statusReason.hasCoding()) {
+				Concept reasonConcept = conceptTranslator.toOpenmrsType(statusReason);
+				if (reasonConcept != null) {
+					drugOrder.setOrderReason(reasonConcept);
+				}
+			}
+			if (statusReason.hasText() && !statusReason.getText().isEmpty()) {
+				drugOrder.setOrderReasonNonCoded(statusReason.getText());
+			}
+		}
+
+		medicationRequest.getNote().stream()
+		        .filter(n -> "cancellation-note".equals(getNoteCategory(n)))
+		        .findFirst()
+		        .ifPresent(n -> {
+			        if (n.hasText()) {
+				        drugOrder.setCommentToFulfiller(n.getText());
+			        }
+		        });
+
+		// Use now as dateActivated — stop date (effectiveDate from frontend) may be
+		// midnight UTC which falls before the encounter datetime and fails validation.
+		drugOrder.setDateActivated(new Date());
+
+		if (drugOrder.getPreviousOrder() instanceof DrugOrder) {
+			DrugOrder priorDrugOrder = (DrugOrder) drugOrder.getPreviousOrder();
+			if (drugOrder.getOrderer() == null) {
+				drugOrder.setOrderer(priorDrugOrder.getOrderer());
+			}
+			if (drugOrder.getConcept() == null) {
+				drugOrder.setConcept(priorDrugOrder.getConcept());
+				drugOrder.setDrug(priorDrugOrder.getDrug());
+			}
+			drugOrder.setAsNeeded(priorDrugOrder.getAsNeeded());
+		}
+	}
+	
+	private String getNoteCategory(Annotation note) {
+		return note.getExtension().stream()
+		        .filter(e -> BahmniFhirConstants.FHIR_EXT_MEDICATION_REQUEST_NOTE_CATEGORY.equals(e.getUrl()))
+		        .map(e -> ((CodeType) e.getValue()).getValue())
+		        .findFirst()
+		        .orElse(null);
+	}
+	
 	private void translatePriorPrescription(@Nonnull DrugOrder drugOrder, @Nonnull MedicationRequest medicationRequest) {
 		if (!medicationRequest.hasPriorPrescription()) {
 			return;
@@ -162,6 +212,7 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 			if (MedicationRequest.MedicationRequestStatus.STOPPED.equals(medicationRequest.getStatus())) {
 				drugOrder.setAction(Order.Action.DISCONTINUE);
 				drugOrder.setPreviousOrder(priorOrder);
+				translateStopMedicationOrder(drugOrder, medicationRequest);
 			} else if (MedicationRequest.MedicationRequestStatus.ACTIVE.equals(medicationRequest.getStatus())) {
 				// Explicit REVISE for edit flow — when REFILL is added, it should be handled
 				// as a separate condition rather than falling into this branch.
