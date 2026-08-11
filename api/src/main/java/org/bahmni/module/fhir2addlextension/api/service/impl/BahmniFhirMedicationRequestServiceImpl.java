@@ -60,16 +60,11 @@ public class BahmniFhirMedicationRequestServiceImpl extends FhirMedicationReques
 				stopDate = now;
 			}
 			
-			DrugOrder discontinuationOrder = new DrugOrder();
-			discontinuationOrder.setAction(Order.Action.DISCONTINUE);
-			discontinuationOrder.setPreviousOrder(drugOrder);
-			discontinuationOrder.setConcept(drugOrder.getConcept());
-			discontinuationOrder.setDrug(drugOrder.getDrug());
-			discontinuationOrder.setPatient(drugOrder.getPatient());
+			DrugOrder discontinuationOrder = (DrugOrder) drugOrder.cloneForDiscontinuing();
+			if (encounter != null) {
+				discontinuationOrder.setEncounter(encounter);
+			}
 			discontinuationOrder.setOrderer(drugOrder.getOrderer());
-			discontinuationOrder.setEncounter(encounter);
-			discontinuationOrder.setCareSetting(drugOrder.getCareSetting());
-			discontinuationOrder.setOrderType(drugOrder.getOrderType());
 			discontinuationOrder.setDateActivated(now);
 			discontinuationOrder.setOrderReason(reasonConcept);
 			discontinuationOrder.setOrderReasonNonCoded(reasonText);

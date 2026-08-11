@@ -7,6 +7,7 @@ import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
 import org.bahmni.module.fhir2addlextension.api.utils.BahmniFhirUtils;
 import org.hl7.fhir.r4.model.Annotation;
 import org.hl7.fhir.r4.model.CodeableConcept;
+import org.hl7.fhir.r4.model.CodeType;
 import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.MedicationRequest;
@@ -42,13 +43,21 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 	@Override
 	public MedicationRequest toFhirResource(@Nonnull DrugOrder drugOrder) {
 		MedicationRequest medicationRequest = super.toFhirResource(drugOrder);
-		
+
+		// Tag all notes added by super (order notes from commentToFulfiller) as "order-note"
+		for (Annotation note : medicationRequest.getNote()) {
+			boolean alreadyTagged = note.getExtension().stream()
+			        .anyMatch(e -> BahmniFhirConstants.FHIR_EXT_MEDICATION_REQUEST_NOTE_CATEGORY.equals(e.getUrl()));
+			if (!alreadyTagged) {
+				note.addExtension(new Extension(BahmniFhirConstants.FHIR_EXT_MEDICATION_REQUEST_NOTE_CATEGORY,
+				        new CodeType("order-note")));
+			}
+		}
+
 		if (drugOrder.getDateStopped() != null) {
-			// Map dateStopped → extension
 			medicationRequest.addExtension(new Extension(BahmniFhirConstants.FHIR_EXT_MEDICATION_REQUEST_DATE_STOPPED,
 			        new DateTimeType(drugOrder.getDateStopped())));
-			
-			// Stop reason and note live on the discontinuation order — look it up directly.
+
 			try {
 				Order discontinuationOrder = orderService.getDiscontinuationOrder(drugOrder);
 				if (discontinuationOrder != null) {
@@ -68,8 +77,12 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 					}
 					if (discontinuationOrder.getCommentToFulfiller() != null
 					        && !discontinuationOrder.getCommentToFulfiller().isEmpty()) {
-						medicationRequest.addNote(new Annotation().setAuthor(new StringType("stop")).setText(
-						    discontinuationOrder.getCommentToFulfiller()));
+						Annotation cancellationNote = new Annotation();
+						cancellationNote.setText(discontinuationOrder.getCommentToFulfiller());
+						cancellationNote.addExtension(new Extension(
+						        BahmniFhirConstants.FHIR_EXT_MEDICATION_REQUEST_NOTE_CATEGORY,
+						        new CodeType("cancellation-note")));
+						medicationRequest.addNote(cancellationNote);
 					}
 				}
 			}
@@ -81,7 +94,7 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 				medicationRequest.setStatusReason(new CodeableConcept().setText(drugOrder.getOrderReasonNonCoded()));
 			}
 		}
-		
+
 		return medicationRequest;
 	}
 	
