@@ -17,6 +17,7 @@ import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Nonnull;
 import javax.persistence.criteria.CriteriaBuilder;
@@ -46,6 +47,7 @@ public class BahmniFhirServiceRequestDaoImpl extends BahmniBaseFhirDao<Order> im
 	}
 	
 	@Override
+	@Transactional(readOnly = true)
 	public Order get(@Nonnull String uuid) {
 		Session currentSession = getSessionFactory().getCurrentSession();
 		CriteriaBuilder cb = currentSession.getCriteriaBuilder();
@@ -59,6 +61,7 @@ public class BahmniFhirServiceRequestDaoImpl extends BahmniBaseFhirDao<Order> im
 	}
 	
 	@Override
+	@Transactional(readOnly = true)
     public List<Order> get(@Nonnull Collection<String> uuids) {
         Criteria criteria = super.getSessionFactory().getCurrentSession().createCriteria(this.typeToken.getRawType());
         criteria.add(Restrictions.in("uuid", uuids));
