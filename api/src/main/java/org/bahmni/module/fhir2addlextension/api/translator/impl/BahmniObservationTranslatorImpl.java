@@ -112,12 +112,15 @@ public class BahmniObservationTranslatorImpl implements ObservationTranslator {
 	public Obs toOpenmrsType(Obs obs, Observation resource, Supplier<Obs> groupedObsFactory) {
 		notNull(obs, "The existing Obs object should not be null");
 		notNull(resource, "The Observation object should not be null");
-		
+
+		if (resource.hasBasedOn()) {
+			obs.setOrder(basedOnReferenceTranslator.toOpenmrsType(resource.getBasedOn().get(0)));
+		}
 		observationStatusTranslator.toOpenmrsType(obs, resource.getStatus());
-		
+
 		obs.setEncounter(encounterReferenceTranslator.toOpenmrsType(resource.getEncounter()));
 		obs.setPerson(patientReferenceTranslator.toOpenmrsType(resource.getSubject()));
-		
+
 		Concept concept = conceptTranslator.toOpenmrsType(resource.getCode());
 		obs.setConcept(concept);
 		observationValueTranslator.toOpenmrsType(obs, resource.getValue());
@@ -142,17 +145,12 @@ public class BahmniObservationTranslatorImpl implements ObservationTranslator {
 			members.add(member);
 		}
 		obs.setGroupMembers(members);
-		
+
 		if (!resource.getInterpretation().isEmpty()) {
 			interpretationTranslator.toOpenmrsType(obs, resource.getInterpretation().get(0));
 		}
-		
+
 		datetimeTranslator.toOpenmrsType(obs, resource.getEffectiveDateTimeType());
-		
-		if (resource.hasBasedOn()) {
-			obs.setOrder(basedOnReferenceTranslator.toOpenmrsType(resource.getBasedOn().get(0)));
-		}
-		
 		obs.setFormNamespaceAndPath(mapFormNamespacePathExtension(resource));
 		unsetMissingFields(obs, resource);
 		return obs;
