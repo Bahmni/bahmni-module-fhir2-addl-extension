@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.annotation.PostConstruct;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -30,6 +31,26 @@ public abstract class BaseAdvice implements AfterReturningAdvice {
 		atomFeedSpringTransactionManager = new AtomFeedSpringTransactionManager(platformTransactionManager);
 		AllEventRecordsQueue allEventRecordsQueue = new AllEventRecordsQueueJdbcImpl(atomFeedSpringTransactionManager);
 		this.eventService = new EventServiceImpl(allEventRecordsQueue);
+	}
+	
+	@Override
+	public final void afterReturning(Object returnValue, Method method, Object[] args, Object target) throws Throwable {
+		if (!shouldRaiseEvent(returnValue)) {
+			return;
+		}
+		raiseEvent(getTitle(), getCategory(), getUri(returnValue), getUrl(returnValue));
+	}
+	
+	protected abstract boolean shouldRaiseEvent(Object returnValue);
+	
+	protected abstract String getUrl(Object returnValue);
+	
+	protected abstract String getTitle();
+	
+	protected abstract String getCategory();
+	
+	protected URI getUri(Object returnValue) {
+		return null;
 	}
 	
 	protected void raiseEvent(String title, String category, URI uri, String url) {

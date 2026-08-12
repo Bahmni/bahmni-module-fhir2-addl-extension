@@ -11,7 +11,6 @@ import org.openmrs.module.atomfeed.transaction.support.AtomFeedSpringTransaction
 import org.springframework.transaction.PlatformTransactionManager;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -64,7 +63,23 @@ public class BaseAdviceTest {
 	private static class TestFhirSaveAdvice extends BaseAdvice {
 		
 		@Override
-		public void afterReturning(Object returnValue, Method method, Object[] args, Object target) {
+		protected boolean shouldRaiseEvent(Object returnValue) {
+			return false;
+		}
+		
+		@Override
+		protected String getUrl(Object returnValue) {
+			return null;
+		}
+		
+		@Override
+		protected String getTitle() {
+			return null;
+		}
+		
+		@Override
+		protected String getCategory() {
+			return null;
 		}
 	}
 	
