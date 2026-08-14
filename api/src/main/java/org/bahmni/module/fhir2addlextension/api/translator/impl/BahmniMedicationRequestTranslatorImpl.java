@@ -12,7 +12,6 @@ import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.MedicationRequest;
 import org.hl7.fhir.r4.model.Period;
-import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.Timing;
 import org.openmrs.Concept;
 import org.openmrs.CareSetting;
@@ -59,42 +58,7 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 		if (drugOrder.getDateStopped() != null) {
 			medicationRequest.addExtension(new Extension(BahmniFhirConstants.FHIR_EXT_MEDICATION_REQUEST_DATE_STOPPED,
 			        new DateTimeType(drugOrder.getDateStopped())));
-
-			try {
-				Order discontinuationOrder = orderService.getDiscontinuationOrder(drugOrder);
-				if (discontinuationOrder != null) {
-					CodeableConcept statusReason = new CodeableConcept();
-					if (discontinuationOrder.getOrderReason() != null) {
-						CodeableConcept coded = conceptTranslator.toFhirResource(discontinuationOrder.getOrderReason());
-						if (coded != null) {
-							statusReason.setCoding(coded.getCoding());
-						}
-					}
-					String reason = discontinuationOrder.getOrderReasonNonCoded();
-					if (reason != null && !reason.isEmpty()) {
-						statusReason.setText(reason);
-					}
-					if (!statusReason.isEmpty()) {
-						medicationRequest.setStatusReason(statusReason);
-					}
-					if (discontinuationOrder.getCommentToFulfiller() != null
-					        && !discontinuationOrder.getCommentToFulfiller().isEmpty()) {
-						Annotation cancellationNote = new Annotation();
-						cancellationNote.setText(discontinuationOrder.getCommentToFulfiller());
-						cancellationNote.addExtension(new Extension(
-						        BahmniFhirConstants.FHIR_EXT_MEDICATION_REQUEST_NOTE_CATEGORY,
-						        new CodeType("cancellation-note")));
-						medicationRequest.addNote(cancellationNote);
-					}
-				}
-			}
-			catch (Exception e) {
-				log.warn("Failed to look up discontinuation order for {}: {}", drugOrder.getUuid(), e.getMessage());
-			}
-			if (!medicationRequest.hasStatusReason() && drugOrder.getOrderReasonNonCoded() != null
-			        && !drugOrder.getOrderReasonNonCoded().isEmpty()) {
-				medicationRequest.setStatusReason(new CodeableConcept().setText(drugOrder.getOrderReasonNonCoded()));
-			}
+			mapDiscontinuationOrderToFhir(drugOrder, medicationRequest);
 		}
 
 		return medicationRequest;
@@ -133,6 +97,40 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 		}
 		if (drugOrder.getAutoExpireDate() == null && boundsPeriod.hasEnd()) {
 			drugOrder.setAutoExpireDate(boundsPeriod.getEnd());
+		}
+	}
+	
+	private void mapDiscontinuationOrderToFhir(@Nonnull DrugOrder drugOrder, @Nonnull MedicationRequest medicationRequest) {
+		try {
+			Order discontinuationOrder = orderService.getDiscontinuationOrder(drugOrder);
+			if (discontinuationOrder == null) {
+				return;
+			}
+			CodeableConcept statusReason = new CodeableConcept();
+			if (discontinuationOrder.getOrderReason() != null) {
+				CodeableConcept coded = conceptTranslator.toFhirResource(discontinuationOrder.getOrderReason());
+				if (coded != null) {
+					statusReason.setCoding(coded.getCoding());
+				}
+			}
+			String reason = discontinuationOrder.getOrderReasonNonCoded();
+			if (reason != null && !reason.isEmpty()) {
+				statusReason.setText(reason);
+			}
+			if (!statusReason.isEmpty()) {
+				medicationRequest.setStatusReason(statusReason);
+			}
+			if (discontinuationOrder.getCommentToFulfiller() != null
+			        && !discontinuationOrder.getCommentToFulfiller().isEmpty()) {
+				Annotation cancellationNote = new Annotation();
+				cancellationNote.setText(discontinuationOrder.getCommentToFulfiller());
+				cancellationNote.addExtension(new Extension(BahmniFhirConstants.FHIR_EXT_MEDICATION_REQUEST_NOTE_CATEGORY,
+				        new CodeType("cancellation-note")));
+				medicationRequest.addNote(cancellationNote);
+			}
+		}
+		catch (Exception e) {
+			log.warn("Failed to look up discontinuation order for {}: {}", drugOrder.getUuid(), e.getMessage());
 		}
 	}
 	

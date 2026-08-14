@@ -4,6 +4,8 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.openmrs.module.fhir2.api.util.FhirUtils;
 
 import java.util.AbstractMap;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -36,6 +38,19 @@ public class BahmniFhirUtils {
 			return idPart.trim().isEmpty() ? Optional.empty() : Optional.of(idPart.trim());
 		}
 		return FhirUtils.referenceToId(reference);
+	}
+	
+	public static boolean isFutureDate(Date date, Date now) {
+		return date.after(now) && !isSameDay(date, now);
+	}
+	
+	public static boolean isSameDay(Date date1, Date date2) {
+		Calendar cal1 = Calendar.getInstance();
+		cal1.setTime(date1);
+		Calendar cal2 = Calendar.getInstance();
+		cal2.setTime(date2);
+		return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR)
+		        && cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR);
 	}
 	
 	public static String extractId(String reference) {

@@ -3,19 +3,19 @@ package org.bahmni.module.fhir2addlextension.api.providers;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirMedicationRequestService;
 import org.hl7.fhir.r4.model.MedicationRequest;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.openmrs.module.fhir2.api.FhirMedicationRequestService;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BahmniMedicationRequestFhirR4ProviderTest {
 	
 	@Mock
-	private BahmniFhirMedicationRequestService bahmniFhirMedicationRequestService;
+	private FhirMedicationRequestService fhirMedicationRequestService;
 	
 	@InjectMocks
 	private BahmniMedicationRequestFhirR4Provider provider;
@@ -25,10 +25,10 @@ public class BahmniMedicationRequestFhirR4ProviderTest {
 		MedicationRequest request = new MedicationRequest();
 		MedicationRequest created = new MedicationRequest();
 		created.setId("new-id");
-		when(bahmniFhirMedicationRequestService.create(request)).thenReturn(created);
+		when(fhirMedicationRequestService.create(request)).thenReturn(created);
 		
 		provider.createMedicationRequest(request);
 		
-		verify(bahmniFhirMedicationRequestService).create(request);
+		verify(fhirMedicationRequestService).create(request);
 	}
 }
