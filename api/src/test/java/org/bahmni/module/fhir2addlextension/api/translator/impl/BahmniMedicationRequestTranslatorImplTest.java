@@ -539,17 +539,17 @@ public class BahmniMedicationRequestTranslatorImplTest {
 	// ========== toFhirResource: statusReason, dateStopped, note ==========
 	
 	@Test
-	public void toFhirResource_givenStoppedOrderWithOrderReasonNonCoded_andNoDiscontinuationOrder_shouldUseReasonAsFallback() {
+	public void toFhirResource_givenStoppedOrderWithOrderReasonNonCoded_andNoDiscontinuationOrder_shouldNotSetStatusReason() {
 		DrugOrder drugOrder = org.mockito.Mockito.spy(new DrugOrder());
 		drugOrder.setOrderReasonNonCoded("Patient refused");
 		drugOrder.setDrug(new org.openmrs.Drug());
 		drugOrder.setPatient(new org.openmrs.Patient());
 		when(drugOrder.getDateStopped()).thenReturn(new Date());
 		when(orderService.getDiscontinuationOrder(drugOrder)).thenReturn(null);
-		
+
 		MedicationRequest result = translator.toFhirResource(drugOrder);
-		
-		assertThat(result.getStatusReason().getText(), equalTo("Patient refused"));
+
+		assertThat(result.hasStatusReason(), equalTo(false));
 	}
 	
 	@Test
