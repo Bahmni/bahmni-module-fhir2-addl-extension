@@ -4,21 +4,19 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.openmrs.module.fhir2.api.util.FhirUtils;
 
 import java.util.AbstractMap;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class BahmniFhirUtils {
-	
+
 	public static <T> List<T> findResourcesOfTypeInBundle(Bundle bundle, Class<T> targetClass) {
 		return bundle.getEntry().stream()
 				.filter(entry -> targetClass.isInstance (entry.getResource()))
 				.map(entry -> targetClass.cast(entry.getResource()))
 				.collect(Collectors.toList());
 	}
-	
+
 	public static <T> Optional<T> findResourceInBundle(Bundle bundle, String idParam, Class<T> targetClass) {
         return bundle.getEntry().stream()
 				.map(entry -> new AbstractMap.SimpleEntry<>(entry.getFullUrl(), entry.getResource()))
@@ -31,7 +29,7 @@ public class BahmniFhirUtils {
                 .map(targetClass::cast)
                 .findFirst();
     }
-	
+
 	public static Optional<String> referenceToId(String reference) {
 		if (reference.startsWith("urn:uuid:")) {
 			String idPart = reference.substring(reference.lastIndexOf(":") + 1);
@@ -39,20 +37,7 @@ public class BahmniFhirUtils {
 		}
 		return FhirUtils.referenceToId(reference);
 	}
-	
-	public static boolean isFutureDate(Date date, Date now) {
-		return date.after(now) && !isSameDay(date, now);
-	}
-	
-	public static boolean isSameDay(Date date1, Date date2) {
-		Calendar cal1 = Calendar.getInstance();
-		cal1.setTime(date1);
-		Calendar cal2 = Calendar.getInstance();
-		cal2.setTime(date2);
-		return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR)
-		        && cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR);
-	}
-	
+
 	public static String extractId(String reference) {
 		if (reference.startsWith("urn:uuid:")) {
 			String idStr = reference.substring(reference.lastIndexOf(":") + 1);
@@ -68,5 +53,5 @@ public class BahmniFhirUtils {
 		}
 		return FhirUtils.referenceToId(reference).orElse(null);
 	}
-	
+
 }
