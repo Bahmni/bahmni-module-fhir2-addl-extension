@@ -112,10 +112,11 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 				if (coded != null) {
 					statusReason.setCoding(coded.getCoding());
 				}
-			}
-			String reason = discontinuationOrder.getOrderReasonNonCoded();
-			if (reason != null && !reason.isEmpty()) {
-				statusReason.setText(reason);
+			} else {
+				String reason = discontinuationOrder.getOrderReasonNonCoded();
+				if (reason != null && !reason.isEmpty()) {
+					statusReason.setText(reason);
+				}
 			}
 			if (!statusReason.isEmpty()) {
 				medicationRequest.setStatusReason(statusReason);
@@ -134,7 +135,10 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 		}
 	}
 	
-	private void translateStopMedicationOrder(@Nonnull DrugOrder drugOrder, @Nonnull MedicationRequest medicationRequest) {
+	private void translateStopMedicationOrder(@Nonnull DrugOrder drugOrder, @Nonnull MedicationRequest medicationRequest,
+	        @Nonnull DrugOrder priorDrugOrder) {
+		drugOrder.setAction(Order.Action.DISCONTINUE);
+		drugOrder.setPreviousOrder(priorDrugOrder);
 		if (medicationRequest.hasStatusReason()) {
 			CodeableConcept statusReason = medicationRequest.getStatusReason();
 			if (statusReason.hasCoding()) {
@@ -142,8 +146,7 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 				if (reasonConcept != null) {
 					drugOrder.setOrderReason(reasonConcept);
 				}
-			}
-			if (statusReason.hasText() && !statusReason.getText().isEmpty()) {
+			} else if (statusReason.hasText() && !statusReason.getText().isEmpty()) {
 				drugOrder.setOrderReasonNonCoded(statusReason.getText());
 			}
 		}
@@ -161,17 +164,14 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 		// midnight UTC which falls before the encounter datetime and fails validation.
 		drugOrder.setDateActivated(new Date());
 
-		if (drugOrder.getPreviousOrder() instanceof DrugOrder) {
-			DrugOrder priorDrugOrder = (DrugOrder) drugOrder.getPreviousOrder();
-			if (drugOrder.getOrderer() == null) {
-				drugOrder.setOrderer(priorDrugOrder.getOrderer());
-			}
-			if (drugOrder.getConcept() == null) {
-				drugOrder.setConcept(priorDrugOrder.getConcept());
-				drugOrder.setDrug(priorDrugOrder.getDrug());
-			}
-			drugOrder.setAsNeeded(priorDrugOrder.getAsNeeded());
+		if (drugOrder.getOrderer() == null) {
+			drugOrder.setOrderer(priorDrugOrder.getOrderer());
 		}
+		if (drugOrder.getConcept() == null) {
+			drugOrder.setConcept(priorDrugOrder.getConcept());
+			drugOrder.setDrug(priorDrugOrder.getDrug());
+		}
+		drugOrder.setAsNeeded(priorDrugOrder.getAsNeeded());
 	}
 	
 	private String getNoteCategory(Annotation note) {
@@ -208,9 +208,7 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 			}
 			
 			if (MedicationRequest.MedicationRequestStatus.STOPPED.equals(medicationRequest.getStatus())) {
-				drugOrder.setAction(Order.Action.DISCONTINUE);
-				drugOrder.setPreviousOrder(priorOrder);
-				translateStopMedicationOrder(drugOrder, medicationRequest);
+				translateStopMedicationOrder(drugOrder, medicationRequest, (DrugOrder) priorOrder);
 			} else if (MedicationRequest.MedicationRequestStatus.ACTIVE.equals(medicationRequest.getStatus())) {
 				// Explicit REVISE for edit flow — when REFILL is added, it should be handled
 				// as a separate condition rather than falling into this branch.

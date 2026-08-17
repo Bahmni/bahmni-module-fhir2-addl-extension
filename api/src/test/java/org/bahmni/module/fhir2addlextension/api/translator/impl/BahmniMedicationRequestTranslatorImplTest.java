@@ -704,6 +704,7 @@ public class BahmniMedicationRequestTranslatorImplTest {
 		MedicationRequest result = translator.toFhirResource(originalOrder);
 
 		assertThat(result.getStatusReason().getCodingFirstRep().getCode(), equalTo("reason-uuid"));
+		assertThat(result.getStatusReason().hasText(), equalTo(false));
 	}
 
 	@Test
@@ -786,6 +787,7 @@ public class BahmniMedicationRequestTranslatorImplTest {
 		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
 
 		assertThat(result.getOrderReason(), equalTo(reasonConcept));
+		assertThat(result.getOrderReasonNonCoded(), nullValue());
 	}
 
 	@Test
