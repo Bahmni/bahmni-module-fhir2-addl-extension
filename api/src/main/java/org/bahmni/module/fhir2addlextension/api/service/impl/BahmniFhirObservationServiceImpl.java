@@ -1,7 +1,6 @@
 package org.bahmni.module.fhir2addlextension.api.service.impl;
 
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
-import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2addlextension.api.context.RequestContextHolder;
@@ -65,11 +64,7 @@ public class BahmniFhirObservationServiceImpl extends FhirObservationServiceImpl
 	}
 	
 	@Override
-	public Bundle fetchAllByEncounter(ReferenceAndListParam encounterReference, ReferenceAndListParam basedOnReference) {
-		BahmniObservationSearchParams searchParams = new BahmniObservationSearchParams();
-		searchParams.setEncounterReference(encounterReference);
-		searchParams.setBasedOnReference(basedOnReference);
-		
+	public Bundle fetchAllByEncounter(BahmniObservationSearchParams searchParams) {
 		IBundleProvider bundleProvider = searchQuery.getQueryResults(searchParams.toSearchParameterMap(), bahmniObsDao,
 		    getTranslator(), searchQueryInclude);
 		List<IBaseResource> observations = bundleProvider.getResources(0, Integer.MAX_VALUE);

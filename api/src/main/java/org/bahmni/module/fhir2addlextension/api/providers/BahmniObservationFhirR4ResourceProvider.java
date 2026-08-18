@@ -53,6 +53,9 @@ public class BahmniObservationFhirR4ResourceProvider extends ObservationFhirReso
 			throw new InvalidRequestException("The 'encounter' parameter is required");
 		}
 		RequestContextHolder.setValue(requestDetails.getFhirServerBase());
-		return observationService.fetchAllByEncounter(encounterReference, basedOnReference);
+		BahmniObservationSearchParams searchParams = new BahmniObservationSearchParams();
+		searchParams.setEncounterReference(encounterReference);
+		searchParams.setBasedOnReference(basedOnReference);
+		return observationService.fetchAllByEncounter(searchParams);
 	}
 }

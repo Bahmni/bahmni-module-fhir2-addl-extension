@@ -25,8 +25,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -77,15 +77,17 @@ public class BahmniObservationFhirR4ResourceProviderTest {
 		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
 		        .add(new ReferenceParam(SERVICE_REQUEST_UUID)));
 		
-		when(observationService.fetchAllByEncounter(any(ReferenceAndListParam.class), any(ReferenceAndListParam.class)))
-		        .thenReturn(expectedBundle);
+		when(observationService.fetchAllByEncounter(any(BahmniObservationSearchParams.class))).thenReturn(expectedBundle);
 		
 		Bundle result = resourceProvider.getEverythingByEncounter(encounterReference, basedOnReference, requestDetails);
 		
 		assertSame(expectedBundle, result);
 		assertEquals(Bundle.BundleType.SEARCHSET, result.getType());
 		assertEquals(3, result.getTotal());
-		verify(observationService).fetchAllByEncounter(eq(encounterReference), eq(basedOnReference));
+		verify(observationService).fetchAllByEncounter(searchParamsCaptor.capture());
+		BahmniObservationSearchParams capturedParams = searchParamsCaptor.getValue();
+		assertTrue(capturedParams.hasEncounterReference());
+		assertTrue(capturedParams.hasBasedOnReference());
 	}
 	
 	@Test
