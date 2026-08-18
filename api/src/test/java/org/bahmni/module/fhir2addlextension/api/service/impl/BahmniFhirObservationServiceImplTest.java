@@ -123,7 +123,7 @@ public class BahmniFhirObservationServiceImplTest {
 	}
 	
 	@Test
-	public void fetchAllByEncounter_shouldReturnBundleWithAllObservations() {
+	public void fetchAllObservation_shouldReturnBundleWithAllObservations() {
 		Observation obs1 = new Observation();
 		obs1.setId("obs-uuid-1");
 		Observation obs2 = new Observation();
@@ -142,7 +142,7 @@ public class BahmniFhirObservationServiceImplTest {
 		
 		RequestContextHolder.setValue(SERVER_BASE);
 		
-		Bundle result = observationService.fetchAllByEncounter(searchParams);
+		Bundle result = observationService.fetchAllObservation(searchParams);
 		
 		assertNotNull(result);
 		assertEquals(Bundle.BundleType.SEARCHSET, result.getType());
@@ -154,7 +154,7 @@ public class BahmniFhirObservationServiceImplTest {
 	}
 	
 	@Test
-	public void fetchAllByEncounter_shouldReturnEmptyBundleWhenNoObservationsFound() {
+	public void fetchAllObservation_shouldReturnEmptyBundleWhenNoObservationsFound() {
 		BahmniObservationSearchParams searchParams = new BahmniObservationSearchParams();
 		searchParams.setEncounterReference(encounterReference());
 		
@@ -165,7 +165,7 @@ public class BahmniFhirObservationServiceImplTest {
 		
 		RequestContextHolder.setValue(SERVER_BASE);
 		
-		Bundle result = observationService.fetchAllByEncounter(searchParams);
+		Bundle result = observationService.fetchAllObservation(searchParams);
 		
 		assertNotNull(result);
 		assertEquals(Bundle.BundleType.SEARCHSET, result.getType());
@@ -329,7 +329,7 @@ public class BahmniFhirObservationServiceImplTest {
 	// ──────────────────────────────────────────────────────────────────────────────
 	
 	@Test
-	public void fetchAllByEncounter_shouldPopulateBundleMetadata() {
+	public void fetchAllObservation_shouldPopulateBundleMetadata() {
 		Observation obs = new Observation();
 		obs.setId("obs-uuid-1");
 		List<IBaseResource> observations = Arrays.asList(obs);
@@ -344,7 +344,7 @@ public class BahmniFhirObservationServiceImplTest {
 		
 		RequestContextHolder.setValue(SERVER_BASE);
 		
-		Bundle result = observationService.fetchAllByEncounter(searchParams);
+		Bundle result = observationService.fetchAllObservation(searchParams);
 		
 		assertNotNull(result);
 		assertNotNull(result.getId());
@@ -353,7 +353,7 @@ public class BahmniFhirObservationServiceImplTest {
 	}
 	
 	@Test
-	public void fetchAllByEncounter_shouldForwardBuiltSearchParameterMapToSearchQuery() {
+	public void fetchAllObservation_shouldForwardBuiltSearchParameterMapToSearchQuery() {
 		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
 		        .add(new ReferenceParam(SERVICE_REQUEST_UUID)));
 		BahmniObservationSearchParams searchParams = new BahmniObservationSearchParams();
@@ -365,7 +365,7 @@ public class BahmniFhirObservationServiceImplTest {
 		        .thenReturn(bundleProvider);
 		when(bundleProvider.getResources(0, Integer.MAX_VALUE)).thenReturn(Collections.emptyList());
 		
-		observationService.fetchAllByEncounter(searchParams);
+		observationService.fetchAllObservation(searchParams);
 		
 		ArgumentCaptor<SearchParameterMap> captor = ArgumentCaptor.forClass(SearchParameterMap.class);
 		verify(searchQuery).getQueryResults(captor.capture(), eq(bahmniObsDao), any(), eq(searchQueryInclude));

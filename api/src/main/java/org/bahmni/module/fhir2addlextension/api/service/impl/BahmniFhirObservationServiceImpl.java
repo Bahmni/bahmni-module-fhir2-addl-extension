@@ -64,7 +64,7 @@ public class BahmniFhirObservationServiceImpl extends FhirObservationServiceImpl
 	}
 	
 	@Override
-	public Bundle fetchAllByEncounter(BahmniObservationSearchParams searchParams) {
+	public Bundle fetchAllObservation(BahmniObservationSearchParams searchParams) {
 		IBundleProvider bundleProvider = searchQuery.getQueryResults(searchParams.toSearchParameterMap(), bahmniObsDao,
 		    getTranslator(), searchQueryInclude);
 		List<IBaseResource> observations = bundleProvider.getResources(0, Integer.MAX_VALUE);

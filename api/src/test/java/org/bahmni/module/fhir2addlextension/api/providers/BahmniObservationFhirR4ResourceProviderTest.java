@@ -77,14 +77,14 @@ public class BahmniObservationFhirR4ResourceProviderTest {
 		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
 		        .add(new ReferenceParam(SERVICE_REQUEST_UUID)));
 		
-		when(observationService.fetchAllByEncounter(any(BahmniObservationSearchParams.class))).thenReturn(expectedBundle);
+		when(observationService.fetchAllObservation(any(BahmniObservationSearchParams.class))).thenReturn(expectedBundle);
 		
-		Bundle result = resourceProvider.getEverythingByEncounter(encounterReference, basedOnReference, requestDetails);
+		Bundle result = resourceProvider.searchAllObservation(encounterReference, basedOnReference, requestDetails);
 		
 		assertSame(expectedBundle, result);
 		assertEquals(Bundle.BundleType.SEARCHSET, result.getType());
 		assertEquals(3, result.getTotal());
-		verify(observationService).fetchAllByEncounter(searchParamsCaptor.capture());
+		verify(observationService).fetchAllObservation(searchParamsCaptor.capture());
 		BahmniObservationSearchParams capturedParams = searchParamsCaptor.getValue();
 		assertTrue(capturedParams.hasEncounterReference());
 		assertTrue(capturedParams.hasBasedOnReference());
@@ -93,7 +93,7 @@ public class BahmniObservationFhirR4ResourceProviderTest {
 	@Test
 	public void testGetEverythingByEncounterWithoutEncounter_shouldThrowException() {
 		assertThrows(InvalidRequestException.class, () -> {
-			resourceProvider.getEverythingByEncounter(null, null, requestDetails);
+			resourceProvider.searchAllObservation(null, null, requestDetails);
 		});
 	}
 	

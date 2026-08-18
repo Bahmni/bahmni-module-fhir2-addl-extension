@@ -45,7 +45,7 @@ public class BahmniObservationFhirR4ResourceProvider extends ObservationFhirReso
 	        + "bypassing the default FHIR paging maximum limit. An optional 'based-on' parameter narrows results "
 	        + "to observations linked to the given order (ServiceRequest).")
 	@Operation(name = "$fetch-all", idempotent = true, type = Observation.class, returnParameters = { @OperationParam(name = "return", type = Bundle.class, min = 1, max = 1) })
-	public Bundle getEverythingByEncounter(
+	public Bundle searchAllObservation(
 	        @OperationParam(name = "encounter", min = 1, max = 1) ReferenceAndListParam encounterReference,
 	        @OperationParam(name = Observation.SP_BASED_ON, min = 0, max = 1) ReferenceAndListParam basedOnReference,
 	        RequestDetails requestDetails) {
@@ -56,6 +56,6 @@ public class BahmniObservationFhirR4ResourceProvider extends ObservationFhirReso
 		BahmniObservationSearchParams searchParams = new BahmniObservationSearchParams();
 		searchParams.setEncounterReference(encounterReference);
 		searchParams.setBasedOnReference(basedOnReference);
-		return observationService.fetchAllByEncounter(searchParams);
+		return observationService.fetchAllObservation(searchParams);
 	}
 }

@@ -7,7 +7,7 @@ import org.openmrs.module.fhir2.api.FhirObservationService;
 
 public interface BahmniFhirObservationService extends FhirObservationService {
 	
-	Bundle fetchAllByEncounter(BahmniObservationSearchParams searchParams);
+	Bundle fetchAllObservation(BahmniObservationSearchParams searchParams);
 	
 	IBundleProvider searchObservations(BahmniObservationSearchParams searchParams);
 }
