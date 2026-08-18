@@ -14,6 +14,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
@@ -21,11 +22,11 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Obs;
 import org.openmrs.api.ObsService;
 import org.openmrs.api.context.Context;
+import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.dao.FhirDao;
 import org.openmrs.module.fhir2.api.dao.FhirObservationDao;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
 import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
-import org.openmrs.module.fhir2.api.search.param.ObservationSearchParams;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.openmrs.module.fhir2.api.translators.ObservationTranslator;
 import org.openmrs.module.fhir2.api.translators.OpenmrsFhirTranslator;
@@ -38,10 +39,10 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -122,7 +123,7 @@ public class BahmniFhirObservationServiceImplTest {
 	}
 	
 	@Test
-	public void fetchAllByEncounter_shouldReturnBundleWithAllObservations() {
+	public void fetchAllObservation_shouldReturnBundleWithAllObservations() {
 		Observation obs1 = new Observation();
 		obs1.setId("obs-uuid-1");
 		Observation obs2 = new Observation();
@@ -131,16 +132,17 @@ public class BahmniFhirObservationServiceImplTest {
 		obs3.setId("obs-uuid-3");
 		List<IBaseResource> observations = Arrays.asList(obs1, obs2, obs3);
 		
-		ReferenceAndListParam encounterReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam(ENCOUNTER_UUID)));
+		BahmniObservationSearchParams searchParams = new BahmniObservationSearchParams();
+		searchParams.setEncounterReference(encounterReference());
 		
 		IBundleProvider bundleProvider = mock(IBundleProvider.class);
-		doReturn(bundleProvider).when(observationService).searchForObservations(any(ObservationSearchParams.class));
+		when(searchQuery.getQueryResults(any(SearchParameterMap.class), eq(bahmniObsDao), any(), eq(searchQueryInclude)))
+		        .thenReturn(bundleProvider);
 		when(bundleProvider.getResources(0, Integer.MAX_VALUE)).thenReturn(observations);
 		
 		RequestContextHolder.setValue(SERVER_BASE);
 		
-		Bundle result = observationService.fetchAllByEncounter(encounterReference);
+		Bundle result = observationService.fetchAllObservation(searchParams);
 		
 		assertNotNull(result);
 		assertEquals(Bundle.BundleType.SEARCHSET, result.getType());
@@ -152,22 +154,27 @@ public class BahmniFhirObservationServiceImplTest {
 	}
 	
 	@Test
-	public void fetchAllByEncounter_shouldReturnEmptyBundleWhenNoObservationsFound() {
-		ReferenceAndListParam encounterReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam(ENCOUNTER_UUID)));
+	public void fetchAllObservation_shouldReturnEmptyBundleWhenNoObservationsFound() {
+		BahmniObservationSearchParams searchParams = new BahmniObservationSearchParams();
+		searchParams.setEncounterReference(encounterReference());
 		
 		IBundleProvider bundleProvider = mock(IBundleProvider.class);
-		doReturn(bundleProvider).when(observationService).searchForObservations(any(ObservationSearchParams.class));
+		when(searchQuery.getQueryResults(any(SearchParameterMap.class), eq(bahmniObsDao), any(), eq(searchQueryInclude)))
+		        .thenReturn(bundleProvider);
 		when(bundleProvider.getResources(0, Integer.MAX_VALUE)).thenReturn(Collections.emptyList());
 		
 		RequestContextHolder.setValue(SERVER_BASE);
 		
-		Bundle result = observationService.fetchAllByEncounter(encounterReference);
+		Bundle result = observationService.fetchAllObservation(searchParams);
 		
 		assertNotNull(result);
 		assertEquals(Bundle.BundleType.SEARCHSET, result.getType());
 		assertEquals(0, result.getTotal());
 		assertEquals(0, result.getEntry().size());
+	}
+	
+	private ReferenceAndListParam encounterReference() {
+		return new ReferenceAndListParam().addAnd(new ReferenceOrListParam().add(new ReferenceParam(ENCOUNTER_UUID)));
 	}
 	
 	// ──────────────────────────────────────────────────────────────────────────────
@@ -322,26 +329,51 @@ public class BahmniFhirObservationServiceImplTest {
 	// ──────────────────────────────────────────────────────────────────────────────
 	
 	@Test
-	public void fetchAllByEncounter_shouldPopulateBundleMetadata() {
+	public void fetchAllObservation_shouldPopulateBundleMetadata() {
 		Observation obs = new Observation();
 		obs.setId("obs-uuid-1");
 		List<IBaseResource> observations = Arrays.asList(obs);
 		
-		ReferenceAndListParam encounterReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam(ENCOUNTER_UUID)));
+		BahmniObservationSearchParams searchParams = new BahmniObservationSearchParams();
+		searchParams.setEncounterReference(encounterReference());
 		
 		IBundleProvider bundleProvider = mock(IBundleProvider.class);
-		doReturn(bundleProvider).when(observationService).searchForObservations(any(ObservationSearchParams.class));
+		when(searchQuery.getQueryResults(any(SearchParameterMap.class), eq(bahmniObsDao), any(), eq(searchQueryInclude)))
+		        .thenReturn(bundleProvider);
 		when(bundleProvider.getResources(0, Integer.MAX_VALUE)).thenReturn(observations);
 		
 		RequestContextHolder.setValue(SERVER_BASE);
 		
-		Bundle result = observationService.fetchAllByEncounter(encounterReference);
+		Bundle result = observationService.fetchAllObservation(searchParams);
 		
 		assertNotNull(result);
 		assertNotNull(result.getId());
 		assertNotNull(result.getMeta());
 		assertNotNull(result.getMeta().getLastUpdated());
+	}
+	
+	@Test
+	public void fetchAllObservation_shouldForwardBuiltSearchParameterMapToSearchQuery() {
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam(SERVICE_REQUEST_UUID)));
+		BahmniObservationSearchParams searchParams = new BahmniObservationSearchParams();
+		searchParams.setEncounterReference(encounterReference());
+		searchParams.setBasedOnReference(basedOnReference);
+		
+		IBundleProvider bundleProvider = mock(IBundleProvider.class);
+		when(searchQuery.getQueryResults(any(SearchParameterMap.class), eq(bahmniObsDao), any(), eq(searchQueryInclude)))
+		        .thenReturn(bundleProvider);
+		when(bundleProvider.getResources(0, Integer.MAX_VALUE)).thenReturn(Collections.emptyList());
+		
+		observationService.fetchAllObservation(searchParams);
+		
+		ArgumentCaptor<SearchParameterMap> captor = ArgumentCaptor.forClass(SearchParameterMap.class);
+		verify(searchQuery).getQueryResults(captor.capture(), eq(bahmniObsDao), any(), eq(searchQueryInclude));
+		SearchParameterMap map = captor.getValue();
+		assertFalse("SearchParameterMap should carry the encounter handler",
+		    map.getParameters(FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER).isEmpty());
+		assertFalse("SearchParameterMap should carry the based-on handler when basedOn is on the search-params", map
+		        .getParameters(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER).isEmpty());
 	}
 	
 	@Test

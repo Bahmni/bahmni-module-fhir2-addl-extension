@@ -12,7 +12,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class BahmniFhirUtilsTest {
-
+	
 	@Test
 	public void shouldExtractIdFromReference() {
 		String reference = "urn:uuid:123";
@@ -24,7 +24,7 @@ public class BahmniFhirUtilsTest {
 		reference = "ServiceRequest/123";
 		Assert.assertEquals("123", BahmniFhirUtils.referenceToId(reference).get());
 	}
-
+	
 	@Test
 	public void shouldExtractIdFromString() {
 		String reference = "urn:uuid:123";
@@ -38,7 +38,7 @@ public class BahmniFhirUtilsTest {
 		reference = "123";
 		Assert.assertEquals("123", BahmniFhirUtils.extractId(reference));
 	}
-
+	
 	@Test
 	public void shouldFindResourceInBundle() throws IOException {
 		Bundle reportBundle = loadDiagnosticReportBundle("example-diagnostic-report-with-encounter-and-service-request-reference-and-result-observation.json");
@@ -47,7 +47,7 @@ public class BahmniFhirUtilsTest {
 		Assert.assertTrue(observation.isPresent());
 		Assert.assertEquals("1331AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", observation.get().getCode().getCoding().get(0).getCode());
 	}
-
+	
 	@Test
 	public void shouldFindResourceOfTypeInBundle() throws IOException {
 		Bundle reportBundle = loadDiagnosticReportBundle("example-diagnostic-report-bundle-with-encounter-reference.json");

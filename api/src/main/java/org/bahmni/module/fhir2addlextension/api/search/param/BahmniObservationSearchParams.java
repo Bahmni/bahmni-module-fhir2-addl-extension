@@ -25,6 +25,8 @@ public class BahmniObservationSearchParams extends BaseResourceSearchParams {
 	
 	private ReferenceAndListParam basedOnReference;
 	
+	private ReferenceAndListParam encounterReference;
+	
 	public BahmniObservationSearchParams(ReferenceAndListParam patientReference, ReferenceAndListParam basedOnReference,
 	    DateRangeParam lastUpdated, SortSpec sort) {
 		super(null, lastUpdated, sort, Collections.emptySet(), Collections.emptySet());
@@ -44,6 +46,10 @@ public class BahmniObservationSearchParams extends BaseResourceSearchParams {
 			searchParameterMap.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
 		}
 		
+		if (hasEncounterReference()) {
+			searchParameterMap.addParameter(FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER, encounterReference);
+		}
+		
 		return searchParameterMap;
 	}
 	
@@ -53,6 +59,10 @@ public class BahmniObservationSearchParams extends BaseResourceSearchParams {
 	
 	public boolean hasBasedOnReference() {
 		return hasReferenceParam(basedOnReference);
+	}
+	
+	public boolean hasEncounterReference() {
+		return hasReferenceParam(encounterReference);
 	}
 	
 	private boolean hasReferenceParam(ReferenceAndListParam reference) {

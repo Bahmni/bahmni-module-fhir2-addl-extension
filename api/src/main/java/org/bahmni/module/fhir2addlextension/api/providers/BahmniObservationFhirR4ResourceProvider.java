@@ -41,16 +41,20 @@ public class BahmniObservationFhirR4ResourceProvider extends ObservationFhirReso
 		return observationService.searchObservations(searchParams);
 	}
 	
-	@Description(shortDefinition = "Retrieves all Observations for an encounter without paging limit", value = "This operation returns all Observations linked to the specified encounter as a Bundle, "
+	@Description(shortDefinition = "Retrieves all Observations matching the given search parameters without paging limit", value = "This operation returns all Observations matching the given search parameters as a Bundle, "
 	        + "bypassing the default FHIR paging maximum limit.")
 	@Operation(name = "$fetch-all", idempotent = true, type = Observation.class, returnParameters = { @OperationParam(name = "return", type = Bundle.class, min = 1, max = 1) })
-	public Bundle getEverythingByEncounter(
+	public Bundle searchAllObservation(
 	        @OperationParam(name = "encounter", min = 1, max = 1) ReferenceAndListParam encounterReference,
+	        @OperationParam(name = Observation.SP_BASED_ON, min = 0, max = 1) ReferenceAndListParam basedOnReference,
 	        RequestDetails requestDetails) {
 		if (encounterReference == null) {
 			throw new InvalidRequestException("The 'encounter' parameter is required");
 		}
 		RequestContextHolder.setValue(requestDetails.getFhirServerBase());
-		return observationService.fetchAllByEncounter(encounterReference);
+		BahmniObservationSearchParams searchParams = new BahmniObservationSearchParams();
+		searchParams.setEncounterReference(encounterReference);
+		searchParams.setBasedOnReference(basedOnReference);
+		return observationService.fetchAllObservation(searchParams);
 	}
 }
