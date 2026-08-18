@@ -41,9 +41,8 @@ public class BahmniObservationFhirR4ResourceProvider extends ObservationFhirReso
 		return observationService.searchObservations(searchParams);
 	}
 	
-	@Description(shortDefinition = "Retrieves all Observations for an encounter without paging limit", value = "This operation returns all Observations linked to the specified encounter as a Bundle, "
-	        + "bypassing the default FHIR paging maximum limit. An optional 'based-on' parameter narrows results "
-	        + "to observations linked to the given order (ServiceRequest).")
+	@Description(shortDefinition = "Retrieves all Observations matching the given search parameters without paging limit", value = "This operation returns all Observations matching the given search parameters as a Bundle, "
+	        + "bypassing the default FHIR paging maximum limit.")
 	@Operation(name = "$fetch-all", idempotent = true, type = Observation.class, returnParameters = { @OperationParam(name = "return", type = Bundle.class, min = 1, max = 1) })
 	public Bundle searchAllObservation(
 	        @OperationParam(name = "encounter", min = 1, max = 1) ReferenceAndListParam encounterReference,
