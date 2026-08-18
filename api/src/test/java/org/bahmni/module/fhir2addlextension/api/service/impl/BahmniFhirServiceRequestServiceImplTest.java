@@ -500,11 +500,12 @@ public class BahmniFhirServiceRequestServiceImplTest {
         HashSet<Include> includes = new HashSet<>();
         includes.add(new Include("ServiceRequest:patient"));
 
-        BahmniServiceRequestSearchParams searchParams = new BahmniServiceRequestSearchParams(patientReference, code,
-            encounterReference, participantReference, category, null, occurrence, uuid, lastUpdated, includes, null);
+BahmniServiceRequestSearchParams searchParams = new BahmniServiceRequestSearchParams(patientReference, code,
+		    encounterReference, participantReference, category, null, occurrence, uuid, lastUpdated, includes, null,
+		    null);
 
-        // Call the service method with search params
-        IBundleProvider results = serviceRequestService.searchForServiceRequestsWithCategory(searchParams);
+		// Call the service method with search params
+		IBundleProvider results = serviceRequestService.searchForServiceRequestsWithCategory(searchParams);
 
         // Capture the actual SearchParameterMap passed to searchQuery.getQueryResults
         ArgumentCaptor<SearchParameterMap> mapCaptor = ArgumentCaptor.forClass(SearchParameterMap.class);
@@ -812,8 +813,8 @@ public class BahmniFhirServiceRequestServiceImplTest {
 		        new SearchQueryBundleProvider<>(new SearchParameterMap(), dao, translator, globalPropertyService,
 		                searchQueryInclude));
 
-		BahmniServiceRequestSearchParams searchParams = new BahmniServiceRequestSearchParams(patientReference, null,
-		    null, null, category, null, null, null, null, null, revIncludes);
+BahmniServiceRequestSearchParams searchParams = new BahmniServiceRequestSearchParams(patientReference, null,
+		    null, null, category, null, null, null, null, null, revIncludes, null);
 
 		IBundleProvider results = serviceRequestService.searchForServiceRequestsWithCategory(searchParams);
 
@@ -837,8 +838,8 @@ public class BahmniFhirServiceRequestServiceImplTest {
 		        new SearchQueryBundleProvider<>(new SearchParameterMap(), dao, translator, globalPropertyService,
 		                searchQueryInclude));
 
-		BahmniServiceRequestSearchParams searchParams = new BahmniServiceRequestSearchParams(patientReference, null,
-		    null, null, category, null, null, null, null, null, null);
+BahmniServiceRequestSearchParams searchParams = new BahmniServiceRequestSearchParams(patientReference, null,
+		    null, null, category, null, null, null, null, null, null, null);
 
 		IBundleProvider results = serviceRequestService.searchForServiceRequestsWithCategory(searchParams);
 
@@ -862,7 +863,7 @@ public class BahmniFhirServiceRequestServiceImplTest {
 		                searchQueryInclude));
 
 		BahmniServiceRequestSearchParams searchParams = new BahmniServiceRequestSearchParams(patientReference, null,
-		    null, null, null, basedOnReference, null, null, null, null, null);
+		    null, null, null, basedOnReference, null, null, null, null, null, null);
 
 		IBundleProvider results = serviceRequestService.searchForServiceRequestsWithCategory(searchParams);
 

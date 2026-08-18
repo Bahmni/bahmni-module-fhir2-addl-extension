@@ -12,6 +12,8 @@ public interface AppContext {
 	
 	Map<String, String> getOrderTypeToLocationAttributeNameMap();
 	
+	Map<String, String> getOrderTypeToCategoryMap();
+	
 	EncounterType getEncounterType(String name);
 	
 	EncounterRole getLabEncounterRole();

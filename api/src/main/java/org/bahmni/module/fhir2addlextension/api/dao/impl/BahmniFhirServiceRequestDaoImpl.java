@@ -4,6 +4,8 @@ import ca.uhn.fhir.rest.param.*;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.AccessLevel;
 import lombok.Setter;
+import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2addlextension.api.context.AppContext;
 import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirServiceRequestDao;
 import org.hibernate.Criteria;
 import org.hibernate.Session;
@@ -26,6 +28,7 @@ import javax.persistence.criteria.Join;
 import javax.persistence.criteria.Root;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -40,6 +43,10 @@ public class BahmniFhirServiceRequestDaoImpl extends BahmniBaseFhirDao<Order> im
 	@Autowired
 	@Setter(value = AccessLevel.PACKAGE)
 	private OrderService orderService;
+	
+	@Autowired
+	@Setter(value = AccessLevel.PACKAGE)
+	private AppContext appContext;
 	
 	@Override
 	public boolean hasDistinctResults() {
@@ -112,9 +119,12 @@ public class BahmniFhirServiceRequestDaoImpl extends BahmniBaseFhirDao<Order> im
                 case FhirConstants.CATEGORY_SEARCH_HANDLER:
                     entry.getValue().forEach(categoryReference -> handleCategoryReference(criteria, (ReferenceAndListParam) categoryReference.getParam()));
                     break;
-                case FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER:
+case FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER:
                     entry.getValue().forEach(basedOnRef -> handleBasedOnReference(criteria,
                         (ReferenceAndListParam) basedOnRef.getParam()));
+                    break;
+                case BahmniFhirConstants.ORDER_LOCATION_SEARCH_HANDLER:
+                    entry.getValue().forEach(locationReference -> handleLocationReference(criteria, (ReferenceAndListParam) locationReference.getParam()));
                     break;
                 case FhirConstants.COMMON_SEARCH_HANDLER:
                     handleCommonSearchParameters(entry.getValue()).ifPresent(criteria::add);
@@ -151,11 +161,11 @@ public class BahmniFhirServiceRequestDaoImpl extends BahmniBaseFhirDao<Order> im
         if (lacksAlias(criteria, "ot"))
             criteria.createAlias("orderType", "ot");
 
-        handleAndListParam(categoryReference, token -> propertyLike("ot.uuid", new StringParam(token.getValue(), true))).ifPresent(criteria::add);
+        handleAndListParam(categoryReference, token -> propertyLike("ot.uuid", new StringParam(resolveOrderTypeUuid(token.getValue()), true))).ifPresent(criteria::add);
 
     }
 	
-	private void handleBasedOnReference(Criteria criteria, ReferenceAndListParam basedOnReference) {
+private void handleBasedOnReference(Criteria criteria, ReferenceAndListParam basedOnReference) {
 		if (basedOnReference != null) {
 			if (lacksAlias(criteria, "po")) {
 				criteria.createAlias("previousOrder", "po");
@@ -164,6 +174,28 @@ public class BahmniFhirServiceRequestDaoImpl extends BahmniBaseFhirDao<Order> im
 			    Optional.of(eq("po.uuid", param.getValue())))
 			    .ifPresent(criteria::add);
 		}
+	}
+	
+	private String resolveOrderTypeUuid(String categoryValue) {
+		Map<String, String> orderTypeNameToCategory = appContext.getOrderTypeToCategoryMap();
+		String orderTypeName = orderTypeNameToCategory.entrySet().stream()
+		        .filter(entry -> entry.getValue().equals(categoryValue)).map(Map.Entry::getKey).findFirst().orElse(null);
+		if (orderTypeName == null) {
+			return categoryValue;
+		}
+		OrderType orderType = orderService.getOrderTypeByName(orderTypeName);
+		return orderType == null ? categoryValue : orderType.getUuid();
+	}
+	
+	private void handleLocationReference(Criteria criteria, ReferenceAndListParam locationReference) {
+		if (locationReference == null)
+			return;
+		if (lacksAlias(criteria, "e"))
+			criteria.createAlias("encounter", "e");
+		if (lacksAlias(criteria, "l"))
+			criteria.createAlias("e.location", "l");
+
+		handleAndListParam(locationReference, token -> Optional.of(eq("l.uuid", token.getValue()))).ifPresent(criteria::add);
 	}
 	
 	private void excludeDrugOrder(Criteria criteria) {

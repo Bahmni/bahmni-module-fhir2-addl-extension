@@ -7,6 +7,7 @@ import ca.uhn.fhir.rest.param.TokenAndListParam;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.search.param.BaseResourceSearchParams;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
@@ -30,12 +31,15 @@ public class BahmniServiceRequestSearchParams extends BaseResourceSearchParams {
 	
 	private ReferenceAndListParam basedOnReference;
 	
+	private ReferenceAndListParam locationReference;
+	
 	private DateRangeParam occurrence;
 	
 	public BahmniServiceRequestSearchParams(ReferenceAndListParam patientReference, TokenAndListParam code,
 	    ReferenceAndListParam encounterReference, ReferenceAndListParam participantReference,
 	    ReferenceAndListParam category, ReferenceAndListParam basedOnReference, DateRangeParam occurrence,
-	    TokenAndListParam id, DateRangeParam lastUpdated, HashSet<Include> includes, HashSet<Include> revIncludes) {
+	    TokenAndListParam id, DateRangeParam lastUpdated, HashSet<Include> includes, HashSet<Include> revIncludes,
+	    ReferenceAndListParam locationReference) {
 		super(id, lastUpdated, null, includes, revIncludes);
 		this.patientReference = patientReference;
 		this.code = code;
@@ -44,6 +48,7 @@ public class BahmniServiceRequestSearchParams extends BaseResourceSearchParams {
 		this.category = category;
 		this.basedOnReference = basedOnReference;
 		this.occurrence = occurrence;
+		this.locationReference = locationReference;
 	}
 	
 	@Override
@@ -54,6 +59,7 @@ public class BahmniServiceRequestSearchParams extends BaseResourceSearchParams {
 		        .addParameter(FhirConstants.PARTICIPANT_REFERENCE_SEARCH_HANDLER, participantReference)
 		        .addParameter(FhirConstants.CATEGORY_SEARCH_HANDLER, category)
 		        .addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference)
+		        .addParameter(BahmniFhirConstants.ORDER_LOCATION_SEARCH_HANDLER, locationReference)
 		        .addParameter(FhirConstants.DATE_RANGE_SEARCH_HANDLER, occurrence);
 	}
 }

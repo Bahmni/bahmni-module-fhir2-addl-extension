@@ -1,6 +1,7 @@
 package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
 import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2addlextension.api.context.AppContext;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
 import org.junit.Before;
@@ -11,6 +12,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.OrderType;
 import org.openmrs.api.OrderService;
+
+import java.util.Collections;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -26,6 +29,9 @@ public class OrderTypeTranslatorImplTest {
 	@Mock
 	private OrderService orderService;
 	
+	@Mock
+	private AppContext appContext;
+	
 	@InjectMocks
 	private OrderTypeTranslatorImpl translator;
 	
@@ -37,6 +43,7 @@ public class OrderTypeTranslatorImplTest {
 		orderType = new OrderType();
 		orderType.setUuid(ORDER_TYPE_UUID);
 		orderType.setName(ORDER_TYPE_NAME);
+		lenient().when(appContext.getOrderTypeToCategoryMap()).thenReturn(Collections.emptyMap());
 	}
 	
 	@Test

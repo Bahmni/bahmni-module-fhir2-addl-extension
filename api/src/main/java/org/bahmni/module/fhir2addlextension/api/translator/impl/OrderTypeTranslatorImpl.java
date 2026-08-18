@@ -1,6 +1,7 @@
 package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
 import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2addlextension.api.context.AppContext;
 import org.bahmni.module.fhir2addlextension.api.translator.OrderTypeTranslator;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
@@ -19,12 +20,22 @@ public class OrderTypeTranslatorImpl implements OrderTypeTranslator {
 	@Autowired
 	OrderService orderService;
 	
+	@Autowired
+	private AppContext appContext;
+	
 	@Override
 	public CodeableConcept toFhirResource(@Nonnull OrderType orderType) {
 		
 		CodeableConcept code = new CodeableConcept();
 		code.addCoding().setSystem(BahmniFhirConstants.ORDER_TYPE_SYSTEM_URI).setCode(orderType.getUuid())
 		        .setDisplay(getMetadataTranslation(orderType));
+		
+		String categoryCode = appContext.getOrderTypeToCategoryMap().get(orderType.getName());
+		if (categoryCode != null) {
+			code.addCoding().setSystem(BahmniFhirConstants.ORDER_TYPE_CATEGORY_SYSTEM_URI).setCode(categoryCode)
+			        .setDisplay(getMetadataTranslation(orderType));
+		}
+		
 		code.setText(getMetadataTranslation(orderType));
 		return code;
 	}

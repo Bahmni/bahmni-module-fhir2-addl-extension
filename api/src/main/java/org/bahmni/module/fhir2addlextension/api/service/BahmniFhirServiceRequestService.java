@@ -11,7 +11,7 @@ import java.util.HashSet;
 
 public interface BahmniFhirServiceRequestService extends FhirServiceRequestService {
 	
-	IBundleProvider searchForServiceRequestsWithCategory(BahmniServiceRequestSearchParams searchParams);
+IBundleProvider searchForServiceRequestsWithCategory(BahmniServiceRequestSearchParams searchParams);
 	
 	IBundleProvider searchForServiceRequestsByNumberOfVisits(ReferenceParam patientReference, NumberParam numberOfVisits,
 	        ReferenceAndListParam category, SortSpec sort, HashSet<Include> includes, HashSet<Include> revIncludes);
