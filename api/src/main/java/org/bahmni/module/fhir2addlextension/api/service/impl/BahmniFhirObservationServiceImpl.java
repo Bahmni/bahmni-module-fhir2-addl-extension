@@ -18,7 +18,6 @@ import org.openmrs.module.fhir2.api.dao.FhirDao;
 import org.openmrs.module.fhir2.api.impl.FhirObservationServiceImpl;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
 import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
-import org.openmrs.module.fhir2.api.search.param.ObservationSearchParams;
 import org.openmrs.module.fhir2.api.translators.OpenmrsFhirTranslator;
 import org.openmrs.module.fhir2.api.util.FhirUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,11 +65,13 @@ public class BahmniFhirObservationServiceImpl extends FhirObservationServiceImpl
 	}
 	
 	@Override
-	public Bundle fetchAllByEncounter(ReferenceAndListParam encounterReference) {
-		ObservationSearchParams searchParams = new ObservationSearchParams();
-		searchParams.setEncounter(encounterReference);
+	public Bundle fetchAllByEncounter(ReferenceAndListParam encounterReference, ReferenceAndListParam basedOnReference) {
+		BahmniObservationSearchParams searchParams = new BahmniObservationSearchParams();
+		searchParams.setEncounterReference(encounterReference);
+		searchParams.setBasedOnReference(basedOnReference);
 		
-		IBundleProvider bundleProvider = searchForObservations(searchParams);
+		IBundleProvider bundleProvider = searchQuery.getQueryResults(searchParams.toSearchParameterMap(), bahmniObsDao,
+		    getTranslator(), searchQueryInclude);
 		List<IBaseResource> observations = bundleProvider.getResources(0, Integer.MAX_VALUE);
 		
 		String fhirServerBase = RequestContextHolder.getValue();

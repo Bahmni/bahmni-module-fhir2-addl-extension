@@ -9,14 +9,14 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class BahmniFhirUtils {
-
+	
 	public static <T> List<T> findResourcesOfTypeInBundle(Bundle bundle, Class<T> targetClass) {
 		return bundle.getEntry().stream()
 				.filter(entry -> targetClass.isInstance (entry.getResource()))
 				.map(entry -> targetClass.cast(entry.getResource()))
 				.collect(Collectors.toList());
 	}
-
+	
 	public static <T> Optional<T> findResourceInBundle(Bundle bundle, String idParam, Class<T> targetClass) {
         return bundle.getEntry().stream()
 				.map(entry -> new AbstractMap.SimpleEntry<>(entry.getFullUrl(), entry.getResource()))
@@ -29,7 +29,7 @@ public class BahmniFhirUtils {
                 .map(targetClass::cast)
                 .findFirst();
     }
-
+	
 	public static Optional<String> referenceToId(String reference) {
 		if (reference.startsWith("urn:uuid:")) {
 			String idPart = reference.substring(reference.lastIndexOf(":") + 1);
@@ -37,7 +37,7 @@ public class BahmniFhirUtils {
 		}
 		return FhirUtils.referenceToId(reference);
 	}
-
+	
 	public static String extractId(String reference) {
 		if (reference.startsWith("urn:uuid:")) {
 			String idStr = reference.substring(reference.lastIndexOf(":") + 1);
@@ -53,5 +53,5 @@ public class BahmniFhirUtils {
 		}
 		return FhirUtils.referenceToId(reference).orElse(null);
 	}
-
+	
 }

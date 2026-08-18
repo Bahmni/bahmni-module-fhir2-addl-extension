@@ -23,8 +23,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -72,21 +74,24 @@ public class BahmniObservationFhirR4ResourceProviderTest {
 		
 		ReferenceAndListParam encounterReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
 		        .add(new ReferenceParam(ENCOUNTER_UUID)));
+		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam(SERVICE_REQUEST_UUID)));
 		
-		when(observationService.fetchAllByEncounter(any(ReferenceAndListParam.class))).thenReturn(expectedBundle);
+		when(observationService.fetchAllByEncounter(any(ReferenceAndListParam.class), any(ReferenceAndListParam.class)))
+		        .thenReturn(expectedBundle);
 		
-		Bundle result = resourceProvider.getEverythingByEncounter(encounterReference, requestDetails);
+		Bundle result = resourceProvider.getEverythingByEncounter(encounterReference, basedOnReference, requestDetails);
 		
-		assertNotNull(result);
+		assertSame(expectedBundle, result);
 		assertEquals(Bundle.BundleType.SEARCHSET, result.getType());
 		assertEquals(3, result.getTotal());
-		verify(observationService).fetchAllByEncounter(encounterReference);
+		verify(observationService).fetchAllByEncounter(eq(encounterReference), eq(basedOnReference));
 	}
 	
 	@Test
 	public void testGetEverythingByEncounterWithoutEncounter_shouldThrowException() {
 		assertThrows(InvalidRequestException.class, () -> {
-			resourceProvider.getEverythingByEncounter(null, requestDetails);
+			resourceProvider.getEverythingByEncounter(null, null, requestDetails);
 		});
 	}
 	
