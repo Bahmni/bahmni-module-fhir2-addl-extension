@@ -73,5 +73,5 @@ public final class BahmniFhirConstants {
 
 	// Patient Photo
 	public static final String PATIENT_PHOTO_CONTENT_TYPE = "image/jpeg";
-	public static final String PATIENT_PHOTO_URL_TEMPLATE = "/openmrs/ws/fhir2/R4/Patient/%s/$photo";
+	public static final String PATIENT_PHOTO_URL_TEMPLATE = "/openmrs/ws/rest/v2/patientImage?patientUuid=%s";
 }
