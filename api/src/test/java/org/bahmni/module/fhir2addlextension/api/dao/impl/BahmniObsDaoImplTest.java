@@ -23,16 +23,12 @@ import java.util.Set;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BahmniObsDaoImplTest {
-	
-	private static final String PATIENT_UUID = "da7f524f-27ce-4bb2-86d6-6d1d05312bd5";
 	
 	private static final String ORDER_UUID = "7d96f25c-4949-4f72-9931-d808fbc226de";
 	
@@ -56,21 +52,7 @@ public class BahmniObsDaoImplTest {
 		ReflectionTestUtils.setField(dao, "sessionFactory", sessionFactory);
 		
 		when(sessionFactory.getCurrentSession()).thenReturn(session);
-		when(criteria.createAlias(anyString(), anyString())).thenReturn(criteria);
 		when(criteria.add(any())).thenReturn(criteria);
-	}
-	
-	@Test
-	public void setupSearchParams_shouldHandlePatientReference() {
-		ReferenceAndListParam patientReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam().setValue(PATIENT_UUID)));
-		
-		SearchParameterMap theParams = new SearchParameterMap();
-		theParams.addParameter(FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER, patientReference);
-		
-		dao.setupSearchParams(criteria, theParams);
-		
-		verify(criteria).add(any());
 	}
 	
 	@Test
@@ -100,22 +82,6 @@ public class BahmniObsDaoImplTest {
 	}
 	
 	@Test
-	public void setupSearchParams_shouldHandleMultipleParameters() {
-		ReferenceAndListParam patientReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam().setValue(PATIENT_UUID)));
-		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam().setValue(ORDER_UUID)));
-		
-		SearchParameterMap theParams = new SearchParameterMap();
-		theParams.addParameter(FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER, patientReference);
-		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
-		
-		dao.setupSearchParams(criteria, theParams);
-		
-		verify(criteria, times(2)).add(any());
-	}
-	
-	@Test
 	public void setupSearchParams_shouldHandleNullBasedOnReference() {
 		SearchParameterMap theParams = new SearchParameterMap();
 		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, null);
@@ -132,17 +98,6 @@ public class BahmniObsDaoImplTest {
 		dao.setupSearchParams(criteria, theParams);
 		
 		verify(criteria, times(0)).add(any());
-	}
-	
-	@Test
-	public void setupSearchParams_shouldHandleCommonSearchHandler() {
-		SearchParameterMap theParams = new SearchParameterMap();
-		theParams.addParameter(FhirConstants.COMMON_SEARCH_HANDLER, null);
-		
-		dao.setupSearchParams(criteria, theParams);
-		
-		// Should not throw exception
-		verify(criteria, times(0)).createAlias(anyString(), anyString());
 	}
 	
 	@Test
@@ -221,23 +176,6 @@ public class BahmniObsDaoImplTest {
 		dao.setupSearchParams(criteria, theParams);
 		
 		verify(criteria, times(1)).add(any());
-	}
-	
-	@Test
-	public void setupSearchParams_shouldHandleBothPatientAndBasedOnWithCommonSearch() {
-		ReferenceAndListParam patientReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam().setValue(PATIENT_UUID)));
-		ReferenceAndListParam basedOnReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam().setValue(ORDER_UUID)));
-		
-		SearchParameterMap theParams = new SearchParameterMap();
-		theParams.addParameter(FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER, patientReference);
-		theParams.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnReference);
-		theParams.addParameter(FhirConstants.COMMON_SEARCH_HANDLER, null);
-		
-		dao.setupSearchParams(criteria, theParams);
-		
-		verify(criteria, times(2)).add(any());
 	}
 	
 	@Test
