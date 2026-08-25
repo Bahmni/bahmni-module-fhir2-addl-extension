@@ -228,7 +228,7 @@ public class BahmniObservationFhirR4ResourceProviderTest {
 	@Test
 	public void lastn_shouldPassRevIncludesToSearchParams() {
 		HashSet<Include> revIncludes = new HashSet<>();
-		revIncludes.add(new Include("DiagnosticReport:result", true));
+		revIncludes.add(new Include("Observation:has-member", true));
 
 		when(observationService.getLastnObservations(any(), any())).thenReturn(bundleProvider);
 
@@ -236,7 +236,7 @@ public class BahmniObservationFhirR4ResourceProviderTest {
 
 		verify(observationService).getLastnObservations(isNull(), lastnSearchParamsCaptor.capture());
 		Set<Include> capturedRevIncludes = lastnSearchParamsCaptor.getValue().getRevIncludes();
-		assertThat(capturedRevIncludes, hasItem(hasProperty("paramName", equalTo("result"))));
+		assertThat(capturedRevIncludes, hasItem(hasProperty("paramName", equalTo("has-member"))));
 	}
 	
 	@Test
