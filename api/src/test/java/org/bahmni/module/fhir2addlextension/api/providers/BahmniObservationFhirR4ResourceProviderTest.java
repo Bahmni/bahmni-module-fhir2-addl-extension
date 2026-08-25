@@ -1,5 +1,6 @@
 package org.bahmni.module.fhir2addlextension.api.providers;
 
+import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.rest.api.SortSpec;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.api.server.RequestDetails;
@@ -20,13 +21,22 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.openmrs.module.fhir2.api.search.param.ObservationSearchParams;
 
+import java.util.HashSet;
+import java.util.Set;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasProperty;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -52,6 +62,9 @@ public class BahmniObservationFhirR4ResourceProviderTest {
 	
 	@Captor
 	private ArgumentCaptor<BahmniObservationSearchParams> searchParamsCaptor;
+	
+	@Captor
+	private ArgumentCaptor<ObservationSearchParams> lastnSearchParamsCaptor;
 	
 	@InjectMocks
 	private BahmniObservationFhirR4ResourceProvider resourceProvider;
@@ -179,6 +192,51 @@ public class BahmniObservationFhirR4ResourceProviderTest {
 		
 		BahmniObservationSearchParams capturedParams = searchParamsCaptor.getValue();
 		assertNotNull(capturedParams);
+	}
+	
+	@Test
+	public void lastn_shouldFilterByEncounterReference() {
+		ReferenceAndListParam encounterReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam(ENCOUNTER_UUID)));
+		
+		when(observationService.getLastnObservations(any(), any())).thenReturn(bundleProvider);
+		
+		IBundleProvider result = resourceProvider.getLastnObservations(null, null, null, null, null, encounterReference,
+		    null, null);
+		
+		assertNotNull(result);
+		verify(observationService).getLastnObservations(isNull(), lastnSearchParamsCaptor.capture());
+		ReferenceParam ref = lastnSearchParamsCaptor.getValue().getEncounter().getValuesAsQueryTokens().get(0)
+		        .getValuesAsQueryTokens().get(0);
+		assertThat(ref.getIdPart(), equalTo(ENCOUNTER_UUID));
+	}
+	
+	@Test
+	public void lastn_shouldPassIncludesToSearchParams() {
+		HashSet<Include> includes = new HashSet<>();
+		includes.add(new Include("Observation:encounter"));
+
+		when(observationService.getLastnObservations(any(), any())).thenReturn(bundleProvider);
+
+		resourceProvider.getLastnObservations(null, null, null, null, null, null, includes, null);
+
+		verify(observationService).getLastnObservations(isNull(), lastnSearchParamsCaptor.capture());
+		Set<Include> capturedIncludes = lastnSearchParamsCaptor.getValue().getIncludes();
+		assertThat(capturedIncludes, hasItem(hasProperty("paramName", equalTo("encounter"))));
+	}
+	
+	@Test
+	public void lastn_shouldPassRevIncludesToSearchParams() {
+		HashSet<Include> revIncludes = new HashSet<>();
+		revIncludes.add(new Include("Observation:has-member", true));
+
+		when(observationService.getLastnObservations(any(), any())).thenReturn(bundleProvider);
+
+		resourceProvider.getLastnObservations(null, null, null, null, null, null, null, revIncludes);
+
+		verify(observationService).getLastnObservations(isNull(), lastnSearchParamsCaptor.capture());
+		Set<Include> capturedRevIncludes = lastnSearchParamsCaptor.getValue().getRevIncludes();
+		assertThat(capturedRevIncludes, hasItem(hasProperty("paramName", equalTo("has-member"))));
 	}
 	
 	@Test
