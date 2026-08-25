@@ -139,6 +139,9 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 	        @Nonnull DrugOrder priorDrugOrder) {
 		drugOrder.setAction(Order.Action.DISCONTINUE);
 		drugOrder.setPreviousOrder(priorDrugOrder);
+		if (MedicationRequest.MedicationRequestStatus.CANCELLED.equals(medicationRequest.getStatus())) {
+			drugOrder.setFulfillerComment(medicationRequest.getStatus().toCode());
+		}
 		if (medicationRequest.hasStatusReason()) {
 			CodeableConcept statusReason = medicationRequest.getStatusReason();
 			if (statusReason.hasCoding()) {
@@ -207,7 +210,8 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 				return;
 			}
 			
-			if (MedicationRequest.MedicationRequestStatus.STOPPED.equals(medicationRequest.getStatus())) {
+			if (MedicationRequest.MedicationRequestStatus.STOPPED.equals(medicationRequest.getStatus())
+			        || MedicationRequest.MedicationRequestStatus.CANCELLED.equals(medicationRequest.getStatus())) {
 				translateStopMedicationOrder(drugOrder, medicationRequest, (DrugOrder) priorOrder);
 			} else if (MedicationRequest.MedicationRequestStatus.ACTIVE.equals(medicationRequest.getStatus())) {
 				// Explicit REVISE for edit flow — when REFILL is added, it should be handled

@@ -14,17 +14,25 @@ import java.util.Date;
 
 import javax.annotation.Nonnull;
 
+import lombok.AccessLevel;
+import lombok.Setter;
 import org.bahmni.module.fhir2addlextension.api.utils.ModuleUtils;
 import org.hl7.fhir.r4.model.MedicationRequest;
 import org.openmrs.DrugOrder;
 import org.openmrs.Order;
+import org.openmrs.api.OrderService;
 import org.openmrs.module.fhir2.api.translators.MedicationRequestStatusTranslator;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 @Component
 @Primary
 public class BahmniMedicationRequestStatusTranslatorImpl implements MedicationRequestStatusTranslator {
+	
+	@Autowired
+	@Setter(value = AccessLevel.PACKAGE)
+	private OrderService orderService;
 	
 	@Override
 	public MedicationRequest.MedicationRequestStatus toFhirResource(@Nonnull DrugOrder drugOrder) {
@@ -53,6 +61,10 @@ public class BahmniMedicationRequestStatusTranslatorImpl implements MedicationRe
 		}
 		
 		if (drugOrder.getDateStopped() != null) {
+			Order discontinuationOrder = orderService.getDiscontinuationOrder(drugOrder);
+			if (discontinuationOrder != null && "cancelled".equals(discontinuationOrder.getFulfillerComment())) {
+				return MedicationRequest.MedicationRequestStatus.CANCELLED;
+			}
 			return ModuleUtils.compareDates(drugOrder.getDateStopped(), effectiveStartDate, ChronoUnit.MINUTES) < 0 ? MedicationRequest.MedicationRequestStatus.CANCELLED
 			        : MedicationRequest.MedicationRequestStatus.STOPPED;
 		}
