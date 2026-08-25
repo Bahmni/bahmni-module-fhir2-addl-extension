@@ -74,4 +74,7 @@ public final class BahmniFhirConstants {
 	// Patient Photo
 	public static final String PATIENT_PHOTO_CONTENT_TYPE = "image/jpeg";
 	public static final String PATIENT_PHOTO_URL_TEMPLATE = "/openmrs/ws/fhir2/R4/Patient/%s/$photo";
+
+	// Patient Telecom Mapping
+	public static final String GP_PATIENT_CONTACT_TELECOM_MAP = "fhir2Extension.patientContactAttributeTypeToTelecomSystemMap";
 }
