@@ -2,8 +2,8 @@
 <!DOCTYPE hibernate-mapping PUBLIC
         "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
         "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd" >
-<hibernate-mapping package="org.bahmni.module.fhir2AddlExtension.api.model">
-    <class name="org.bahmni.module.fhir2AddlExtension.api.model.Attachment" table="document_attachment">
+<hibernate-mapping package="org.bahmni.module.fhir2addlextension.api.model">
+    <class name="org.bahmni.module.fhir2addlextension.api.model.Attachment" table="document_attachment">
         <id name="attachmentId" type="java.lang.Integer" column="document_attachment_id">
             <generator class="native">
                 <param name="sequence">document_attachment_id_seq</param>

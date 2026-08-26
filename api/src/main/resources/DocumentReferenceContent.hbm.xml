@@ -3,9 +3,9 @@
         "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
         "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd" >
 
-<hibernate-mapping package="org.bahmni.module.fhir2AddlExtension.api.model">
+<hibernate-mapping package="org.bahmni.module.fhir2addlextension.api.model">
 
-    <class name="org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceContent" table="document_reference_content">
+    <class name="org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceContent" table="document_reference_content">
 
         <id name="documentReferenceContentId" type="java.lang.Integer" column="document_reference_content_id">
             <generator class="native">
@@ -13,7 +13,7 @@
             </generator>
         </id>
 
-        <many-to-one name="documentReference" class="org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReference"
+        <many-to-one name="documentReference" class="org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReference"
                      not-null="true" column="document_reference_id"/>
 
         <property name="contentFormat" type="java.lang.String" column="content_format" not-null="false" length="255"/>

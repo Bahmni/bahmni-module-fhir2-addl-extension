@@ -3,13 +3,13 @@
         "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
         "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
 
-<hibernate-mapping package="org.bahmni.module.fhir2AddlExtension.api.model">
+<hibernate-mapping package="org.bahmni.module.fhir2addlextension.api.model">
     <!--
     This HBM file is created as for some reason, OpenMRS does not seem to load both from HBM and JPA entities.
     packagesToScan directive on config.xml to scan for JPA entities, does not seem to work in combination with HBM.
     To investigate further later
     -->
-    <class name="org.bahmni.module.fhir2AddlExtension.api.model.FhirDiagnosticReportExt" table="fhir_diagnostic_report">
+    <class name="org.bahmni.module.fhir2addlextension.api.model.FhirDiagnosticReportExt" table="fhir_diagnostic_report">
 
         <!-- Primary Key -->
         <id name="id" column="diagnostic_report_id" type="integer">
@@ -30,7 +30,7 @@
         <!-- Status - Enumerated type -->
         <property name="statusExt" column="status" not-null="true">
             <type name="org.hibernate.type.EnumType">
-                <param name="enumClass">org.bahmni.module.fhir2AddlExtension.api.model.FhirDiagnosticReportExt$DiagnosticReportStatusExt</param>
+                <param name="enumClass">org.bahmni.module.fhir2addlextension.api.model.FhirDiagnosticReportExt$DiagnosticReportStatusExt</param>
                 <param name="useNamed">true</param>
             </type>
         </property>
@@ -73,7 +73,7 @@
 
         <set name="presentedForms" table="fhir_diagnostic_report_presented_form" cascade="save-update" lazy="true">
             <key column="diagnostic_report_id" />
-            <many-to-many class="org.bahmni.module.fhir2AddlExtension.api.model.Attachment" column="document_attachment_id"/>
+            <many-to-many class="org.bahmni.module.fhir2addlextension.api.model.Attachment" column="document_attachment_id"/>
         </set>
 
     </class>

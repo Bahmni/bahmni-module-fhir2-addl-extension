@@ -3,9 +3,9 @@
         "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
         "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd" >
 
-<hibernate-mapping package="org.bahmni.module.fhir2AddlExtension.api.model">
+<hibernate-mapping package="org.bahmni.module.fhir2addlextension.api.model">
 
-    <class name="org.bahmni.module.fhir2AddlExtension.api.model.FhirDocumentReferenceAttributeType" table="document_reference_attribute_type">
+    <class name="org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceAttributeType" table="document_reference_attribute_type">
 
         <id name="documentReferenceAttributeTypeId" type="int" column="document_reference_attribute_type_id">
             <generator class="native">

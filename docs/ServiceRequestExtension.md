@@ -208,4 +208,4 @@ GET /openmrs/ws/fhir2/R4/ServiceRequest?patient=aeb1b41e-3f24-4ca3-945b-71f3ff51
 GET /openmrs/ws/fhir2/R4/ServiceRequest?patient=aeb1b41e-3f24-4ca3-945b-71f3ff51c4b0&category=e7ee8e76-e8b1-4c26-9b40-ca4bc3939715&numberOfVisits=3
 ```
 
-Note: There are additional search capabilities possible which can be referred from  [BahmniServiceRequestFhirR4ResourceProvider.java](../api/src/main/java/org/bahmni/module/fhir2AddlExtension/api/providers/BahmniServiceRequestFhirR4ResourceProvider.java)
+Note: There are additional search capabilities possible which can be referred from  [BahmniServiceRequestFhirR4ResourceProvider.java](../api/src/main/java/org/bahmni/module/fhir2addlextension/api/providers/BahmniServiceRequestFhirR4ResourceProvider.java)

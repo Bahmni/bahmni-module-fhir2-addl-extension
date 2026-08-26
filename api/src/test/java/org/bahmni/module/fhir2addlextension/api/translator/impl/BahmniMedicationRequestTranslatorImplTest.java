@@ -1,0 +1,855 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
+package org.bahmni.module.fhir2addlextension.api.translator.impl;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Calendar;
+import java.util.Date;
+
+import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
+
+import org.hl7.fhir.r4.model.CodeableConcept;
+import org.hl7.fhir.r4.model.Dosage;
+import org.hl7.fhir.r4.model.MedicationRequest;
+import org.hl7.fhir.r4.model.Period;
+import org.hl7.fhir.r4.model.Reference;
+import org.hl7.fhir.r4.model.Timing;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+import org.openmrs.CareSetting;
+import org.openmrs.DrugOrder;
+import org.openmrs.Encounter;
+import org.openmrs.Order;
+import org.openmrs.Provider;
+import org.openmrs.api.OrderService;
+import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
+import org.openmrs.module.fhir2.api.translators.DosageTranslator;
+import org.openmrs.module.fhir2.api.translators.EncounterReferenceTranslator;
+import org.openmrs.module.fhir2.api.translators.MedicationReferenceTranslator;
+import org.openmrs.module.fhir2.api.translators.MedicationRequestDispenseRequestComponentTranslator;
+import org.openmrs.module.fhir2.api.translators.MedicationRequestPriorityTranslator;
+import org.openmrs.module.fhir2.api.translators.MedicationRequestReferenceTranslator;
+import org.openmrs.module.fhir2.api.translators.MedicationRequestStatusTranslator;
+import org.openmrs.module.fhir2.api.translators.OrderIdentifierTranslator;
+import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
+import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
+
+/**
+ * Unit tests for BahmniMedicationRequestTranslatorImpl. Verifies that STAT orders have
+ * autoExpireDate set from timing.repeat.boundsPeriod.end, and that scheduled (non-STAT) orders have
+ * urgency set to ON_SCHEDULED_DATE. Uses @InjectMocks so the real toOpenmrsType implementation runs
+ * end-to-end with all parent-class dependencies mocked. The dosageTranslator mock simulates the
+ * parent setting scheduledDate via doAnswer, since the parent calls dosageTranslator for its
+ * side-effect on the DrugOrder.
+ */
+@RunWith(MockitoJUnitRunner.class)
+public class BahmniMedicationRequestTranslatorImplTest {
+	
+	@Mock
+	private OrderService orderService;
+	
+	@Mock
+	private CareSetting outpatientCareSetting;
+	
+	// Parent class (MedicationRequestTranslatorImpl) dependencies injected via @InjectMocks
+	@Mock
+	private MedicationRequestPriorityTranslator medicationRequestPriorityTranslator;
+	
+	@Mock
+	private DosageTranslator dosageTranslator;
+	
+	@Mock
+	private ConceptTranslator conceptTranslator;
+	
+	@Mock
+	private MedicationReferenceTranslator medicationReferenceTranslator;
+	
+	@Mock
+	private MedicationRequestStatusTranslator statusTranslator;
+	
+	@Mock
+	private PractitionerReferenceTranslator<Provider> practitionerReferenceTranslator;
+	
+	@Mock
+	private EncounterReferenceTranslator<Encounter> encounterReferenceTranslator;
+	
+	@Mock
+	private PatientReferenceTranslator patientReferenceTranslator;
+	
+	@Mock
+	private OrderIdentifierTranslator orderIdentifierTranslator;
+	
+	@Mock
+	private MedicationRequestDispenseRequestComponentTranslator medicationRequestDispenseRequestComponentTranslator;
+	
+	@Mock
+	private MedicationRequestReferenceTranslator medicationRequestReferenceTranslator;
+	
+	@InjectMocks
+	private BahmniMedicationRequestTranslatorImpl translator;
+	
+	private Date today;
+	
+	private Date endOfDay;
+	
+	@Before
+	public void setup() {
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.name())).thenReturn(
+		    outpatientCareSetting);
+		
+		Calendar cal = Calendar.getInstance();
+		cal.set(Calendar.MILLISECOND, 0);
+		today = cal.getTime();
+		
+		cal.set(Calendar.HOUR_OF_DAY, 23);
+		cal.set(Calendar.MINUTE, 59);
+		cal.set(Calendar.SECOND, 59);
+		endOfDay = cal.getTime();
+	}
+	
+	// ========== STAT ORDERS — boundsPeriod ==========
+	
+	@Test
+	public void toOpenmrsType_givenStatOrderWithBoundsPeriod_shouldSetAutoExpireDate() {
+		// Given: priority translator maps STAT → STAT urgency
+		when(medicationRequestPriorityTranslator.toOpenmrsType(MedicationRequest.MedicationRequestPriority.STAT))
+		        .thenReturn(Order.Urgency.STAT);
+		// And: dosageTranslator simulates parent setting a scheduledDate (which STAT logic must clear)
+		doAnswer(inv -> {
+			((DrugOrder) inv.getArgument(0)).setScheduledDate(today);
+			return inv.getArgument(0);
+		}).when(dosageTranslator).toOpenmrsType(any(DrugOrder.class), any(Dosage.class));
+
+		MedicationRequest fhirRequest = buildStatRequestWithBoundsPeriod(today, endOfDay);
+
+		// When
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+
+		// Then: scheduledDate is cleared and autoExpireDate is extracted from boundsPeriod.end
+		assertThat(result.getScheduledDate(), nullValue());
+		assertThat(result.getAutoExpireDate(), equalTo(endOfDay));
+	}
+	
+	@Test
+	public void toOpenmrsType_givenStatOrderWithoutBoundsPeriod_shouldNotSetAutoExpireDate() {
+		when(medicationRequestPriorityTranslator.toOpenmrsType(MedicationRequest.MedicationRequestPriority.STAT))
+		        .thenReturn(Order.Urgency.STAT);
+		doAnswer(inv -> {
+			((DrugOrder) inv.getArgument(0)).setScheduledDate(today);
+			return inv.getArgument(0);
+		}).when(dosageTranslator).toOpenmrsType(any(DrugOrder.class), any(Dosage.class));
+
+		// No dosage instruction with boundsPeriod
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setPriority(MedicationRequest.MedicationRequestPriority.STAT);
+
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+
+		assertThat(result.getScheduledDate(), nullValue());
+		assertThat(result.getAutoExpireDate(), nullValue());
+	}
+	
+	@Test
+	public void toOpenmrsType_givenStatOrderWithBoundsPeriodButNoEnd_shouldNotSetAutoExpireDate() {
+		when(medicationRequestPriorityTranslator.toOpenmrsType(MedicationRequest.MedicationRequestPriority.STAT))
+		        .thenReturn(Order.Urgency.STAT);
+		doAnswer(inv -> {
+			((DrugOrder) inv.getArgument(0)).setScheduledDate(today);
+			return inv.getArgument(0);
+		}).when(dosageTranslator).toOpenmrsType(any(DrugOrder.class), any(Dosage.class));
+
+		// boundsPeriod has only a start, no end
+		MedicationRequest fhirRequest = buildStatRequestWithBoundsPeriod(today, null);
+
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+
+		assertThat(result.getScheduledDate(), nullValue());
+		assertThat(result.getAutoExpireDate(), nullValue());
+	}
+	
+	// ========== SCHEDULED (NON-STAT) ORDERS ==========
+	
+	@Test
+	public void toOpenmrsType_givenScheduledOrder_shouldSetUrgencyToOnScheduledDate() {
+		// dosageTranslator simulates parent setting a future scheduledDate
+		doAnswer(inv -> {
+			((DrugOrder) inv.getArgument(0)).setScheduledDate(endOfDay);
+			return inv.getArgument(0);
+		}).when(dosageTranslator).toOpenmrsType(any(DrugOrder.class), any(Dosage.class));
+
+		MedicationRequest fhirRequest = buildBaseRequest();
+
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+
+		assertThat(result.getUrgency(), equalTo(Order.Urgency.ON_SCHEDULED_DATE));
+	}
+	
+	@Test
+	public void toOpenmrsType_givenOrderWithNoScheduledDateAndNoStat_shouldNotChangeUrgency() {
+		when(medicationRequestPriorityTranslator.toOpenmrsType(MedicationRequest.MedicationRequestPriority.ROUTINE))
+		        .thenReturn(Order.Urgency.ROUTINE);
+		
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setPriority(MedicationRequest.MedicationRequestPriority.ROUTINE);
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getUrgency(), equalTo(Order.Urgency.ROUTINE));
+		assertThat(result.getScheduledDate(), nullValue());
+	}
+	
+	@Test
+	public void toOpenmrsType_givenNonStatOrderWithBoundsPeriodStart_shouldSetScheduledDateAndUrgency() {
+		MedicationRequest fhirRequest = buildRequestWithBoundsPeriod(today, null);
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getScheduledDate(), equalTo(today));
+		assertThat(result.getUrgency(), equalTo(Order.Urgency.ON_SCHEDULED_DATE));
+	}
+	
+	@Test
+	public void toOpenmrsType_givenNonStatOrderWithBoundsPeriodButNoStart_shouldNotSetScheduledDate() {
+		when(medicationRequestPriorityTranslator.toOpenmrsType(MedicationRequest.MedicationRequestPriority.ROUTINE))
+		        .thenReturn(Order.Urgency.ROUTINE);
+		
+		MedicationRequest fhirRequest = buildRequestWithBoundsPeriod(null, endOfDay);
+		fhirRequest.setPriority(MedicationRequest.MedicationRequestPriority.ROUTINE);
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getScheduledDate(), nullValue());
+		assertThat(result.getAutoExpireDate(), equalTo(endOfDay));
+	}
+	
+	// ========== PRIOR PRESCRIPTION (REVISE ORDERS) ==========
+	
+	@Test
+	public void toOpenmrsType_givenPriorPrescriptionReference_shouldSetOrderActionToReviseAndLinkPriorOrder() {
+		String priorOrderUuid = "prior-uuid-1234";
+		DrugOrder priorOrder = new DrugOrder();
+		priorOrder.setUuid(priorOrderUuid);
+		when(orderService.getOrderByUuid(priorOrderUuid)).thenReturn(priorOrder);
+		
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setStatus(MedicationRequest.MedicationRequestStatus.ACTIVE);
+		Reference priorPrescriptionRef = new Reference("MedicationRequest/" + priorOrderUuid);
+		fhirRequest.setPriorPrescription(priorPrescriptionRef);
+		
+		DrugOrder existingOrder = new DrugOrder();
+		DrugOrder result = translator.toOpenmrsType(existingOrder, fhirRequest);
+		
+		assertThat(result.getAction(), equalTo(Order.Action.REVISE));
+		assertThat(result.getPreviousOrder(), equalTo(priorOrder));
+	}
+	
+	@Test
+	public void toOpenmrsType_givenPriorPrescriptionWithFullUrl_shouldExtractUuidAndLinkOrder() {
+		String priorOrderUuid = "abc-def-ghi-jkl";
+		DrugOrder priorOrder = new DrugOrder();
+		priorOrder.setUuid(priorOrderUuid);
+		when(orderService.getOrderByUuid(priorOrderUuid)).thenReturn(priorOrder);
+		
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setStatus(MedicationRequest.MedicationRequestStatus.ACTIVE);
+		Reference priorPrescriptionRef = new Reference("http://example.com/fhir/MedicationRequest/" + priorOrderUuid);
+		fhirRequest.setPriorPrescription(priorPrescriptionRef);
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getAction(), equalTo(Order.Action.REVISE));
+		assertThat(result.getPreviousOrder(), equalTo(priorOrder));
+	}
+	
+	@Test
+	public void toOpenmrsType_givenPriorPrescriptionWithUrnFormat_shouldExtractUuidAndLinkOrder() {
+		String priorOrderUuid = "urn-format-uuid";
+		DrugOrder priorOrder = new DrugOrder();
+		priorOrder.setUuid(priorOrderUuid);
+		when(orderService.getOrderByUuid(priorOrderUuid)).thenReturn(priorOrder);
+		
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setStatus(MedicationRequest.MedicationRequestStatus.ACTIVE);
+		Reference priorPrescriptionRef = new Reference("urn:uuid:" + priorOrderUuid);
+		fhirRequest.setPriorPrescription(priorPrescriptionRef);
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getAction(), equalTo(Order.Action.REVISE));
+		assertThat(result.getPreviousOrder(), equalTo(priorOrder));
+	}
+	
+	@Test
+	public void toOpenmrsType_givenPriorPrescriptionIsNotDrugOrder_shouldContinueWithoutRevise() {
+		String priorOrderUuid = "non-drug-order-uuid";
+		Order nonDrugOrder = new Order();
+		nonDrugOrder.setUuid(priorOrderUuid);
+		when(orderService.getOrderByUuid(priorOrderUuid)).thenReturn(nonDrugOrder);
+		
+		MedicationRequest fhirRequest = buildBaseRequest();
+		Reference priorPrescriptionRef = new Reference("MedicationRequest/" + priorOrderUuid);
+		fhirRequest.setPriorPrescription(priorPrescriptionRef);
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getAction(), not(equalTo(Order.Action.REVISE)));
+		assertThat(result.getPreviousOrder(), nullValue());
+	}
+	
+	@Test
+	public void toOpenmrsType_givenNoPriorPrescription_shouldNotSetReviseAction() {
+		MedicationRequest fhirRequest = buildBaseRequest();
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getAction(), not(equalTo(Order.Action.REVISE)));
+		assertThat(result.getPreviousOrder(), nullValue());
+	}
+	
+	@Test
+	public void toOpenmrsType_givenPriorPrescriptionNotFound_shouldNotSetReviseAction() {
+		String priorOrderUuid = "non-existent-uuid";
+		when(orderService.getOrderByUuid(priorOrderUuid)).thenReturn(null);
+		
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setPriorPrescription(new Reference("MedicationRequest/" + priorOrderUuid));
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getAction(), not(equalTo(Order.Action.REVISE)));
+		assertThat(result.getPreviousOrder(), nullValue());
+	}
+	
+	@Test
+	public void toOpenmrsType_givenPriorPrescriptionWithEmptyReference_shouldContinueWithoutRevise() {
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setPriorPrescription(new Reference());
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getAction(), not(equalTo(Order.Action.REVISE)));
+		assertThat(result.getPreviousOrder(), nullValue());
+	}
+	
+	@Test
+	public void toOpenmrsType_givenStoppedStatusWithPriorPrescription_shouldSetDiscontinueAction() {
+		String priorOrderUuid = "prior-uuid-stop";
+		DrugOrder priorOrder = new DrugOrder();
+		priorOrder.setUuid(priorOrderUuid);
+		when(orderService.getOrderByUuid(priorOrderUuid)).thenReturn(priorOrder);
+		
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setStatus(MedicationRequest.MedicationRequestStatus.STOPPED);
+		fhirRequest.setPriorPrescription(new Reference("MedicationRequest/" + priorOrderUuid));
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getAction(), equalTo(Order.Action.DISCONTINUE));
+		assertThat(result.getPreviousOrder(), equalTo(priorOrder));
+	}
+	
+	@Test
+	public void toOpenmrsType_givenStoppedStatusWithPriorPrescription_shouldNotSetFulfillerComment() {
+		String priorOrderUuid = "prior-uuid-stop-fc";
+		DrugOrder priorOrder = new DrugOrder();
+		priorOrder.setUuid(priorOrderUuid);
+		when(orderService.getOrderByUuid(priorOrderUuid)).thenReturn(priorOrder);
+		
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setStatus(MedicationRequest.MedicationRequestStatus.STOPPED);
+		fhirRequest.setPriorPrescription(new Reference("MedicationRequest/" + priorOrderUuid));
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getFulfillerComment(), nullValue());
+	}
+	
+	@Test
+	public void toOpenmrsType_givenCancelledStatusWithPriorPrescription_shouldSetDiscontinueActionAndFulfillerComment() {
+		String priorOrderUuid = "prior-uuid-cancel";
+		DrugOrder priorOrder = new DrugOrder();
+		priorOrder.setUuid(priorOrderUuid);
+		when(orderService.getOrderByUuid(priorOrderUuid)).thenReturn(priorOrder);
+		
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setStatus(MedicationRequest.MedicationRequestStatus.CANCELLED);
+		fhirRequest.setPriorPrescription(new Reference("MedicationRequest/" + priorOrderUuid));
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getAction(), equalTo(Order.Action.DISCONTINUE));
+		assertThat(result.getPreviousOrder(), equalTo(priorOrder));
+		assertThat(result.getFulfillerComment(), equalTo("cancelled"));
+	}
+	
+	@Test
+	public void toOpenmrsType_givenPriorPrescriptionWithPlainUuid_shouldExtractAndLinkOrder() {
+		String priorOrderUuid = "plain-uuid-no-prefix";
+		DrugOrder priorOrder = new DrugOrder();
+		priorOrder.setUuid(priorOrderUuid);
+		when(orderService.getOrderByUuid(priorOrderUuid)).thenReturn(priorOrder);
+		
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setStatus(MedicationRequest.MedicationRequestStatus.ACTIVE);
+		fhirRequest.setPriorPrescription(new Reference(priorOrderUuid));
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getAction(), equalTo(Order.Action.REVISE));
+		assertThat(result.getPreviousOrder(), equalTo(priorOrder));
+	}
+	
+	@Test
+	public void toOpenmrsType_givenOrderServiceThrowsException_shouldContinueWithoutRevise() {
+		String priorOrderUuid = "throws-uuid";
+		when(orderService.getOrderByUuid(priorOrderUuid)).thenThrow(new RuntimeException("DB error"));
+		
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setPriorPrescription(new Reference("MedicationRequest/" + priorOrderUuid));
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getAction(), not(equalTo(Order.Action.REVISE)));
+		assertThat(result.getPreviousOrder(), nullValue());
+	}
+	
+	// ========== PARENT CLASS BRANCH COVERAGE ==========
+	
+	@Test
+	public void toOpenmrsType_givenRequestWithId_shouldSetUuid() {
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setId("test-uuid-123");
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getUuid(), equalTo("test-uuid-123"));
+	}
+	
+	@Test
+	public void toOpenmrsType_givenRequestWithMedicationReference_shouldCallMedicationReferenceTranslator() {
+		MedicationRequest fhirRequest = new MedicationRequest();
+		Reference medRef = new Reference("Medication/med-uuid");
+		fhirRequest.setMedication(medRef);
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result, not(nullValue()));
+		verify(medicationReferenceTranslator).toOpenmrsType(medRef);
+	}
+	
+	@Test
+	public void toOpenmrsType_givenRequestWithPriority_shouldCallPriorityTranslator() {
+		when(medicationRequestPriorityTranslator.toOpenmrsType(MedicationRequest.MedicationRequestPriority.ROUTINE))
+		        .thenReturn(Order.Urgency.ROUTINE);
+		
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setPriority(MedicationRequest.MedicationRequestPriority.ROUTINE);
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getUrgency(), equalTo(Order.Urgency.ROUTINE));
+		verify(medicationRequestPriorityTranslator).toOpenmrsType(MedicationRequest.MedicationRequestPriority.ROUTINE);
+	}
+	
+	@Test
+	public void toOpenmrsType_givenRequestWithNote_shouldSetCommentToFulfiller() {
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.addNote().setText("Take with food");
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getCommentToFulfiller(), equalTo("Take with food"));
+	}
+	
+	@Test
+	public void toOpenmrsType_givenRequestWithCodeableConceptAndText_shouldSetDrugNonCoded() {
+		CodeableConcept medication = new CodeableConcept();
+		medication.setText("Custom Drug Name");
+		// Mock conceptTranslator.toFhirResource to return a CodeableConcept with different text
+		when(conceptTranslator.toFhirResource(any())).thenReturn(new CodeableConcept().setText("Different Name"));
+		
+		MedicationRequest fhirRequest = new MedicationRequest();
+		fhirRequest.setMedication(medication);
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getDrugNonCoded(), equalTo("Custom Drug Name"));
+	}
+	
+	@Test
+	public void toOpenmrsType_givenRequestWithoutId_shouldKeepAutoGeneratedUuid() {
+		MedicationRequest fhirRequest = buildBaseRequest();
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		// DrugOrder auto-generates a UUID — verify it's not overwritten
+		assertThat(result.getUuid(), not(nullValue()));
+	}
+	
+	@Test
+	public void toOpenmrsType_givenRequestWithoutPriority_shouldDefaultToRoutine() {
+		MedicationRequest fhirRequest = buildBaseRequest();
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		// DrugOrder defaults urgency to ROUTINE
+		assertThat(result.getUrgency(), equalTo(Order.Urgency.ROUTINE));
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldAlwaysSetOutpatientCareSetting() {
+		MedicationRequest fhirRequest = buildBaseRequest();
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getCareSetting(), equalTo(outpatientCareSetting));
+	}
+	
+	// ========== HELPERS ==========
+	
+	private MedicationRequest buildBaseRequest() {
+		MedicationRequest request = new MedicationRequest();
+		// Set an empty CodeableConcept to avoid NPE in parent's concept translation path
+		request.setMedication(new CodeableConcept());
+		return request;
+	}
+	
+	private MedicationRequest buildRequestWithBoundsPeriod(Date start, Date end) {
+		Period boundsPeriod = new Period();
+		if (start != null) {
+			boundsPeriod.setStart(start);
+		}
+		if (end != null) {
+			boundsPeriod.setEnd(end);
+		}
+		Timing.TimingRepeatComponent repeat = new Timing.TimingRepeatComponent();
+		repeat.setBounds(boundsPeriod);
+		Timing timing = new Timing();
+		timing.setRepeat(repeat);
+		
+		MedicationRequest request = buildBaseRequest();
+		request.addDosageInstruction().setTiming(timing);
+		return request;
+	}
+	
+	private MedicationRequest buildStatRequestWithBoundsPeriod(Date start, Date end) {
+		Period boundsPeriod = new Period();
+		if (start != null) {
+			boundsPeriod.setStart(start);
+		}
+		if (end != null) {
+			boundsPeriod.setEnd(end);
+		}
+		Timing.TimingRepeatComponent repeat = new Timing.TimingRepeatComponent();
+		repeat.setBounds(boundsPeriod);
+		Timing timing = new Timing();
+		timing.setRepeat(repeat);
+		
+		MedicationRequest request = buildBaseRequest();
+		request.setPriority(MedicationRequest.MedicationRequestPriority.STAT);
+		request.addDosageInstruction().setTiming(timing);
+		return request;
+	}
+	
+	// ========== toFhirResource: statusReason, dateStopped, note ==========
+	
+	@Test
+	public void toFhirResource_givenStoppedOrderWithOrderReasonNonCoded_andNoDiscontinuationOrder_shouldNotSetStatusReason() {
+		DrugOrder drugOrder = org.mockito.Mockito.spy(new DrugOrder());
+		drugOrder.setOrderReasonNonCoded("Patient refused");
+		drugOrder.setDrug(new org.openmrs.Drug());
+		drugOrder.setPatient(new org.openmrs.Patient());
+		when(drugOrder.getDateStopped()).thenReturn(new Date());
+		when(orderService.getDiscontinuationOrder(drugOrder)).thenReturn(null);
+		
+		MedicationRequest result = translator.toFhirResource(drugOrder);
+		
+		assertThat(result.hasStatusReason(), equalTo(false));
+	}
+	
+	@Test
+	public void toFhirResource_givenActiveOrderWithOrderReasonNonCoded_shouldNotSetStatusReason() {
+		DrugOrder drugOrder = new DrugOrder();
+		drugOrder.setOrderReasonNonCoded("Some reason");
+		drugOrder.setDrug(new org.openmrs.Drug());
+		
+		MedicationRequest result = translator.toFhirResource(drugOrder);
+		
+		assertThat(result.getStatusReason().isEmpty(), equalTo(true));
+	}
+	
+	@Test
+	public void toFhirResource_givenNoOrderReasonNonCoded_shouldNotSetStatusReason() {
+		DrugOrder drugOrder = new DrugOrder();
+		drugOrder.setDrug(new org.openmrs.Drug());
+		
+		MedicationRequest result = translator.toFhirResource(drugOrder);
+		
+		assertThat(result.getStatusReason().isEmpty(), equalTo(true));
+	}
+	
+	@Test
+	public void toFhirResource_givenNoDateStopped_shouldNotAddExtension() {
+		DrugOrder drugOrder = new DrugOrder();
+		drugOrder.setDrug(new org.openmrs.Drug());
+		
+		MedicationRequest result = translator.toFhirResource(drugOrder);
+		
+		assertThat(result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_MEDICATION_REQUEST_DATE_STOPPED), nullValue());
+	}
+	
+	@Test
+	public void toFhirResource_givenDateStopped_shouldAddDateStoppedExtension() {
+		DrugOrder drugOrder = org.mockito.Mockito.spy(new DrugOrder());
+		drugOrder.setDrug(new org.openmrs.Drug());
+		drugOrder.setPatient(new org.openmrs.Patient());
+		Date stoppedDate = new Date();
+		when(drugOrder.getDateStopped()).thenReturn(stoppedDate);
+		when(orderService.getDiscontinuationOrder(drugOrder)).thenReturn(null);
+		
+		MedicationRequest result = translator.toFhirResource(drugOrder);
+		
+		assertThat(result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_MEDICATION_REQUEST_DATE_STOPPED), not(nullValue()));
+	}
+	
+	@Test
+	public void toFhirResource_givenCommentToFulfiller_shouldAddNote() {
+		DrugOrder drugOrder = new DrugOrder();
+		drugOrder.setDrug(new org.openmrs.Drug());
+		drugOrder.setCommentToFulfiller("Take with food");
+
+		MedicationRequest result = translator.toFhirResource(drugOrder);
+
+		assertThat(result.getNote().stream().anyMatch(n -> "Take with food".equals(n.getText())), equalTo(true));
+	}
+	
+	@Test
+	public void toFhirResource_givenNoComment_shouldNotContainCommentNote() {
+		DrugOrder drugOrder = new DrugOrder();
+		drugOrder.setDrug(new org.openmrs.Drug());
+
+		MedicationRequest result = translator.toFhirResource(drugOrder);
+
+		// Parent may add notes from other fields; just verify no "commentToFulfiller" note was added
+		assertThat(result.getNote().stream().noneMatch(n -> n.getText() != null && n.getText().equals("Take with food")), equalTo(true));
+	}
+	
+	// ========== toFhirResource: discontinuation order lookup ==========
+	
+	@Test
+	public void toFhirResource_givenStoppedOrder_shouldLookUpReasonFromDiscontinuationOrder() {
+		DrugOrder originalOrder = org.mockito.Mockito.spy(new DrugOrder());
+		originalOrder.setDrug(new org.openmrs.Drug());
+		originalOrder.setPatient(new org.openmrs.Patient());
+		when(originalOrder.getDateStopped()).thenReturn(new Date());
+
+		DrugOrder discontinuationOrder = new DrugOrder();
+		discontinuationOrder.setAction(Order.Action.DISCONTINUE);
+		discontinuationOrder.setPreviousOrder(originalOrder);
+		discontinuationOrder.setOrderReasonNonCoded("Adverse reaction");
+		discontinuationOrder.setCommentToFulfiller("Patient reported rash");
+
+		when(orderService.getDiscontinuationOrder(originalOrder)).thenReturn(discontinuationOrder);
+
+		MedicationRequest result = translator.toFhirResource(originalOrder);
+
+		assertThat(result.getStatusReason().getText(), equalTo("Adverse reaction"));
+		assertThat(result.getNote().stream().anyMatch(n -> "Patient reported rash".equals(n.getText())), equalTo(true));
+		assertThat(result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_MEDICATION_REQUEST_DATE_STOPPED), not(nullValue()));
+	}
+	
+	@Test
+	public void toFhirResource_givenStoppedOrder_withNoDiscontinuationOrder_shouldNotSetStatusReason() {
+		DrugOrder originalOrder = org.mockito.Mockito.spy(new DrugOrder());
+		originalOrder.setDrug(new org.openmrs.Drug());
+		originalOrder.setPatient(new org.openmrs.Patient());
+		when(originalOrder.getDateStopped()).thenReturn(new Date());
+		when(orderService.getDiscontinuationOrder(originalOrder)).thenReturn(null);
+		
+		MedicationRequest result = translator.toFhirResource(originalOrder);
+		
+		assertThat(result.getStatusReason().isEmpty(), equalTo(true));
+	}
+	
+	@Test
+	public void toFhirResource_givenStoppedOrder_whenLookupThrows_shouldContinueWithoutReason() {
+		DrugOrder originalOrder = org.mockito.Mockito.spy(new DrugOrder());
+		originalOrder.setDrug(new org.openmrs.Drug());
+		originalOrder.setPatient(new org.openmrs.Patient());
+		when(originalOrder.getDateStopped()).thenReturn(new Date());
+		when(orderService.getDiscontinuationOrder(originalOrder)).thenThrow(new RuntimeException("DB error"));
+		
+		MedicationRequest result = translator.toFhirResource(originalOrder);
+		
+		assertThat(result.getStatusReason().isEmpty(), equalTo(true));
+		assertThat(result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_MEDICATION_REQUEST_DATE_STOPPED), not(nullValue()));
+	}
+	
+	@Test
+	public void toFhirResource_shouldTagExistingNotesAsOrderNote() {
+		DrugOrder drugOrder = new DrugOrder();
+		drugOrder.setDrug(new org.openmrs.Drug());
+		drugOrder.setCommentToFulfiller("Take with food");
+
+		MedicationRequest result = translator.toFhirResource(drugOrder);
+
+		boolean hasOrderNoteTag = result.getNote().stream()
+		        .anyMatch(n -> n.getExtension().stream()
+		                .anyMatch(e -> BahmniFhirConstants.FHIR_EXT_MEDICATION_REQUEST_NOTE_CATEGORY.equals(e.getUrl())
+		                        && "order-note".equals(((org.hl7.fhir.r4.model.CodeType) e.getValue()).getValue())));
+		assertThat(hasOrderNoteTag, equalTo(true));
+	}
+	
+	@Test
+	public void toFhirResource_givenStoppedOrderWithCodedReason_shouldSetStatusReasonCoding() {
+		DrugOrder originalOrder = org.mockito.Mockito.spy(new DrugOrder());
+		originalOrder.setDrug(new org.openmrs.Drug());
+		originalOrder.setPatient(new org.openmrs.Patient());
+		when(originalOrder.getDateStopped()).thenReturn(new Date());
+		
+		org.openmrs.Concept reasonConcept = new org.openmrs.Concept();
+		DrugOrder discontinuationOrder = new DrugOrder();
+		discontinuationOrder.setOrderReason(reasonConcept);
+		
+		CodeableConcept codedReason = new CodeableConcept();
+		codedReason.addCoding().setCode("reason-uuid").setDisplay("Refused To Take");
+		when(conceptTranslator.toFhirResource(reasonConcept)).thenReturn(codedReason);
+		when(orderService.getDiscontinuationOrder(originalOrder)).thenReturn(discontinuationOrder);
+		
+		MedicationRequest result = translator.toFhirResource(originalOrder);
+		
+		assertThat(result.getStatusReason().getCodingFirstRep().getCode(), equalTo("reason-uuid"));
+		assertThat(result.getStatusReason().hasText(), equalTo(false));
+	}
+	
+	@Test
+	public void toFhirResource_givenStoppedOrderWithCancellationNote_shouldTagNoteAsCancellationNote() {
+		DrugOrder originalOrder = org.mockito.Mockito.spy(new DrugOrder());
+		originalOrder.setDrug(new org.openmrs.Drug());
+		originalOrder.setPatient(new org.openmrs.Patient());
+		when(originalOrder.getDateStopped()).thenReturn(new Date());
+
+		DrugOrder discontinuationOrder = new DrugOrder();
+		discontinuationOrder.setCommentToFulfiller("Patient refused medication");
+		when(orderService.getDiscontinuationOrder(originalOrder)).thenReturn(discontinuationOrder);
+
+		MedicationRequest result = translator.toFhirResource(originalOrder);
+
+		boolean hasCancellationTag = result.getNote().stream()
+		        .anyMatch(n -> "Patient refused medication".equals(n.getText())
+		                && n.getExtension().stream()
+		                        .anyMatch(e -> BahmniFhirConstants.FHIR_EXT_MEDICATION_REQUEST_NOTE_CATEGORY.equals(e.getUrl())
+		                                && "cancellation-note".equals(((org.hl7.fhir.r4.model.CodeType) e.getValue()).getValue())));
+		assertThat(hasCancellationTag, equalTo(true));
+	}
+	
+	@Test
+	public void toOpenmrsType_givenStoppedStatusWithCancellationNote_shouldSetCommentToFulfiller() {
+		String priorOrderUuid = "prior-stop-uuid";
+		DrugOrder priorOrder = new DrugOrder();
+		priorOrder.setUuid(priorOrderUuid);
+		when(orderService.getOrderByUuid(priorOrderUuid)).thenReturn(priorOrder);
+		
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setStatus(MedicationRequest.MedicationRequestStatus.STOPPED);
+		fhirRequest.setPriorPrescription(new Reference("MedicationRequest/" + priorOrderUuid));
+		
+		org.hl7.fhir.r4.model.Annotation note = new org.hl7.fhir.r4.model.Annotation();
+		note.setText("Patient had reaction");
+		note.addExtension(BahmniFhirConstants.FHIR_EXT_MEDICATION_REQUEST_NOTE_CATEGORY, new org.hl7.fhir.r4.model.CodeType(
+		        "cancellation-note"));
+		fhirRequest.addNote(note);
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getCommentToFulfiller(), equalTo("Patient had reaction"));
+	}
+	
+	@Test
+	public void toOpenmrsType_givenStoppedStatusWithStatusReason_shouldSetOrderReasonNonCoded() {
+		String priorOrderUuid = "prior-reason-uuid";
+		DrugOrder priorOrder = new DrugOrder();
+		priorOrder.setUuid(priorOrderUuid);
+		when(orderService.getOrderByUuid(priorOrderUuid)).thenReturn(priorOrder);
+		
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setStatus(MedicationRequest.MedicationRequestStatus.STOPPED);
+		fhirRequest.setPriorPrescription(new Reference("MedicationRequest/" + priorOrderUuid));
+		fhirRequest.setStatusReason(new CodeableConcept().setText("Adverse reaction"));
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getOrderReasonNonCoded(), equalTo("Adverse reaction"));
+	}
+	
+	@Test
+	public void toOpenmrsType_givenStoppedStatusWithCodedStatusReason_shouldSetOrderReason() {
+		String priorOrderUuid = "prior-coded-reason-uuid";
+		DrugOrder priorOrder = new DrugOrder();
+		priorOrder.setUuid(priorOrderUuid);
+		when(orderService.getOrderByUuid(priorOrderUuid)).thenReturn(priorOrder);
+		
+		org.openmrs.Concept reasonConcept = new org.openmrs.Concept();
+		CodeableConcept statusReason = new CodeableConcept();
+		statusReason.addCoding().setCode("concept-uuid");
+		when(conceptTranslator.toOpenmrsType(any(CodeableConcept.class))).thenReturn(reasonConcept);
+		
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setStatus(MedicationRequest.MedicationRequestStatus.STOPPED);
+		fhirRequest.setPriorPrescription(new Reference("MedicationRequest/" + priorOrderUuid));
+		fhirRequest.setStatusReason(statusReason);
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getOrderReason(), equalTo(reasonConcept));
+		assertThat(result.getOrderReasonNonCoded(), nullValue());
+	}
+	
+	@Test
+	public void toOpenmrsType_givenStoppedStatus_shouldCopyFieldsFromPriorOrder() {
+		String priorOrderUuid = "prior-copy-uuid";
+		org.openmrs.Drug drug = new org.openmrs.Drug();
+		org.openmrs.Concept concept = new org.openmrs.Concept();
+		org.openmrs.Provider orderer = new org.openmrs.Provider();
+		
+		DrugOrder priorOrder = new DrugOrder();
+		priorOrder.setUuid(priorOrderUuid);
+		priorOrder.setDrug(drug);
+		priorOrder.setConcept(concept);
+		priorOrder.setOrderer(orderer);
+		priorOrder.setAsNeeded(true);
+		when(orderService.getOrderByUuid(priorOrderUuid)).thenReturn(priorOrder);
+		
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setStatus(MedicationRequest.MedicationRequestStatus.STOPPED);
+		fhirRequest.setPriorPrescription(new Reference("MedicationRequest/" + priorOrderUuid));
+		
+		DrugOrder dcOrder = new DrugOrder();
+		DrugOrder result = translator.toOpenmrsType(dcOrder, fhirRequest);
+		
+		assertThat(result.getDrug(), equalTo(drug));
+		assertThat(result.getConcept(), equalTo(concept));
+		assertThat(result.getOrderer(), equalTo(orderer));
+		assertThat(result.getAsNeeded(), equalTo(true));
+		assertThat(result.getDateActivated(), not(nullValue()));
+	}
+}

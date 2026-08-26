@@ -300,8 +300,8 @@ ValueSet expanded = client
 Enable debug logging by setting the following in OpenMRS:
 
 ```properties
-log4j.logger.org.bahmni.module.fhir2AddlExtension.api.providers.BahmniValueSetFhirR4ResourceProvider=DEBUG
-log4j.logger.org.bahmni.module.fhir2AddlExtension.api.service.impl.BahmniFhirValueSetServiceImpl=DEBUG
+log4j.logger.org.bahmni.module.fhir2addlextension.api.providers.BahmniValueSetFhirR4ResourceProvider=DEBUG
+log4j.logger.org.bahmni.module.fhir2addlextension.api.service.impl.BahmniFhirValueSetServiceImpl=DEBUG
 ```
 
 This will provide detailed information about:
