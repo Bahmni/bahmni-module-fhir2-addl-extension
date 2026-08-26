@@ -65,7 +65,7 @@ public class BahmniFhirServiceRequestServiceImpl extends BaseFhirService<Service
 	}
 	
 	@Override
-public IBundleProvider searchForServiceRequestsWithCategory(BahmniServiceRequestSearchParams searchParams) {
+	public IBundleProvider searchForServiceRequestsWithCategory(BahmniServiceRequestSearchParams searchParams) {
 		SearchParameterMap theParams = searchParams.toSearchParameterMap();
 		return searchQuery.getQueryResults(theParams, dao, translator, searchQueryInclude);
 	}

@@ -6,7 +6,9 @@ import ca.uhn.fhir.rest.annotation.IncludeParam;
 import ca.uhn.fhir.rest.annotation.OptionalParam;
 import ca.uhn.fhir.rest.annotation.ResourceParam;
 import ca.uhn.fhir.rest.annotation.Search;
+import ca.uhn.fhir.rest.annotation.Sort;
 import ca.uhn.fhir.rest.api.MethodOutcome;
+import ca.uhn.fhir.rest.api.SortSpec;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.DateRangeParam;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
@@ -64,7 +66,8 @@ public class BahmniMedicationRequestFhirR4Provider extends MedicationRequestFhir
 	                "MedicationRequest:" + MedicationRequest.SP_REQUESTER,
 	                "MedicationRequest:" + MedicationRequest.SP_PATIENT,
 	                "MedicationRequest:" + MedicationRequest.SP_ENCOUNTER }) HashSet<Include> includes,
-	        @IncludeParam(reverse = true, allow = { "MedicationDispense:" + MedicationDispense.SP_PRESCRIPTION }) HashSet<Include> revIncludes) {
+	        @IncludeParam(reverse = true, allow = { "MedicationDispense:" + MedicationDispense.SP_PRESCRIPTION }) HashSet<Include> revIncludes,
+	        @Sort SortSpec sort) {
 		if (patientReference == null) {
 			patientReference = subjectReference;
 		}
@@ -79,7 +82,7 @@ public class BahmniMedicationRequestFhirR4Provider extends MedicationRequestFhir
 		
 		return fhirMedicationRequestService.searchForMedicationRequests(new BahmniMedicationRequestSearchParams(
 		        patientReference, encounterReference, code, participantReference, medicationReference, id, status,
-		        fulfillerStatus, locationReference, lastUpdated, includes, revIncludes));
+		        fulfillerStatus, locationReference, lastUpdated, includes, revIncludes, sort));
 	}
 	
 }

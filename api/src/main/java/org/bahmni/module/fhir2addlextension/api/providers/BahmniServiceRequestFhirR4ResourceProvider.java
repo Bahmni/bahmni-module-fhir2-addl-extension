@@ -54,13 +54,14 @@ public class BahmniServiceRequestFhirR4ResourceProvider extends ServiceRequestFh
 	                Practitioner.SP_GIVEN, Practitioner.SP_FAMILY, Practitioner.SP_NAME }, targetTypes = Practitioner.class) ReferenceAndListParam participantReference,
 	        @OptionalParam(name = ServiceRequest.SP_OCCURRENCE) DateRangeParam occurrence,
 	        @OptionalParam(name = ServiceRequest.SP_RES_ID) TokenAndListParam uuid,
-@OptionalParam(name = ServiceRequest.SP_CATEGORY) ReferenceAndListParam categoryReference,
-        @OptionalParam(name = ServiceRequest.SP_BASED_ON) ReferenceAndListParam basedOnReference,
-        @OptionalParam(name = BahmniFhirConstants.SP_ORDER_LOCATION, chainWhitelist = { "" }, targetTypes = Location.class) ReferenceAndListParam locationReference,
-        @OptionalParam(name = "_lastUpdated") DateRangeParam lastUpdated, @IncludeParam(allow = {
-	                "ServiceRequest:" + ServiceRequest.SP_PATIENT, "ServiceRequest:" + ServiceRequest.SP_REQUESTER,
-	                "ServiceRequest:" + ServiceRequest.SP_ENCOUNTER }) HashSet<Include> includes,
-	        @IncludeParam(reverse = true, allow = { "ImagingStudy:" + ImagingStudy.SP_BASEDON }) HashSet<Include> revIncludes) {
+	        @OptionalParam(name = ServiceRequest.SP_CATEGORY) ReferenceAndListParam categoryReference,
+	        @OptionalParam(name = ServiceRequest.SP_BASED_ON) ReferenceAndListParam basedOnReference,
+	        @OptionalParam(name = BahmniFhirConstants.SP_ORDER_LOCATION, chainWhitelist = { "" }, targetTypes = Location.class) ReferenceAndListParam locationReference,
+	        @OptionalParam(name = "_lastUpdated") DateRangeParam lastUpdated,
+	        @IncludeParam(allow = { "ServiceRequest:" + ServiceRequest.SP_PATIENT,
+	                "ServiceRequest:" + ServiceRequest.SP_REQUESTER, "ServiceRequest:" + ServiceRequest.SP_ENCOUNTER }) HashSet<Include> includes,
+	        @IncludeParam(reverse = true, allow = { "ImagingStudy:" + ImagingStudy.SP_BASEDON }) HashSet<Include> revIncludes,
+	        @Sort SortSpec sort) {
 		if (patientReference == null) {
 			patientReference = subjectReference;
 		}
@@ -69,9 +70,9 @@ public class BahmniServiceRequestFhirR4ResourceProvider extends ServiceRequestFh
 			includes = null;
 		}
 		
-BahmniServiceRequestSearchParams searchParams = new BahmniServiceRequestSearchParams(patientReference, code,
+		BahmniServiceRequestSearchParams searchParams = new BahmniServiceRequestSearchParams(patientReference, code,
 		        encounterReference, participantReference, categoryReference, basedOnReference, occurrence, uuid,
-		        lastUpdated, includes, revIncludes, locationReference);
+		        lastUpdated, includes, revIncludes, locationReference, sort);
 		
 		return serviceRequestService.searchForServiceRequestsWithCategory(searchParams);
 	}

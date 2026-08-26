@@ -165,7 +165,7 @@ case FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER:
 
     }
 	
-private void handleBasedOnReference(Criteria criteria, ReferenceAndListParam basedOnReference) {
+	private void handleBasedOnReference(Criteria criteria, ReferenceAndListParam basedOnReference) {
 		if (basedOnReference != null) {
 			if (lacksAlias(criteria, "po")) {
 				criteria.createAlias("previousOrder", "po");

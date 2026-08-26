@@ -502,7 +502,7 @@ public class BahmniFhirServiceRequestServiceImplTest {
 
 BahmniServiceRequestSearchParams searchParams = new BahmniServiceRequestSearchParams(patientReference, code,
 		    encounterReference, participantReference, category, null, occurrence, uuid, lastUpdated, includes, null,
-		    null);
+		    null, null);
 
 		// Call the service method with search params
 		IBundleProvider results = serviceRequestService.searchForServiceRequestsWithCategory(searchParams);
@@ -814,7 +814,7 @@ BahmniServiceRequestSearchParams searchParams = new BahmniServiceRequestSearchPa
 		                searchQueryInclude));
 
 BahmniServiceRequestSearchParams searchParams = new BahmniServiceRequestSearchParams(patientReference, null,
-		    null, null, category, null, null, null, null, null, revIncludes, null);
+		    null, null, category, null, null, null, null, null, revIncludes, null, null);
 
 		IBundleProvider results = serviceRequestService.searchForServiceRequestsWithCategory(searchParams);
 
@@ -839,7 +839,7 @@ BahmniServiceRequestSearchParams searchParams = new BahmniServiceRequestSearchPa
 		                searchQueryInclude));
 
 BahmniServiceRequestSearchParams searchParams = new BahmniServiceRequestSearchParams(patientReference, null,
-		    null, null, category, null, null, null, null, null, null, null);
+		    null, null, category, null, null, null, null, null, null, null, null);
 
 		IBundleProvider results = serviceRequestService.searchForServiceRequestsWithCategory(searchParams);
 
@@ -863,7 +863,7 @@ BahmniServiceRequestSearchParams searchParams = new BahmniServiceRequestSearchPa
 		                searchQueryInclude));
 
 		BahmniServiceRequestSearchParams searchParams = new BahmniServiceRequestSearchParams(patientReference, null,
-		    null, null, null, basedOnReference, null, null, null, null, null, null);
+		    null, null, null, basedOnReference, null, null, null, null, null, null, null);
 
 		IBundleProvider results = serviceRequestService.searchForServiceRequestsWithCategory(searchParams);
 

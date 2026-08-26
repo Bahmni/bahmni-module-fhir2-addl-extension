@@ -26,7 +26,7 @@ public class OpenmrsAppContext implements AppContext {
 	
 	public static final String PROP_ORDER_TYPE_TO_LOCATION_ATTR_NAME_MAP = "fhir2Extension.orderTypeToReferralLocationAttributeMap";
 	
-public static final String LAB_RESULTS_ENCOUNTER_ROLE = "Supporting services";
+	public static final String LAB_RESULTS_ENCOUNTER_ROLE = "Supporting services";
 	
 	public static final String PROP_ORDER_TYPE_TO_CATEGORY_MAP = "fhir2Extension.orderTypeToCategoryMap";
 	
