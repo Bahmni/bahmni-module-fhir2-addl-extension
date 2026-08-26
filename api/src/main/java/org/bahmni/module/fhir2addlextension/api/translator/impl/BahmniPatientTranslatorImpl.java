@@ -144,8 +144,9 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 	 * appear in {@code Patient.telecom} at once.
 	 */
 	void addAdditionalContactPoints(Patient fhirPatient, org.openmrs.Patient openmrsPatient) {
-		Set<String> existingContactPointIds = fhirPatient.getTelecom().stream().map(ContactPoint::getId)
-		        .filter(Objects::nonNull).collect(Collectors.toSet());
+		List<ContactPoint> telecom = new ArrayList<>(fhirPatient.getTelecom());
+		Set<String> existingContactPointIds = telecom.stream().map(ContactPoint::getId).filter(Objects::nonNull)
+		        .collect(Collectors.toSet());
 
 		Map<String, TelecomAttributeTypeMapping> mappingsByAttributeTypeUuid = appContext.getTelecomAttributeTypeMappings()
 		        .stream().collect(Collectors.toMap(TelecomAttributeTypeMapping::getAttributeTypeUuid, m -> m));
@@ -158,9 +159,11 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 
 			TelecomAttributeTypeMapping mapping = mappingsByAttributeTypeUuid.get(attr.getAttributeType().getUuid());
 			if (mapping != null) {
-				fhirPatient.addTelecom(buildContactPoint(attr, mapping));
+				telecom.add(buildContactPoint(attr, mapping));
 			}
 		}
+
+		fhirPatient.setTelecom(telecom);
 	}
 	
 	private static ContactPoint buildContactPoint(PersonAttribute attribute, TelecomAttributeTypeMapping mapping) {
