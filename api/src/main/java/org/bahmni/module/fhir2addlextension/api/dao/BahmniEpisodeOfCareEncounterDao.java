@@ -13,6 +13,6 @@ public interface BahmniEpisodeOfCareEncounterDao {
 	
 	@Authorized({ PrivilegeConstants.GET_EPISODES })
 	Map<String, List<Encounter>> getEncountersForEpisodes(@Nonnull List<String> episodeUuids);
-
+	
 	Map<String, List<Visit>> getVisitsForEpisodes(@Nonnull List<String> episodeUuids);
 }

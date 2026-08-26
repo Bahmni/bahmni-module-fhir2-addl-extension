@@ -3,8 +3,9 @@ package org.bahmni.module.fhir2addlextension.api.translator.impl;
 import lombok.AccessLevel;
 import lombok.Setter;
 import org.bahmni.module.fhir2addlextension.api.validators.BahmniEncounterValidator;
-import org.openmrs.*;
-import org.openmrs.module.fhir2.api.translators.*;
+import org.openmrs.Encounter;
+import org.openmrs.EncounterProvider;
+import org.openmrs.EncounterType;
 import org.openmrs.module.fhir2.api.translators.impl.EncounterTranslatorImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
@@ -21,7 +22,7 @@ import static org.apache.commons.lang3.Validate.notNull;
 @Primary
 @Setter(AccessLevel.PROTECTED)
 public class BahmniEncounterTranslatorImpl extends EncounterTranslatorImpl {
-
+	
 	@Autowired
 	private BahmniEncounterValidator bahmniEncounterValidator;
 	

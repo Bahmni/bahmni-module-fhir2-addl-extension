@@ -34,11 +34,11 @@ import java.util.Date;
 public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTranslatorImpl {
 	
 	@Autowired
-	@Setter(value = AccessLevel.PACKAGE)
+	@Setter(value = AccessLevel.PROTECTED)
 	private OrderService orderService;
 	
 	@Autowired
-	@Setter(value = AccessLevel.PACKAGE)
+	@Setter(value = AccessLevel.PROTECTED)
 	private ConceptTranslator conceptTranslator;
 	
 	@Override
