@@ -4,8 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import lombok.extern.slf4j.Slf4j;
-import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
-import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirTaskDao;
+import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirTaskDao;
 import org.hibernate.Criteria;
 import org.hibernate.criterion.Restrictions;
 import org.openmrs.module.fhir2.FhirConstants;

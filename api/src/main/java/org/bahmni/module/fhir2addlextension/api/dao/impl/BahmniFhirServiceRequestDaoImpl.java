@@ -88,11 +88,6 @@ public class BahmniFhirServiceRequestDaoImpl extends BahmniBaseFhirDao<Order> im
 	}
 	
 	@Override
-	public Order updateOrder(Order order) {
-		return (Order) getSessionFactory().getCurrentSession().merge(order);
-	}
-	
-	@Override
 	   protected void setupSearchParams(Criteria criteria, SearchParameterMap theParams) {
 	       excludeDrugOrder(criteria);
 	       theParams.getParameters().forEach(entry -> {
