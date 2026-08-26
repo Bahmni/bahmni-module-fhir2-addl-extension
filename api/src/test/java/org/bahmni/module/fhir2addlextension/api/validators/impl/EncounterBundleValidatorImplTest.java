@@ -64,20 +64,55 @@ public class EncounterBundleValidatorImplTest {
 	}
 	
 	@Test
-    public void shouldThrowExceptionWhenBundleHasNoEncounterEntry() {
-        // Given
+    public void shouldAcceptBundleWithNoEncounterEntryWhenEveryEntryNamesAnExistingEncounter() {
+        // Given a bundle with no Encounter entry, whose only entry references an encounter that
+        // already exists server-side. This lets a caller attach resources to an existing encounter
+        // without re-sending -- and so overwriting -- the encounter itself.
         Bundle bundleWithNoEncounter = new Bundle();
         bundleWithNoEncounter.setType(Bundle.BundleType.TRANSACTION);
-
-        // Add a Condition entry but no Encounter
-        Bundle.BundleEntryComponent conditionEntry = createValidBundleEntry(createCondition());
-        bundleWithNoEncounter.addEntry(conditionEntry);
+        bundleWithNoEncounter.addEntry(createValidBundleEntry(createCondition()));
 
         // When & Then
+        validator.validateBundleEntries(bundleWithNoEncounter);
+    }
+
+    @Test
+    public void shouldAcceptEncounterlessBundleOfDocumentReferences() {
+        Bundle bundle = new Bundle();
+        bundle.setType(Bundle.BundleType.TRANSACTION);
+        bundle.addEntry(createValidBundleEntry(createDocumentReference("Encounter/456")));
+        bundle.addEntry(createValidBundleEntry(createDocumentReference("Encounter/456")));
+
+        validator.validateBundleEntries(bundle);
+    }
+
+    @Test
+    public void shouldThrowWhenEncounterlessBundleEntryUsesABundleLocalReference() {
+        // A "urn:uuid:" reference can only be satisfied by an Encounter entry, which is absent here.
+        Bundle bundle = new Bundle();
+        bundle.setType(Bundle.BundleType.TRANSACTION);
+        Bundle.BundleEntryComponent entry = createValidBundleEntry(createDocumentReference("urn:uuid:placeholder"));
+        bundle.addEntry(entry);
+
         InvalidRequestException exception = assertThrows(InvalidRequestException.class,
-                () -> validator.validateBundleEntries(bundleWithNoEncounter));
-        assertEquals("Encounter bundle should contain only one Encounter entry. Found 0 instead.",
-                exception.getMessage());
+                () -> validator.validateBundleEntries(bundle));
+        assertEquals(String.format(
+                "Bundle has no Encounter entry, so entry [%s] must reference an existing encounter",
+                entry.getFullUrl()), exception.getMessage());
+    }
+
+    @Test
+    public void shouldThrowWhenEncounterlessBundleEntryHasNoEncounterReferenceAtAll() {
+        Bundle bundle = new Bundle();
+        bundle.setType(Bundle.BundleType.TRANSACTION);
+        Condition conditionWithoutEncounter = new Condition();
+        conditionWithoutEncounter.setSubject(new Reference("Patient/123"));
+        Bundle.BundleEntryComponent entry = createValidBundleEntry(conditionWithoutEncounter);
+        bundle.addEntry(entry);
+
+        InvalidRequestException exception = assertThrows(InvalidRequestException.class,
+                () -> validator.validateBundleEntries(bundle));
+        assertTrue(exception.getMessage().contains("must reference an existing encounter"));
     }
 	
 	@Test
@@ -95,7 +130,7 @@ public class EncounterBundleValidatorImplTest {
         // When & Then
         InvalidRequestException exception = assertThrows(InvalidRequestException.class,
                 () -> validator.validateBundleEntries(bundleWithMultipleEncounters));
-        assertEquals("Encounter bundle should contain only one Encounter entry. Found 2 instead.",
+        assertEquals("Encounter bundle should contain at most one Encounter entry. Found 2 instead.",
                 exception.getMessage());
     }
 	
@@ -213,6 +248,16 @@ public class EncounterBundleValidatorImplTest {
 		encounter.setStatus(Encounter.EncounterStatus.INPROGRESS);
 		encounter.setSubject(new Reference("Patient/123"));
 		return encounter;
+	}
+	
+	private DocumentReference createDocumentReference(String encounterReference) {
+		DocumentReference documentReference = new DocumentReference();
+		documentReference.setStatus(Enumerations.DocumentReferenceStatus.CURRENT);
+		documentReference.setSubject(new Reference("Patient/123"));
+		DocumentReference.DocumentReferenceContextComponent context = new DocumentReference.DocumentReferenceContextComponent();
+		context.addEncounter(new Reference(encounterReference));
+		documentReference.setContext(context);
+		return documentReference;
 	}
 	
 	private Condition createCondition() {

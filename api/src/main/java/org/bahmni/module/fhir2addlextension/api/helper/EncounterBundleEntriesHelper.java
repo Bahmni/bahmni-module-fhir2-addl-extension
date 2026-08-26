@@ -1,6 +1,7 @@
 package org.bahmni.module.fhir2addlextension.api.helper;
 
 import ca.uhn.fhir.rest.server.exceptions.InternalErrorException;
+import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.bahmni.module.fhir2addlextension.api.utils.BahmniFhirUtils;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.DocumentReference;
@@ -246,63 +247,14 @@ public class EncounterBundleEntriesHelper {
 	}
 	
 	private static Set<Reference> extractReferences(Resource resource) {
-        Set<Reference> references = new HashSet<>();
+        Set<Reference> references = new HashSet<>(encounterReferencesOf(resource));
 
-        if (resource == null) {
-            return references;
-        }
-
-        ResourceType resourceType = resource.getResourceType();
-
-        switch (resourceType) {
-            case Condition:
-                org.hl7.fhir.r4.model.Condition condition = (org.hl7.fhir.r4.model.Condition) resource;
-                if (condition.hasEncounter()) {
-                    references.add(condition.getEncounter());
-                }
-                break;
-
-            case AllergyIntolerance:
-                org.hl7.fhir.r4.model.AllergyIntolerance allergyIntolerance = (org.hl7.fhir.r4.model.AllergyIntolerance) resource;
-                if (allergyIntolerance.hasEncounter()) {
-                    references.add(allergyIntolerance.getEncounter());
-                }
-                break;
-            case ServiceRequest:
-                org.hl7.fhir.r4.model.ServiceRequest serviceRequest = (org.hl7.fhir.r4.model.ServiceRequest) resource;
-                if (serviceRequest.hasEncounter()) {
-                    references.add(serviceRequest.getEncounter());
-                }
-                break;
-            case MedicationRequest:
-                org.hl7.fhir.r4.model.MedicationRequest medicationRequest = (org.hl7.fhir.r4.model.MedicationRequest) resource;
-                if (medicationRequest.hasEncounter()) {
-                    references.add(medicationRequest.getEncounter());
-                }
-                break;
-            case Observation:
-                org.hl7.fhir.r4.model.Observation observation = (org.hl7.fhir.r4.model.Observation) resource;
-                if (observation.hasEncounter()) {
-                    references.add(observation.getEncounter());
-                }
-                if (observation.hasHasMember()) {
-                    references.addAll(observation.getHasMember());
-                }
-                break;
-            case Immunization:
-                Immunization immunization = (Immunization) resource;
-                if (immunization.hasEncounter()) {
-                    references.add(immunization.getEncounter());
-                }
-                break;
-            case DocumentReference:
-                DocumentReference documentReference = (DocumentReference) resource;
-                if (documentReference.hasContext() && documentReference.getContext().hasEncounter()) {
-                    references.addAll(documentReference.getContext().getEncounter());
-                }
-                break;
-            default:
-                break;
+        // Observations additionally depend on their group members, which are ordinary bundle entries.
+        if (resource != null && resource.getResourceType() == ResourceType.Observation) {
+            Observation observation = (Observation) resource;
+            if (observation.hasHasMember()) {
+                references.addAll(observation.getHasMember());
+            }
         }
 
         return references;
@@ -315,12 +267,100 @@ public class EncounterBundleEntriesHelper {
 		return encounterReference;
 	}
 	
-	private static String getIdForPlaceHolderReference(String placeHolderReference,
+	/**
+	 * Resolves an encounter reference to a bare uuid.
+	 * <p>
+	 * Bundle-local references ("urn:uuid:..." / "#...") must name an entry processed earlier in this
+	 * bundle; failing to find one is a bundle integrity error. Anything else is treated as a concrete
+	 * server-side reference ("Encounter/{uuid}") and resolved in place, which lets a bundle attach
+	 * resources to an encounter that already exists without re-sending — and therefore overwriting —
+	 * that encounter.
+	 * <p>
+	 * The lookup runs first, so a bundle that re-sends an existing encounter under
+	 * fullUrl "Encounter/{uuid}" keeps resolving to the processed entry exactly as before.
+	 */
+	private static String getIdForPlaceHolderReference(String reference,
 	        Map<String, Bundle.BundleEntryComponent> processedEntries) {
-		Bundle.BundleEntryComponent processedEntry = processedEntries.get(placeHolderReference);
-		if (processedEntry == null) {
-			throw new InternalErrorException("Could not find processed entry for " + placeHolderReference);
+		Bundle.BundleEntryComponent processedEntry = processedEntries.get(reference);
+		if (processedEntry != null) {
+			return BahmniFhirUtils.extractId(processedEntry.getResource().getId());
 		}
-		return processedEntry.getResource().getId();
+		if (isBundleLocalReference(reference)) {
+			throw new InternalErrorException("Could not find processed entry for " + reference);
+		}
+		String id = BahmniFhirUtils.extractId(reference);
+		if (id == null) {
+			throw new InvalidRequestException("Could not resolve reference " + reference);
+		}
+		return id;
+	}
+	
+	private static boolean isBundleLocalReference(String reference) {
+		return reference.startsWith("urn:uuid:") || reference.startsWith("#");
+	}
+	
+	/** True when the reference names a resource that already exists server-side. */
+	public static boolean isConcreteReference(Reference reference) {
+		return reference != null && reference.hasReference() && !isBundleLocalReference(reference.getReference())
+		        && BahmniFhirUtils.extractId(reference.getReference()) != null;
+	}
+	
+	/**
+	 * The encounter references carried by a resource, if its type has any. Used both to order bundle
+	 * entries and to check, when a bundle contains no Encounter entry, that every entry names an
+	 * encounter that already exists.
+	 */
+	public static List<Reference> encounterReferencesOf(Resource resource) {
+		List<Reference> references = new ArrayList<>();
+		if (resource == null) {
+			return references;
+		}
+		switch (resource.getResourceType()) {
+			case Condition:
+				org.hl7.fhir.r4.model.Condition condition = (org.hl7.fhir.r4.model.Condition) resource;
+				if (condition.hasEncounter()) {
+					references.add(condition.getEncounter());
+				}
+				break;
+			case AllergyIntolerance:
+				org.hl7.fhir.r4.model.AllergyIntolerance allergyIntolerance = (org.hl7.fhir.r4.model.AllergyIntolerance) resource;
+				if (allergyIntolerance.hasEncounter()) {
+					references.add(allergyIntolerance.getEncounter());
+				}
+				break;
+			case ServiceRequest:
+				org.hl7.fhir.r4.model.ServiceRequest serviceRequest = (org.hl7.fhir.r4.model.ServiceRequest) resource;
+				if (serviceRequest.hasEncounter()) {
+					references.add(serviceRequest.getEncounter());
+				}
+				break;
+			case MedicationRequest:
+				org.hl7.fhir.r4.model.MedicationRequest medicationRequest = (org.hl7.fhir.r4.model.MedicationRequest) resource;
+				if (medicationRequest.hasEncounter()) {
+					references.add(medicationRequest.getEncounter());
+				}
+				break;
+			case Observation:
+				Observation observation = (Observation) resource;
+				if (observation.hasEncounter()) {
+					references.add(observation.getEncounter());
+				}
+				break;
+			case Immunization:
+				Immunization immunization = (Immunization) resource;
+				if (immunization.hasEncounter()) {
+					references.add(immunization.getEncounter());
+				}
+				break;
+			case DocumentReference:
+				DocumentReference documentReference = (DocumentReference) resource;
+				if (documentReference.hasContext() && documentReference.getContext().hasEncounter()) {
+					references.addAll(documentReference.getContext().getEncounter());
+				}
+				break;
+			default:
+				break;
+		}
+		return references;
 	}
 }

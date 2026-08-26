@@ -254,6 +254,60 @@ public class EncounterBundleEntriesHelperTest {
 	}
 	
 	@Test
+	public void shouldResolveConcreteEncounterReferenceInPlaceWhenBundleHasNoEncounterEntry() {
+		// Given a DocumentReference naming an encounter that already exists server-side, and no
+		// Encounter entry in the bundle to resolve against.
+		DocumentReference documentReference = new DocumentReference();
+		DocumentReference.DocumentReferenceContextComponent context = new DocumentReference.DocumentReferenceContextComponent();
+		context.addEncounter(new Reference("Encounter/existing-uuid"));
+		documentReference.setContext(context);
+		Bundle.BundleEntryComponent documentEntry = createBundleEntry(documentReference, "urn:uuid:document");
+		
+		// When
+		Bundle.BundleEntryComponent result = EncounterBundleEntriesHelper.resolveReferences(documentEntry,
+		    processedEntries);
+		
+		// Then the reference survives intact rather than failing to resolve
+		DocumentReference resultDocument = (DocumentReference) result.getResource();
+		assertEquals(FhirConstants.ENCOUNTER + "/existing-uuid", resultDocument.getContext().getEncounterFirstRep()
+		        .getReference());
+	}
+	
+	@Test
+	public void shouldStillFailForAnUnresolvedBundleLocalReference() {
+		// A "urn:uuid:" placeholder that names no processed entry is a bundle integrity error and must
+		// not be mistaken for a concrete server-side reference.
+		DocumentReference documentReference = new DocumentReference();
+		DocumentReference.DocumentReferenceContextComponent context = new DocumentReference.DocumentReferenceContextComponent();
+		context.addEncounter(new Reference("urn:uuid:never-processed"));
+		documentReference.setContext(context);
+		Bundle.BundleEntryComponent documentEntry = createBundleEntry(documentReference, "urn:uuid:document");
+		
+		assertThrows(InternalErrorException.class,
+		    () -> EncounterBundleEntriesHelper.resolveReferences(documentEntry, processedEntries));
+	}
+	
+	@Test
+	public void shouldNotDoublePrefixWhenAProcessedEncounterCarriesAQualifiedId() {
+		DocumentReference documentReference = new DocumentReference();
+		DocumentReference.DocumentReferenceContextComponent context = new DocumentReference.DocumentReferenceContextComponent();
+		context.addEncounter(new Reference("urn:uuid:placeholder"));
+		documentReference.setContext(context);
+		Bundle.BundleEntryComponent documentEntry = createBundleEntry(documentReference, "urn:uuid:document");
+		
+		Encounter encounter = createEncounter();
+		encounter.setId("Encounter/encounter-uuid");
+		processedEntries.put("urn:uuid:placeholder", createBundleEntry(encounter, "urn:uuid:placeholder"));
+		
+		Bundle.BundleEntryComponent result = EncounterBundleEntriesHelper.resolveReferences(documentEntry,
+		    processedEntries);
+		
+		DocumentReference resultDocument = (DocumentReference) result.getResource();
+		assertEquals(FhirConstants.ENCOUNTER + "/encounter-uuid", resultDocument.getContext().getEncounterFirstRep()
+		        .getReference());
+	}
+	
+	@Test
 	public void shouldResolveDocumentReferenceContextEncounterReference() {
 		// Given
 		DocumentReference documentReference = new DocumentReference();
