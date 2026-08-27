@@ -115,8 +115,7 @@
 		<defaultValue></defaultValue>
 		<description>
 			Maps person attribute types (e.g. phoneNumber, email, alternatePhoneNumber) to FHIR Patient.telecom
-			contact points, so more than one contact type can appear in Patient.telecom at once. Read directly
-			by BahmniPatientTranslatorImpl on every request (cached) -- no database changes are made or required.
+			contact points, so more than one contact type can appear in Patient.telecom at once.
 			Format: multiple mappings separated by semicolon, each of the form
 			attributeTypeUuid:SYSTEM[:USE][:RANK] (USE and RANK are optional; SYSTEM/USE are case-insensitive FHIR
 			ContactPoint enum values, e.g. PHONE, EMAIL, HOME, MOBILE).
