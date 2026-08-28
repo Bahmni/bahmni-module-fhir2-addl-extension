@@ -1,15 +1,24 @@
 package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 
 import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2addlextension.api.context.AppContext;
+import org.bahmni.module.fhir2addlextension.api.model.TelecomAttributeTypeMapping;
 import org.bahmni.module.fhir2addlextension.api.service.BahmniPatientPhotoService;
 import org.hl7.fhir.r4.model.Attachment;
+import org.hl7.fhir.r4.model.ContactPoint;
 import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Patient;
@@ -17,11 +26,15 @@ import org.hl7.fhir.r4.model.Type;
 import org.openmrs.PersonAttribute;
 import org.openmrs.PersonAttributeType;
 import org.openmrs.PersonName;
+import org.openmrs.api.PersonService;
 import org.openmrs.api.context.Context;
+import org.openmrs.module.fhir2.FhirConstants;
+import org.openmrs.module.fhir2.api.FhirGlobalPropertyService;
 import org.openmrs.module.fhir2.api.translators.impl.PatientTranslatorImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
@@ -41,6 +54,16 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 	@Autowired
 	private BahmniPatientPhotoService photoService;
 	
+	@Autowired
+	@Qualifier("personService")
+	private PersonService personService;
+	
+	@Autowired
+	private FhirGlobalPropertyService globalPropertyService;
+	
+	@Autowired
+	private AppContext appContext;
+	
 	void setPersonAttributeTranslator(
 	        org.bahmni.module.fhir2addlextension.api.translator.PersonAttributeExtensionTranslator translator) {
 		this.personAttributeTranslator = translator;
@@ -50,9 +73,22 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 		this.photoService = photoService;
 	}
 	
+	void setPersonService(PersonService personService) {
+		this.personService = personService;
+	}
+	
+	void setGlobalPropertyService(FhirGlobalPropertyService globalPropertyService) {
+		this.globalPropertyService = globalPropertyService;
+	}
+	
+	void setAppContext(AppContext appContext) {
+		this.appContext = appContext;
+	}
+	
 	@Override
 	public Patient toFhirResource(@Nonnull org.openmrs.Patient openmrsPatient) {
 		Patient patient = super.toFhirResource(openmrsPatient);
+		addAdditionalContactPoints(patient, openmrsPatient);
 		addPersonAttributeExtensions(patient, openmrsPatient);
 		addBirthTimeExtension(patient, openmrsPatient);
 		addDateCreatedExtension(patient, openmrsPatient);
@@ -63,7 +99,19 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 	@Override
 	public org.openmrs.Patient toOpenmrsType(@Nonnull org.openmrs.Patient currentPatient, @Nonnull Patient patient) {
 		voidExistingAddresses(currentPatient, patient);
+
+		// The base fhir2 module only supports a single, GP-configured person attribute type for
+		// telecom, and would (incorrectly) write every incoming ContactPoint to that one type
+		// regardless of its `system`. Telecom is cleared before delegating so the base module's
+		// write is a no-op, then re-applied correctly below via processContactPoints.
+		List<ContactPoint> incomingTelecom = new ArrayList<>(patient.getTelecom());
+		patient.setTelecom(new ArrayList<>());
+
 		org.openmrs.Patient openmrsPatient = super.toOpenmrsType(currentPatient, patient);
+
+		patient.setTelecom(incomingTelecom);
+		processContactPoints(openmrsPatient, incomingTelecom);
+
 		setPreferredNameFlag(openmrsPatient);
 		readBirthTime(openmrsPatient, patient);
 		processPersonAttributeExtensions(openmrsPatient, patient);
@@ -72,12 +120,105 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 	}
 	
 	void addPersonAttributeExtensions(Patient fhirPatient, org.openmrs.Patient openmrsPatient) {
+		Set<String> contactPointAttributeUuids = fhirPatient.getTelecom().stream().map(ContactPoint::getId)
+		        .filter(Objects::nonNull).collect(Collectors.toSet());
+
 		for (PersonAttribute attr : openmrsPatient.getActiveAttributes()) {
+			if (attr.getUuid() != null && contactPointAttributeUuids.contains(attr.getUuid())) {
+				// already represented in Patient.telecom -- don't also publish it as a generic
+				// attribute extension
+				continue;
+			}
 			Extension ext = personAttributeTranslator.toFhirResource(attr);
 			if (ext != null) {
 				fhirPatient.addExtension(ext);
 			}
 		}
+	}
+	
+	/**
+	 * The base fhir2 module only ever adds telecom entries for a single, GP-configured person
+	 * attribute type. This adds a {@link ContactPoint} for every other active person attribute
+	 * whose type is registered in the {@code fhir2Extension.telecomAttributeTypeMap} global
+	 * property (e.g. email, alternatePhoneNumber), so more than one contact attribute type can
+	 * appear in {@code Patient.telecom} at once.
+	 */
+	void addAdditionalContactPoints(Patient fhirPatient, org.openmrs.Patient openmrsPatient) {
+		List<ContactPoint> telecom = new ArrayList<>(fhirPatient.getTelecom());
+		Set<String> existingContactPointIds = telecom.stream().map(ContactPoint::getId).filter(Objects::nonNull)
+		        .collect(Collectors.toSet());
+
+		Map<String, TelecomAttributeTypeMapping> mappingsByAttributeTypeUuid = appContext.getTelecomAttributeTypeMappings()
+		        .stream().collect(Collectors.toMap(TelecomAttributeTypeMapping::getAttributeTypeUuid, m -> m));
+
+		for (PersonAttribute attr : openmrsPatient.getActiveAttributes()) {
+			if (attr.getUuid() != null && existingContactPointIds.contains(attr.getUuid())) {
+				// already added by the base module
+				continue;
+			}
+
+			TelecomAttributeTypeMapping mapping = mappingsByAttributeTypeUuid.get(attr.getAttributeType().getUuid());
+			if (mapping != null) {
+				telecom.add(buildContactPoint(attr, mapping));
+			}
+		}
+
+		fhirPatient.setTelecom(telecom);
+	}
+	
+	private static ContactPoint buildContactPoint(PersonAttribute attribute, TelecomAttributeTypeMapping mapping) {
+		ContactPoint contactPoint = new ContactPoint();
+		contactPoint.setId(attribute.getUuid());
+		contactPoint.setValue(attribute.getValue());
+		contactPoint.setSystem(mapping.getSystem());
+		contactPoint.setUse(mapping.getUse());
+		if (mapping.getRank() != null) {
+			contactPoint.setRank(mapping.getRank());
+		}
+		return contactPoint;
+	}
+	
+	/**
+	 * Writes each incoming {@link ContactPoint} to the person attribute type registered for its
+	 * {@code system} (via the base module's <code>fhir_contact_point_map</code> table), instead of
+	 * the base module's single GP-configured type. Falls back to that GP-configured type when the
+	 * contact point has no system, or no attribute type is registered for it.
+	 */
+	void processContactPoints(org.openmrs.Patient openmrsPatient, List<ContactPoint> telecom) {
+		for (ContactPoint contactPoint : telecom) {
+			PersonAttributeType attributeType = resolvePersonAttributeTypeForContactPoint(contactPoint);
+			if (attributeType == null) {
+				log.warn("Could not resolve a person attribute type for contact point with system '{}' - skipping",
+				    contactPoint.getSystem());
+				continue;
+			}
+			
+			PersonAttribute attribute = new PersonAttribute();
+			if (contactPoint.hasId()) {
+				attribute.setUuid(contactPoint.getId());
+			}
+			attribute.setValue(contactPoint.getValue());
+			attribute.setAttributeType(attributeType);
+			openmrsPatient.addAttribute(attribute);
+		}
+	}
+	
+	PersonAttributeType resolvePersonAttributeTypeForContactPoint(ContactPoint contactPoint) {
+		if (contactPoint.hasSystem()) {
+			Optional<TelecomAttributeTypeMapping> mapping = appContext.getTelecomAttributeTypeMappings().stream()
+			        .filter(m -> m.getSystem() == contactPoint.getSystem())
+			        .min(Comparator.comparing(m -> m.getRank() == null ? Integer.MAX_VALUE : m.getRank()));
+			if (mapping.isPresent()) {
+				PersonAttributeType attributeType = personService.getPersonAttributeTypeByUuid(mapping.get()
+				        .getAttributeTypeUuid());
+				if (attributeType != null) {
+					return attributeType;
+				}
+			}
+		}
+
+		String configuredUuid = globalPropertyService.getGlobalProperty(FhirConstants.PERSON_CONTACT_POINT_ATTRIBUTE_TYPE);
+		return configuredUuid == null ? null : personService.getPersonAttributeTypeByUuid(configuredUuid);
 	}
 	
 	void addBirthTimeExtension(Patient fhirPatient, org.openmrs.Patient openmrsPatient) {
