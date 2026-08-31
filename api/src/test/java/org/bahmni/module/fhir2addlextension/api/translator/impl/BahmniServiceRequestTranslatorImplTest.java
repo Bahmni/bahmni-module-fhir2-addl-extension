@@ -1519,6 +1519,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 	
 	@Test
 	public void toFhirResource_shouldMapReadyTaskStatusToOrderStatusExtension() {
+		order.setDateActivated(new Date());
 		FhirTask task = new FhirTask();
 		task.setStatus(FhirTask.TaskStatus.READY);
 		task.setDateCreated(new Date());
@@ -1535,6 +1536,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 	
 	@Test
 	public void toFhirResource_shouldNotAddOrderStatusExtensionWhenTaskStatusIsNull() {
+		order.setDateActivated(new Date());
 		FhirTask task = new FhirTask();
 		task.setStatus(null);
 		task.setDateCreated(new Date());
