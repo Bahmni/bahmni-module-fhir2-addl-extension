@@ -75,13 +75,8 @@ public final class BahmniFhirConstants {
 	public static final String PATIENT_PHOTO_CONTENT_TYPE = "image/jpeg";
 	public static final String PATIENT_PHOTO_URL_TEMPLATE = "/openmrs/ws/rest/v2/patientImage?patientUuid=%s";
 
-        public static final String FHIR_EXT_SERVICE_REQUEST_TASK_OWNER = EXTENSION_PREFIX + "/service-request/task-owner";
-	public static final String FHIR_EXT_SERVICE_REQUEST_TASK_CREATED_ON = EXTENSION_PREFIX + "/service-request/task-created-on";
-	public static final String FHIR_EXT_SERVICE_REQUEST_ORDER_STATUS = EXTENSION_PREFIX + "/service-request/order-status";
-	public static final String FHIR_EXT_SERVICE_REQUEST_CREATED_BY = EXTENSION_PREFIX + "/service-request/created-by";
 	public static final String FHIR_EXT_SERVICE_REQUEST_UPDATED_BY = EXTENSION_PREFIX + "/service-request/updated-by";
 	public static final String FHIR_EXT_SERVICE_REQUEST_UPDATED_ON = EXTENSION_PREFIX + "/service-request/updated-on";
-	public static final String FHIR_EXT_SERVICE_REQUEST_TASK_NOTE = EXTENSION_PREFIX + "/service-request/task-note";
 	public static final String FHIR_EXT_SERVICE_REQUEST_ORDER_SHORT_NAME = EXTENSION_PREFIX + "/service-request/order-short-name";
 
 	public static final String NAME_SEARCH_HANDLER = "task.name.search.handler";
