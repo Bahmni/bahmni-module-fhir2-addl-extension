@@ -17,20 +17,17 @@ import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.Arrays;
-import java.util.Collections;
+import org.hibernate.criterion.Criterion;
+import org.mockito.ArgumentCaptor;
+
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -187,6 +184,18 @@ public class BahmniObsDaoImplTest {
 	}
 	
 	@Test
+	public void setupSearchParams_withLastnHandler_shouldAddVoidedFalseRestriction() {
+		SearchParameterMap theParams = new SearchParameterMap();
+		theParams.addParameter(FhirConstants.LASTN_OBSERVATION_SEARCH_HANDLER, "1");
+		
+		dao.setupSearchParams(criteria, theParams);
+		
+		ArgumentCaptor<Criterion> criterionCaptor = ArgumentCaptor.forClass(Criterion.class);
+		verify(criteria).add(criterionCaptor.capture());
+		assertThat(criterionCaptor.getValue().toString(), containsString("voided"));
+	}
+	
+	@Test
 	public void updateObsMember_shouldHandleSingleMember() {
 		Obs obsGroup = new Obs();
 		obsGroup.setObsId(50);
@@ -205,108 +214,5 @@ public class BahmniObsDaoImplTest {
 		
 		verify(nativeQuery).setParameter(eq("obsGroupId"), eq(50));
 		verify(nativeQuery).executeUpdate();
-	}
-	
-	@Test
-	public void getSearchResults_withLastnHandler_shouldFilterOutVoidedObs() {
-		Obs nonVoided = new Obs();
-		nonVoided.setVoided(false);
-		Obs voided = new Obs();
-		voided.setVoided(true);
-		
-		SearchParameterMap theParams = new SearchParameterMap();
-		theParams.addParameter(FhirConstants.LASTN_OBSERVATION_SEARCH_HANDLER, "1");
-		
-		BahmniObsDaoImpl spyDao = spy(dao);
-		doReturn(Arrays.asList(nonVoided, voided)).when(spyDao).superGetSearchResults(theParams);
-		
-		List<Obs> result = spyDao.getSearchResults(theParams);
-		
-		assertThat(result, hasSize(1));
-		assertThat(result.get(0).getVoided(), equalTo(false));
-	}
-	
-	@Test
-	public void getSearchResults_withLastnHandler_andAllVoided_shouldReturnEmptyList() {
-		Obs voided1 = new Obs();
-		voided1.setVoided(true);
-		Obs voided2 = new Obs();
-		voided2.setVoided(true);
-		
-		SearchParameterMap theParams = new SearchParameterMap();
-		theParams.addParameter(FhirConstants.LASTN_OBSERVATION_SEARCH_HANDLER, "1");
-		
-		BahmniObsDaoImpl spyDao = spy(dao);
-		doReturn(Arrays.asList(voided1, voided2)).when(spyDao).superGetSearchResults(theParams);
-		
-		List<Obs> result = spyDao.getSearchResults(theParams);
-		
-		assertThat(result, hasSize(0));
-	}
-	
-	@Test
-	public void getSearchResults_withoutLastnHandler_shouldDelegateToParent() {
-		Obs nonVoided = new Obs();
-		nonVoided.setVoided(false);
-		Obs voided = new Obs();
-		voided.setVoided(true);
-		List<Obs> allObs = Arrays.asList(nonVoided, voided);
-		
-		SearchParameterMap theParams = new SearchParameterMap();
-		
-		BahmniObsDaoImpl spyDao = spy(dao);
-		doReturn(allObs).when(spyDao).superGetSearchResults(theParams);
-		
-		List<Obs> result = spyDao.getSearchResults(theParams);
-		
-		assertThat(result, hasSize(2));
-	}
-	
-	@Test
-	public void getSearchResultsCount_withLastnHandler_shouldCountOnlyNonVoidedObs() {
-		Obs nonVoided1 = new Obs();
-		nonVoided1.setVoided(false);
-		Obs nonVoided2 = new Obs();
-		nonVoided2.setVoided(false);
-		Obs voided = new Obs();
-		voided.setVoided(true);
-		
-		SearchParameterMap theParams = new SearchParameterMap();
-		theParams.addParameter(FhirConstants.LASTN_OBSERVATION_SEARCH_HANDLER, "1");
-		
-		BahmniObsDaoImpl spyDao = spy(dao);
-		doReturn(Arrays.asList(nonVoided1, nonVoided2, voided)).when(spyDao).superGetSearchResults(theParams);
-		
-		int count = spyDao.getSearchResultsCount(theParams);
-		
-		assertThat(count, equalTo(2));
-	}
-	
-	@Test
-	public void getSearchResultsCount_withLastnHandler_andAllVoided_shouldReturnZero() {
-		Obs voided = new Obs();
-		voided.setVoided(true);
-		
-		SearchParameterMap theParams = new SearchParameterMap();
-		theParams.addParameter(FhirConstants.LASTN_OBSERVATION_SEARCH_HANDLER, "1");
-		
-		BahmniObsDaoImpl spyDao = spy(dao);
-		doReturn(Collections.singletonList(voided)).when(spyDao).superGetSearchResults(theParams);
-		
-		int count = spyDao.getSearchResultsCount(theParams);
-		
-		assertThat(count, equalTo(0));
-	}
-	
-	@Test
-	public void getSearchResultsCount_withoutLastnHandler_shouldDelegateToParent() {
-		SearchParameterMap theParams = new SearchParameterMap();
-		
-		BahmniObsDaoImpl spyDao = spy(dao);
-		doReturn(5).when(spyDao).superGetSearchResultsCount(theParams);
-		
-		int count = spyDao.getSearchResultsCount(theParams);
-		
-		assertThat(count, equalTo(5));
 	}
 }
