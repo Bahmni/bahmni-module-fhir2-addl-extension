@@ -11,6 +11,7 @@ import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -55,5 +56,36 @@ public class BahmniObsDaoImpl extends FhirObservationDaoImpl implements BahmniOb
 		query.setParameter("obsGroupId", obsGroup.getObsId());
 		query.setParameter("members", memberIds);
 		query.executeUpdate();
+	}
+
+	/*
+	- This override has been done to fix returning of voided Obs when using the lastn observation operation.
+	TODO: Remove this override once module version is upgraded to >=3.0.0.
+
+	 */
+	
+	@Override
+	public List<Obs> getSearchResults(@Nonnull SearchParameterMap theParams) {
+		List<Obs> searchResults = superGetSearchResults(theParams);
+		if (!theParams.getParameters(FhirConstants.LASTN_OBSERVATION_SEARCH_HANDLER).isEmpty()) {
+			return searchResults.stream().filter(obs -> !obs.getVoided()).collect(Collectors.toList());
+		}
+		return searchResults;
+	}
+	
+	@Override
+	public int getSearchResultsCount(@Nonnull SearchParameterMap theParams) {
+		if (!theParams.getParameters(FhirConstants.LASTN_OBSERVATION_SEARCH_HANDLER).isEmpty()) {
+			return Math.toIntExact(superGetSearchResults(theParams).stream().filter(obs -> !obs.getVoided()).count());
+		}
+		return superGetSearchResultsCount(theParams);
+	}
+	
+	List<Obs> superGetSearchResults(SearchParameterMap theParams) {
+		return super.getSearchResults(theParams);
+	}
+	
+	int superGetSearchResultsCount(SearchParameterMap theParams) {
+		return super.getSearchResultsCount(theParams);
 	}
 }
