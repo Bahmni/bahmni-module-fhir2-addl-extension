@@ -17,9 +17,14 @@ import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import org.hibernate.criterion.Criterion;
+import org.mockito.ArgumentCaptor;
+
 import java.util.HashSet;
 import java.util.Set;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -176,6 +181,18 @@ public class BahmniObsDaoImplTest {
 		dao.setupSearchParams(criteria, theParams);
 		
 		verify(criteria, times(1)).add(any());
+	}
+	
+	@Test
+	public void setupSearchParams_withLastnHandler_shouldAddVoidedFalseRestriction() {
+		SearchParameterMap theParams = new SearchParameterMap();
+		theParams.addParameter(FhirConstants.LASTN_OBSERVATION_SEARCH_HANDLER, "1");
+		
+		dao.setupSearchParams(criteria, theParams);
+		
+		ArgumentCaptor<Criterion> criterionCaptor = ArgumentCaptor.forClass(Criterion.class);
+		verify(criteria).add(criterionCaptor.capture());
+		assertThat(criterionCaptor.getValue().toString(), containsString("voided"));
 	}
 	
 	@Test

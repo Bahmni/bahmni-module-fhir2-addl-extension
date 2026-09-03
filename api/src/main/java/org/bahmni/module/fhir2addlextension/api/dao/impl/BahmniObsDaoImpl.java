@@ -11,6 +11,7 @@ import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -30,6 +31,15 @@ public class BahmniObsDaoImpl extends FhirObservationDaoImpl implements BahmniOb
 					break;
 			}
 		});
+		/*
+		- This override has been done to fix returning of voided Obs when using the lastn observation operation.
+		TODO: Remove this override once module version is upgraded to >=3.0.0.
+
+	 	*/
+		if (!theParams.getParameters(FhirConstants.LASTN_OBSERVATION_SEARCH_HANDLER).isEmpty()) {
+			handleVoidable(criteria);
+		}
+
 	}
 	
 	private void handleBasedOnReference(Criteria criteria, Object basedOnReference) {
