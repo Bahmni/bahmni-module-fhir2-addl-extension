@@ -4,7 +4,7 @@
 	<parent>
 		<groupId>org.bahmni.module</groupId>
 		<artifactId>fhir2addlextension</artifactId>
-		<version>1.0.0-SNAPSHOT</version>
+		<version>1.0.0</version>
 	</parent>
 
 	<artifactId>fhir2addlextension-omod</artifactId>
@@ -58,7 +58,7 @@
 		<dependency>
 			<groupId>org.openmrs.module</groupId>
 			<artifactId>fhir2-integration-tests</artifactId>
-			<version>1.9.0-SNAPSHOT</version>
+			<version>2.7.0</version>
 			<scope>test</scope>
 			<type>test-jar</type>
 		</dependency>
