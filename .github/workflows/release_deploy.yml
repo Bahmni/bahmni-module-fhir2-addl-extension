@@ -24,7 +24,7 @@ jobs:
       - name: Compare Git tag with Maven version
         run: |
           export GIT_TAG=${GITHUB_REF#refs/tags/}
-          PROJECT_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)
+          PROJECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           if [ "$PROJECT_VERSION" != "$GIT_TAG" ]; then
             echo "❌ The Git tag ($GIT_TAG) does not match the Maven version ($PROJECT_VERSION)."
             exit 1
@@ -32,7 +32,7 @@ jobs:
             echo "✅ The Git tag matches the Maven version."
           fi
       - name: Build and deploy with Maven
-        run: ./mvnw --no-transfer-progress clean -U deploy -DperformRelease=true
+        run: mvn --no-transfer-progress clean -U deploy -DperformRelease=true
         env:
           NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
           NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
