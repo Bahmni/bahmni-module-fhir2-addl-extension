@@ -14,6 +14,12 @@
   	<packaging>pom</packaging>
 	<name>FHIR2 module additional extensions</name>
 	<description>FHIR2 module additional extensions</description>
+	<licenses>
+        <license>
+            <name>MPL v2 with Healthcare Disclaimer</name>
+            <url>https://www.bahmni.org/license/mplv2hd</url>
+        </license>
+    </licenses>
 
 	<url>https://wiki.openmrs.org/x/FQ4z</url>
 
