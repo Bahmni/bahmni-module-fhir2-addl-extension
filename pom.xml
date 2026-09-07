@@ -23,11 +23,19 @@
 
 	<url>https://wiki.openmrs.org/x/FQ4z</url>
 
-	<!-- <scm>
-		<connection>scm:git:git@github.com:openmrs/openmrs-module-basicmodule.git</connection>
-		<developerConnection>scm:git:git@github.com:openmrs/openmrs-module-basicmodule.git</developerConnection>
-		<url>https://github.com/openmrs/openmrs-module-basicmodule/</url>
-	</scm> -->
+	<scm>
+		<connection>scm:git:git@github.com:Bahmni/bahmni-module-fhir2-addl-extension.git</connection>
+		<developerConnection>scm:git:git@github.com:Bahmni/bahmni-module-fhir2-addl-extension.git</developerConnection>
+		<url>https://github.com/Bahmni/bahmni-module-fhir2-addl-extension</url>
+	</scm>
+
+	<developers>
+		<developer>
+			<name>Bahmni</name>
+			<organization>Bahmni</organization>
+			<organizationUrl>https://www.bahmni.org</organizationUrl>
+		</developer>
+	</developers>
 
 	<modules>
 		<module>api</module>
