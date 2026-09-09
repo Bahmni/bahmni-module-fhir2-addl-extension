@@ -1,5 +1,8 @@
 package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
+import org.bahmni.module.fhir2addlextension.api.context.AppContext;
+import org.bahmni.module.fhir2addlextension.api.model.TelecomAttributeTypeMapping;
+import org.hl7.fhir.r4.model.ContactPoint;
 import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.Extension;
@@ -14,8 +17,13 @@ import org.openmrs.PersonAddress;
 import org.openmrs.PersonAttribute;
 import org.openmrs.PersonAttributeType;
 import org.openmrs.PersonName;
+import org.openmrs.api.PersonService;
+import org.openmrs.module.fhir2.FhirConstants;
+import org.openmrs.module.fhir2.api.FhirGlobalPropertyService;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Date;
 import java.util.Map;
 
@@ -31,9 +39,20 @@ public class BahmniPatientTranslatorImplTest {
 	@Mock
 	private org.bahmni.module.fhir2addlextension.api.translator.PersonAttributeExtensionTranslator personAttributeTranslator;
 	
+	@Mock
+	private PersonService personService;
+	
+	@Mock
+	private FhirGlobalPropertyService globalPropertyService;
+	
+	@Mock
+	private AppContext appContext;
+	
 	private BahmniPatientTranslatorImpl translator;
 	
 	private PersonAttributeType phoneType;
+	
+	private PersonAttributeType emailType;
 	
 	private Map<String, PersonAttributeType> slugToTypeMap;
 	
@@ -41,11 +60,19 @@ public class BahmniPatientTranslatorImplTest {
 	public void setup() {
 		translator = new BahmniPatientTranslatorImpl();
 		translator.setPersonAttributeTranslator(personAttributeTranslator);
+		translator.setPersonService(personService);
+		translator.setGlobalPropertyService(globalPropertyService);
+		translator.setAppContext(appContext);
 		
 		phoneType = new PersonAttributeType();
 		phoneType.setUuid("phone-uuid");
 		phoneType.setName("phoneNumber");
 		phoneType.setFormat("java.lang.String");
+		
+		emailType = new PersonAttributeType();
+		emailType.setUuid("email-uuid");
+		emailType.setName("email");
+		emailType.setFormat("java.lang.String");
 		
 		slugToTypeMap = Collections.singletonMap("phonenumber", phoneType);
 		when(personAttributeTranslator.buildSlugToTypeMap()).thenReturn(slugToTypeMap);
@@ -79,6 +106,168 @@ public class BahmniPatientTranslatorImplTest {
 		translator.addPersonAttributeExtensions(fhirPatient, openmrsPatient);
 		
 		assertTrue(fhirPatient.getExtension().isEmpty());
+	}
+	
+	@Test
+	public void addPersonAttributeExtensions_shouldSkipAttributesAlreadyInTelecom() {
+		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
+		PersonAttribute phoneAttribute = new PersonAttribute(phoneType, "+919876543210");
+		phoneAttribute.setUuid("phone-attr-uuid");
+		openmrsPatient.addAttribute(phoneAttribute);
+		
+		Patient fhirPatient = new Patient();
+		ContactPoint existing = new ContactPoint();
+		existing.setId("phone-attr-uuid");
+		existing.setSystem(ContactPoint.ContactPointSystem.PHONE);
+		fhirPatient.addTelecom(existing);
+		
+		translator.addPersonAttributeExtensions(fhirPatient, openmrsPatient);
+		
+		assertTrue(fhirPatient.getExtension().isEmpty());
+	}
+	
+	// --- addAdditionalContactPoints ---
+	
+	@Test
+	public void addAdditionalContactPoints_shouldAddContactPointForAttributeMappedToContactPoint() {
+		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
+		PersonAttribute emailAttribute = new PersonAttribute(emailType, "jean.claude@example.com");
+		emailAttribute.setUuid("email-attr-uuid");
+		openmrsPatient.addAttribute(emailAttribute);
+		
+		when(appContext.getTelecomAttributeTypeMappings()).thenReturn(
+		    Collections.singletonList(new TelecomAttributeTypeMapping(emailType.getUuid(),
+		            ContactPoint.ContactPointSystem.EMAIL, null, null)));
+		
+		Patient fhirPatient = new Patient();
+		translator.addAdditionalContactPoints(fhirPatient, openmrsPatient);
+		
+		assertEquals(1, fhirPatient.getTelecom().size());
+		assertEquals(ContactPoint.ContactPointSystem.EMAIL, fhirPatient.getTelecomFirstRep().getSystem());
+		assertEquals("jean.claude@example.com", fhirPatient.getTelecomFirstRep().getValue());
+	}
+	
+	@Test
+	public void addAdditionalContactPoints_shouldNotDuplicateAttributeAlreadyInTelecom() {
+		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
+		PersonAttribute phoneAttribute = new PersonAttribute(phoneType, "+919876543210");
+		phoneAttribute.setUuid("phone-attr-uuid");
+		openmrsPatient.addAttribute(phoneAttribute);
+		
+		when(appContext.getTelecomAttributeTypeMappings()).thenReturn(Collections.emptyList());
+		
+		Patient fhirPatient = new Patient();
+		ContactPoint existing = new ContactPoint();
+		existing.setId("phone-attr-uuid");
+		existing.setSystem(ContactPoint.ContactPointSystem.PHONE);
+		existing.setValue("+919876543210");
+		fhirPatient.addTelecom(existing);
+		
+		translator.addAdditionalContactPoints(fhirPatient, openmrsPatient);
+		
+		assertEquals(1, fhirPatient.getTelecom().size());
+	}
+	
+	@Test
+	public void addAdditionalContactPoints_shouldSkipAttributesWithNoContactPointMapping() {
+		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
+		openmrsPatient.addAttribute(new PersonAttribute(phoneType, "some non-contact attribute"));
+		
+		when(appContext.getTelecomAttributeTypeMappings()).thenReturn(Collections.emptyList());
+		
+		Patient fhirPatient = new Patient();
+		translator.addAdditionalContactPoints(fhirPatient, openmrsPatient);
+		
+		assertTrue(fhirPatient.getTelecom().isEmpty());
+	}
+	
+	// --- resolvePersonAttributeTypeForContactPoint / processContactPoints ---
+	
+	@Test
+	public void resolvePersonAttributeTypeForContactPoint_shouldResolveBySystem() {
+		ContactPoint contactPoint = new ContactPoint();
+		contactPoint.setSystem(ContactPoint.ContactPointSystem.EMAIL);
+		
+		when(appContext.getTelecomAttributeTypeMappings()).thenReturn(
+		    Collections.singletonList(new TelecomAttributeTypeMapping(emailType.getUuid(),
+		            ContactPoint.ContactPointSystem.EMAIL, null, null)));
+		when(personService.getPersonAttributeTypeByUuid(emailType.getUuid())).thenReturn(emailType);
+		
+		PersonAttributeType result = translator.resolvePersonAttributeTypeForContactPoint(contactPoint);
+		
+		assertEquals(emailType, result);
+	}
+	
+	@Test
+	public void resolvePersonAttributeTypeForContactPoint_shouldFallBackToConfiguredTypeWhenNoSystem() {
+		ContactPoint contactPoint = new ContactPoint();
+		
+		when(globalPropertyService.getGlobalProperty(FhirConstants.PERSON_CONTACT_POINT_ATTRIBUTE_TYPE)).thenReturn(
+		    "phone-uuid");
+		when(personService.getPersonAttributeTypeByUuid("phone-uuid")).thenReturn(phoneType);
+		
+		PersonAttributeType result = translator.resolvePersonAttributeTypeForContactPoint(contactPoint);
+		
+		assertEquals(phoneType, result);
+	}
+	
+	@Test
+	public void resolvePersonAttributeTypeForContactPoint_shouldFallBackToConfiguredTypeWhenSystemUnmapped() {
+		ContactPoint contactPoint = new ContactPoint();
+		contactPoint.setSystem(ContactPoint.ContactPointSystem.FAX);
+		
+		when(appContext.getTelecomAttributeTypeMappings()).thenReturn(Collections.emptyList());
+		when(globalPropertyService.getGlobalProperty(FhirConstants.PERSON_CONTACT_POINT_ATTRIBUTE_TYPE)).thenReturn(
+		    "phone-uuid");
+		when(personService.getPersonAttributeTypeByUuid("phone-uuid")).thenReturn(phoneType);
+		
+		PersonAttributeType result = translator.resolvePersonAttributeTypeForContactPoint(contactPoint);
+		
+		assertEquals(phoneType, result);
+	}
+	
+	@Test
+	public void processContactPoints_shouldWriteEachContactPointToItsOwnAttributeType() {
+		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
+
+		ContactPoint phoneContactPoint = new ContactPoint();
+		phoneContactPoint.setSystem(ContactPoint.ContactPointSystem.PHONE);
+		phoneContactPoint.setValue("+919876543210");
+
+		ContactPoint emailContactPoint = new ContactPoint();
+		emailContactPoint.setSystem(ContactPoint.ContactPointSystem.EMAIL);
+		emailContactPoint.setValue("jean.claude@example.com");
+
+		when(appContext.getTelecomAttributeTypeMappings()).thenReturn(Arrays.asList(
+		    new TelecomAttributeTypeMapping(phoneType.getUuid(), ContactPoint.ContactPointSystem.PHONE, null, null),
+		    new TelecomAttributeTypeMapping(emailType.getUuid(), ContactPoint.ContactPointSystem.EMAIL, null, null)));
+		when(personService.getPersonAttributeTypeByUuid(phoneType.getUuid())).thenReturn(phoneType);
+		when(personService.getPersonAttributeTypeByUuid(emailType.getUuid())).thenReturn(emailType);
+
+		translator.processContactPoints(openmrsPatient, Arrays.asList(phoneContactPoint, emailContactPoint));
+
+		List<PersonAttribute> attributes = new java.util.ArrayList<>(openmrsPatient.getActiveAttributes());
+		assertEquals(2, attributes.size());
+		assertTrue(attributes.stream()
+		        .anyMatch(a -> a.getAttributeType().equals(phoneType) && "+919876543210".equals(a.getValue())));
+		assertTrue(attributes.stream()
+		        .anyMatch(a -> a.getAttributeType().equals(emailType) && "jean.claude@example.com".equals(a.getValue())));
+	}
+	
+	@Test
+	public void processContactPoints_shouldSkipContactPointWhenAttributeTypeCannotBeResolved() {
+		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
+		
+		ContactPoint contactPoint = new ContactPoint();
+		contactPoint.setSystem(ContactPoint.ContactPointSystem.FAX);
+		contactPoint.setValue("some fax number");
+		
+		when(appContext.getTelecomAttributeTypeMappings()).thenReturn(Collections.emptyList());
+		when(globalPropertyService.getGlobalProperty(FhirConstants.PERSON_CONTACT_POINT_ATTRIBUTE_TYPE)).thenReturn(null);
+		
+		translator.processContactPoints(openmrsPatient, Collections.singletonList(contactPoint));
+		
+		assertTrue(openmrsPatient.getActiveAttributes().isEmpty());
 	}
 	
 	// --- addBirthTimeExtension ---
