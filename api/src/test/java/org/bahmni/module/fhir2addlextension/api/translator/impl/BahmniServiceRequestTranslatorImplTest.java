@@ -12,6 +12,7 @@ import org.bahmni.module.fhir2addlextension.api.validators.ServiceRequestValidat
 import org.hl7.fhir.r4.model.Annotation;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
+import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Period;
 import org.hl7.fhir.r4.model.Reference;
@@ -22,10 +23,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.CareSetting;
 import org.openmrs.Concept;
 import org.openmrs.ConceptClass;
+import org.openmrs.ConceptName;
 import org.openmrs.Encounter;
 import org.openmrs.Order;
 import org.openmrs.OrderAttribute;
@@ -33,7 +34,9 @@ import org.openmrs.OrderAttributeType;
 import org.openmrs.OrderType;
 import org.openmrs.Patient;
 import org.openmrs.Provider;
+import org.openmrs.User;
 import org.openmrs.api.OrderService;
+import org.openmrs.api.context.Context;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
 import org.openmrs.module.fhir2.api.translators.EncounterReferenceTranslator;
@@ -43,6 +46,8 @@ import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.impl.OrderIdentifierTranslatorImpl;
 import org.openmrs.order.OrderUtilTest;
 import org.bahmni.module.fhir2addlextension.api.translator.BahmniOrderReferenceTranslator;
+import org.mockito.MockedStatic;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -51,6 +56,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 import static org.bahmni.module.fhir2addlextension.api.TestDataFactory.exampleOrderAttrTypeIsBillingExempt;
 import static org.bahmni.module.fhir2addlextension.api.TestDataFactory.exampleOrderAttrTypePriority;
@@ -64,6 +70,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasProperty;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -74,6 +81,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mockStatic;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BahmniServiceRequestTranslatorImplTest {
@@ -145,6 +153,9 @@ public class BahmniServiceRequestTranslatorImplTest {
 	
 	private ServiceRequestExtensionTranslator extensionTranslator;
 	
+	@Mock
+	private PractitionerReferenceTranslator<User> userPractitionerReferenceTranslator;
+	
 	private Order discontinuedOrder;
 	
 	private Order order;
@@ -193,6 +204,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 		        locationReferenceTranslator, orderAttributeTypeDao, appContext);
 		
 		translator.setLocationReferenceResolver(orderLocationReferenceResolver);
+		translator.setUserPractitionerReferenceTranslator(userPractitionerReferenceTranslator);
 		
 		orderConcept = new Concept();
 		ConceptClass cc = new ConceptClass();
@@ -1338,5 +1350,137 @@ public class BahmniServiceRequestTranslatorImplTest {
 		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
 		
 		translator.toOpenmrsType(serviceRequest);
+	}
+	
+	@Test
+	public void toFhirResource_shouldSetAuthoredOnFromDateActivated() {
+		Date dateActivated = new Date();
+		order.setDateActivated(dateActivated);
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getAuthoredOn(), equalTo(dateActivated));
+	}
+	
+	@Test
+	public void toFhirResource_shouldSetAuthoredOnFromDateCreatedWhenDateActivatedIsNull() {
+		Date dateCreated = new Date();
+		order.setDateCreated(dateCreated);
+		order.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
+		order.setScheduledDate(dateCreated);
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getAuthoredOn(), equalTo(dateCreated));
+	}
+	
+	@Test
+	public void toFhirResource_shouldAddFulfillerCommentAsNote() {
+		order.setDateActivated(new Date());
+		order.setFulfillerComment("Lab result reviewed");
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getNote(), hasSize(1));
+		assertThat(result.getNote().get(0).getText(), equalTo("Lab result reviewed"));
+	}
+	
+	@Test
+	public void toFhirResource_shouldNotAddFulfillerCommentNoteWhenNull() {
+		order.setDateActivated(new Date());
+		order.setFulfillerComment(null);
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getNote(), empty());
+	}
+	
+	@Test
+	public void toFhirResource_shouldMapChangedByToExtension() {
+		order.setDateActivated(new Date());
+		User changedBy = new User();
+		changedBy.setUuid("changed-by-uuid");
+		Date dateChanged = new Date();
+		order.setChangedBy(changedBy);
+		order.setDateChanged(dateChanged);
+		
+		Reference changedByRef = new Reference("Practitioner/changed-by-uuid");
+		when(userPractitionerReferenceTranslator.toFhirResource(changedBy)).thenReturn(changedByRef);
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		Extension updatedByExt = result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_UPDATED_BY);
+		assertThat(updatedByExt, notNullValue());
+		assertThat(((Reference) updatedByExt.getValue()).getReference(), equalTo("Practitioner/changed-by-uuid"));
+		
+		Extension updatedOnExt = result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_UPDATED_ON);
+		assertThat(updatedOnExt, notNullValue());
+		assertThat(((DateTimeType) updatedOnExt.getValue()).getValue(), equalTo(dateChanged));
+	}
+	
+	@Test
+	public void toFhirResource_shouldNotAddChangedByExtensionWhenNull() {
+		order.setDateActivated(new Date());
+		order.setChangedBy(null);
+		
+		ServiceRequest result = translator.toFhirResource(order);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_UPDATED_BY), nullValue());
+		assertThat(result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_UPDATED_ON), nullValue());
+	}
+	
+	@Test
+	public void toFhirResource_shouldAddOrderShortNameExtensionWhenConceptHasShortName() {
+		order.setDateActivated(new Date());
+
+		ConceptClass conceptClass = new ConceptClass();
+		conceptClass.setName("Other");
+		Concept mockConcept = mock(Concept.class);
+		when(mockConcept.getConceptClass()).thenReturn(conceptClass);
+
+		ConceptName shortConceptName = new ConceptName();
+		shortConceptName.setName("BG");
+		when(mockConcept.getShortNameInLocale(Locale.ENGLISH)).thenReturn(shortConceptName);
+
+		order.setConcept(mockConcept);
+
+		ServiceRequest result;
+		try (MockedStatic<Context> contextMock = mockStatic(Context.class)) {
+			contextMock.when(Context::getLocale).thenReturn(Locale.ENGLISH);
+			result = translator.toFhirResource(order);
+		}
+
+		assertThat(result, notNullValue());
+		Extension ext = result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_ORDER_SHORT_NAME);
+		assertThat(ext, notNullValue());
+		assertThat(((StringType) ext.getValue()).getValue(), equalTo("BG"));
+	}
+	
+	@Test
+	public void toFhirResource_shouldNotAddOrderShortNameExtensionWhenConceptHasNoShortName() {
+		order.setDateActivated(new Date());
+
+		ConceptClass conceptClass = new ConceptClass();
+		conceptClass.setName("Other");
+		Concept mockConcept = mock(Concept.class);
+		when(mockConcept.getConceptClass()).thenReturn(conceptClass);
+		when(mockConcept.getShortNameInLocale(Locale.ENGLISH)).thenReturn(null);
+
+		order.setConcept(mockConcept);
+
+		ServiceRequest result;
+		try (MockedStatic<Context> contextMock = mockStatic(Context.class)) {
+			contextMock.when(Context::getLocale).thenReturn(Locale.ENGLISH);
+			result = translator.toFhirResource(order);
+		}
+
+		assertThat(result, notNullValue());
+		assertThat(result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_ORDER_SHORT_NAME), nullValue());
 	}
 }

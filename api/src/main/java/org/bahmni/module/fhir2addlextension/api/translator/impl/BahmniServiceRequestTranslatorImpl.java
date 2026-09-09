@@ -20,6 +20,8 @@ import org.openmrs.Order;
 import org.openmrs.OrderAttribute;
 import org.openmrs.Provider;
 import org.openmrs.CareSetting;
+import org.openmrs.User;
+import org.openmrs.ConceptName;
 import org.openmrs.api.OrderService;
 import org.openmrs.module.fhir2.api.translators.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +30,7 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
+import org.openmrs.api.context.Context;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -83,6 +86,9 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 	
 	@Autowired
 	private ServiceRequestStatusTranslator serviceRequestStatusTranslator;
+	
+	@Autowired
+	private PractitionerReferenceTranslator<User> userPractitionerReferenceTranslator;
 	
 	@Override
 	public ServiceRequest toFhirResource(@Nonnull Order order) {
@@ -143,6 +149,29 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 			order.getActiveAttributes().forEach(attribute -> extensionTranslator.getAttributeTranslator(attribute)
                     .map(translator -> translator.toFhirResource(attribute))
                     .ifPresent(serviceRequest::addExtension));
+		}
+
+		serviceRequest.setAuthoredOn(order.getDateActivated() != null ? order.getDateActivated() : order.getDateCreated());
+
+		if (order.getFulfillerComment() != null && !order.getFulfillerComment().isEmpty()) {
+			serviceRequest.addNote(new Annotation().setText(order.getFulfillerComment()));
+		}
+
+		if (order.getChangedBy() != null) {
+			Reference changedByRef = userPractitionerReferenceTranslator.toFhirResource(order.getChangedBy());
+			if (changedByRef != null) {
+				serviceRequest.addExtension(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_UPDATED_BY, changedByRef);
+			}
+			if (order.getDateChanged() != null) {
+				serviceRequest.addExtension(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_UPDATED_ON,
+					new DateTimeType(order.getDateChanged()));
+			}
+		}
+		if (order.getConcept() != null && Context.getLocale() != null) {
+			ConceptName concept = order.getConcept().getShortNameInLocale(Context.getLocale());
+			if(concept != null) {
+				serviceRequest.addExtension(BahmniFhirConstants.FHIR_EXT_SERVICE_REQUEST_ORDER_SHORT_NAME, new StringType(concept.getName()));
+			}
 		}
 
 		return serviceRequest;

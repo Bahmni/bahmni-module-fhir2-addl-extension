@@ -74,4 +74,12 @@ public final class BahmniFhirConstants {
 	// Patient Photo
 	public static final String PATIENT_PHOTO_CONTENT_TYPE = "image/jpeg";
 	public static final String PATIENT_PHOTO_URL_TEMPLATE = "/openmrs/ws/rest/v2/patientImage?patientUuid=%s";
+
+	public static final String FHIR_EXT_SERVICE_REQUEST_UPDATED_BY = EXTENSION_PREFIX + "/service-request/updated-by";
+	public static final String FHIR_EXT_SERVICE_REQUEST_UPDATED_ON = EXTENSION_PREFIX + "/service-request/updated-on";
+	public static final String FHIR_EXT_SERVICE_REQUEST_ORDER_SHORT_NAME = EXTENSION_PREFIX + "/service-request/order-short-name";
+
+	public static final String NAME_SEARCH_HANDLER = "task.name.search.handler";
+	public static final String SP_TASK_NAME = "name";
+	public static final String FHIR_EXT_TASK_NAME = EXTENSION_PREFIX + "/task/name";
 }
