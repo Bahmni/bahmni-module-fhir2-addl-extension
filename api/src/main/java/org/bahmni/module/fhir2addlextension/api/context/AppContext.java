@@ -15,4 +15,6 @@ public interface AppContext {
 	EncounterType getEncounterType(String name);
 	
 	EncounterRole getLabEncounterRole();
+	
+	Map<String, String> getPractitionerAttributeIdentifierSystemMap();
 }

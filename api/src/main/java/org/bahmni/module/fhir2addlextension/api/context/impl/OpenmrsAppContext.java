@@ -28,6 +28,8 @@ public class OpenmrsAppContext implements AppContext {
 	
 	public static final String LAB_RESULTS_ENCOUNTER_ROLE = "Supporting services";
 	
+	public static final String PROP_PRACTITIONER_ATTRIBUTE_IDENTIFIER_SYSTEM_MAP = "fhir2Extension.practitionerAttributeIdentifierSystemMap";
+	
 	@Autowired
 	public OpenmrsAppContext(@Qualifier("adminService") AdministrationService administrationService,
 	    EncounterService encounterService) {
@@ -61,6 +63,13 @@ public class OpenmrsAppContext implements AppContext {
 			return role;
 		}
 		return encounterService.getEncounterRoleByUuid(EncounterRole.UNKNOWN_ENCOUNTER_ROLE_UUID);
+	}
+	
+	@Override
+	public Map<String, String> getPractitionerAttributeIdentifierSystemMap() {
+		String propertyValue = administrationService
+		        .getGlobalProperty(PROP_PRACTITIONER_ATTRIBUTE_IDENTIFIER_SYSTEM_MAP, "");
+		return parseStringToMap(propertyValue);
 	}
 	
 	private Map<String, String> parseStringToMap(String input) {
