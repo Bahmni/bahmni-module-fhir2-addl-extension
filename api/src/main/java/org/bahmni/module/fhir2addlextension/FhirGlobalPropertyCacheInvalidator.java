@@ -16,25 +16,18 @@ import org.openmrs.module.fhir2.api.util.FhirGlobalPropertyHolder;
  * deregistered permanently, and its cache stale until the container is restarted. Bahmni loads
  * several modules after fhir2, so that cycle happens on every startup.
  * <p>
- * {@code fhir2.paging.maximum} and {@code fhir2.paging.default} are unaffected, because
- * FhirRestServlet keeps a separate listener covering exactly those two.
+ * .
  * <p>
  * This listener re-clears the cache on our behalf. Drop it once the upstream module registers its
- * holder reliably; see BAH-4685.
+ * holder reliably;
  */
 public class FhirGlobalPropertyCacheInvalidator implements GlobalPropertyListener {
 	
 	private static final String ALLERGY_PROPERTY_PREFIX = "allergy";
 	
-	/**
-	 * Mirrors FhirGlobalPropertyHolder's own matching, so we invalidate exactly the properties it
-	 * caches.
-	 */
 	@Override
 	public boolean supportsPropertyName(String globalProperty) {
-		return globalProperty != null
-		        && (globalProperty.startsWith(FhirConstants.FHIR2_MODULE_ID) || globalProperty
-		                .startsWith(ALLERGY_PROPERTY_PREFIX));
+		return globalProperty != null && (globalProperty.startsWith(FhirConstants.FHIR2_MODULE_ID));
 	}
 	
 	@Override

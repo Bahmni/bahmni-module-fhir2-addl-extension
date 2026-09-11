@@ -52,10 +52,6 @@ public class Fhir2AddlExtensionModuleActivatorTest {
 		inOrder.verify(administrationService).addGlobalPropertyListener(any(GlobalPropertyListener.class));
 	}
 	
-	/**
-	 * The regression this module works around: upstream registers only when its static field is
-	 * null, so the listener is never restored after a refresh. Ours must re-register every time.
-	 */
 	@Test
 	public void shouldReRegisterTheSameListenerOnEveryContextRefresh() {
 		activator.registerCacheInvalidator(administrationService);
@@ -99,12 +95,6 @@ public class Fhir2AddlExtensionModuleActivatorTest {
 		}
 	}
 	
-	/**
-	 * The regression guard for BAH-4685: upstream FhirActivator registers its holder only when the
-	 * static field is null, and willStop() deregisters without clearing that field, so the holder
-	 * stays off the listener list for good. Ours has to survive that exact cycle, which means
-	 * contextRefreshed() itself must make the call — not just the helper it delegates to.
-	 */
 	@Test
 	public void shouldReRegisterAfterAWillStopContextRefreshedCycle() {
 		try (MockedStatic<Context> mockedContext = Mockito.mockStatic(Context.class)) {

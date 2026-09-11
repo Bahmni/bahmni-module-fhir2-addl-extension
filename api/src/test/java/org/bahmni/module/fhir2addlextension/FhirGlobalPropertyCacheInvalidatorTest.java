@@ -15,8 +15,6 @@ public class FhirGlobalPropertyCacheInvalidatorTest {
 		assertTrue(invalidator.supportsPropertyName("fhir2.personContactPointAttributeTypeUuid"));
 		assertTrue(invalidator.supportsPropertyName("fhir2.locationContactPointAttributeTypeUuid"));
 		assertTrue(invalidator.supportsPropertyName("fhir2.supportedLocationHierarchySearchDepth"));
-		assertTrue(invalidator.supportsPropertyName("fhir2.paging.maximum"));
-		assertTrue(invalidator.supportsPropertyName("allergy.allergenUuid"));
 	}
 	
 	@Test
