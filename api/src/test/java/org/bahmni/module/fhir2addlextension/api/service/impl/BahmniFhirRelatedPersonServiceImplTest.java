@@ -200,23 +200,36 @@ public class BahmniFhirRelatedPersonServiceImplTest {
 	}
 	
 	// ===============================
-	// applyUpdate TESTS
+	// update / delete TESTS
 	// ===============================
 	
 	@Test
-	public void applyUpdate_updatesRelationshipAndReturnsFhirResourceWithPerspective() {
+	public void update_updatesRelationshipAndReturnsFhirResource() {
 		Relationship existing = buildRelationship();
 		RelatedPerson updatedRp = buildRelatedPerson();
 		Relationship saved = buildRelationship();
 		RelatedPerson expected = buildRelatedPerson();
 		
+		when(dao.get(RELATIONSHIP_UUID)).thenReturn(existing);
 		when(translator.toOpenmrsType(existing, updatedRp)).thenReturn(saved);
 		when(dao.createOrUpdate(saved)).thenReturn(saved);
 		when(translator.toFhirResource(saved, null)).thenReturn(expected);
 		
-		RelatedPerson result = ((BahmniFhirRelatedPersonServiceImpl) relatedPersonService).applyUpdate(existing, updatedRp);
+		RelatedPerson result = relatedPersonService.update(RELATIONSHIP_UUID, updatedRp);
 		
 		assertThat(result, equalTo(expected));
+	}
+	
+	@Test(expected = ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException.class)
+	public void update_throwsWhenNotFound() {
+		when(dao.get(RELATIONSHIP_UUID)).thenReturn(null);
+		relatedPersonService.update(RELATIONSHIP_UUID, buildRelatedPerson());
+	}
+	
+	@Test
+	public void delete_callsDaoDelete() {
+		relatedPersonService.delete(RELATIONSHIP_UUID);
+		verify(dao).delete(RELATIONSHIP_UUID);
 	}
 	
 	// ===============================

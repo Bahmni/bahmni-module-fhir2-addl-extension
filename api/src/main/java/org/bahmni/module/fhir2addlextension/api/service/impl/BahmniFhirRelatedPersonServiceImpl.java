@@ -2,17 +2,15 @@ package org.bahmni.module.fhir2addlextension.api.service.impl;
 
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
+import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirRelatedPersonDao;
 import org.bahmni.module.fhir2addlextension.api.search.param.BahmniRelatedPersonSearchParams;
 import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirRelatedPersonService;
 import org.bahmni.module.fhir2addlextension.api.translator.BahmniRelatedPersonTranslator;
 import org.hl7.fhir.r4.model.RelatedPerson;
 import org.openmrs.Relationship;
-import org.openmrs.module.fhir2.api.dao.FhirDao;
-import org.openmrs.module.fhir2.api.impl.BaseFhirService;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
 import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
-import org.openmrs.module.fhir2.api.translators.OpenmrsFhirTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,7 +19,7 @@ import javax.annotation.Nonnull;
 
 @Component
 @Transactional
-public class BahmniFhirRelatedPersonServiceImpl extends BaseFhirService<RelatedPerson, Relationship> implements BahmniFhirRelatedPersonService {
+public class BahmniFhirRelatedPersonServiceImpl implements BahmniFhirRelatedPersonService {
 	
 	private final BahmniFhirRelatedPersonDao dao;
 	
@@ -44,16 +42,6 @@ public class BahmniFhirRelatedPersonServiceImpl extends BaseFhirService<RelatedP
 	}
 	
 	@Override
-	protected FhirDao<Relationship> getDao() {
-		return dao;
-	}
-	
-	@Override
-	protected OpenmrsFhirTranslator<Relationship, RelatedPerson> getTranslator() {
-		return translator;
-	}
-	
-	@Override
 	public IBundleProvider searchByPatient(@Nonnull BahmniRelatedPersonSearchParams searchParams) {
 		if (!searchParams.hasPatientReference()) {
 			throw new InvalidRequestException("patient reference is required to search RelatedPerson");
@@ -64,11 +52,36 @@ public class BahmniFhirRelatedPersonServiceImpl extends BaseFhirService<RelatedP
 	}
 	
 	@Override
-	protected RelatedPerson applyUpdate(Relationship existing, RelatedPerson updatedRelatedPerson) {
-		Relationship updated = translator.toOpenmrsType(existing, updatedRelatedPerson);
+	public RelatedPerson get(@Nonnull String uuid) {
+		Relationship relationship = dao.get(uuid);
+		if (relationship == null) {
+			throw new ResourceNotFoundException("RelatedPerson not found: " + uuid);
+		}
+		return translator.toFhirResource(relationship);
+	}
+	
+	@Override
+	public RelatedPerson create(@Nonnull RelatedPerson relatedPerson) {
+		Relationship relationship = translator.toOpenmrsType(relatedPerson);
+		Relationship saved = dao.createOrUpdate(relationship);
+		return translator.toFhirResource(saved);
+	}
+	
+	@Override
+	public RelatedPerson update(@Nonnull String uuid, @Nonnull RelatedPerson relatedPerson) {
+		Relationship existing = dao.get(uuid);
+		if (existing == null) {
+			throw new ResourceNotFoundException("RelatedPerson not found: " + uuid);
+		}
+		Relationship updated = translator.toOpenmrsType(existing, relatedPerson);
 		Relationship saved = dao.createOrUpdate(updated);
 		String focalPatientUuid = saved.getPersonB() != null ? saved.getPersonB().getUuid() : null;
 		return translator.toFhirResource(saved, focalPatientUuid);
+	}
+	
+	@Override
+	public void delete(@Nonnull String uuid) {
+		dao.delete(uuid);
 	}
 	
 	private static class PerspectiveAwareTranslatorWrapper implements BahmniRelatedPersonTranslator {
