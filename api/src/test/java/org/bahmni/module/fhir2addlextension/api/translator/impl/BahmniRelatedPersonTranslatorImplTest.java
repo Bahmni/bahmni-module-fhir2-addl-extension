@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.when;
 
+import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
 import org.bahmni.module.fhir2addlextension.api.translator.BahmniRelatedPersonTranslator;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
@@ -320,10 +321,12 @@ public class BahmniRelatedPersonTranslatorImplTest {
 	@Test
 	public void toOpenmrsType_parsesPatientReferenceIntoPersonB() {
 		// Given
-		RelatedPerson relatedPerson = buildFhirRelatedPerson();
+		RelatedPerson relatedPerson = buildFhirRelatedPersonWithExtension();
 		Person personB = buildPerson(PERSON_B_UUID);
+		Person personA = buildPerson(PERSON_A_UUID);
 		
 		when(personService.getPersonByUuid(PERSON_B_UUID)).thenReturn(personB);
+		when(personService.getPersonByUuid(PERSON_A_UUID)).thenReturn(personA);
 		
 		// When
 		Relationship result = translator.toOpenmrsType(relatedPerson);
@@ -357,11 +360,13 @@ public class BahmniRelatedPersonTranslatorImplTest {
 	@Test
 	public void toOpenmrsType_parsesRelationshipCodingIntoType() {
 		// Given
-		RelatedPerson relatedPerson = buildFhirRelatedPerson();
+		RelatedPerson relatedPerson = buildFhirRelatedPersonWithExtension();
 		Person personB = buildPerson(PERSON_B_UUID);
+		Person personA = buildPerson(PERSON_A_UUID);
 		RelationshipType relType = buildRelationshipType();
 		
 		when(personService.getPersonByUuid(PERSON_B_UUID)).thenReturn(personB);
+		when(personService.getPersonByUuid(PERSON_A_UUID)).thenReturn(personA);
 		when(personService.getRelationshipTypeByUuid(RELATIONSHIP_TYPE_UUID)).thenReturn(relType);
 		
 		// When
@@ -374,8 +379,9 @@ public class BahmniRelatedPersonTranslatorImplTest {
 	@Test
 	public void toOpenmrsType_whenPeriodPresent_setsDates() {
 		// Given
-		RelatedPerson relatedPerson = buildFhirRelatedPerson();
+		RelatedPerson relatedPerson = buildFhirRelatedPersonWithExtension();
 		Person personB = buildPerson(PERSON_B_UUID);
+		Person personA = buildPerson(PERSON_A_UUID);
 		Date startDate = new Date(System.currentTimeMillis() - 10000);
 		Date endDate = new Date();
 		Period period = new Period();
@@ -384,6 +390,7 @@ public class BahmniRelatedPersonTranslatorImplTest {
 		relatedPerson.setPeriod(period);
 		
 		when(personService.getPersonByUuid(PERSON_B_UUID)).thenReturn(personB);
+		when(personService.getPersonByUuid(PERSON_A_UUID)).thenReturn(personA);
 		
 		// When
 		Relationship result = translator.toOpenmrsType(relatedPerson);
@@ -522,6 +529,56 @@ public class BahmniRelatedPersonTranslatorImplTest {
 		relationship.addCoding(coding);
 		relatedPerson.addRelationship(relationship);
 		
+		return relatedPerson;
+	}
+	
+	// =============================================
+	// toOpenmrsType EDGE CASE TESTS (#11)
+	// =============================================
+	
+	@Test(expected = UnprocessableEntityException.class)
+	public void toOpenmrsType_shouldThrowWhenRelatedPatientExtensionAbsent() {
+		RelatedPerson relatedPerson = new RelatedPerson();
+		relatedPerson.setPatient(new Reference("Patient/" + PERSON_B_UUID));
+		// No relatedPatient extension → personA stays null → should throw
+		
+		translator.toOpenmrsType(relatedPerson);
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldLeaveRelationshipTypeNullWhenUuidNotResolvable() {
+		Person personA = buildPerson(PERSON_A_UUID);
+		Person personB = buildPerson(PERSON_B_UUID);
+		when(personService.getPersonByUuid(PERSON_B_UUID)).thenReturn(personB);
+		when(personService.getPersonByUuid(PERSON_A_UUID)).thenReturn(personA);
+		when(personService.getRelationshipTypeByUuid("non-existent-uuid")).thenReturn(null);
+		
+		RelatedPerson relatedPerson = buildFhirRelatedPersonWithExtension();
+		relatedPerson.getRelationship().get(0).getCoding().get(0).setCode("non-existent-uuid");
+		
+		Relationship result = translator.toOpenmrsType(relatedPerson);
+		
+		assertThat(result.getRelationshipType(), nullValue());
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldLeaveRelationshipTypeNullForNonMatchingSystem() {
+		Person personA = buildPerson(PERSON_A_UUID);
+		Person personB = buildPerson(PERSON_B_UUID);
+		when(personService.getPersonByUuid(PERSON_B_UUID)).thenReturn(personB);
+		when(personService.getPersonByUuid(PERSON_A_UUID)).thenReturn(personA);
+		
+		RelatedPerson relatedPerson = buildFhirRelatedPersonWithExtension();
+		relatedPerson.getRelationship().get(0).getCoding().get(0).setSystem("http://some-other-system.org/codes");
+		
+		Relationship result = translator.toOpenmrsType(relatedPerson);
+		
+		assertThat(result.getRelationshipType(), nullValue());
+	}
+	
+	private RelatedPerson buildFhirRelatedPersonWithExtension() {
+		RelatedPerson relatedPerson = buildFhirRelatedPerson();
+		relatedPerson.addExtension(new Extension(RELATED_PATIENT_EXT_URL, new Reference("Patient/" + PERSON_A_UUID)));
 		return relatedPerson;
 	}
 }

@@ -15,6 +15,7 @@ import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.server.SimpleBundleProvider;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
+import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
 import org.bahmni.module.fhir2addlextension.api.search.param.BahmniRelatedPersonSearchParams;
 import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirRelatedPersonService;
 import org.hl7.fhir.r4.model.CodeableConcept;
@@ -113,8 +114,8 @@ public class BahmniRelatedPersonFhirR4ResourceProviderTest {
 		assertThat(result.getResource().getIdElement().getIdPart(), equalTo(RELATED_PERSON_UUID));
 	}
 	
-	@Test(expected = InvalidRequestException.class)
-	public void createRelatedPerson_missingPatientReference_throwsInvalidRequestException() {
+	@Test(expected = UnprocessableEntityException.class)
+	public void createRelatedPerson_missingPatientReference_throwsUnprocessableEntityException() {
 		// Given — RelatedPerson with relationship but no patient reference
 		RelatedPerson relatedPerson = new RelatedPerson();
 		relatedPerson.addRelationship(buildRelationshipCodeableConcept());
@@ -123,8 +124,8 @@ public class BahmniRelatedPersonFhirR4ResourceProviderTest {
 		provider.createRelatedPerson(relatedPerson);
 	}
 	
-	@Test(expected = InvalidRequestException.class)
-	public void createRelatedPerson_missingRelationship_throwsInvalidRequestException() {
+	@Test(expected = UnprocessableEntityException.class)
+	public void createRelatedPerson_missingRelationship_throwsUnprocessableEntityException() {
 		// Given — RelatedPerson with patient reference but no relationship
 		RelatedPerson relatedPerson = new RelatedPerson();
 		relatedPerson.setPatient(new Reference("Patient/" + PATIENT_UUID));
@@ -133,8 +134,8 @@ public class BahmniRelatedPersonFhirR4ResourceProviderTest {
 		provider.createRelatedPerson(relatedPerson);
 	}
 	
-	@Test(expected = InvalidRequestException.class)
-	public void createRelatedPerson_missingBothPatientAndRelationship_throwsInvalidRequestException() {
+	@Test(expected = UnprocessableEntityException.class)
+	public void createRelatedPerson_missingBothPatientAndRelationship_throwsUnprocessableEntityException() {
 		// Given — completely empty RelatedPerson
 		RelatedPerson relatedPerson = new RelatedPerson();
 		

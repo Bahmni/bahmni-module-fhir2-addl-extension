@@ -1,13 +1,14 @@
 package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
+import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
 import org.bahmni.module.fhir2addlextension.api.translator.BahmniRelatedPersonTranslator;
+import org.bahmni.module.fhir2addlextension.api.utils.BahmniFhirUtils;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Period;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.RelatedPerson;
-import org.openmrs.Patient;
 import org.openmrs.Person;
 import org.openmrs.PersonAddress;
 import org.openmrs.PersonName;
@@ -34,9 +35,9 @@ import static org.apache.commons.lang3.Validate.notNull;
 @Primary
 public class BahmniRelatedPersonTranslatorImpl implements BahmniRelatedPersonTranslator {
 	
-	static final String RELATED_PATIENT_EXT_URL = "http://fhir.bahmni.org/ext/relatedPatient";
+	static final String RELATED_PATIENT_EXT_URL = "http://fhir.bahmni.org/ext/relatedPatient"; // NOSONAR
 	
-	static final String RELATIONSHIP_TYPE_SYSTEM = "http://fhir.bahmni.org/RelationshipType";
+	static final String RELATIONSHIP_TYPE_SYSTEM = "http://fhir.bahmni.org/RelationshipType"; // NOSONAR
 	
 	private final PersonNameTranslator nameTranslator;
 	
@@ -67,17 +68,18 @@ public class BahmniRelatedPersonTranslatorImpl implements BahmniRelatedPersonTra
 	
 	@Override
 	public RelatedPerson toFhirResource(@Nonnull Relationship relationship) {
-		// Default: personB is the focal patient, personA is the related person
-		return translate(relationship, relationship.getPersonB(), relationship.getPersonA(), relationship
-		        .getRelationshipType().getaIsToB());
+		RelationshipType type = relationship.getRelationshipType();
+		String roleDisplay = type != null ? type.getaIsToB() : null;
+		return translate(relationship, relationship.getPersonB(), relationship.getPersonA(), roleDisplay);
 	}
 	
 	@Override
 	public RelatedPerson toFhirResource(@Nonnull Relationship relationship, String subjectPatientUuid) {
-		if (subjectPatientUuid != null && relationship.getPersonA().getUuid().equals(subjectPatientUuid)) {
-			// personA is the focal patient → personB is the related person
-			return translate(relationship, relationship.getPersonA(), relationship.getPersonB(), relationship
-			        .getRelationshipType().getbIsToA());
+		if (subjectPatientUuid != null && relationship.getPersonA() != null
+		        && relationship.getPersonA().getUuid().equals(subjectPatientUuid)) {
+			RelationshipType type = relationship.getRelationshipType();
+			String roleDisplay = type != null ? type.getbIsToA() : null;
+			return translate(relationship, relationship.getPersonA(), relationship.getPersonB(), roleDisplay);
 		}
 		return toFhirResource(relationship);
 	}
@@ -86,22 +88,30 @@ public class BahmniRelatedPersonTranslatorImpl implements BahmniRelatedPersonTra
 		RelatedPerson fhirRelatedPerson = new RelatedPerson();
 		fhirRelatedPerson.setId(relationship.getUuid());
 		
-		if (focalPatient.getIsPatient()) {
+		if (focalPatient != null && focalPatient.getIsPatient()) {
 			org.openmrs.Patient patient = patientService.getPatient(focalPatient.getPersonId());
 			if (patient != null) {
 				fhirRelatedPerson.setPatient(patientReferenceTranslator.toFhirResource(patient));
 			}
 		}
 		
-		for (PersonName name : relatedPerson.getNames()) {
-			fhirRelatedPerson.addName(nameTranslator.toFhirResource(name));
-		}
-		
-		fhirRelatedPerson.setGender(genderTranslator.toFhirResource(relatedPerson.getGender()));
-		fhirRelatedPerson.setBirthDateElement(birthDateTranslator.toFhirResource(relatedPerson));
-		
-		for (PersonAddress address : relatedPerson.getAddresses()) {
-			fhirRelatedPerson.addAddress(addressTranslator.toFhirResource(address));
+		if (relatedPerson != null) {
+			for (PersonName name : relatedPerson.getNames()) {
+				fhirRelatedPerson.addName(nameTranslator.toFhirResource(name));
+			}
+			fhirRelatedPerson.setGender(genderTranslator.toFhirResource(relatedPerson.getGender()));
+			fhirRelatedPerson.setBirthDateElement(birthDateTranslator.toFhirResource(relatedPerson));
+			for (PersonAddress address : relatedPerson.getAddresses()) {
+				fhirRelatedPerson.addAddress(addressTranslator.toFhirResource(address));
+			}
+			
+			if (relatedPerson.getIsPatient()) {
+				org.openmrs.Patient relatedPatient = patientService.getPatient(relatedPerson.getPersonId());
+				if (relatedPatient != null) {
+					fhirRelatedPerson.addExtension(new Extension(RELATED_PATIENT_EXT_URL, patientReferenceTranslator
+					        .toFhirResource(relatedPatient)));
+				}
+			}
 		}
 		
 		fhirRelatedPerson.setActive(isActive(relationship));
@@ -109,15 +119,10 @@ public class BahmniRelatedPersonTranslatorImpl implements BahmniRelatedPersonTra
 		if (period != null) {
 			fhirRelatedPerson.setPeriod(period);
 		}
-		fhirRelatedPerson.setRelationship(Collections.singletonList(buildCodeableConcept(roleDisplay,
-		    relationship.getRelationshipType())));
 		
-		if (relatedPerson.getIsPatient()) {
-			org.openmrs.Patient relatedPatient = patientService.getPatient(relatedPerson.getPersonId());
-			if (relatedPatient != null) {
-				Reference ref = patientReferenceTranslator.toFhirResource(relatedPatient);
-				fhirRelatedPerson.addExtension(new Extension(RELATED_PATIENT_EXT_URL, ref));
-			}
+		if (relationship.getRelationshipType() != null && roleDisplay != null) {
+			fhirRelatedPerson.setRelationship(Collections.singletonList(buildCodeableConcept(roleDisplay,
+			    relationship.getRelationshipType())));
 		}
 		
 		return fhirRelatedPerson;
@@ -128,16 +133,21 @@ public class BahmniRelatedPersonTranslatorImpl implements BahmniRelatedPersonTra
 		Relationship relationship = new Relationship();
 
 		if (relatedPerson.hasPatient()) {
-			String focalUuid = extractUuid(relatedPerson.getPatient().getReference());
+			String focalUuid = BahmniFhirUtils.extractId(relatedPerson.getPatient().getReference());
 			relationship.setPersonB(personService.getPersonByUuid(focalUuid));
 		}
 
 		relatedPerson.getExtensionsByUrl(RELATED_PATIENT_EXT_URL).stream()
 		        .findFirst()
 		        .ifPresent(ext -> {
-			        String relatedUuid = extractUuid(((Reference) ext.getValue()).getReference());
+			        String relatedUuid = BahmniFhirUtils.extractId(((Reference) ext.getValue()).getReference());
 			        relationship.setPersonA(personService.getPersonByUuid(relatedUuid));
 		        });
+
+		if (relationship.getPersonA() == null) {
+			throw new UnprocessableEntityException(
+			    "relatedPatient extension with a valid Patient reference is required");
+		}
 
 		resolveRelationshipType(relatedPerson, relationship);
 
@@ -202,12 +212,5 @@ public class BahmniRelatedPersonTranslatorImpl implements BahmniRelatedPersonTra
 		period.setStart(relationship.getStartDate());
 		period.setEnd(relationship.getEndDate());
 		return period;
-	}
-	
-	private String extractUuid(String reference) {
-		if (reference == null)
-			return null;
-		int slash = reference.lastIndexOf('/');
-		return slash >= 0 ? reference.substring(slash + 1) : reference;
 	}
 }

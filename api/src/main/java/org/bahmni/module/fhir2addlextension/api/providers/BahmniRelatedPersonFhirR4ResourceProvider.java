@@ -16,6 +16,7 @@ import ca.uhn.fhir.rest.param.TokenAndListParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
+import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
 import org.bahmni.module.fhir2addlextension.api.search.param.BahmniRelatedPersonSearchParams;
 import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirRelatedPersonService;
 import org.hl7.fhir.instance.model.api.IBaseResource;
@@ -59,10 +60,10 @@ public class BahmniRelatedPersonFhirR4ResourceProvider implements IResourceProvi
 	@Create
 	public MethodOutcome createRelatedPerson(@ResourceParam RelatedPerson relatedPerson) {
 		if (!relatedPerson.hasPatient()) {
-			throw new InvalidRequestException("RelatedPerson.patient reference is required");
+			throw new UnprocessableEntityException("RelatedPerson.patient reference is required");
 		}
 		if (!relatedPerson.hasRelationship()) {
-			throw new InvalidRequestException("RelatedPerson.relationship is required");
+			throw new UnprocessableEntityException("RelatedPerson.relationship is required");
 		}
 		return FhirProviderUtils.buildCreate(relatedPersonService.create(relatedPerson));
 	}

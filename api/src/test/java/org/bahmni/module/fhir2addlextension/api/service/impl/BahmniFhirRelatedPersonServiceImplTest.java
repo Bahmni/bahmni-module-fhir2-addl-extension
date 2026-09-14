@@ -10,7 +10,6 @@ import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.ReferenceOrListParam;
 import ca.uhn.fhir.rest.param.ReferenceParam;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
-import ca.uhn.fhir.rest.server.exceptions.NotImplementedOperationException;
 import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirRelatedPersonDao;
 import org.bahmni.module.fhir2addlextension.api.search.param.BahmniRelatedPersonSearchParams;
 import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirRelatedPersonService;
@@ -145,13 +144,17 @@ public class BahmniFhirRelatedPersonServiceImplTest {
 	// searchForRelatedPeople TESTS
 	// ===============================
 	
-	@Test(expected = NotImplementedOperationException.class)
-	public void searchForRelatedPeople_alwaysThrowsNotImplementedOperationException() {
+	@Test
+	public void searchForRelatedPeople_returnsEmptyBundle() {
 		// Given
 		RelatedPersonSearchParams searchParams = new RelatedPersonSearchParams();
 		
-		// When/Then
-		relatedPersonService.searchForRelatedPeople(searchParams);
+		// When
+		IBundleProvider result = relatedPersonService.searchForRelatedPeople(searchParams);
+		
+		// Then
+		assertThat(result, notNullValue());
+		assertThat(result.getAllResources(), hasSize(0));
 	}
 	
 	// ===============================

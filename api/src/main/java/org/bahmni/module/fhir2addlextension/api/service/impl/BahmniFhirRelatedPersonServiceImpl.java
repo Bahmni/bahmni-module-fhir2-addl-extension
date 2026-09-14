@@ -3,7 +3,6 @@ package org.bahmni.module.fhir2addlextension.api.service.impl;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.server.SimpleBundleProvider;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
-import ca.uhn.fhir.rest.server.exceptions.NotImplementedOperationException;
 import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirRelatedPersonDao;
 import org.bahmni.module.fhir2addlextension.api.search.param.BahmniRelatedPersonSearchParams;
 import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirRelatedPersonService;
@@ -15,7 +14,6 @@ import org.openmrs.module.fhir2.api.impl.BaseFhirService;
 import org.openmrs.module.fhir2.api.search.param.RelatedPersonSearchParams;
 import org.openmrs.module.fhir2.api.translators.OpenmrsFhirTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,7 +22,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
-@Primary
 @Transactional
 public class BahmniFhirRelatedPersonServiceImpl extends BaseFhirService<RelatedPerson, Relationship> implements BahmniFhirRelatedPersonService {
 	
@@ -63,13 +60,14 @@ public class BahmniFhirRelatedPersonServiceImpl extends BaseFhirService<RelatedP
 	
 	@Override
 	public IBundleProvider searchForRelatedPeople(@Nonnull RelatedPersonSearchParams searchParams) {
-		throw new NotImplementedOperationException("Use patient= search parameter for RelatedPerson queries");
+		return new SimpleBundleProvider();
 	}
 	
 	@Override
 	protected RelatedPerson applyUpdate(Relationship existing, RelatedPerson updatedRelatedPerson) {
 		Relationship updated = translator.toOpenmrsType(existing, updatedRelatedPerson);
 		Relationship saved = dao.createOrUpdate(updated);
-		return translator.toFhirResource(saved);
+		String focalPatientUuid = saved.getPersonB() != null ? saved.getPersonB().getUuid() : null;
+		return translator.toFhirResource(saved, focalPatientUuid);
 	}
 }
