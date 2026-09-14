@@ -3,6 +3,7 @@ package org.bahmni.module.fhir2addlextension.api.service.impl;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
@@ -30,6 +31,7 @@ import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 
 import java.util.Collections;
 import java.util.UUID;
+import org.mockito.ArgumentCaptor;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BahmniFhirRelatedPersonServiceImplTest {
@@ -159,6 +161,80 @@ public class BahmniFhirRelatedPersonServiceImplTest {
 		// Then
 		assertThat(result, notNullValue());
 		assertThat(result.getAllResources(), hasSize(0));
+	}
+	
+	// ===============================
+	// PerspectiveAwareTranslatorWrapper TESTS
+	// ===============================
+	
+	@Test
+	public void searchByPatient_perspectiveWrapper_routesToFhirResourceWithPatientUuid() {
+		ReferenceAndListParam patientReference = buildPatientReference(PATIENT_UUID);
+		BahmniRelatedPersonSearchParams searchParams = BahmniRelatedPersonSearchParams.builder()
+		        .patientReference(patientReference).build();
+		
+		ArgumentCaptor<BahmniRelatedPersonTranslator> wrapperCaptor = ArgumentCaptor
+		        .forClass(BahmniRelatedPersonTranslator.class);
+		when(searchQuery.getQueryResults(any(SearchParameterMap.class), any(), wrapperCaptor.capture(), any())).thenReturn(
+		    new SimpleBundleProvider());
+		
+		relatedPersonService.searchByPatient(searchParams);
+		
+		BahmniRelatedPersonTranslator wrapper = wrapperCaptor.getValue();
+		Relationship rel = buildRelationship();
+		RelatedPerson expected = buildRelatedPerson();
+		when(translator.toFhirResource(rel, PATIENT_UUID)).thenReturn(expected);
+		
+		RelatedPerson result = wrapper.toFhirResource(rel);
+		assertThat(result, equalTo(expected));
+		verify(translator).toFhirResource(rel, PATIENT_UUID);
+	}
+	
+	@Test
+	public void searchByPatient_perspectiveWrapper_delegatesAllMethods() {
+		ReferenceAndListParam patientReference = buildPatientReference(PATIENT_UUID);
+		BahmniRelatedPersonSearchParams searchParams = BahmniRelatedPersonSearchParams.builder()
+		        .patientReference(patientReference).build();
+		
+		ArgumentCaptor<BahmniRelatedPersonTranslator> wrapperCaptor = ArgumentCaptor
+		        .forClass(BahmniRelatedPersonTranslator.class);
+		when(searchQuery.getQueryResults(any(SearchParameterMap.class), any(), wrapperCaptor.capture(), any())).thenReturn(
+		    new SimpleBundleProvider());
+		
+		relatedPersonService.searchByPatient(searchParams);
+		
+		BahmniRelatedPersonTranslator wrapper = wrapperCaptor.getValue();
+		Relationship rel = buildRelationship();
+		RelatedPerson rp = buildRelatedPerson();
+		
+		wrapper.toFhirResource(rel, "other-uuid");
+		verify(translator).toFhirResource(rel, "other-uuid");
+		
+		wrapper.toOpenmrsType(rp);
+		verify(translator).toOpenmrsType(rp);
+		
+		wrapper.toOpenmrsType(rel, rp);
+		verify(translator).toOpenmrsType(rel, rp);
+	}
+	
+	// ===============================
+	// applyUpdate TESTS
+	// ===============================
+	
+	@Test
+	public void applyUpdate_updatesRelationshipAndReturnsFhirResourceWithPerspective() {
+		Relationship existing = buildRelationship();
+		RelatedPerson updatedRp = buildRelatedPerson();
+		Relationship saved = buildRelationship();
+		RelatedPerson expected = buildRelatedPerson();
+		
+		when(translator.toOpenmrsType(existing, updatedRp)).thenReturn(saved);
+		when(dao.createOrUpdate(saved)).thenReturn(saved);
+		when(translator.toFhirResource(saved, null)).thenReturn(expected);
+		
+		RelatedPerson result = ((BahmniFhirRelatedPersonServiceImpl) relatedPersonService).applyUpdate(existing, updatedRp);
+		
+		assertThat(result, equalTo(expected));
 	}
 	
 	// ===============================

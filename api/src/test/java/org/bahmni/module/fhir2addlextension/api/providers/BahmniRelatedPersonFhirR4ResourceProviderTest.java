@@ -144,6 +144,29 @@ public class BahmniRelatedPersonFhirR4ResourceProviderTest {
 	}
 	
 	// ===============================
+	// updateRelatedPerson TESTS
+	// ===============================
+	
+	@Test
+	public void updateRelatedPerson_withValidId_returnsMethodOutcome() {
+		IdType id = new IdType(RELATED_PERSON_UUID);
+		RelatedPerson relatedPerson = buildRelatedPerson();
+		RelatedPerson updated = buildRelatedPerson();
+		
+		when(relatedPersonService.update(RELATED_PERSON_UUID, relatedPerson)).thenReturn(updated);
+		
+		MethodOutcome result = provider.updateRelatedPerson(id, relatedPerson);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getResource(), equalTo(updated));
+	}
+	
+	@Test(expected = InvalidRequestException.class)
+	public void updateRelatedPerson_withNullId_throwsInvalidRequestException() {
+		provider.updateRelatedPerson(new IdType(), buildRelatedPerson());
+	}
+	
+	// ===============================
 	// deleteRelatedPerson TESTS
 	// ===============================
 	

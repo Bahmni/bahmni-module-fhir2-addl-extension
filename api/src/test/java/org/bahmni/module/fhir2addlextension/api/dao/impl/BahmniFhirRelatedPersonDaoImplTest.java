@@ -3,12 +3,16 @@ package org.bahmni.module.fhir2addlextension.api.dao.impl;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.ReferenceOrListParam;
 import ca.uhn.fhir.rest.param.ReferenceParam;
+import org.bahmni.module.fhir2addlextension.api.search.param.BahmniRelatedPersonSearchParams;
 import org.hibernate.Criteria;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
+
+import java.lang.reflect.Method;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
@@ -79,6 +83,22 @@ public class BahmniFhirRelatedPersonDaoImplTest {
 		dao.handlePatientBothSides(criteria, patientRef);
 		
 		verify(criteria, times(2)).add(any());
+	}
+	
+	@Test
+	public void setupSearchParams_withPatientReference_callsHandlePatientBothSides() throws Exception {
+		ReferenceAndListParam patientRef = new ReferenceAndListParam();
+		patientRef.addAnd(new ReferenceOrListParam().add(new ReferenceParam("patient-uuid-123")));
+		
+		SearchParameterMap theParams = BahmniRelatedPersonSearchParams.builder().patientReference(patientRef).build()
+		        .toSearchParameterMap();
+		
+		Method method = BahmniFhirRelatedPersonDaoImpl.class.getDeclaredMethod("setupSearchParams", Criteria.class,
+		    SearchParameterMap.class);
+		method.setAccessible(true);
+		method.invoke(dao, criteria, theParams);
+		
+		verify(criteria, times(1)).add(any());
 	}
 	
 	@Test

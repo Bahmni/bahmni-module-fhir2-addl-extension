@@ -315,6 +315,67 @@ public class BahmniRelatedPersonTranslatorImplTest {
 	}
 	
 	// ===============================
+	// NULL GUARD BRANCH TESTS (covers uncovered conditions)
+	// ===============================
+	
+	@Test
+	public void toFhirResource_whenRelationshipTypeNull_noRelationshipCodeableConcept() {
+		Patient patientB = buildPatient(PERSON_B_UUID);
+		Person personA = buildPerson(PERSON_A_UUID);
+		Relationship relationship = buildRelationshipBothPatients(personA, patientB);
+		relationship.setRelationshipType(null);
+		
+		when(patientService.getPatient(patientB.getPersonId())).thenReturn(patientB);
+		when(patientReferenceTranslator.toFhirResource(patientB)).thenReturn(buildPatientReference(PERSON_B_UUID));
+		
+		RelatedPerson result = translator.toFhirResource(relationship);
+		
+		assertThat(result.hasRelationship(), is(false));
+	}
+	
+	@Test
+	public void toFhirResource_whenPatientServiceReturnsNullForFocalPatient_patientRefNotSet() {
+		Patient patientB = buildPatient(PERSON_B_UUID);
+		Person personA = buildPerson(PERSON_A_UUID);
+		Relationship relationship = buildRelationshipBothPatients(personA, patientB);
+		
+		when(patientService.getPatient(patientB.getPersonId())).thenReturn(null);
+		
+		RelatedPerson result = translator.toFhirResource(relationship);
+		
+		assertThat(result.hasPatient(), is(false));
+	}
+	
+	@Test
+	public void toFhirResource_withSubjectUuidNull_useDefaultPerspective() {
+		Patient patientB = buildPatient(PERSON_B_UUID);
+		Person personA = buildPerson(PERSON_A_UUID);
+		Relationship relationship = buildRelationshipBothPatients(personA, patientB);
+		
+		when(patientService.getPatient(patientB.getPersonId())).thenReturn(patientB);
+		when(patientReferenceTranslator.toFhirResource(patientB)).thenReturn(buildPatientReference(PERSON_B_UUID));
+		
+		RelatedPerson result = translator.toFhirResource(relationship, null);
+		
+		assertThat(result.getPatient(), notNullValue());
+	}
+	
+	@Test
+	public void toFhirResource_whenRelatedPersonIsPatientButServiceReturnsNull_noExtension() {
+		Patient patientA = buildPatient(PERSON_A_UUID);
+		Patient patientB = buildPatient(PERSON_B_UUID);
+		Relationship relationship = buildRelationshipBothPatients(patientA, patientB);
+		
+		when(patientService.getPatient(patientB.getPersonId())).thenReturn(patientB);
+		when(patientReferenceTranslator.toFhirResource(patientB)).thenReturn(buildPatientReference(PERSON_B_UUID));
+		when(patientService.getPatient(patientA.getPersonId())).thenReturn(null);
+		
+		RelatedPerson result = translator.toFhirResource(relationship);
+		
+		assertThat(result.getExtensionsByUrl(RELATED_PATIENT_EXT_URL), hasSize(0));
+	}
+	
+	// ===============================
 	// toOpenmrsType(RelatedPerson) TESTS
 	// ===============================
 	
