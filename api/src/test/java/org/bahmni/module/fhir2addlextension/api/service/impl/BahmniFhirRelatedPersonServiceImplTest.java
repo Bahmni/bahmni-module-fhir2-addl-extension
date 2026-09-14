@@ -9,6 +9,7 @@ import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.ReferenceOrListParam;
 import ca.uhn.fhir.rest.param.ReferenceParam;
+import ca.uhn.fhir.rest.server.SimpleBundleProvider;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirRelatedPersonDao;
 import org.bahmni.module.fhir2addlextension.api.search.param.BahmniRelatedPersonSearchParams;
@@ -22,11 +23,12 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Relationship;
 import org.openmrs.RelationshipType;
+import org.openmrs.module.fhir2.api.search.SearchQuery;
+import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
 import org.openmrs.module.fhir2.api.search.param.RelatedPersonSearchParams;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.UUID;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -43,11 +45,17 @@ public class BahmniFhirRelatedPersonServiceImplTest {
 	@Mock
 	private BahmniRelatedPersonTranslator translator;
 	
+	@Mock
+	private SearchQueryInclude<RelatedPerson> searchQueryInclude;
+	
+	@Mock
+	private SearchQuery<Relationship, RelatedPerson, BahmniFhirRelatedPersonDao, BahmniRelatedPersonTranslator, SearchQueryInclude<RelatedPerson>> searchQuery;
+	
 	private BahmniFhirRelatedPersonService relatedPersonService;
 	
 	@Before
 	public void setup() {
-		relatedPersonService = new BahmniFhirRelatedPersonServiceImpl(dao, translator);
+		relatedPersonService = new BahmniFhirRelatedPersonServiceImpl(dao, translator, searchQueryInclude, searchQuery);
 	}
 	
 	// ===============================
@@ -61,11 +69,10 @@ public class BahmniFhirRelatedPersonServiceImplTest {
 		BahmniRelatedPersonSearchParams searchParams = BahmniRelatedPersonSearchParams.builder()
 		        .patientReference(patientReference).build();
 		
-		Relationship relationship = buildRelationship();
 		RelatedPerson relatedPerson = buildRelatedPerson();
+		IBundleProvider expectedBundle = new SimpleBundleProvider(Collections.singletonList(relatedPerson));
 		
-		when(dao.getSearchResults(any(SearchParameterMap.class))).thenReturn(Collections.singletonList(relationship));
-		when(translator.toFhirResource(relationship, PATIENT_UUID)).thenReturn(relatedPerson);
+		when(searchQuery.getQueryResults(any(SearchParameterMap.class), any(), any(), any())).thenReturn(expectedBundle);
 		
 		// When
 		IBundleProvider result = relatedPersonService.searchByPatient(searchParams);
@@ -83,15 +90,11 @@ public class BahmniFhirRelatedPersonServiceImplTest {
 		BahmniRelatedPersonSearchParams searchParams = BahmniRelatedPersonSearchParams.builder()
 		        .patientReference(patientReference).build();
 		
-		Relationship rel1 = buildRelationship();
-		Relationship rel2 = buildRelationship();
 		RelatedPerson rp1 = buildRelatedPerson();
 		RelatedPerson rp2 = buildRelatedPerson();
+		IBundleProvider expectedBundle = new SimpleBundleProvider(java.util.Arrays.asList(rp1, rp2));
 		
-		List<Relationship> relationships = java.util.Arrays.asList(rel1, rel2);
-		when(dao.getSearchResults(any(SearchParameterMap.class))).thenReturn(relationships);
-		when(translator.toFhirResource(rel1, PATIENT_UUID)).thenReturn(rp1);
-		when(translator.toFhirResource(rel2, PATIENT_UUID)).thenReturn(rp2);
+		when(searchQuery.getQueryResults(any(SearchParameterMap.class), any(), any(), any())).thenReturn(expectedBundle);
 		
 		// When
 		IBundleProvider result = relatedPersonService.searchByPatient(searchParams);
@@ -130,7 +133,8 @@ public class BahmniFhirRelatedPersonServiceImplTest {
 		BahmniRelatedPersonSearchParams searchParams = BahmniRelatedPersonSearchParams.builder()
 		        .patientReference(patientReference).build();
 		
-		when(dao.getSearchResults(any(SearchParameterMap.class))).thenReturn(Collections.emptyList());
+		when(searchQuery.getQueryResults(any(SearchParameterMap.class), any(), any(), any())).thenReturn(
+		    new SimpleBundleProvider());
 		
 		// When
 		IBundleProvider result = relatedPersonService.searchByPatient(searchParams);
