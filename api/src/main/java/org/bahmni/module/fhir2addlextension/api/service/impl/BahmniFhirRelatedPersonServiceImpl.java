@@ -16,12 +16,14 @@ import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
 import org.openmrs.module.fhir2.api.search.param.RelatedPersonSearchParams;
 import org.openmrs.module.fhir2.api.translators.OpenmrsFhirTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Nonnull;
 
 @Component
+@Primary
 @Transactional
 public class BahmniFhirRelatedPersonServiceImpl extends BaseFhirService<RelatedPerson, Relationship> implements BahmniFhirRelatedPersonService {
 	
