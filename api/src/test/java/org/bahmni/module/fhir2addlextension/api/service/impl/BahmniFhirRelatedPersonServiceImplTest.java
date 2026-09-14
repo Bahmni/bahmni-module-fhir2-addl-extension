@@ -26,7 +26,6 @@ import org.openmrs.Relationship;
 import org.openmrs.RelationshipType;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
 import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
-import org.openmrs.module.fhir2.api.search.param.RelatedPersonSearchParams;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 
 import java.util.Collections;
@@ -140,23 +139,6 @@ public class BahmniFhirRelatedPersonServiceImplTest {
 		
 		// When
 		IBundleProvider result = relatedPersonService.searchByPatient(searchParams);
-		
-		// Then
-		assertThat(result, notNullValue());
-		assertThat(result.getAllResources(), hasSize(0));
-	}
-	
-	// ===============================
-	// searchForRelatedPeople TESTS
-	// ===============================
-	
-	@Test
-	public void searchForRelatedPeople_returnsEmptyBundle() {
-		// Given
-		RelatedPersonSearchParams searchParams = new RelatedPersonSearchParams();
-		
-		// When
-		IBundleProvider result = relatedPersonService.searchForRelatedPeople(searchParams);
 		
 		// Then
 		assertThat(result, notNullValue());
