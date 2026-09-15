@@ -41,4 +41,24 @@ public class OpenmrsAppContextTest {
 		Assert.assertEquals(2, orderTypeToLocationAttributeNameMap.size());
 	}
 	
+	@Test
+	public void shouldReturnEmptyMapWhenPractitionerAttributeIdentifierSystemMapGpIsUnset() {
+		when(adminService.getGlobalProperty(OpenmrsAppContext.PROP_PRACTITIONER_ATTRIBUTE_IDENTIFIER_SYSTEM_MAP, ""))
+		        .thenReturn("");
+		Map<String, String> map = new OpenmrsAppContext(adminService, encounterService)
+		        .getPractitionerAttributeIdentifierSystemMap();
+		Assert.assertTrue(map.isEmpty());
+	}
+	
+	@Test
+	public void shouldTrimWhitespaceWhenParsingPractitionerAttributeIdentifierSystemMap() {
+		when(adminService.getGlobalProperty(OpenmrsAppContext.PROP_PRACTITIONER_ATTRIBUTE_IDENTIFIER_SYSTEM_MAP, ""))
+		        .thenReturn(" identifier : http://example.org ; reg : http://other.org ");
+		Map<String, String> map = new OpenmrsAppContext(adminService, encounterService)
+		        .getPractitionerAttributeIdentifierSystemMap();
+		Assert.assertEquals(2, map.size());
+		Assert.assertEquals("http://example.org", map.get("identifier"));
+		Assert.assertEquals("http://other.org", map.get("reg"));
+	}
+	
 }

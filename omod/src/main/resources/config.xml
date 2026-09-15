@@ -107,6 +107,18 @@
 		</description>
 	</globalProperty>
 	<globalProperty>
+		<property>fhir2Extension.practitionerAttributeIdentifierSystemMap</property>
+		<defaultValue></defaultValue>
+		<description>
+			Maps a provider attribute type (provider_attribute_type.name) to a FHIR identifier.system URI.
+			For each mapping, if the Provider has an active attribute of that type with a non-null value,
+			an additional Practitioner.identifier entry is added (alongside the base Provider identifier,
+			not replacing it). Multiple mappings are separated by semicolon (format key1:value1; key2:value2).
+			Whitespace around ':' and ';' is trimmed. The maps are case sensitive.
+			e.g. - "License Number:http://fhir.bahmni.org/identifier/provider-license"
+		</description>
+	</globalProperty>
+	<globalProperty>
 		<property>bahmni.documentUpload.maxFileSizeInMB</property>
 		<defaultValue>5</defaultValue>
 		<description>
