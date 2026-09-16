@@ -115,7 +115,13 @@
 		<defaultValue></defaultValue>
 		<description>
 			Maps person attribute types (e.g. phoneNumber, email, alternatePhoneNumber) to FHIR Patient.telecom
-			contact points, so more than one contact type can appear in Patient.telecom at once.
+			contact points, so more than one contact type can appear in Patient.telecom at once. This is additive
+			to, not a replacement for, the base fhir2 module's own fhir2.personContactPointAttributeTypeUuid
+			property, which separately controls its own single-attribute-type telecom behaviour -- attribute
+			types configured here do not need to also be configured there.
+			Note: this property must be explicitly configured for any attribute type beyond the single one (if
+			any) already configured via fhir2.personContactPointAttributeTypeUuid -- it will not populate on its
+			own, and sites upgrading will see no additional contact types in Patient.telecom until it is set.
 			Format: multiple mappings separated by semicolon, each of the form
 			attributeTypeUuid:SYSTEM[:USE][:RANK] (USE and RANK are optional; SYSTEM/USE are case-insensitive FHIR
 			ContactPoint enum values, e.g. PHONE, EMAIL, HOME, MOBILE).

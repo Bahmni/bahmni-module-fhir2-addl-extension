@@ -88,6 +88,8 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 	@Override
 	public Patient toFhirResource(@Nonnull org.openmrs.Patient openmrsPatient) {
 		Patient patient = super.toFhirResource(openmrsPatient);
+		// must run before addPersonAttributeExtensions -- it dedupes against telecom ContactPoint ids
+		// to avoid double-publishing an attribute already represented in Patient.telecom
 		addAdditionalContactPoints(patient, openmrsPatient);
 		addPersonAttributeExtensions(patient, openmrsPatient);
 		addBirthTimeExtension(patient, openmrsPatient);
@@ -145,11 +147,18 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 	 */
 	void addAdditionalContactPoints(Patient fhirPatient, org.openmrs.Patient openmrsPatient) {
 		List<ContactPoint> telecom = new ArrayList<>(fhirPatient.getTelecom());
+		// relies on the base module's TelecomTranslatorImpl setting ContactPoint.id = PersonAttribute.uuid
+		// for the entry it adds -- revalidate this assumption on fhir2 module upgrades
 		Set<String> existingContactPointIds = telecom.stream().map(ContactPoint::getId).filter(Objects::nonNull)
 		        .collect(Collectors.toSet());
 
 		Map<String, TelecomAttributeTypeMapping> mappingsByAttributeTypeUuid = appContext.getTelecomAttributeTypeMappings()
-		        .stream().collect(Collectors.toMap(TelecomAttributeTypeMapping::getAttributeTypeUuid, m -> m));
+		        .stream().collect(Collectors.toMap(TelecomAttributeTypeMapping::getAttributeTypeUuid, m -> m, (first, duplicate) -> {
+			        log.warn(
+			            "Duplicate telecom attribute type mapping configured for attribute type uuid '{}' - keeping the first entry",
+			            first.getAttributeTypeUuid());
+			        return first;
+		        }));
 
 		for (PersonAttribute attr : openmrsPatient.getActiveAttributes()) {
 			if (attr.getUuid() != null && existingContactPointIds.contains(attr.getUuid())) {
@@ -170,8 +179,10 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 		ContactPoint contactPoint = new ContactPoint();
 		contactPoint.setId(attribute.getUuid());
 		contactPoint.setValue(attribute.getValue());
-		contactPoint.setSystem(mapping.getSystem());
-		contactPoint.setUse(mapping.getUse());
+		contactPoint.setSystem(ContactPoint.ContactPointSystem.valueOf(mapping.getSystem()));
+		if (mapping.getUse() != null) {
+			contactPoint.setUse(ContactPoint.ContactPointUse.valueOf(mapping.getUse()));
+		}
 		if (mapping.getRank() != null) {
 			contactPoint.setRank(mapping.getRank());
 		}
@@ -180,17 +191,31 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 	
 	/**
 	 * Writes each incoming {@link ContactPoint} to the person attribute type registered for its
-	 * {@code system} (via the base module's <code>fhir_contact_point_map</code> table), instead of
-	 * the base module's single GP-configured type. Falls back to that GP-configured type when the
-	 * contact point has no system, or no attribute type is registered for it.
+	 * {@code system} in the {@code fhir2Extension.telecomAttributeTypeMap} global property, instead
+	 * of the base module's single GP-configured type. Falls back to that GP-configured type when
+	 * the contact point has no system, or no attribute type is registered for it.
 	 */
 	void processContactPoints(org.openmrs.Patient openmrsPatient, List<ContactPoint> telecom) {
+		List<TelecomAttributeTypeMapping> mappings = appContext.getTelecomAttributeTypeMappings();
+		
 		for (ContactPoint contactPoint : telecom) {
-			PersonAttributeType attributeType = resolvePersonAttributeTypeForContactPoint(contactPoint);
+			PersonAttributeType attributeType = resolvePersonAttributeTypeForContactPoint(contactPoint, mappings);
 			if (attributeType == null) {
 				log.warn("Could not resolve a person attribute type for contact point with system '{}' - skipping",
 				    contactPoint.getSystem());
 				continue;
+			}
+			
+			// void any existing active attribute of this type first -- otherwise repeated updates
+			// accumulate multiple active attributes of the same type instead of replacing the value,
+			// matching the pattern already used in processPersonAttributeExtensions/voidExistingAddresses
+			for (PersonAttribute existing : openmrsPatient.getActiveAttributes()) {
+				if (existing.getAttributeType().equals(attributeType)) {
+					existing.setVoided(true);
+					existing.setVoidReason("Updated via FHIR");
+					existing.setVoidedBy(Context.getAuthenticatedUser());
+					existing.setDateVoided(new Date());
+				}
 			}
 			
 			PersonAttribute attribute = new PersonAttribute();
@@ -203,10 +228,11 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 		}
 	}
 	
-	PersonAttributeType resolvePersonAttributeTypeForContactPoint(ContactPoint contactPoint) {
+	PersonAttributeType resolvePersonAttributeTypeForContactPoint(ContactPoint contactPoint,
+	        List<TelecomAttributeTypeMapping> mappings) {
 		if (contactPoint.hasSystem()) {
-			Optional<TelecomAttributeTypeMapping> mapping = appContext.getTelecomAttributeTypeMappings().stream()
-			        .filter(m -> m.getSystem() == contactPoint.getSystem())
+			String system = contactPoint.getSystem().name();
+			Optional<TelecomAttributeTypeMapping> mapping = mappings.stream().filter(m -> system.equals(m.getSystem()))
 			        .min(Comparator.comparing(m -> m.getRank() == null ? Integer.MAX_VALUE : m.getRank()));
 			if (mapping.isPresent()) {
 				PersonAttributeType attributeType = personService.getPersonAttributeTypeByUuid(mapping.get()

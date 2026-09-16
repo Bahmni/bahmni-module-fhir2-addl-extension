@@ -16,6 +16,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +74,29 @@ public class OpenmrsAppContext implements AppContext {
 	@Cacheable(value = "fhir2addlextensionTelecomAttributeTypeMappings")
 	public List<TelecomAttributeTypeMapping> getTelecomAttributeTypeMappings() {
 		String propertyValue = administrationService.getGlobalProperty(PROP_TELECOM_ATTRIBUTE_TYPE_MAP, "");
-		return parseTelecomAttributeTypeMappings(propertyValue);
+		// unmodifiable: @Cacheable returns this same list instance to every caller, so it must not be
+		// mutable -- a caller sorting/adding/removing would otherwise corrupt the cached singleton for
+		// every other caller, across threads
+		return Collections.unmodifiableList(parseTelecomAttributeTypeMappings(propertyValue));
+	}
+	
+	/**
+	 * Splits a global property value into trimmed, non-blank <code>;</code>-separated entries.
+	 * Shared scaffolding for {@link #parseTelecomAttributeTypeMappings} and
+	 * {@link #parseStringToMap}, which differ only in how each entry is then interpreted.
+	 */
+	private List<String> splitEntries(String input) {
+		List<String> entries = new ArrayList<>();
+		if (input == null || input.trim().isEmpty()) {
+			return entries;
+		}
+		for (String entry : input.split(";")) {
+			String trimmedEntry = entry.trim();
+			if (!trimmedEntry.isEmpty()) {
+				entries.add(trimmedEntry);
+			}
+		}
+		return entries;
 	}
 	
 	/**
@@ -86,16 +109,8 @@ public class OpenmrsAppContext implements AppContext {
 	 */
 	private List<TelecomAttributeTypeMapping> parseTelecomAttributeTypeMappings(String input) {
 		List<TelecomAttributeTypeMapping> mappings = new ArrayList<>();
-		if (input == null || input.trim().isEmpty()) {
-			return mappings;
-		}
 
-		for (String entry : input.split(";")) {
-			String trimmedEntry = entry.trim();
-			if (trimmedEntry.isEmpty()) {
-				continue;
-			}
-
+		for (String trimmedEntry : splitEntries(input)) {
 			String[] parts = trimmedEntry.split(":", -1);
 			if (parts.length < 2 || parts[0].trim().isEmpty() || parts[1].trim().isEmpty()) {
 				log.warn("Skipping malformed telecom attribute type mapping entry: '{}'", trimmedEntry);
@@ -113,10 +128,10 @@ public class OpenmrsAppContext implements AppContext {
 				continue;
 			}
 
-			ContactPoint.ContactPointUse use = null;
+			String use = null;
 			if (parts.length > 2 && !parts[2].trim().isEmpty()) {
 				try {
-					use = ContactPoint.ContactPointUse.valueOf(parts[2].trim().toUpperCase());
+					use = ContactPoint.ContactPointUse.valueOf(parts[2].trim().toUpperCase()).name();
 				}
 				catch (IllegalArgumentException e) {
 					log.warn("Ignoring unknown contact point use '{}' for attribute type '{}'", parts[2],
@@ -134,22 +149,14 @@ public class OpenmrsAppContext implements AppContext {
 				}
 			}
 
-			mappings.add(new TelecomAttributeTypeMapping(attributeTypeUuid, system, use, rank));
+			mappings.add(new TelecomAttributeTypeMapping(attributeTypeUuid, system.name(), use, rank));
 		}
 		return mappings;
 	}
 	
 	private Map<String, String> parseStringToMap(String input) {
 		Map<String, String> resultMap = new HashMap<>();
-		if (input == null || input.trim().isEmpty()) {
-			return resultMap;
-		}
-		String[] pairs = input.split(";");
-		for (String pair : pairs) {
-			String trimmedPair = pair.trim();
-			if (trimmedPair.isEmpty()) {
-				continue;
-			}
+		for (String trimmedPair : splitEntries(input)) {
 			int firstColonIndex = trimmedPair.indexOf(':');
 			if (firstColonIndex > 0) {
 				String key = trimmedPair.substring(0, firstColonIndex).trim();

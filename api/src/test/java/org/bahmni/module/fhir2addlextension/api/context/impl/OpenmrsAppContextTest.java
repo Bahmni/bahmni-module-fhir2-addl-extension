@@ -58,14 +58,14 @@ public class OpenmrsAppContextTest {
 		
 		assertThat(mappings.size(), equalTo(3));
 		assertThat(mappings.get(0).getAttributeTypeUuid(), equalTo("uuid1"));
-		assertThat(mappings.get(0).getSystem(), equalTo(ContactPoint.ContactPointSystem.PHONE));
+		assertThat(mappings.get(0).getSystem(), equalTo(ContactPoint.ContactPointSystem.PHONE.name()));
 		assertThat(mappings.get(0).getUse(), nullValue());
 		assertThat(mappings.get(0).getRank(), equalTo(1));
 		
-		assertThat(mappings.get(1).getSystem(), equalTo(ContactPoint.ContactPointSystem.EMAIL));
+		assertThat(mappings.get(1).getSystem(), equalTo(ContactPoint.ContactPointSystem.EMAIL.name()));
 		assertThat(mappings.get(1).getRank(), nullValue());
 		
-		assertThat(mappings.get(2).getUse(), equalTo(ContactPoint.ContactPointUse.HOME));
+		assertThat(mappings.get(2).getUse(), equalTo(ContactPoint.ContactPointUse.HOME.name()));
 		assertThat(mappings.get(2).getRank(), equalTo(2));
 	}
 	
@@ -77,8 +77,8 @@ public class OpenmrsAppContextTest {
 		List<TelecomAttributeTypeMapping> mappings = new OpenmrsAppContext(adminService, encounterService)
 		        .getTelecomAttributeTypeMappings();
 		
-		assertThat(mappings.get(0).getSystem(), equalTo(ContactPoint.ContactPointSystem.PHONE));
-		assertThat(mappings.get(0).getUse(), equalTo(ContactPoint.ContactPointUse.HOME));
+		assertThat(mappings.get(0).getSystem(), equalTo(ContactPoint.ContactPointSystem.PHONE.name()));
+		assertThat(mappings.get(0).getUse(), equalTo(ContactPoint.ContactPointUse.HOME.name()));
 	}
 	
 	@Test

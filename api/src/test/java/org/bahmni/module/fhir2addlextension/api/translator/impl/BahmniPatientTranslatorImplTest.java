@@ -137,7 +137,7 @@ public class BahmniPatientTranslatorImplTest {
 		
 		when(appContext.getTelecomAttributeTypeMappings()).thenReturn(
 		    Collections.singletonList(new TelecomAttributeTypeMapping(emailType.getUuid(),
-		            ContactPoint.ContactPointSystem.EMAIL, null, null)));
+		            ContactPoint.ContactPointSystem.EMAIL.name(), null, null)));
 		
 		Patient fhirPatient = new Patient();
 		translator.addAdditionalContactPoints(fhirPatient, openmrsPatient);
@@ -188,12 +188,11 @@ public class BahmniPatientTranslatorImplTest {
 		ContactPoint contactPoint = new ContactPoint();
 		contactPoint.setSystem(ContactPoint.ContactPointSystem.EMAIL);
 		
-		when(appContext.getTelecomAttributeTypeMappings()).thenReturn(
-		    Collections.singletonList(new TelecomAttributeTypeMapping(emailType.getUuid(),
-		            ContactPoint.ContactPointSystem.EMAIL, null, null)));
+		List<TelecomAttributeTypeMapping> mappings = Collections.singletonList(new TelecomAttributeTypeMapping(emailType
+		        .getUuid(), ContactPoint.ContactPointSystem.EMAIL.name(), null, null));
 		when(personService.getPersonAttributeTypeByUuid(emailType.getUuid())).thenReturn(emailType);
 		
-		PersonAttributeType result = translator.resolvePersonAttributeTypeForContactPoint(contactPoint);
+		PersonAttributeType result = translator.resolvePersonAttributeTypeForContactPoint(contactPoint, mappings);
 		
 		assertEquals(emailType, result);
 	}
@@ -206,7 +205,8 @@ public class BahmniPatientTranslatorImplTest {
 		    "phone-uuid");
 		when(personService.getPersonAttributeTypeByUuid("phone-uuid")).thenReturn(phoneType);
 		
-		PersonAttributeType result = translator.resolvePersonAttributeTypeForContactPoint(contactPoint);
+		PersonAttributeType result = translator.resolvePersonAttributeTypeForContactPoint(contactPoint,
+		    Collections.emptyList());
 		
 		assertEquals(phoneType, result);
 	}
@@ -216,12 +216,12 @@ public class BahmniPatientTranslatorImplTest {
 		ContactPoint contactPoint = new ContactPoint();
 		contactPoint.setSystem(ContactPoint.ContactPointSystem.FAX);
 		
-		when(appContext.getTelecomAttributeTypeMappings()).thenReturn(Collections.emptyList());
 		when(globalPropertyService.getGlobalProperty(FhirConstants.PERSON_CONTACT_POINT_ATTRIBUTE_TYPE)).thenReturn(
 		    "phone-uuid");
 		when(personService.getPersonAttributeTypeByUuid("phone-uuid")).thenReturn(phoneType);
 		
-		PersonAttributeType result = translator.resolvePersonAttributeTypeForContactPoint(contactPoint);
+		PersonAttributeType result = translator.resolvePersonAttributeTypeForContactPoint(contactPoint,
+		    Collections.emptyList());
 		
 		assertEquals(phoneType, result);
 	}
@@ -239,8 +239,8 @@ public class BahmniPatientTranslatorImplTest {
 		emailContactPoint.setValue("jean.claude@example.com");
 
 		when(appContext.getTelecomAttributeTypeMappings()).thenReturn(Arrays.asList(
-		    new TelecomAttributeTypeMapping(phoneType.getUuid(), ContactPoint.ContactPointSystem.PHONE, null, null),
-		    new TelecomAttributeTypeMapping(emailType.getUuid(), ContactPoint.ContactPointSystem.EMAIL, null, null)));
+		    new TelecomAttributeTypeMapping(phoneType.getUuid(), ContactPoint.ContactPointSystem.PHONE.name(), null, null),
+		    new TelecomAttributeTypeMapping(emailType.getUuid(), ContactPoint.ContactPointSystem.EMAIL.name(), null, null)));
 		when(personService.getPersonAttributeTypeByUuid(phoneType.getUuid())).thenReturn(phoneType);
 		when(personService.getPersonAttributeTypeByUuid(emailType.getUuid())).thenReturn(emailType);
 
@@ -252,6 +252,28 @@ public class BahmniPatientTranslatorImplTest {
 		        .anyMatch(a -> a.getAttributeType().equals(phoneType) && "+919876543210".equals(a.getValue())));
 		assertTrue(attributes.stream()
 		        .anyMatch(a -> a.getAttributeType().equals(emailType) && "jean.claude@example.com".equals(a.getValue())));
+	}
+	
+	@Test
+	public void processContactPoints_shouldVoidExistingAttributeBeforeCreatingNew() {
+		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
+		PersonAttribute existingPhoneAttribute = new PersonAttribute(phoneType, "+910000000000");
+		openmrsPatient.addAttribute(existingPhoneAttribute);
+
+		ContactPoint phoneContactPoint = new ContactPoint();
+		phoneContactPoint.setSystem(ContactPoint.ContactPointSystem.PHONE);
+		phoneContactPoint.setValue("+919876543210");
+
+		when(appContext.getTelecomAttributeTypeMappings()).thenReturn(Collections.singletonList(
+		    new TelecomAttributeTypeMapping(phoneType.getUuid(), ContactPoint.ContactPointSystem.PHONE.name(), null, null)));
+		when(personService.getPersonAttributeTypeByUuid(phoneType.getUuid())).thenReturn(phoneType);
+
+		translator.processContactPoints(openmrsPatient, Collections.singletonList(phoneContactPoint));
+
+		assertTrue("Old attribute should be voided", existingPhoneAttribute.getVoided());
+		List<PersonAttribute> activeAttributes = new java.util.ArrayList<>(openmrsPatient.getActiveAttributes());
+		assertEquals(1, activeAttributes.size());
+		assertEquals("+919876543210", activeAttributes.get(0).getValue());
 	}
 	
 	@Test
