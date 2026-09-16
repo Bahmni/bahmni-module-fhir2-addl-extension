@@ -38,7 +38,7 @@ import java.util.HashSet;
 @R4Provider
 public class BahmniMedicationRequestFhirR4Provider extends MedicationRequestFhirResourceProvider {
 	
-	@Setter(onMethod_ = @Autowired)
+	@Autowired
 	private FhirMedicationRequestService fhirMedicationRequestService;
 	
 	@Create
