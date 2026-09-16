@@ -38,7 +38,7 @@ public class BahmniTaskFhirR4ResourceProvider extends TaskFhirResourceProvider {
 	        @OptionalParam(name = Task.SP_OWNER, chainWhitelist = { "",
 	                Practitioner.SP_IDENTIFIER }, targetTypes = Practitioner.class) ReferenceAndListParam ownerReference,
 	        @OptionalParam(name = Task.SP_SUBJECT, chainWhitelist = { "", Patient.SP_IDENTIFIER, Patient.SP_GIVEN,
-	                Patient.SP_FAMILY, Patient.SP_NAME, Task.SP_CODE }, targetTypes = Patient.class) ReferenceAndListParam forReference,
+	                Patient.SP_FAMILY, Patient.SP_NAME }, targetTypes = Patient.class) ReferenceAndListParam forReference,
 	        @OptionalParam(name = Task.SP_FOCUS, chainWhitelist = { "" }) ReferenceAndListParam focusReference,
 	        @OptionalParam(name = Task.SP_STATUS) TokenAndListParam status,
 	        @OptionalParam(name = Task.SP_CODE) TokenAndListParam taskCode,

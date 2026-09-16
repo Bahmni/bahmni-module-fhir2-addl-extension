@@ -4,7 +4,8 @@ import java.util.List;
 import java.util.Optional;
 
 import lombok.extern.slf4j.Slf4j;
-import org.bahmni.module.fhir2AddlExtension.api.dao.BahmniFhirTaskDao;
+import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirTaskDao;
 import org.hibernate.Criteria;
 import org.hibernate.criterion.Restrictions;
 import org.openmrs.module.fhir2.FhirConstants;
@@ -75,6 +76,16 @@ public class BahmniFhirTaskDaoImpl extends FhirTaskDaoImpl implements BahmniFhir
 		            : Optional.empty()).ifPresent(criteria::add);
 	}
 	
+	/**
+	 * Handles the forReference (subject) search parameter.
+	 * 
+	 * @param criteria The Hibernate criteria to add restrictions to
+	 * @param forReference The subject reference parameter
+	 * @note The forReference field stores Visit UUIDs from the write-side (fhir2Extension #81), not
+	 *       Patient UUIDs. This method matches by targetUuid without type validation. Callers
+	 *       should be aware that subject=Patient/{uuid} searches may return empty results if the
+	 *       write-side stored a Visit UUID instead.
+	 */
 	private void handleForReference(Criteria criteria, ReferenceAndListParam forReference) {
 		if (forReference == null) {
 			return;

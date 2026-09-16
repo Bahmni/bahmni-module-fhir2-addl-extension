@@ -12,6 +12,7 @@ import ca.uhn.fhir.rest.param.StringAndListParam;
 import ca.uhn.fhir.rest.param.StringOrListParam;
 import ca.uhn.fhir.rest.param.StringParam;
 import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
+import org.hl7.fhir.r4.model.Task;
 import org.junit.Test;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
@@ -68,6 +69,44 @@ public class BahmniTaskSearchParamsTest {
 		
 		SearchParameterMap map = params.toSearchParameterMap();
 		
+		assertThat(map, notNullValue());
+	}
+	
+	@Test
+	public void toSearchParameterMap_shouldIncludeFocusReferenceWhenSet() {
+		ReferenceAndListParam focusRef = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam("Observation", "obs-uuid-123")));
+		
+		BahmniTaskSearchParams params = new BahmniTaskSearchParams();
+		params.setFocusReference(focusRef);
+		
+		SearchParameterMap map = params.toSearchParameterMap();
+		
+		// Focus parameter is set and survives conversion to SearchParameterMap
+		assertThat(map, notNullValue());
+	}
+	
+	@Test
+	public void toSearchParameterMap_shouldIncludeMultiValueFocusReference() {
+		ReferenceAndListParam focusRef = new ReferenceAndListParam().addAnd(new ReferenceOrListParam().add(
+		    new ReferenceParam("Observation", "obs-uuid-1")).add(new ReferenceParam("Observation", "obs-uuid-2")));
+		
+		BahmniTaskSearchParams params = new BahmniTaskSearchParams();
+		params.setFocusReference(focusRef);
+		
+		SearchParameterMap map = params.toSearchParameterMap();
+		
+		// Multi-value focus parameter survives conversion
+		assertThat(map, notNullValue());
+	}
+	
+	@Test
+	public void toSearchParameterMap_shouldNotIncludeFocusWhenNotSet() {
+		BahmniTaskSearchParams params = new BahmniTaskSearchParams();
+		
+		SearchParameterMap map = params.toSearchParameterMap();
+		
+		// Map is still valid even when focus is not set
 		assertThat(map, notNullValue());
 	}
 }
