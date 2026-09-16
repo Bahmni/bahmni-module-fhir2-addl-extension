@@ -3,7 +3,6 @@ package org.bahmni.module.fhir2addlextension.api.providers;
 import ca.uhn.fhir.rest.annotation.Create;
 import ca.uhn.fhir.rest.annotation.ResourceParam;
 import ca.uhn.fhir.rest.api.MethodOutcome;
-import lombok.Setter;
 import org.hl7.fhir.r4.model.MedicationRequest;
 import org.openmrs.module.fhir2.api.FhirMedicationRequestService;
 import org.openmrs.module.fhir2.api.annotations.R4Provider;
@@ -16,7 +15,7 @@ import org.springframework.stereotype.Component;
 @R4Provider
 public class BahmniMedicationRequestFhirR4Provider extends MedicationRequestFhirResourceProvider {
 	
-	@Setter(onMethod_ = @Autowired)
+	@Autowired
 	private FhirMedicationRequestService fhirMedicationRequestService;
 	
 	@Create

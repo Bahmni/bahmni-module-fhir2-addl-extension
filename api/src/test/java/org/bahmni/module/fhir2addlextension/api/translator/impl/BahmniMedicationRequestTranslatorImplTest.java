@@ -368,6 +368,40 @@ public class BahmniMedicationRequestTranslatorImplTest {
 	}
 	
 	@Test
+	public void toOpenmrsType_givenStoppedStatusWithPriorPrescription_shouldNotSetFulfillerComment() {
+		String priorOrderUuid = "prior-uuid-stop-fc";
+		DrugOrder priorOrder = new DrugOrder();
+		priorOrder.setUuid(priorOrderUuid);
+		when(orderService.getOrderByUuid(priorOrderUuid)).thenReturn(priorOrder);
+		
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setStatus(MedicationRequest.MedicationRequestStatus.STOPPED);
+		fhirRequest.setPriorPrescription(new Reference("MedicationRequest/" + priorOrderUuid));
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getFulfillerComment(), nullValue());
+	}
+	
+	@Test
+	public void toOpenmrsType_givenCancelledStatusWithPriorPrescription_shouldSetDiscontinueActionAndFulfillerComment() {
+		String priorOrderUuid = "prior-uuid-cancel";
+		DrugOrder priorOrder = new DrugOrder();
+		priorOrder.setUuid(priorOrderUuid);
+		when(orderService.getOrderByUuid(priorOrderUuid)).thenReturn(priorOrder);
+		
+		MedicationRequest fhirRequest = buildBaseRequest();
+		fhirRequest.setStatus(MedicationRequest.MedicationRequestStatus.CANCELLED);
+		fhirRequest.setPriorPrescription(new Reference("MedicationRequest/" + priorOrderUuid));
+		
+		DrugOrder result = translator.toOpenmrsType(new DrugOrder(), fhirRequest);
+		
+		assertThat(result.getAction(), equalTo(Order.Action.DISCONTINUE));
+		assertThat(result.getPreviousOrder(), equalTo(priorOrder));
+		assertThat(result.getFulfillerComment(), equalTo("cancelled"));
+	}
+	
+	@Test
 	public void toOpenmrsType_givenPriorPrescriptionWithPlainUuid_shouldExtractAndLinkOrder() {
 		String priorOrderUuid = "plain-uuid-no-prefix";
 		DrugOrder priorOrder = new DrugOrder();

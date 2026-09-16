@@ -12,6 +12,8 @@ package org.bahmni.module.fhir2addlextension.api.translator.impl;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
 import java.util.Calendar;
@@ -22,12 +24,15 @@ import org.junit.Before;
 import org.junit.Test;
 import org.openmrs.DrugOrder;
 import org.openmrs.Order;
+import org.openmrs.api.OrderService;
 
 public class BahmniMedicationRequestStatusTranslatorImplTest {
 	
 	private static final String DRUG_ORDER_UUID = "44fdc8ad-fe4d-499b-93a8-8a991c1d477e";
 	
 	private BahmniMedicationRequestStatusTranslatorImpl statusTranslator;
+	
+	private OrderService orderService;
 	
 	private DrugOrder drugOrder;
 	
@@ -40,6 +45,8 @@ public class BahmniMedicationRequestStatusTranslatorImplTest {
 	@Before
 	public void setup() {
 		statusTranslator = new BahmniMedicationRequestStatusTranslatorImpl();
+		orderService = mock(OrderService.class);
+		statusTranslator.setOrderService(orderService);
 		
 		Calendar cal = Calendar.getInstance();
 		today = cal.getTime();
@@ -151,6 +158,34 @@ public class BahmniMedicationRequestStatusTranslatorImplTest {
 		drugOrder.setScheduledDate(tomorrow);
 		setDateStopped(drugOrder, yesterday);
 		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.CANCELLED));
+	}
+	
+	@Test
+	public void toFhirResource_shouldReturnCancelled_whenDiscontinuationOrderFulfillerCommentIsCancelled() throws Exception {
+		setDateStopped(drugOrder, today);
+		DrugOrder discontinuationOrder = new DrugOrder();
+		discontinuationOrder.setFulfillerComment("cancelled");
+		when(orderService.getDiscontinuationOrder(drugOrder)).thenReturn(discontinuationOrder);
+		
+		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.CANCELLED));
+	}
+	
+	@Test
+	public void toFhirResource_shouldFallBackToDateLogic_whenDiscontinuationOrderFulfillerCommentIsNotCancelled()
+	        throws Exception {
+		setDateStopped(drugOrder, today);
+		DrugOrder discontinuationOrder = new DrugOrder();
+		when(orderService.getDiscontinuationOrder(drugOrder)).thenReturn(discontinuationOrder);
+		
+		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.STOPPED));
+	}
+	
+	@Test
+	public void toFhirResource_shouldFallBackToDateLogic_whenNoDiscontinuationOrderFound() throws Exception {
+		setDateStopped(drugOrder, today);
+		when(orderService.getDiscontinuationOrder(drugOrder)).thenReturn(null);
+		
+		assertThat(statusTranslator.toFhirResource(drugOrder), equalTo(MedicationRequest.MedicationRequestStatus.STOPPED));
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
