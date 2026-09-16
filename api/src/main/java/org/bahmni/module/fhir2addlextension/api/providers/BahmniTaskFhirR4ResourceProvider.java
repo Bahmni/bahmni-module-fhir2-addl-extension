@@ -41,7 +41,6 @@ public class BahmniTaskFhirR4ResourceProvider extends TaskFhirResourceProvider {
 	                Patient.SP_FAMILY, Patient.SP_NAME }, targetTypes = Patient.class) ReferenceAndListParam forReference,
 	        @OptionalParam(name = Task.SP_FOCUS, chainWhitelist = { "" }) ReferenceAndListParam focusReference,
 	        @OptionalParam(name = Task.SP_STATUS) TokenAndListParam status,
-	        @OptionalParam(name = Task.SP_CODE) TokenAndListParam taskCode,
 	        @OptionalParam(name = Task.SP_ENCOUNTER, chainWhitelist = { "" }, targetTypes = Encounter.class) ReferenceAndListParam encounterReference,
 	        @OptionalParam(name = BahmniFhirConstants.SP_TASK_NAME) StringAndListParam name,
 	        @OptionalParam(name = Task.SP_RES_ID) TokenAndListParam id,
@@ -56,7 +55,6 @@ public class BahmniTaskFhirR4ResourceProvider extends TaskFhirResourceProvider {
 		params.setForReference(forReference);
 		params.setFocusReference(focusReference);
 		params.setStatus(status);
-		params.setTaskCode(taskCode);
 		params.setEncounterReference(encounterReference);
 		params.setName(name);
 		params.setId(id);
