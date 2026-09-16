@@ -74,9 +74,6 @@ public class OpenmrsAppContext implements AppContext {
 	@Cacheable(value = "fhir2addlextensionTelecomAttributeTypeMappings")
 	public List<TelecomAttributeTypeMapping> getTelecomAttributeTypeMappings() {
 		String propertyValue = administrationService.getGlobalProperty(PROP_TELECOM_ATTRIBUTE_TYPE_MAP, "");
-		// unmodifiable: @Cacheable returns this same list instance to every caller, so it must not be
-		// mutable -- a caller sorting/adding/removing would otherwise corrupt the cached singleton for
-		// every other caller, across threads
 		return Collections.unmodifiableList(parseTelecomAttributeTypeMappings(propertyValue));
 	}
 	
