@@ -15,6 +15,9 @@ package org.bahmni.module.fhir2addlextension;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.openmrs.api.AdministrationService;
+import org.openmrs.api.GlobalPropertyListener;
+import org.openmrs.api.context.Context;
 import org.openmrs.module.BaseModuleActivator;
 import org.openmrs.module.ModuleActivator;
 
@@ -24,6 +27,8 @@ import org.openmrs.module.ModuleActivator;
 public class Fhir2AddlExtensionModuleActivator extends BaseModuleActivator {
 	
 	private Log log = LogFactory.getLog(this.getClass());
+	
+	private final GlobalPropertyListener fhirGlobalPropertyCacheInvalidator = new FhirGlobalPropertyCacheInvalidator();
 	
 	/**
 	 * @see ModuleActivator#willStart()
@@ -36,7 +41,32 @@ public class Fhir2AddlExtensionModuleActivator extends BaseModuleActivator {
 	 * @see ModuleActivator#willStop()
 	 */
 	public void willStop() {
+		deregisterCacheInvalidator(Context.getAdministrationService());
 		log.info("Shutting down FHIR2 Additional Extension Module");
+	}
+	
+	/**
+	 * @see ModuleActivator#contextRefreshed()
+	 */
+	@Override
+	public void contextRefreshed() {
+		super.contextRefreshed();
+		registerCacheInvalidator(Context.getAdministrationService());
+		log.info("FHIR2 Additional Extension Module Context Refreshed");
+	}
+	
+	/**
+	 * Re-registers on every context refresh. Removing first keeps this idempotent, so it is safe to
+	 * call repeatedly. Deliberately not guarded by an "already registered" check — that guard is
+	 * exactly what leaves the upstream FhirGlobalPropertyHolder deregistered after a refresh.
+	 */
+	void registerCacheInvalidator(AdministrationService administrationService) {
+		administrationService.removeGlobalPropertyListener(fhirGlobalPropertyCacheInvalidator);
+		administrationService.addGlobalPropertyListener(fhirGlobalPropertyCacheInvalidator);
+	}
+	
+	void deregisterCacheInvalidator(AdministrationService administrationService) {
+		administrationService.removeGlobalPropertyListener(fhirGlobalPropertyCacheInvalidator);
 	}
 	
 	@Override
