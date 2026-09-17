@@ -107,6 +107,24 @@
 		</description>
 	</globalProperty>
 	<globalProperty>
+		<property>fhir2Extension.telecomAttributeTypeMap</property>
+		<defaultValue></defaultValue>
+		<description>
+			Maps person attribute types (e.g. phoneNumber, email, alternatePhoneNumber) to FHIR Patient.telecom
+			contact points, so more than one contact type can appear in Patient.telecom at once. This is additive
+			to, not a replacement for, the base fhir2 module's own fhir2.personContactPointAttributeTypeUuid
+			property, which separately controls its own single-attribute-type telecom behaviour -- attribute
+			types configured here do not need to also be configured there.
+			Note: this property must be explicitly configured for any attribute type beyond the single one (if
+			any) already configured via fhir2.personContactPointAttributeTypeUuid -- it will not populate on its
+			own, and sites upgrading will see no additional contact types in Patient.telecom until it is set.
+			Format: multiple mappings separated by semicolon, each of the form
+			attributeTypeUuid:SYSTEM[:USE][:RANK] (USE and RANK are optional; SYSTEM/USE are case-insensitive FHIR
+			ContactPoint enum values, e.g. PHONE, EMAIL, HOME, MOBILE).
+			e.g - "14d4f66a-26fe-102b-80cb-0017a47871b2:PHONE::1;183addd6-26fe-102b-80cb-0017a47871b2:EMAIL;2c37bdc7-26fe-102b-80cb-0017a47871b2:PHONE:HOME:2"
+		</description>
+	</globalProperty>
+	<globalProperty>
 		<property>bahmni.documentUpload.maxFileSizeInMB</property>
 		<defaultValue>5</defaultValue>
 		<description>
