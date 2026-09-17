@@ -129,4 +129,61 @@ public class BahmniFhirTaskDaoImplTest {
 		
 		assertThat(params, notNullValue());
 	}
+	
+	@Test
+	public void setupSearchParams_shouldSurviveFocusParameterRebuildingWithSingleUUID() {
+		Criteria criteria = mock(Criteria.class);
+		
+		// Single focus value: Observation/{uuid}
+		ReferenceAndListParam focusRef = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam("Observation", OBS_UUID_1)));
+		
+		SearchParameterMap params = new SearchParameterMap();
+		params.addParameter("focus", focusRef);
+		
+		// Execute parameter rebuilding
+		taskDao.setupSearchParams(criteria, params);
+		
+		// Verify focus parameter survived rebuilding and is still in the map
+		assertThat(params.getParameters("focus"), notNullValue());
+	}
+	
+	@Test
+	public void setupSearchParams_shouldSurviveFocusParameterRebuildingWithMultipleUUIDs() {
+		Criteria criteria = mock(Criteria.class);
+		
+		// Multi-value focus: Observation/{uuid1},Observation/{uuid2}
+		// This is how the nurse acknowledgement UI sends OR-matching queries
+		ReferenceAndListParam focusRef = new ReferenceAndListParam().addAnd(new ReferenceOrListParam().add(
+		    new ReferenceParam("Observation", OBS_UUID_1)).add(new ReferenceParam("Observation", OBS_UUID_2)));
+		
+		SearchParameterMap params = new SearchParameterMap();
+		params.addParameter("focus", focusRef);
+		
+		// Execute parameter rebuilding with custom setupSearchParams
+		taskDao.setupSearchParams(criteria, params);
+		
+		// Verify multi-value focus parameter survived rebuilding
+		assertThat(params.getParameters("focus"), notNullValue());
+	}
+	
+	@Test
+	public void setupSearchParams_shouldPreserveFocusParameterThroughParameterRebuilding() {
+		Criteria criteria = mock(Criteria.class);
+		
+		String focusUUID = "focus-obs-uuid";
+		ReferenceAndListParam focusRef = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam("Observation", focusUUID)));
+		
+		SearchParameterMap params = new SearchParameterMap();
+		params.addParameter("focus", focusRef);
+		int paramCountBefore = params.getParameters().size();
+		
+		// Focus is handled by parent class, custom setupSearchParams should not remove it
+		taskDao.setupSearchParams(criteria, params);
+		
+		// Verify parameter count unchanged and focus parameter preserved
+		assertThat(params.getParameters().size(), equalTo(paramCountBefore));
+		assertThat(params.getParameters("focus"), notNullValue());
+	}
 }
