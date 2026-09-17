@@ -11,6 +11,7 @@ import ca.uhn.fhir.rest.param.DateRangeParam;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.StringAndListParam;
 import ca.uhn.fhir.rest.param.TokenAndListParam;
+import org.apache.commons.collections.CollectionUtils;
 import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
 import org.bahmni.module.fhir2addlextension.api.search.param.BahmniTaskSearchParams;
 import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirTaskService;
@@ -48,6 +49,10 @@ public class BahmniTaskFhirR4ResourceProvider extends TaskFhirResourceProvider {
 	        @IncludeParam(allow = { "Task:" + Task.SP_BASED_ON, "Task:" + Task.SP_OWNER,
 	                "Task:" + Task.SP_SUBJECT }) HashSet<Include> includes,
 	        @Sort SortSpec sort) {
+
+		if (CollectionUtils.isEmpty(includes)) {
+			includes = null;
+		}
 
 		BahmniTaskSearchParams params = new BahmniTaskSearchParams();
 		params.setBasedOnReference(basedOnReference);

@@ -13,7 +13,9 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Component
@@ -72,17 +74,23 @@ public class OpenmrsAppContext implements AppContext {
 		return parseStringToMap(propertyValue);
 	}
 	
+	private List<String> splitEntries(String input) {
+		List<String> entries = new ArrayList<>();
+		if (input == null || input.trim().isEmpty()) {
+			return entries;
+		}
+		for (String entry : input.split(";")) {
+			String trimmedEntry = entry.trim();
+			if (!trimmedEntry.isEmpty()) {
+				entries.add(trimmedEntry);
+			}
+		}
+		return entries;
+	}
+	
 	private Map<String, String> parseStringToMap(String input) {
 		Map<String, String> resultMap = new HashMap<>();
-		if (input == null || input.trim().isEmpty()) {
-			return resultMap;
-		}
-		String[] pairs = input.split(";");
-		for (String pair : pairs) {
-			String trimmedPair = pair.trim();
-			if (trimmedPair.isEmpty()) {
-				continue;
-			}
+		for (String trimmedPair : splitEntries(input)) {
 			int firstColonIndex = trimmedPair.indexOf(':');
 			if (firstColonIndex > 0) {
 				String key = trimmedPair.substring(0, firstColonIndex).trim();
