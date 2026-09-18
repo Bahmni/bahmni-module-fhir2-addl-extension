@@ -102,4 +102,23 @@ public class OpenmrsAppContextTest {
 		
 		assertThat(mappings, is(java.util.Collections.emptyList()));
 	}
+	
+	@Test
+	public void shouldGetOrderTypeToCategoryMap() {
+		when(adminService.getGlobalProperty(OpenmrsAppContext.PROP_ORDER_TYPE_TO_CATEGORY_MAP, "")).thenReturn(
+		    "Lab Order:laboratory; Imaging Order : imaging");
+		Map<String, String> orderTypeToCategoryMap = new OpenmrsAppContext(adminService, encounterService)
+		        .getOrderTypeToCategoryMap();
+		Assert.assertEquals("laboratory", orderTypeToCategoryMap.get("Lab Order"));
+		Assert.assertEquals("imaging", orderTypeToCategoryMap.get("Imaging Order"));
+		Assert.assertEquals(2, orderTypeToCategoryMap.size());
+	}
+	
+	@Test
+	public void shouldReturnEmptyMapForBlankOrderTypeToCategoryMap() {
+		when(adminService.getGlobalProperty(OpenmrsAppContext.PROP_ORDER_TYPE_TO_CATEGORY_MAP, "")).thenReturn("");
+		Map<String, String> orderTypeToCategoryMap = new OpenmrsAppContext(adminService, encounterService)
+		        .getOrderTypeToCategoryMap();
+		assertThat(orderTypeToCategoryMap.size(), equalTo(0));
+	}
 }
