@@ -13,6 +13,10 @@ import java.lang.reflect.Field;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.ReferenceOrListParam;
 import ca.uhn.fhir.rest.param.ReferenceParam;
+import ca.uhn.fhir.rest.param.StringAndListParam;
+import ca.uhn.fhir.rest.param.StringOrListParam;
+import ca.uhn.fhir.rest.param.StringParam;
+import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
 import org.hibernate.Criteria;
 import org.hibernate.SessionFactory;
 import org.hibernate.criterion.Criterion;
@@ -185,5 +189,90 @@ public class BahmniFhirTaskDaoImplTest {
 		// Verify parameter count unchanged and focus parameter preserved
 		assertThat(params.getParameters().size(), equalTo(paramCountBefore));
 		assertThat(params.getParameters("focus"), notNullValue());
+	}
+	
+	@Test
+	public void setupSearchParams_shouldHandleNameParameter() {
+		Criteria criteria = mock(Criteria.class);
+		
+		StringAndListParam name = new StringAndListParam().addAnd(new StringOrListParam().add(new StringParam("task-name")));
+		
+		SearchParameterMap params = new SearchParameterMap();
+		params.addParameter(BahmniFhirConstants.NAME_SEARCH_HANDLER, name);
+		
+		taskDao.setupSearchParams(criteria, params);
+		
+		assertThat(params, notNullValue());
+	}
+	
+	@Test
+	public void setupSearchParams_shouldHandleEncounterForTask() {
+		Criteria criteria = mock(Criteria.class);
+		
+		ReferenceAndListParam encounterRef = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam("Encounter", "encounter-uuid")));
+		
+		SearchParameterMap params = new SearchParameterMap();
+		params.addParameter(FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER, encounterRef);
+		
+		taskDao.setupSearchParams(criteria, params);
+		
+		assertThat(params, notNullValue());
+	}
+	
+	@Test
+	public void setupSearchParams_shouldHandleMultipleParameters() {
+		Criteria criteria = mock(Criteria.class);
+		
+		ReferenceAndListParam forRef = new ReferenceAndListParam().addAnd(new ReferenceOrListParam().add(new ReferenceParam(
+		        "Visit", "visit-uuid")));
+		StringAndListParam name = new StringAndListParam().addAnd(new StringOrListParam().add(new StringParam("task-name")));
+		ReferenceAndListParam encounterRef = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam("Encounter", "encounter-uuid")));
+		
+		SearchParameterMap params = new SearchParameterMap();
+		params.addParameter(FhirConstants.FOR_REFERENCE_SEARCH_HANDLER, forRef);
+		params.addParameter(BahmniFhirConstants.NAME_SEARCH_HANDLER, name);
+		params.addParameter(FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER, encounterRef);
+		
+		taskDao.setupSearchParams(criteria, params);
+		
+		assertThat(params, notNullValue());
+	}
+	
+	@Test
+	public void setupSearchParams_shouldHandleNullEncounterReference() {
+		Criteria criteria = mock(Criteria.class);
+		
+		SearchParameterMap params = new SearchParameterMap();
+		params.addParameter(FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER, null);
+		
+		taskDao.setupSearchParams(criteria, params);
+		
+		assertThat(params, notNullValue());
+	}
+	
+	@Test
+	public void setupSearchParams_shouldHandleNullForReference() {
+		Criteria criteria = mock(Criteria.class);
+		
+		SearchParameterMap params = new SearchParameterMap();
+		params.addParameter(FhirConstants.FOR_REFERENCE_SEARCH_HANDLER, null);
+		
+		taskDao.setupSearchParams(criteria, params);
+		
+		assertThat(params, notNullValue());
+	}
+	
+	@Test
+	public void setupSearchParams_shouldHandleNullName() {
+		Criteria criteria = mock(Criteria.class);
+		
+		SearchParameterMap params = new SearchParameterMap();
+		params.addParameter(BahmniFhirConstants.NAME_SEARCH_HANDLER, null);
+		
+		taskDao.setupSearchParams(criteria, params);
+		
+		assertThat(params, notNullValue());
 	}
 }
