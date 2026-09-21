@@ -18,6 +18,7 @@ import org.bahmni.module.fhir2addlextension.api.search.param.BahmniServiceReques
 import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirServiceRequestService;
 import org.hl7.fhir.r4.model.Encounter;
 import org.hl7.fhir.r4.model.ImagingStudy;
+import org.hl7.fhir.r4.model.Location;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Practitioner;
 import org.hl7.fhir.r4.model.ServiceRequest;
@@ -55,10 +56,12 @@ public class BahmniServiceRequestFhirR4ResourceProvider extends ServiceRequestFh
 	        @OptionalParam(name = ServiceRequest.SP_RES_ID) TokenAndListParam uuid,
 	        @OptionalParam(name = ServiceRequest.SP_CATEGORY) ReferenceAndListParam categoryReference,
 	        @OptionalParam(name = ServiceRequest.SP_BASED_ON) ReferenceAndListParam basedOnReference,
-	        @OptionalParam(name = "_lastUpdated") DateRangeParam lastUpdated, @IncludeParam(allow = {
-	                "ServiceRequest:" + ServiceRequest.SP_PATIENT, "ServiceRequest:" + ServiceRequest.SP_REQUESTER,
-	                "ServiceRequest:" + ServiceRequest.SP_ENCOUNTER }) HashSet<Include> includes,
-	        @IncludeParam(reverse = true, allow = { "ImagingStudy:" + ImagingStudy.SP_BASEDON }) HashSet<Include> revIncludes) {
+	        @OptionalParam(name = BahmniFhirConstants.SP_ORDER_LOCATION, chainWhitelist = { "" }, targetTypes = Location.class) ReferenceAndListParam locationReference,
+	        @OptionalParam(name = "_lastUpdated") DateRangeParam lastUpdated,
+	        @IncludeParam(allow = { "ServiceRequest:" + ServiceRequest.SP_PATIENT,
+	                "ServiceRequest:" + ServiceRequest.SP_REQUESTER, "ServiceRequest:" + ServiceRequest.SP_ENCOUNTER }) HashSet<Include> includes,
+	        @IncludeParam(reverse = true, allow = { "ImagingStudy:" + ImagingStudy.SP_BASEDON }) HashSet<Include> revIncludes,
+	        @Sort SortSpec sort) {
 		if (patientReference == null) {
 			patientReference = subjectReference;
 		}
@@ -69,7 +72,7 @@ public class BahmniServiceRequestFhirR4ResourceProvider extends ServiceRequestFh
 		
 		BahmniServiceRequestSearchParams searchParams = new BahmniServiceRequestSearchParams(patientReference, code,
 		        encounterReference, participantReference, categoryReference, basedOnReference, occurrence, uuid,
-		        lastUpdated, includes, revIncludes);
+		        lastUpdated, includes, revIncludes, locationReference, sort);
 		
 		return serviceRequestService.searchForServiceRequestsWithCategory(searchParams);
 	}
