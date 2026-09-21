@@ -152,4 +152,51 @@ public class OrderTypeTranslatorImplTest {
 	public void shouldThrowExceptionWhenTranslatingNullCodeableConcept() {
 		translator.toOpenmrsType(null);
 	}
+	
+	@Test
+	public void shouldIncludeCategoryCodeInCodeableConcept() {
+		java.util.Map<String, String> categoryMap = new java.util.HashMap<>();
+		categoryMap.put(ORDER_TYPE_NAME, "laboratory");
+		when(appContext.getOrderTypeToCategoryMap()).thenReturn(categoryMap);
+
+		CodeableConcept result = translator.toFhirResource(orderType);
+
+		assertThat(result.getCoding(), hasSize(2));
+
+		boolean hasCategoryCode = result.getCoding().stream()
+		    .anyMatch(c -> c.getSystem().equals(BahmniFhirConstants.ORDER_TYPE_CATEGORY_SYSTEM_URI)
+		        && c.getCode().equals("laboratory"));
+
+		assertThat(hasCategoryCode, equalTo(true));
+	}
+	
+	@Test
+	public void shouldTranslateWithMultipleCodings() {
+		CodeableConcept codeableConcept = new CodeableConcept();
+		
+		Coding systemCoding = codeableConcept.addCoding();
+		systemCoding.setSystem(BahmniFhirConstants.ORDER_TYPE_SYSTEM_URI);
+		systemCoding.setCode(ORDER_TYPE_UUID);
+		
+		Coding categoryCoding = codeableConcept.addCoding();
+		categoryCoding.setSystem(BahmniFhirConstants.ORDER_TYPE_CATEGORY_SYSTEM_URI);
+		categoryCoding.setCode("imaging");
+		
+		when(orderService.getOrderTypeByUuid(ORDER_TYPE_UUID)).thenReturn(orderType);
+		
+		OrderType result = translator.toOpenmrsType(codeableConcept);
+		
+		assertThat(result, notNullValue());
+		assertThat(result, equalTo(orderType));
+	}
+	
+	@Test
+	public void shouldHandleOrderTypeWithoutCategoryMapping() {
+		when(appContext.getOrderTypeToCategoryMap()).thenReturn(new java.util.HashMap<>());
+
+		CodeableConcept result = translator.toFhirResource(orderType);
+
+		assertThat(result.getCoding(), hasSize(1));
+		assertThat(result.getText(), notNullValue());
+	}
 }

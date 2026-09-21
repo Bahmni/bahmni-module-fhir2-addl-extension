@@ -227,4 +227,48 @@ public class BahmniTaskTranslatorImplTest {
 		
 		assertThat(result.hasOwner(), equalTo(false));
 	}
+	
+	@Test
+	public void toFhirResource_shouldNotOverwriteOwnerWhenAlreadySet() {
+		FhirReference ownerRef = new FhirReference();
+		ownerRef.setReference("Practitioner/existing-prac");
+		ownerRef.setType("Practitioner");
+		
+		FhirTask fhirTask = new FhirTask();
+		fhirTask.setStatus(FhirTask.TaskStatus.COMPLETED);
+		fhirTask.setIntent(FhirTask.TaskIntent.ORDER);
+		fhirTask.setOwnerReference(ownerRef);
+		fhirTask.setInput(Collections.emptySet());
+		fhirTask.setOutput(Collections.emptySet());
+		
+		PersonName personName = new PersonName("Dr. John", null, "Doe");
+		Person person = new Person();
+		person.addName(personName);
+		Provider provider = new Provider();
+		provider.setPerson(person);
+		when(providerReferenceTranslator.toOpenmrsType(any(Reference.class))).thenReturn(provider);
+		when(referenceTranslator.toFhirResource(any())).thenReturn(
+		    new Reference("Practitioner/existing-prac").setType("Practitioner"));
+		
+		Task result = translator.toFhirResource(fhirTask);
+		
+		// Owner reference should be preserved, not overwritten
+		assertThat(result.hasOwner(), equalTo(true));
+		assertThat(result.getOwner().getDisplay(), equalTo("Dr. John Doe"));
+	}
+	
+	@Test
+	public void toFhirResource_shouldHandleNullNameExtension() {
+		FhirTask fhirTask = new FhirTask();
+		fhirTask.setName(null);
+		fhirTask.setStatus(FhirTask.TaskStatus.COMPLETED);
+		fhirTask.setIntent(FhirTask.TaskIntent.ORDER);
+		fhirTask.setInput(Collections.emptySet());
+		fhirTask.setOutput(Collections.emptySet());
+		
+		Task result = translator.toFhirResource(fhirTask);
+		
+		assertThat(result.getExtensionByUrl(BahmniFhirConstants.FHIR_EXT_TASK_NAME), nullValue());
+	}
+	
 }

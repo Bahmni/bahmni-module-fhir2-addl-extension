@@ -3,6 +3,8 @@ package org.bahmni.module.fhir2addlextension.api.dao.impl;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -70,10 +72,8 @@ public class BahmniFhirTaskDaoImplTest {
 		        .add(new ReferenceParam("Observation", OBS_UUID_1)));
 		
 		SearchParameterMap params = new SearchParameterMap();
-		// Focus is a standard FHIR Task parameter handled by parent class
 		params.addParameter("focus", focusRef);
 		
-		// Should not throw exception when processing parameters
 		taskDao.setupSearchParams(criteria, params);
 		assertThat(params, notNullValue());
 	}
@@ -82,7 +82,6 @@ public class BahmniFhirTaskDaoImplTest {
 	public void setupSearchParams_shouldHandleMultiValueFocusParameter() {
 		Criteria criteria = mock(Criteria.class);
 		
-		// Multi-value focus: comma-separated UUIDs as the nurse acknowledgement UI sends
 		ReferenceAndListParam focusRef = new ReferenceAndListParam().addAnd(new ReferenceOrListParam().add(
 		    new ReferenceParam("Observation", OBS_UUID_1)).add(new ReferenceParam("Observation", OBS_UUID_2)));
 		
@@ -91,7 +90,6 @@ public class BahmniFhirTaskDaoImplTest {
 		
 		taskDao.setupSearchParams(criteria, params);
 		
-		// Verify multi-value focus parameter survives parameter rebuilding
 		assertThat(params, notNullValue());
 	}
 	
@@ -107,13 +105,11 @@ public class BahmniFhirTaskDaoImplTest {
 		
 		taskDao.setupSearchParams(criteria, params);
 		
-		// Verify handleForReference was called to process the subject parameter
 		ArgumentCaptor<Criterion> criterionCaptor = ArgumentCaptor.forClass(Criterion.class);
 		verify(criteria, times(1)).add(criterionCaptor.capture());
 		
 		Criterion capturedCriterion = criterionCaptor.getValue();
 		assertThat(capturedCriterion, notNullValue());
-		// Criterion.toString() will show the SQL-like representation containing targetUuid
 		String criterionStr = capturedCriterion.toString();
 		assertThat(criterionStr.contains("targetUuid"), equalTo(true));
 	}
@@ -128,7 +124,6 @@ public class BahmniFhirTaskDaoImplTest {
 		SearchParameterMap params = new SearchParameterMap();
 		params.addParameter(FhirConstants.FOR_REFERENCE_SEARCH_HANDLER, forReference);
 		
-		// Should process without throwing exception
 		taskDao.setupSearchParams(criteria, params);
 		
 		assertThat(params, notNullValue());
@@ -138,17 +133,14 @@ public class BahmniFhirTaskDaoImplTest {
 	public void setupSearchParams_shouldSurviveFocusParameterRebuildingWithSingleUUID() {
 		Criteria criteria = mock(Criteria.class);
 		
-		// Single focus value: Observation/{uuid}
 		ReferenceAndListParam focusRef = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
 		        .add(new ReferenceParam("Observation", OBS_UUID_1)));
 		
 		SearchParameterMap params = new SearchParameterMap();
 		params.addParameter("focus", focusRef);
 		
-		// Execute parameter rebuilding
 		taskDao.setupSearchParams(criteria, params);
 		
-		// Verify focus parameter survived rebuilding and is still in the map
 		assertThat(params.getParameters("focus"), notNullValue());
 	}
 	
@@ -156,18 +148,14 @@ public class BahmniFhirTaskDaoImplTest {
 	public void setupSearchParams_shouldSurviveFocusParameterRebuildingWithMultipleUUIDs() {
 		Criteria criteria = mock(Criteria.class);
 		
-		// Multi-value focus: Observation/{uuid1},Observation/{uuid2}
-		// This is how the nurse acknowledgement UI sends OR-matching queries
 		ReferenceAndListParam focusRef = new ReferenceAndListParam().addAnd(new ReferenceOrListParam().add(
 		    new ReferenceParam("Observation", OBS_UUID_1)).add(new ReferenceParam("Observation", OBS_UUID_2)));
 		
 		SearchParameterMap params = new SearchParameterMap();
 		params.addParameter("focus", focusRef);
 		
-		// Execute parameter rebuilding with custom setupSearchParams
 		taskDao.setupSearchParams(criteria, params);
 		
-		// Verify multi-value focus parameter survived rebuilding
 		assertThat(params.getParameters("focus"), notNullValue());
 	}
 	
@@ -183,10 +171,8 @@ public class BahmniFhirTaskDaoImplTest {
 		params.addParameter("focus", focusRef);
 		int paramCountBefore = params.getParameters().size();
 		
-		// Focus is handled by parent class, custom setupSearchParams should not remove it
 		taskDao.setupSearchParams(criteria, params);
 		
-		// Verify parameter count unchanged and focus parameter preserved
 		assertThat(params.getParameters().size(), equalTo(paramCountBefore));
 		assertThat(params.getParameters("focus"), notNullValue());
 	}
@@ -253,7 +239,31 @@ public class BahmniFhirTaskDaoImplTest {
 	}
 	
 	@Test
-	public void setupSearchParams_shouldHandleNullForReference() {
+	public void setupSearchParams_shouldHandleNullName() {
+		Criteria criteria = mock(Criteria.class);
+		
+		SearchParameterMap params = new SearchParameterMap();
+		params.addParameter(BahmniFhirConstants.NAME_SEARCH_HANDLER, null);
+		
+		taskDao.setupSearchParams(criteria, params);
+		
+		assertThat(params, notNullValue());
+	}
+	
+	@Test
+	public void setupSearchParams_shouldIgnoreEncounterReferenceWhenNull() {
+		Criteria criteria = mock(Criteria.class);
+		
+		SearchParameterMap params = new SearchParameterMap();
+		params.addParameter(FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER, null);
+		
+		taskDao.setupSearchParams(criteria, params);
+		
+		assertThat(params, notNullValue());
+	}
+	
+	@Test
+	public void setupSearchParams_shouldIgnoreForReferenceWhenNull() {
 		Criteria criteria = mock(Criteria.class);
 		
 		SearchParameterMap params = new SearchParameterMap();
@@ -265,14 +275,55 @@ public class BahmniFhirTaskDaoImplTest {
 	}
 	
 	@Test
-	public void setupSearchParams_shouldHandleNullName() {
+	public void setupSearchParams_shouldAddNameRestriction() {
 		Criteria criteria = mock(Criteria.class);
 		
+		StringAndListParam name = new StringAndListParam().addAnd(new StringOrListParam().add(new StringParam("task-name")));
+		
 		SearchParameterMap params = new SearchParameterMap();
-		params.addParameter(BahmniFhirConstants.NAME_SEARCH_HANDLER, null);
+		params.addParameter(BahmniFhirConstants.NAME_SEARCH_HANDLER, name);
 		
 		taskDao.setupSearchParams(criteria, params);
 		
-		assertThat(params, notNullValue());
+		ArgumentCaptor<Criterion> criterionCaptor = ArgumentCaptor.forClass(Criterion.class);
+		verify(criteria, atLeastOnce()).add(criterionCaptor.capture());
+		assertThat(criterionCaptor.getAllValues().stream().anyMatch(c -> c.toString().contains("name=task-name")),
+		    equalTo(true));
+	}
+	
+	@Test
+	public void setupSearchParams_shouldAddEncounterTargetUuidRestriction() {
+		Criteria criteria = mock(Criteria.class);
+		
+		ReferenceAndListParam encounterRef = new ReferenceAndListParam().addAnd(new ReferenceOrListParam().add(
+		    new ReferenceParam("Encounter", "encounter-uuid")));
+		
+		SearchParameterMap params = new SearchParameterMap();
+		params.addParameter(FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER, encounterRef);
+		
+		taskDao.setupSearchParams(criteria, params);
+		
+		ArgumentCaptor<Criterion> criterionCaptor = ArgumentCaptor.forClass(Criterion.class);
+		verify(criteria, atLeastOnce()).add(criterionCaptor.capture());
+		assertThat(criterionCaptor.getAllValues().stream().anyMatch(c -> c.toString().contains("er.targetUuid")),
+		    equalTo(true));
+	}
+	
+	@Test
+	public void setupSearchParams_shouldNotAddTargetUuidRestrictionForForReferenceWithoutIdPart() {
+		Criteria criteria = mock(Criteria.class);
+		
+		ReferenceAndListParam forReference = new ReferenceAndListParam().addAnd(new ReferenceOrListParam().add(
+		    new ReferenceParam()));
+		
+		SearchParameterMap params = new SearchParameterMap();
+		params.addParameter(FhirConstants.FOR_REFERENCE_SEARCH_HANDLER, forReference);
+		
+		taskDao.setupSearchParams(criteria, params);
+		
+		ArgumentCaptor<Criterion> criterionCaptor = ArgumentCaptor.forClass(Criterion.class);
+		verify(criteria, atLeastOnce()).add(criterionCaptor.capture());
+		assertThat(criterionCaptor.getAllValues().stream().noneMatch(c -> c.toString().contains("fr.targetUuid")),
+		    equalTo(true));
 	}
 }
