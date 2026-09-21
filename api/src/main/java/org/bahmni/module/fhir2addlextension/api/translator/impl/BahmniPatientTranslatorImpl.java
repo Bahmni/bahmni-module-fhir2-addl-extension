@@ -26,6 +26,7 @@ import org.hl7.fhir.r4.model.Type;
 import org.openmrs.PersonAttribute;
 import org.openmrs.PersonAttributeType;
 import org.openmrs.PersonName;
+import org.openmrs.api.AdministrationService;
 import org.openmrs.api.PersonService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.fhir2.FhirConstants;
@@ -60,7 +61,10 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 	
 	@Autowired
 	private FhirGlobalPropertyService globalPropertyService;
-	
+
+	@Autowired
+	private AdministrationService administrationService;
+
 	@Autowired
 	private AppContext appContext;
 	
@@ -80,7 +84,11 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 	void setGlobalPropertyService(FhirGlobalPropertyService globalPropertyService) {
 		this.globalPropertyService = globalPropertyService;
 	}
-	
+
+	void setAdministrationService(AdministrationService administrationService) {
+		this.administrationService = administrationService;
+	}
+
 	void setAppContext(AppContext appContext) {
 		this.appContext = appContext;
 	}
@@ -243,7 +251,7 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 			}
 		}
 
-		String configuredUuid = globalPropertyService.getGlobalProperty(FhirConstants.PERSON_CONTACT_POINT_ATTRIBUTE_TYPE);
+		String configuredUuid = administrationService.getGlobalProperty(FhirConstants.PERSON_CONTACT_POINT_ATTRIBUTE_TYPE);
 		return configuredUuid == null ? null : personService.getPersonAttributeTypeByUuid(configuredUuid);
 	}
 	
