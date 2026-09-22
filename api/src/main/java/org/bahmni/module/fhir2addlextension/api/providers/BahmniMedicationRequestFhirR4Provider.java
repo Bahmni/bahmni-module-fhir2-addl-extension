@@ -61,6 +61,7 @@ public class BahmniMedicationRequestFhirR4Provider extends MedicationRequestFhir
 	        @OptionalParam(name = MedicationRequest.SP_STATUS) TokenAndListParam status,
 	        @OptionalParam(name = FhirConstants.SP_FULFILLER_STATUS) TokenAndListParam fulfillerStatus,
 	        @OptionalParam(name = BahmniFhirConstants.SP_ORDER_LOCATION, chainWhitelist = { "" }, targetTypes = Location.class) ReferenceAndListParam locationReference,
+	        @OptionalParam(name = BahmniFhirConstants.SP_VISIT, chainWhitelist = { "" }) ReferenceAndListParam visitReference,
 	        @OptionalParam(name = "_lastUpdated") DateRangeParam lastUpdated,
 	        @IncludeParam(allow = { "MedicationRequest:" + MedicationRequest.SP_MEDICATION,
 	                "MedicationRequest:" + MedicationRequest.SP_REQUESTER,
@@ -82,7 +83,7 @@ public class BahmniMedicationRequestFhirR4Provider extends MedicationRequestFhir
 		
 		return fhirMedicationRequestService.searchForMedicationRequests(new BahmniMedicationRequestSearchParams(
 		        patientReference, encounterReference, code, participantReference, medicationReference, id, status,
-		        fulfillerStatus, locationReference, lastUpdated, includes, revIncludes, sort));
+		        fulfillerStatus, locationReference, lastUpdated, includes, revIncludes, sort, visitReference));
 	}
 	
 }

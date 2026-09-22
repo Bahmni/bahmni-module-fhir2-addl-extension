@@ -75,7 +75,10 @@ public class BahmniFhirMedicationRequestDaoImpl extends FhirMedicationRequestDao
 		theParams.getParameters().forEach(entry -> {
 			if (BahmniFhirConstants.ORDER_LOCATION_SEARCH_HANDLER.equals(entry.getKey())) {
 				entry.getValue().forEach(
-				    param -> handleLocationReference(ctx, (ReferenceAndListParam) param.getParam()));
+				    param -> handleLocationReference(criteria, (ReferenceAndListParam) param.getParam()));
+			} else if (BahmniFhirConstants.VISIT_REFERENCE_SEARCH_HANDLER.equals(entry.getKey())) {
+				entry.getValue().forEach(
+				    param -> handleVisitReference(ctx, (ReferenceAndListParam) param.getParam()));
 			}
 		});
 	}
@@ -90,5 +93,14 @@ public class BahmniFhirMedicationRequestDaoImpl extends FhirMedicationRequestDao
 		handleAndListParam(ctx.getCriteriaBuilder(), locationReference,
 		    token -> Optional.of(ctx.getCriteriaBuilder().equal(lJoin.get("uuid"), token.getValue())))
 		        .ifPresent(ctx::addPredicate);
+	}
+	private void handleVisitReference(Criteria criteria, ReferenceAndListParam visitReference) {
+		if (visitReference == null)
+			return;
+		if (lacksAlias(criteria, "e"))
+			criteria.createAlias("encounter", "e");
+		if (lacksAlias(criteria, "v"))
+			criteria.createAlias("e.visit", "v");
+		handleAndListParam(visitReference, token -> Optional.of(eq("v.uuid", token.getValue()))).ifPresent(criteria::add);
 	}
 }
