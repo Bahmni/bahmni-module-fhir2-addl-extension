@@ -28,7 +28,7 @@ public class BahmniFhirMedicationRequestDaoImpl extends FhirMedicationRequestDao
 	public DrugOrder createOrUpdate(@Nonnull DrugOrder newEntry) {
 		return (DrugOrder) orderService.saveOrder(newEntry, null);
 	}
-
+	
 	@Override
 	protected <U> Optional<javax.persistence.criteria.Predicate> handleCodedConcept(
 	        OpenmrsFhirCriteriaContext<DrugOrder, U> ctx, TokenAndListParam code) {
@@ -55,6 +55,9 @@ public class BahmniFhirMedicationRequestDaoImpl extends FhirMedicationRequestDao
 			if (BahmniFhirConstants.ORDER_LOCATION_SEARCH_HANDLER.equals(entry.getKey())) {
 				entry.getValue().forEach(
 				    param -> handleLocationReference(ctx, (ReferenceAndListParam) param.getParam()));
+			} else if (BahmniFhirConstants.VISIT_REFERENCE_SEARCH_HANDLER.equals(entry.getKey())) {
+				entry.getValue().forEach(
+				    param -> handleVisitReference(ctx, (ReferenceAndListParam) param.getParam()));
 			}
 		});
 	}
@@ -68,6 +71,18 @@ public class BahmniFhirMedicationRequestDaoImpl extends FhirMedicationRequestDao
 		Join<?, ?> lJoin = ctx.getJoin("l").orElseGet(() -> ctx.addJoin(eJoin, "location", "l"));
 		handleAndListParam(ctx.getCriteriaBuilder(), locationReference,
 		    token -> Optional.of(ctx.getCriteriaBuilder().equal(lJoin.get("uuid"), token.getValue())))
+		        .ifPresent(ctx::addPredicate);
+	}
+	
+	private <U> void handleVisitReference(OpenmrsFhirCriteriaContext<DrugOrder, U> ctx,
+	        ReferenceAndListParam visitReference) {
+		if (visitReference == null) {
+			return;
+		}
+		Join<?, ?> eJoin = ctx.getJoin("e").orElseGet(() -> ctx.addJoin("encounter", "e"));
+		Join<?, ?> vJoin = ctx.getJoin("v").orElseGet(() -> ctx.addJoin(eJoin, "visit", "v"));
+		handleAndListParam(ctx.getCriteriaBuilder(), visitReference,
+		    token -> Optional.of(ctx.getCriteriaBuilder().equal(vJoin.get("uuid"), token.getIdPart())))
 		        .ifPresent(ctx::addPredicate);
 	}
 }
