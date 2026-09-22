@@ -88,6 +88,9 @@ public final class BahmniFhirConstants {
 	public static final String SP_ORDER_LOCATION = "location";
 	public static final String ORDER_LOCATION_SEARCH_HANDLER = "order.location.search.handler";
 
+	public static final String SP_VISIT = "visit";
+	public static final String VISIT_REFERENCE_SEARCH_HANDLER = "medication.request.visit.search.handler";
+
 	public static final String FHIR_EXT_MEDICATION_REQUEST_ADMISSION_STATUS = EXTENSION_PREFIX
 	        + "/medication-request/admission-status";
 
