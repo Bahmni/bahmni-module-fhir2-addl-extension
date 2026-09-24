@@ -119,9 +119,8 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 	 */
 	@Override
 	public List<ContactPoint> getPatientContactDetails(@Nonnull org.openmrs.Patient patient) {
-		String attributeTypeUuid = administrationService
-				.getGlobalProperty(FhirConstants.PERSON_CONTACT_POINT_ATTRIBUTE_TYPE);
-		if (attributeTypeUuid == null || attributeTypeUuid.isEmpty()) {
+		String attributeTypeUuid = getConfiguredContactPointAttributeTypeUuid();
+		if (attributeTypeUuid == null) {
 			return Collections.emptyList();
 		}
 		return fhirPersonDao.getActiveAttributesByPersonAndAttributeTypeUuid(patient, attributeTypeUuid).stream()
@@ -286,8 +285,13 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 			}
 		}
 
-		String configuredUuid = administrationService.getGlobalProperty(FhirConstants.PERSON_CONTACT_POINT_ATTRIBUTE_TYPE);
+		String configuredUuid = getConfiguredContactPointAttributeTypeUuid();
 		return configuredUuid == null ? null : personService.getPersonAttributeTypeByUuid(configuredUuid);
+	}
+	
+	private String getConfiguredContactPointAttributeTypeUuid() {
+		String uuid = administrationService.getGlobalProperty(FhirConstants.PERSON_CONTACT_POINT_ATTRIBUTE_TYPE);
+		return uuid == null || uuid.isEmpty() ? null : uuid;
 	}
 	
 	void addBirthTimeExtension(Patient fhirPatient, org.openmrs.Patient openmrsPatient) {
