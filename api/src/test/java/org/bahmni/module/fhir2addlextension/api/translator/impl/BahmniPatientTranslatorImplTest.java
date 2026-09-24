@@ -10,16 +10,18 @@ import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.StringType;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner.Silent;
+import org.mockito.Mockito;
+import org.openmrs.BaseOpenmrsData;
 import org.openmrs.PersonAddress;
 import org.openmrs.PersonAttribute;
 import org.openmrs.PersonAttributeType;
 import org.openmrs.PersonName;
+import org.openmrs.api.AdministrationService;
 import org.openmrs.api.PersonService;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.FhirGlobalPropertyService;
+import org.openmrs.module.fhir2.api.dao.FhirPersonDao;
+import org.openmrs.module.fhir2.api.translators.TelecomTranslator;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -31,21 +33,22 @@ import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-@RunWith(Silent.class)
 public class BahmniPatientTranslatorImplTest {
 	
 	private static final String PREFIX = "http://fhir.bahmni.org/ext/patient/";
 	
-	@Mock
 	private org.bahmni.module.fhir2addlextension.api.translator.PersonAttributeExtensionTranslator personAttributeTranslator;
 	
-	@Mock
 	private PersonService personService;
 	
-	@Mock
 	private FhirGlobalPropertyService globalPropertyService;
 	
-	@Mock
+	private AdministrationService administrationService;
+	
+	private FhirPersonDao fhirPersonDao;
+	
+	private TelecomTranslator<BaseOpenmrsData> telecomTranslator;
+	
 	private AppContext appContext;
 	
 	private BahmniPatientTranslatorImpl translator;
@@ -58,10 +61,22 @@ public class BahmniPatientTranslatorImplTest {
 	
 	@Before
 	public void setup() {
+		personAttributeTranslator = Mockito
+		        .mock(org.bahmni.module.fhir2addlextension.api.translator.PersonAttributeExtensionTranslator.class);
+		personService = Mockito.mock(PersonService.class);
+		globalPropertyService = Mockito.mock(FhirGlobalPropertyService.class);
+		administrationService = Mockito.mock(AdministrationService.class);
+		fhirPersonDao = Mockito.mock(FhirPersonDao.class);
+		telecomTranslator = Mockito.mock(TelecomTranslator.class);
+		appContext = Mockito.mock(AppContext.class);
+		
 		translator = new BahmniPatientTranslatorImpl();
 		translator.setPersonAttributeTranslator(personAttributeTranslator);
 		translator.setPersonService(personService);
 		translator.setGlobalPropertyService(globalPropertyService);
+		translator.setAdministrationService(administrationService);
+		translator.setFhirPersonDao(fhirPersonDao);
+		translator.setTelecomTranslator(telecomTranslator);
 		translator.setAppContext(appContext);
 		
 		phoneType = new PersonAttributeType();
@@ -521,6 +536,93 @@ public class BahmniPatientTranslatorImplTest {
 		translator.voidExistingAddresses(patient, new Patient());
 		
 		assertFalse(addr.getVoided());
+	}
+	
+	// --- getPatientContactDetails ---
+	
+	@Test
+	public void getPatientContactDetails_shouldReturnEmptyListWhenAttributeTypeUuidIsNull() {
+		org.openmrs.Patient patient = new org.openmrs.Patient();
+		
+		when(administrationService.getGlobalProperty(FhirConstants.PERSON_CONTACT_POINT_ATTRIBUTE_TYPE)).thenReturn(null);
+		
+		List<ContactPoint> result = translator.getPatientContactDetails(patient);
+		
+		assertTrue(result.isEmpty());
+	}
+	
+	@Test
+	public void getPatientContactDetails_shouldReturnEmptyListWhenAttributeTypeUuidIsEmpty() {
+		org.openmrs.Patient patient = new org.openmrs.Patient();
+		
+		when(administrationService.getGlobalProperty(FhirConstants.PERSON_CONTACT_POINT_ATTRIBUTE_TYPE)).thenReturn("");
+		
+		List<ContactPoint> result = translator.getPatientContactDetails(patient);
+		
+		assertTrue(result.isEmpty());
+	}
+	
+	@Test
+	public void getPatientContactDetails_shouldReturnContactPointsWhenAttributesExist() {
+		org.openmrs.Patient patient = new org.openmrs.Patient();
+		PersonAttribute phoneAttr = new PersonAttribute(phoneType, "+919876543210");
+		
+		ContactPoint expectedContactPoint = new ContactPoint();
+		expectedContactPoint.setSystem(ContactPoint.ContactPointSystem.PHONE);
+		expectedContactPoint.setValue("+919876543210");
+		
+		when(administrationService.getGlobalProperty(FhirConstants.PERSON_CONTACT_POINT_ATTRIBUTE_TYPE)).thenReturn(
+		    "phone-uuid");
+		when(fhirPersonDao.getActiveAttributesByPersonAndAttributeTypeUuid(patient, "phone-uuid")).thenReturn(
+		    Collections.singletonList(phoneAttr));
+		when(telecomTranslator.toFhirResource(phoneAttr)).thenReturn(expectedContactPoint);
+		
+		List<ContactPoint> result = translator.getPatientContactDetails(patient);
+		
+		assertEquals(1, result.size());
+		assertEquals(expectedContactPoint, result.get(0));
+	}
+	
+	@Test
+	public void getPatientContactDetails_shouldReturnEmptyListWhenNoAttributesFound() {
+		org.openmrs.Patient patient = new org.openmrs.Patient();
+		
+		when(administrationService.getGlobalProperty(FhirConstants.PERSON_CONTACT_POINT_ATTRIBUTE_TYPE)).thenReturn(
+		    "phone-uuid");
+		when(fhirPersonDao.getActiveAttributesByPersonAndAttributeTypeUuid(patient, "phone-uuid")).thenReturn(
+		    Collections.emptyList());
+		
+		List<ContactPoint> result = translator.getPatientContactDetails(patient);
+		
+		assertTrue(result.isEmpty());
+	}
+	
+	@Test
+	public void getPatientContactDetails_shouldHandleMultipleContactPoints() {
+		org.openmrs.Patient patient = new org.openmrs.Patient();
+		PersonAttribute phoneAttr = new PersonAttribute(phoneType, "+919876543210");
+		PersonAttribute emailAttr = new PersonAttribute(emailType, "test@example.com");
+		
+		ContactPoint phoneContactPoint = new ContactPoint();
+		phoneContactPoint.setSystem(ContactPoint.ContactPointSystem.PHONE);
+		phoneContactPoint.setValue("+919876543210");
+		
+		ContactPoint emailContactPoint = new ContactPoint();
+		emailContactPoint.setSystem(ContactPoint.ContactPointSystem.EMAIL);
+		emailContactPoint.setValue("test@example.com");
+		
+		when(administrationService.getGlobalProperty(FhirConstants.PERSON_CONTACT_POINT_ATTRIBUTE_TYPE)).thenReturn(
+		    "phone-uuid");
+		when(fhirPersonDao.getActiveAttributesByPersonAndAttributeTypeUuid(patient, "phone-uuid")).thenReturn(
+		    Arrays.asList(phoneAttr, emailAttr));
+		when(telecomTranslator.toFhirResource(phoneAttr)).thenReturn(phoneContactPoint);
+		when(telecomTranslator.toFhirResource(emailAttr)).thenReturn(emailContactPoint);
+		
+		List<ContactPoint> result = translator.getPatientContactDetails(patient);
+		
+		assertEquals(2, result.size());
+		assertTrue(result.contains(phoneContactPoint));
+		assertTrue(result.contains(emailContactPoint));
 	}
 	
 }
