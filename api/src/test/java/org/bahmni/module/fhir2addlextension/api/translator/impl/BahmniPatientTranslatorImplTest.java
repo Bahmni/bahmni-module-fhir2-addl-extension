@@ -216,7 +216,7 @@ public class BahmniPatientTranslatorImplTest {
 	public void resolvePersonAttributeTypeForContactPoint_shouldFallBackToConfiguredTypeWhenNoSystem() {
 		ContactPoint contactPoint = new ContactPoint();
 		
-		when(globalPropertyService.getGlobalProperty(FhirConstants.PERSON_CONTACT_POINT_ATTRIBUTE_TYPE)).thenReturn(
+		when(administrationService.getGlobalProperty(FhirConstants.PERSON_CONTACT_POINT_ATTRIBUTE_TYPE)).thenReturn(
 		    "phone-uuid");
 		when(personService.getPersonAttributeTypeByUuid("phone-uuid")).thenReturn(phoneType);
 		
@@ -231,7 +231,7 @@ public class BahmniPatientTranslatorImplTest {
 		ContactPoint contactPoint = new ContactPoint();
 		contactPoint.setSystem(ContactPoint.ContactPointSystem.FAX);
 		
-		when(globalPropertyService.getGlobalProperty(FhirConstants.PERSON_CONTACT_POINT_ATTRIBUTE_TYPE)).thenReturn(
+		when(administrationService.getGlobalProperty(FhirConstants.PERSON_CONTACT_POINT_ATTRIBUTE_TYPE)).thenReturn(
 		    "phone-uuid");
 		when(personService.getPersonAttributeTypeByUuid("phone-uuid")).thenReturn(phoneType);
 		
