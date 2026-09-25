@@ -23,13 +23,16 @@ import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.Extension;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Type;
+import org.openmrs.BaseOpenmrsData;
 import org.openmrs.PersonAttribute;
 import org.openmrs.PersonAttributeType;
 import org.openmrs.PersonName;
+import org.openmrs.api.AdministrationService;
 import org.openmrs.api.PersonService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.fhir2.FhirConstants;
-import org.openmrs.module.fhir2.api.FhirGlobalPropertyService;
+import org.openmrs.module.fhir2.api.dao.FhirPersonDao;
+import org.openmrs.module.fhir2.api.translators.TelecomTranslator;
 import org.openmrs.module.fhir2.api.translators.impl.PatientTranslatorImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,10 +62,25 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 	private PersonService personService;
 	
 	@Autowired
-	private FhirGlobalPropertyService globalPropertyService;
+	@Qualifier("adminService")
+	private AdministrationService administrationService;
+	
+	@Autowired
+	private FhirPersonDao fhirPersonDao;
+	
+	@Autowired
+	private TelecomTranslator<BaseOpenmrsData> telecomTranslator;
 	
 	@Autowired
 	private AppContext appContext;
+	
+	void setFhirPersonDao(FhirPersonDao fhirPersonDao) {
+		this.fhirPersonDao = fhirPersonDao;
+	}
+	
+	void setTelecomTranslator(TelecomTranslator<BaseOpenmrsData> telecomTranslator) {
+		this.telecomTranslator = telecomTranslator;
+	}
 	
 	void setPersonAttributeTranslator(
 	        org.bahmni.module.fhir2addlextension.api.translator.PersonAttributeExtensionTranslator translator) {
@@ -77,12 +95,28 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 		this.personService = personService;
 	}
 	
-	void setGlobalPropertyService(FhirGlobalPropertyService globalPropertyService) {
-		this.globalPropertyService = globalPropertyService;
+	void setAdministrationService(AdministrationService administrationService) {
+		this.administrationService = administrationService;
 	}
 	
 	void setAppContext(AppContext appContext) {
 		this.appContext = appContext;
+	}
+	
+	/**
+	 * The base fhir2 module reads the person contact point attribute type GP through
+	 * FhirGlobalPropertyHolder, a static cache that stops receiving global property change events
+	 * after Spring context refreshes (BAH-4685). Reading via AdministrationService always returns
+	 * the current DB value.
+	 */
+	@Override
+	public List<ContactPoint> getPatientContactDetails(@Nonnull org.openmrs.Patient patient) {
+		String attributeTypeUuid = getConfiguredContactPointAttributeTypeUuid();
+		if (attributeTypeUuid == null) {
+			return Collections.emptyList();
+		}
+		return fhirPersonDao.getActiveAttributesByPersonAndAttributeTypeUuid(patient, attributeTypeUuid).stream()
+				.map(telecomTranslator::toFhirResource).collect(Collectors.toList());
 	}
 	
 	@Override
@@ -243,8 +277,13 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 			}
 		}
 
-		String configuredUuid = globalPropertyService.getGlobalProperty(FhirConstants.PERSON_CONTACT_POINT_ATTRIBUTE_TYPE);
+		String configuredUuid = getConfiguredContactPointAttributeTypeUuid();
 		return configuredUuid == null ? null : personService.getPersonAttributeTypeByUuid(configuredUuid);
+	}
+	
+	private String getConfiguredContactPointAttributeTypeUuid() {
+		String uuid = administrationService.getGlobalProperty(FhirConstants.PERSON_CONTACT_POINT_ATTRIBUTE_TYPE);
+		return uuid == null || uuid.isEmpty() ? null : uuid;
 	}
 	
 	void addBirthTimeExtension(Patient fhirPatient, org.openmrs.Patient openmrsPatient) {
