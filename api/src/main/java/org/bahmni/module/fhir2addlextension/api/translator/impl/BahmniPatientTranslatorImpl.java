@@ -31,7 +31,6 @@ import org.openmrs.api.AdministrationService;
 import org.openmrs.api.PersonService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.fhir2.FhirConstants;
-import org.openmrs.module.fhir2.api.FhirGlobalPropertyService;
 import org.openmrs.module.fhir2.api.dao.FhirPersonDao;
 import org.openmrs.module.fhir2.api.translators.TelecomTranslator;
 import org.openmrs.module.fhir2.api.translators.impl.PatientTranslatorImpl;
@@ -61,9 +60,6 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 	@Autowired
 	@Qualifier("personService")
 	private PersonService personService;
-	
-	@Autowired
-	private FhirGlobalPropertyService globalPropertyService;
 	
 	@Autowired
 	@Qualifier("adminService")
@@ -97,10 +93,6 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 	
 	void setPersonService(PersonService personService) {
 		this.personService = personService;
-	}
-	
-	void setGlobalPropertyService(FhirGlobalPropertyService globalPropertyService) {
-		this.globalPropertyService = globalPropertyService;
 	}
 	
 	void setAdministrationService(AdministrationService administrationService) {

@@ -19,7 +19,6 @@ import org.openmrs.PersonName;
 import org.openmrs.api.AdministrationService;
 import org.openmrs.api.PersonService;
 import org.openmrs.module.fhir2.FhirConstants;
-import org.openmrs.module.fhir2.api.FhirGlobalPropertyService;
 import org.openmrs.module.fhir2.api.dao.FhirPersonDao;
 import org.openmrs.module.fhir2.api.translators.TelecomTranslator;
 
@@ -40,8 +39,6 @@ public class BahmniPatientTranslatorImplTest {
 	private org.bahmni.module.fhir2addlextension.api.translator.PersonAttributeExtensionTranslator personAttributeTranslator;
 	
 	private PersonService personService;
-	
-	private FhirGlobalPropertyService globalPropertyService;
 	
 	private AdministrationService administrationService;
 	
@@ -64,7 +61,6 @@ public class BahmniPatientTranslatorImplTest {
 		personAttributeTranslator = Mockito
 		        .mock(org.bahmni.module.fhir2addlextension.api.translator.PersonAttributeExtensionTranslator.class);
 		personService = Mockito.mock(PersonService.class);
-		globalPropertyService = Mockito.mock(FhirGlobalPropertyService.class);
 		administrationService = Mockito.mock(AdministrationService.class);
 		fhirPersonDao = Mockito.mock(FhirPersonDao.class);
 		telecomTranslator = Mockito.mock(TelecomTranslator.class);
@@ -73,7 +69,6 @@ public class BahmniPatientTranslatorImplTest {
 		translator = new BahmniPatientTranslatorImpl();
 		translator.setPersonAttributeTranslator(personAttributeTranslator);
 		translator.setPersonService(personService);
-		translator.setGlobalPropertyService(globalPropertyService);
 		translator.setAdministrationService(administrationService);
 		translator.setFhirPersonDao(fhirPersonDao);
 		translator.setTelecomTranslator(telecomTranslator);
@@ -300,7 +295,7 @@ public class BahmniPatientTranslatorImplTest {
 		contactPoint.setValue("some fax number");
 		
 		when(appContext.getTelecomAttributeTypeMappings()).thenReturn(Collections.emptyList());
-		when(globalPropertyService.getGlobalProperty(FhirConstants.PERSON_CONTACT_POINT_ATTRIBUTE_TYPE)).thenReturn(null);
+		when(administrationService.getGlobalProperty(FhirConstants.PERSON_CONTACT_POINT_ATTRIBUTE_TYPE)).thenReturn(null);
 		
 		translator.processContactPoints(openmrsPatient, Collections.singletonList(contactPoint));
 		
