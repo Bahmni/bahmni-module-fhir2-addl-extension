@@ -19,6 +19,8 @@ public final class BahmniFhirConstants {
 	public static final String BAHMNI_CODE_SYSTEM_PREFIX = FHIR_NAMESPACE + "/code-system";
 	
 	public static final String ORDER_TYPE_SYSTEM_URI = BAHMNI_CODE_SYSTEM_PREFIX + "/order-type";
+
+	public static final String ORDER_TYPE_CATEGORY_SYSTEM_URI = BAHMNI_CODE_SYSTEM_PREFIX + "/order-type-category";
 	
 	public static final String SP_NUMBER_OF_VISITS = "numberOfVisits";
 	
@@ -70,4 +72,20 @@ public final class BahmniFhirConstants {
 	// Patient Photo
 	public static final String PATIENT_PHOTO_CONTENT_TYPE = "image/jpeg";
 	public static final String PATIENT_PHOTO_URL_TEMPLATE = "/openmrs/ws/rest/v2/patientImage?patientUuid=%s";
+
+	public static final String FHIR_EXT_SERVICE_REQUEST_UPDATED_BY = EXTENSION_PREFIX + "/service-request/updated-by";
+	public static final String FHIR_EXT_SERVICE_REQUEST_UPDATED_ON = EXTENSION_PREFIX + "/service-request/updated-on";
+	public static final String FHIR_EXT_SERVICE_REQUEST_ORDER_SHORT_NAME = EXTENSION_PREFIX + "/service-request/order-short-name";
+
+	public static final String NAME_SEARCH_HANDLER = "task.name.search.handler";
+	public static final String SP_TASK_NAME = "name";
+	public static final String FHIR_EXT_TASK_NAME = EXTENSION_PREFIX + "/task/name";
+
+	public static final String SP_ORDER_LOCATION = "location";
+	public static final String ORDER_LOCATION_SEARCH_HANDLER = "order.location.search.handler";
+
+	public static final String FHIR_EXT_MEDICATION_REQUEST_ADMISSION_STATUS = EXTENSION_PREFIX
+	        + "/medication-request/admission-status";
+
+	public static final String ADMISSION_STATUS_VISIT_ATTRIBUTE_TYPE_NAME = "Admission Status";
 }

@@ -1,6 +1,7 @@
 package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
 import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2addlextension.api.context.AppContext;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
 import org.junit.Before;
@@ -11,6 +12,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.OrderType;
 import org.openmrs.api.OrderService;
+
+import java.util.Collections;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -26,6 +29,9 @@ public class OrderTypeTranslatorImplTest {
 	@Mock
 	private OrderService orderService;
 	
+	@Mock
+	private AppContext appContext;
+	
 	@InjectMocks
 	private OrderTypeTranslatorImpl translator;
 	
@@ -37,6 +43,7 @@ public class OrderTypeTranslatorImplTest {
 		orderType = new OrderType();
 		orderType.setUuid(ORDER_TYPE_UUID);
 		orderType.setName(ORDER_TYPE_NAME);
+		lenient().when(appContext.getOrderTypeToCategoryMap()).thenReturn(Collections.emptyMap());
 	}
 	
 	@Test
@@ -144,5 +151,52 @@ public class OrderTypeTranslatorImplTest {
 	@Test(expected = NullPointerException.class)
 	public void shouldThrowExceptionWhenTranslatingNullCodeableConcept() {
 		translator.toOpenmrsType(null);
+	}
+	
+	@Test
+	public void shouldIncludeCategoryCodeInCodeableConcept() {
+		java.util.Map<String, String> categoryMap = new java.util.HashMap<>();
+		categoryMap.put(ORDER_TYPE_NAME, "laboratory");
+		when(appContext.getOrderTypeToCategoryMap()).thenReturn(categoryMap);
+
+		CodeableConcept result = translator.toFhirResource(orderType);
+
+		assertThat(result.getCoding(), hasSize(2));
+
+		boolean hasCategoryCode = result.getCoding().stream()
+		    .anyMatch(c -> c.getSystem().equals(BahmniFhirConstants.ORDER_TYPE_CATEGORY_SYSTEM_URI)
+		        && c.getCode().equals("laboratory"));
+
+		assertThat(hasCategoryCode, equalTo(true));
+	}
+	
+	@Test
+	public void shouldTranslateWithMultipleCodings() {
+		CodeableConcept codeableConcept = new CodeableConcept();
+		
+		Coding systemCoding = codeableConcept.addCoding();
+		systemCoding.setSystem(BahmniFhirConstants.ORDER_TYPE_SYSTEM_URI);
+		systemCoding.setCode(ORDER_TYPE_UUID);
+		
+		Coding categoryCoding = codeableConcept.addCoding();
+		categoryCoding.setSystem(BahmniFhirConstants.ORDER_TYPE_CATEGORY_SYSTEM_URI);
+		categoryCoding.setCode("imaging");
+		
+		when(orderService.getOrderTypeByUuid(ORDER_TYPE_UUID)).thenReturn(orderType);
+		
+		OrderType result = translator.toOpenmrsType(codeableConcept);
+		
+		assertThat(result, notNullValue());
+		assertThat(result, equalTo(orderType));
+	}
+	
+	@Test
+	public void shouldHandleOrderTypeWithoutCategoryMapping() {
+		when(appContext.getOrderTypeToCategoryMap()).thenReturn(new java.util.HashMap<>());
+
+		CodeableConcept result = translator.toFhirResource(orderType);
+
+		assertThat(result.getCoding(), hasSize(1));
+		assertThat(result.getText(), notNullValue());
 	}
 }

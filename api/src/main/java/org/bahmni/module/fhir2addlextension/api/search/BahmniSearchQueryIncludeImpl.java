@@ -4,7 +4,6 @@ import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
@@ -29,10 +28,10 @@ public class BahmniSearchQueryIncludeImpl<U extends IBaseResource> extends Searc
 	
 	private static final Log log = LogFactory.getLog(BahmniSearchQueryIncludeImpl.class);
 	
-	@Setter(onMethod_ = @Autowired)
+	@Autowired
 	private BahmniFhirEpisodeOfCareEncounterService episodeOfCareEncounterService;
 	
-	@Setter(onMethod_ = @Autowired)
+	@Autowired
 	private BahmniFhirImagingStudyService imagingStudyService;
 	
 	@Override
