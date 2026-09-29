@@ -208,6 +208,82 @@ public class BahmniFhirRelatedPersonServiceImplTest {
 	}
 	
 	// ===============================
+	// get TESTS
+	// ===============================
+	
+	@Test
+	public void get_returnsRelatedPersonForValidUuid() {
+		Relationship relationship = buildRelationship();
+		RelatedPerson expected = buildRelatedPerson();
+		
+		when(dao.get(RELATIONSHIP_UUID)).thenReturn(relationship);
+		when(translator.toFhirResource(relationship)).thenReturn(expected);
+		
+		RelatedPerson result = relatedPersonService.get(RELATIONSHIP_UUID);
+		
+		assertThat(result, equalTo(expected));
+	}
+	
+	@Test(expected = ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException.class)
+	public void get_throwsResourceNotFoundForUnknownUuid() {
+		when(dao.get(RELATIONSHIP_UUID)).thenReturn(null);
+		
+		relatedPersonService.get(RELATIONSHIP_UUID);
+	}
+	
+	// ===============================
+	// validateNoDuplicate edge cases
+	// ===============================
+	
+	@Test
+	public void create_skipsValidationWhenRelationshipHasNullPersons() {
+		Relationship newRel = new Relationship();
+		// personA and personB are null — validateNoDuplicate returns early
+		RelatedPerson rp = buildRelatedPerson();
+		
+		when(translator.toOpenmrsType(rp)).thenReturn(newRel);
+		when(dao.createOrUpdate(newRel)).thenReturn(newRel);
+		when(translator.toFhirResource(newRel)).thenReturn(rp);
+		
+		RelatedPerson result = relatedPersonService.create(rp);
+		assertThat(result, notNullValue());
+	}
+	
+	@Test
+	public void create_skipsValidationWhenExistingRelationshipsListIsNull() {
+		Relationship newRel = buildRelationshipWithPersons();
+		RelatedPerson rp = buildRelatedPerson();
+		
+		when(translator.toOpenmrsType(rp)).thenReturn(newRel);
+		when(personService.getRelationships(newRel.getPersonA(), newRel.getPersonB(), newRel.getRelationshipType()))
+		        .thenReturn(null);
+		when(dao.createOrUpdate(newRel)).thenReturn(newRel);
+		when(translator.toFhirResource(newRel)).thenReturn(rp);
+		
+		RelatedPerson result = relatedPersonService.create(rp);
+		assertThat(result, notNullValue());
+	}
+	
+	@Test
+	public void create_allowsWhenNewRelationshipHasExpiredEndDate() {
+		Date yesterday = new Date(System.currentTimeMillis() - 24 * 60 * 60 * 1000L);
+		Relationship newRel = buildRelationshipWithPersons();
+		newRel.setEndDate(yesterday);
+		RelatedPerson rp = buildRelatedPerson();
+		
+		when(translator.toOpenmrsType(rp)).thenReturn(newRel);
+		// Existing relationship is active (no end date)
+		Relationship existing = buildRelationshipWithPersons();
+		when(personService.getRelationships(newRel.getPersonA(), newRel.getPersonB(), newRel.getRelationshipType()))
+		        .thenReturn(Collections.singletonList(existing));
+		when(dao.createOrUpdate(newRel)).thenReturn(newRel);
+		when(translator.toFhirResource(newRel)).thenReturn(rp);
+		
+		RelatedPerson result = relatedPersonService.create(rp);
+		assertThat(result, notNullValue());
+	}
+	
+	// ===============================
 	// update / delete TESTS
 	// ===============================
 	

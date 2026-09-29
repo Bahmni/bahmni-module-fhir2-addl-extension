@@ -643,6 +643,54 @@ public class BahmniRelatedPersonTranslatorImplTest {
 		translator.toOpenmrsType(relatedPerson);
 	}
 	
+	@Test(expected = UnprocessableEntityException.class)
+	public void toOpenmrsType_throwsWhenRelatedPatientUuidNotResolvable() {
+		Person personB = buildPerson(PERSON_B_UUID);
+		when(personService.getPersonByUuid(PERSON_B_UUID)).thenReturn(personB);
+		// Extension present but UUID does not resolve to a person
+		when(personService.getPersonByUuid(PERSON_A_UUID)).thenReturn(null);
+		
+		RelatedPerson relatedPerson = buildFhirRelatedPersonWithExtension();
+		translator.toOpenmrsType(relatedPerson);
+	}
+	
+	@Test
+	public void toFhirResource_includesNamesOfRelatedPerson() {
+		Person personA = buildPerson(PERSON_A_UUID);
+		org.openmrs.PersonName name = new org.openmrs.PersonName("John", null, "Doe");
+		personA.addName(name);
+		Patient patientB = buildPatient(PERSON_B_UUID);
+		Relationship relationship = buildRelationshipBothPatients(personA, patientB);
+		
+		when(patientService.getPatient(patientB.getPersonId())).thenReturn(patientB);
+		org.hl7.fhir.r4.model.HumanName fhirName = new org.hl7.fhir.r4.model.HumanName();
+		when(nameTranslator.toFhirResource(name)).thenReturn(fhirName);
+		
+		RelatedPerson result = translator.toFhirResource(relationship);
+		
+		assertThat(result.getName(), hasSize(1));
+		assertThat(result.getName().get(0), equalTo(fhirName));
+	}
+	
+	@Test
+	public void toFhirResource_includesAddressesOfRelatedPerson() {
+		Person personA = buildPerson(PERSON_A_UUID);
+		org.openmrs.PersonAddress address = new org.openmrs.PersonAddress();
+		address.setAddress1("123 Main St");
+		personA.addAddress(address);
+		Patient patientB = buildPatient(PERSON_B_UUID);
+		Relationship relationship = buildRelationshipBothPatients(personA, patientB);
+		
+		when(patientService.getPatient(patientB.getPersonId())).thenReturn(patientB);
+		org.hl7.fhir.r4.model.Address fhirAddress = new org.hl7.fhir.r4.model.Address();
+		when(addressTranslator.toFhirResource(address)).thenReturn(fhirAddress);
+		
+		RelatedPerson result = translator.toFhirResource(relationship);
+		
+		assertThat(result.getAddress(), hasSize(1));
+		assertThat(result.getAddress().get(0), equalTo(fhirAddress));
+	}
+	
 	private RelatedPerson buildFhirRelatedPersonWithExtension() {
 		RelatedPerson relatedPerson = buildFhirRelatedPerson();
 		relatedPerson.addExtension(new Extension(RELATED_PATIENT_EXT_URL, new Reference("Patient/" + PERSON_A_UUID)));
