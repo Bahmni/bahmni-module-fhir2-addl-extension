@@ -93,14 +93,15 @@ public class BahmniFhirRelatedPersonServiceImpl implements BahmniFhirRelatedPers
 	}
 	
 	private boolean periodsOverlap(Relationship a, Relationship b) {
-		Date aEnd = a.getEndDate();
-		Date bEnd = b.getEndDate();
-		// At least one is open-ended (active) → always overlaps
-		if (aEnd == null || bEnd == null) {
-			return true;
+		Date now = new Date();
+		// A relationship with a past end date is historical — no conflict with a new one
+		if (a.getEndDate() != null && a.getEndDate().before(now)) {
+			return false;
 		}
-		// Both have end dates — treat as historical, allow coexistence
-		return false;
+		if (b.getEndDate() != null && b.getEndDate().before(now)) {
+			return false;
+		}
+		return true;
 	}
 	
 	@Override
