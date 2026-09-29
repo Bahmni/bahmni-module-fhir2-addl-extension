@@ -259,15 +259,15 @@ public class BahmniFhirRelatedPersonServiceImplTest {
 	}
 	
 	@Test
-	public void create_allowsWhenBothRelationshipsHaveEndDates() {
+	public void create_allowsWhenBothRelationshipsHaveExpiredEndDates() {
+		Date yesterday = new Date(System.currentTimeMillis() - 24 * 60 * 60 * 1000L);
 		Relationship newRel = buildRelationshipWithPersons();
-		newRel.setEndDate(new Date());
+		newRel.setEndDate(yesterday);
 		RelatedPerson rp = buildRelatedPerson();
 		
 		when(translator.toOpenmrsType(rp)).thenReturn(newRel);
-		// Existing ended relationship
 		Relationship existing = buildRelationshipWithPersons();
-		existing.setEndDate(new Date());
+		existing.setEndDate(yesterday);
 		when(personService.getRelationships(newRel.getPersonA(), newRel.getPersonB(), newRel.getRelationshipType()))
 		        .thenReturn(Collections.singletonList(existing));
 		when(dao.createOrUpdate(newRel)).thenReturn(newRel);
@@ -275,6 +275,40 @@ public class BahmniFhirRelatedPersonServiceImplTest {
 		
 		RelatedPerson result = relatedPersonService.create(rp);
 		assertThat(result, notNullValue());
+	}
+	
+	@Test
+	public void create_allowsWhenExistingRelationshipIsExpiredAndNewIsActive() {
+		Date yesterday = new Date(System.currentTimeMillis() - 24 * 60 * 60 * 1000L);
+		Relationship newRel = buildRelationshipWithPersons();
+		// new relationship has no end date (active)
+		RelatedPerson rp = buildRelatedPerson();
+		
+		when(translator.toOpenmrsType(rp)).thenReturn(newRel);
+		Relationship existing = buildRelationshipWithPersons();
+		existing.setEndDate(yesterday);
+		when(personService.getRelationships(newRel.getPersonA(), newRel.getPersonB(), newRel.getRelationshipType()))
+		        .thenReturn(Collections.singletonList(existing));
+		when(dao.createOrUpdate(newRel)).thenReturn(newRel);
+		when(translator.toFhirResource(newRel)).thenReturn(rp);
+		
+		RelatedPerson result = relatedPersonService.create(rp);
+		assertThat(result, notNullValue());
+	}
+	
+	@Test(expected = UnprocessableEntityException.class)
+	public void create_throwsWhenExistingRelationshipHasFutureEndDateAndNewIsActive() {
+		Date tomorrow = new Date(System.currentTimeMillis() + 24 * 60 * 60 * 1000L);
+		Relationship newRel = buildRelationshipWithPersons();
+		RelatedPerson rp = buildRelatedPerson();
+		
+		when(translator.toOpenmrsType(rp)).thenReturn(newRel);
+		Relationship existing = buildRelationshipWithPersons();
+		existing.setEndDate(tomorrow);
+		when(personService.getRelationships(newRel.getPersonA(), newRel.getPersonB(), newRel.getRelationshipType()))
+		        .thenReturn(Collections.singletonList(existing));
+		
+		relatedPersonService.create(rp);
 	}
 	
 	@Test
