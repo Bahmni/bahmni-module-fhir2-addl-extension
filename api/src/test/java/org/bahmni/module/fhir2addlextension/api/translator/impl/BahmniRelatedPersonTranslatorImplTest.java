@@ -385,9 +385,11 @@ public class BahmniRelatedPersonTranslatorImplTest {
 		RelatedPerson relatedPerson = buildFhirRelatedPersonWithExtension();
 		Person personB = buildPerson(PERSON_B_UUID);
 		Person personA = buildPerson(PERSON_A_UUID);
+		RelationshipType relType = buildRelationshipType();
 		
 		when(personService.getPersonByUuid(PERSON_B_UUID)).thenReturn(personB);
 		when(personService.getPersonByUuid(PERSON_A_UUID)).thenReturn(personA);
+		when(personService.getRelationshipTypeByUuid(RELATIONSHIP_TYPE_UUID)).thenReturn(relType);
 		
 		// When
 		Relationship result = translator.toOpenmrsType(relatedPerson);
@@ -400,16 +402,14 @@ public class BahmniRelatedPersonTranslatorImplTest {
 	@Test
 	public void toOpenmrsType_parsesExtensionIntoPersonA() {
 		// Given
-		RelatedPerson relatedPerson = buildFhirRelatedPerson();
+		RelatedPerson relatedPerson = buildFhirRelatedPersonWithExtension();
 		Person personB = buildPerson(PERSON_B_UUID);
 		Person personA = buildPerson(PERSON_A_UUID);
-		
-		// Add related patient extension for personA
-		Reference personARef = new Reference("Patient/" + PERSON_A_UUID);
-		relatedPerson.addExtension(new Extension(RELATED_PATIENT_EXT_URL, personARef));
+		RelationshipType relType = buildRelationshipType();
 		
 		when(personService.getPersonByUuid(PERSON_B_UUID)).thenReturn(personB);
 		when(personService.getPersonByUuid(PERSON_A_UUID)).thenReturn(personA);
+		when(personService.getRelationshipTypeByUuid(RELATIONSHIP_TYPE_UUID)).thenReturn(relType);
 		
 		// When
 		Relationship result = translator.toOpenmrsType(relatedPerson);
@@ -450,8 +450,10 @@ public class BahmniRelatedPersonTranslatorImplTest {
 		period.setEnd(endDate);
 		relatedPerson.setPeriod(period);
 		
+		RelationshipType relType = buildRelationshipType();
 		when(personService.getPersonByUuid(PERSON_B_UUID)).thenReturn(personB);
 		when(personService.getPersonByUuid(PERSON_A_UUID)).thenReturn(personA);
+		when(personService.getRelationshipTypeByUuid(RELATIONSHIP_TYPE_UUID)).thenReturn(relType);
 		
 		// When
 		Relationship result = translator.toOpenmrsType(relatedPerson);
@@ -606,8 +608,8 @@ public class BahmniRelatedPersonTranslatorImplTest {
 		translator.toOpenmrsType(relatedPerson);
 	}
 	
-	@Test
-	public void toOpenmrsType_shouldLeaveRelationshipTypeNullWhenUuidNotResolvable() {
+	@Test(expected = UnprocessableEntityException.class)
+	public void toOpenmrsType_throwsWhenRelationshipTypeUuidNotResolvable() {
 		Person personA = buildPerson(PERSON_A_UUID);
 		Person personB = buildPerson(PERSON_B_UUID);
 		when(personService.getPersonByUuid(PERSON_B_UUID)).thenReturn(personB);
@@ -617,13 +619,11 @@ public class BahmniRelatedPersonTranslatorImplTest {
 		RelatedPerson relatedPerson = buildFhirRelatedPersonWithExtension();
 		relatedPerson.getRelationship().get(0).getCoding().get(0).setCode("non-existent-uuid");
 		
-		Relationship result = translator.toOpenmrsType(relatedPerson);
-		
-		assertThat(result.getRelationshipType(), nullValue());
+		translator.toOpenmrsType(relatedPerson);
 	}
 	
-	@Test
-	public void toOpenmrsType_shouldLeaveRelationshipTypeNullForNonMatchingSystem() {
+	@Test(expected = UnprocessableEntityException.class)
+	public void toOpenmrsType_throwsWhenRelationshipCodingSystemDoesNotMatch() {
 		Person personA = buildPerson(PERSON_A_UUID);
 		Person personB = buildPerson(PERSON_B_UUID);
 		when(personService.getPersonByUuid(PERSON_B_UUID)).thenReturn(personB);
@@ -632,9 +632,63 @@ public class BahmniRelatedPersonTranslatorImplTest {
 		RelatedPerson relatedPerson = buildFhirRelatedPersonWithExtension();
 		relatedPerson.getRelationship().get(0).getCoding().get(0).setSystem("http://some-other-system.org/codes");
 		
-		Relationship result = translator.toOpenmrsType(relatedPerson);
+		translator.toOpenmrsType(relatedPerson);
+	}
+	
+	@Test(expected = UnprocessableEntityException.class)
+	public void toOpenmrsType_throwsWhenPatientReferenceNotFound() {
+		when(personService.getPersonByUuid(PERSON_B_UUID)).thenReturn(null);
 		
-		assertThat(result.getRelationshipType(), nullValue());
+		RelatedPerson relatedPerson = buildFhirRelatedPersonWithExtension();
+		translator.toOpenmrsType(relatedPerson);
+	}
+	
+	@Test(expected = UnprocessableEntityException.class)
+	public void toOpenmrsType_throwsWhenRelatedPatientUuidNotResolvable() {
+		Person personB = buildPerson(PERSON_B_UUID);
+		when(personService.getPersonByUuid(PERSON_B_UUID)).thenReturn(personB);
+		// Extension present but UUID does not resolve to a person
+		when(personService.getPersonByUuid(PERSON_A_UUID)).thenReturn(null);
+		
+		RelatedPerson relatedPerson = buildFhirRelatedPersonWithExtension();
+		translator.toOpenmrsType(relatedPerson);
+	}
+	
+	@Test
+	public void toFhirResource_includesNamesOfRelatedPerson() {
+		Person personA = buildPerson(PERSON_A_UUID);
+		org.openmrs.PersonName name = new org.openmrs.PersonName("John", null, "Doe");
+		personA.addName(name);
+		Patient patientB = buildPatient(PERSON_B_UUID);
+		Relationship relationship = buildRelationshipBothPatients(personA, patientB);
+		
+		when(patientService.getPatient(patientB.getPersonId())).thenReturn(patientB);
+		org.hl7.fhir.r4.model.HumanName fhirName = new org.hl7.fhir.r4.model.HumanName();
+		when(nameTranslator.toFhirResource(name)).thenReturn(fhirName);
+		
+		RelatedPerson result = translator.toFhirResource(relationship);
+		
+		assertThat(result.getName(), hasSize(1));
+		assertThat(result.getName().get(0), equalTo(fhirName));
+	}
+	
+	@Test
+	public void toFhirResource_includesAddressesOfRelatedPerson() {
+		Person personA = buildPerson(PERSON_A_UUID);
+		org.openmrs.PersonAddress address = new org.openmrs.PersonAddress();
+		address.setAddress1("123 Main St");
+		personA.addAddress(address);
+		Patient patientB = buildPatient(PERSON_B_UUID);
+		Relationship relationship = buildRelationshipBothPatients(personA, patientB);
+		
+		when(patientService.getPatient(patientB.getPersonId())).thenReturn(patientB);
+		org.hl7.fhir.r4.model.Address fhirAddress = new org.hl7.fhir.r4.model.Address();
+		when(addressTranslator.toFhirResource(address)).thenReturn(fhirAddress);
+		
+		RelatedPerson result = translator.toFhirResource(relationship);
+		
+		assertThat(result.getAddress(), hasSize(1));
+		assertThat(result.getAddress().get(0), equalTo(fhirAddress));
 	}
 	
 	private RelatedPerson buildFhirRelatedPersonWithExtension() {

@@ -3,12 +3,14 @@ package org.bahmni.module.fhir2addlextension.api.service.impl;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
+import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
 import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirRelatedPersonDao;
 import org.bahmni.module.fhir2addlextension.api.search.param.BahmniRelatedPersonSearchParams;
 import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirRelatedPersonService;
 import org.bahmni.module.fhir2addlextension.api.translator.BahmniRelatedPersonTranslator;
 import org.hl7.fhir.r4.model.RelatedPerson;
 import org.openmrs.Relationship;
+import org.openmrs.api.PersonService;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
 import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +18,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Nonnull;
+import java.util.Date;
+import java.util.List;
 
 @Component
 @Transactional
@@ -29,16 +33,20 @@ public class BahmniFhirRelatedPersonServiceImpl implements BahmniFhirRelatedPers
 	
 	private final SearchQuery<Relationship, RelatedPerson, BahmniFhirRelatedPersonDao, BahmniRelatedPersonTranslator, SearchQueryInclude<RelatedPerson>> searchQuery;
 	
+	private final PersonService personService;
+	
 	@Autowired
 	public BahmniFhirRelatedPersonServiceImpl(
 	    BahmniFhirRelatedPersonDao dao,
 	    BahmniRelatedPersonTranslator translator,
 	    SearchQueryInclude<RelatedPerson> searchQueryInclude,
-	    SearchQuery<Relationship, RelatedPerson, BahmniFhirRelatedPersonDao, BahmniRelatedPersonTranslator, SearchQueryInclude<RelatedPerson>> searchQuery) {
+	    SearchQuery<Relationship, RelatedPerson, BahmniFhirRelatedPersonDao, BahmniRelatedPersonTranslator, SearchQueryInclude<RelatedPerson>> searchQuery,
+	    PersonService personService) {
 		this.dao = dao;
 		this.translator = translator;
 		this.searchQueryInclude = searchQueryInclude;
 		this.searchQuery = searchQuery;
+		this.personService = personService;
 	}
 	
 	@Override
@@ -63,8 +71,37 @@ public class BahmniFhirRelatedPersonServiceImpl implements BahmniFhirRelatedPers
 	@Override
 	public RelatedPerson create(@Nonnull RelatedPerson relatedPerson) {
 		Relationship relationship = translator.toOpenmrsType(relatedPerson);
+		validateNoDuplicate(relationship);
 		Relationship saved = dao.createOrUpdate(relationship);
 		return translator.toFhirResource(saved);
+	}
+	
+	private void validateNoDuplicate(Relationship newRel) {
+		if (newRel.getPersonA() == null || newRel.getPersonB() == null || newRel.getRelationshipType() == null) {
+			return;
+		}
+		List<Relationship> existing = personService.getRelationships(newRel.getPersonA(), newRel.getPersonB(),
+		    newRel.getRelationshipType());
+		if (existing == null) {
+			return;
+		}
+		for (Relationship rel : existing) {
+			if (!rel.getVoided() && bothCurrentlyActive(rel, newRel)) {
+				throw new UnprocessableEntityException("A relationship of this type between these patients already exists");
+			}
+		}
+	}
+
+	private boolean bothCurrentlyActive(Relationship a, Relationship b) {
+		Date now = new Date();
+		// A relationship with a past end date is historical — no conflict with a new one
+		if (a.getEndDate() != null && a.getEndDate().before(now)) {
+			return false;
+		}
+		if (b.getEndDate() != null && b.getEndDate().before(now)) {
+			return false;
+		}
+		return true;
 	}
 	
 	@Override

@@ -22,13 +22,17 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.openmrs.Person;
 import org.openmrs.Relationship;
 import org.openmrs.RelationshipType;
+import org.openmrs.api.PersonService;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
 import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 
+import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
 import java.util.Collections;
+import java.util.Date;
 import java.util.UUID;
 import org.mockito.ArgumentCaptor;
 
@@ -52,11 +56,15 @@ public class BahmniFhirRelatedPersonServiceImplTest {
 	@Mock
 	private SearchQuery<Relationship, RelatedPerson, BahmniFhirRelatedPersonDao, BahmniRelatedPersonTranslator, SearchQueryInclude<RelatedPerson>> searchQuery;
 	
+	@Mock
+	private PersonService personService;
+	
 	private BahmniFhirRelatedPersonService relatedPersonService;
 	
 	@Before
 	public void setup() {
-		relatedPersonService = new BahmniFhirRelatedPersonServiceImpl(dao, translator, searchQueryInclude, searchQuery);
+		relatedPersonService = new BahmniFhirRelatedPersonServiceImpl(dao, translator, searchQueryInclude, searchQuery,
+		        personService);
 	}
 	
 	// ===============================
@@ -200,6 +208,82 @@ public class BahmniFhirRelatedPersonServiceImplTest {
 	}
 	
 	// ===============================
+	// get TESTS
+	// ===============================
+	
+	@Test
+	public void get_returnsRelatedPersonForValidUuid() {
+		Relationship relationship = buildRelationship();
+		RelatedPerson expected = buildRelatedPerson();
+		
+		when(dao.get(RELATIONSHIP_UUID)).thenReturn(relationship);
+		when(translator.toFhirResource(relationship)).thenReturn(expected);
+		
+		RelatedPerson result = relatedPersonService.get(RELATIONSHIP_UUID);
+		
+		assertThat(result, equalTo(expected));
+	}
+	
+	@Test(expected = ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException.class)
+	public void get_throwsResourceNotFoundForUnknownUuid() {
+		when(dao.get(RELATIONSHIP_UUID)).thenReturn(null);
+		
+		relatedPersonService.get(RELATIONSHIP_UUID);
+	}
+	
+	// ===============================
+	// validateNoDuplicate edge cases
+	// ===============================
+	
+	@Test
+	public void create_skipsValidationWhenRelationshipHasNullPersons() {
+		Relationship newRel = new Relationship();
+		// personA and personB are null — validateNoDuplicate returns early
+		RelatedPerson rp = buildRelatedPerson();
+		
+		when(translator.toOpenmrsType(rp)).thenReturn(newRel);
+		when(dao.createOrUpdate(newRel)).thenReturn(newRel);
+		when(translator.toFhirResource(newRel)).thenReturn(rp);
+		
+		RelatedPerson result = relatedPersonService.create(rp);
+		assertThat(result, notNullValue());
+	}
+	
+	@Test
+	public void create_skipsValidationWhenExistingRelationshipsListIsNull() {
+		Relationship newRel = buildRelationshipWithPersons();
+		RelatedPerson rp = buildRelatedPerson();
+		
+		when(translator.toOpenmrsType(rp)).thenReturn(newRel);
+		when(personService.getRelationships(newRel.getPersonA(), newRel.getPersonB(), newRel.getRelationshipType()))
+		        .thenReturn(null);
+		when(dao.createOrUpdate(newRel)).thenReturn(newRel);
+		when(translator.toFhirResource(newRel)).thenReturn(rp);
+		
+		RelatedPerson result = relatedPersonService.create(rp);
+		assertThat(result, notNullValue());
+	}
+	
+	@Test
+	public void create_allowsWhenNewRelationshipHasExpiredEndDate() {
+		Date yesterday = new Date(System.currentTimeMillis() - 24 * 60 * 60 * 1000L);
+		Relationship newRel = buildRelationshipWithPersons();
+		newRel.setEndDate(yesterday);
+		RelatedPerson rp = buildRelatedPerson();
+		
+		when(translator.toOpenmrsType(rp)).thenReturn(newRel);
+		// Existing relationship is active (no end date)
+		Relationship existing = buildRelationshipWithPersons();
+		when(personService.getRelationships(newRel.getPersonA(), newRel.getPersonB(), newRel.getRelationshipType()))
+		        .thenReturn(Collections.singletonList(existing));
+		when(dao.createOrUpdate(newRel)).thenReturn(newRel);
+		when(translator.toFhirResource(newRel)).thenReturn(rp);
+		
+		RelatedPerson result = relatedPersonService.create(rp);
+		assertThat(result, notNullValue());
+	}
+	
+	// ===============================
 	// update / delete TESTS
 	// ===============================
 	
@@ -233,6 +317,92 @@ public class BahmniFhirRelatedPersonServiceImplTest {
 	}
 	
 	// ===============================
+	// create — duplicate validation TESTS
+	// ===============================
+	
+	@Test(expected = UnprocessableEntityException.class)
+	public void create_throwsWhenActiveRelationshipWithSameTypeAndPersonsAlreadyExists() {
+		Relationship newRel = buildRelationshipWithPersons();
+		RelatedPerson rp = buildRelatedPerson();
+		
+		when(translator.toOpenmrsType(rp)).thenReturn(newRel);
+		// Existing active (no end date) relationship returned
+		Relationship existing = buildRelationshipWithPersons();
+		when(personService.getRelationships(newRel.getPersonA(), newRel.getPersonB(), newRel.getRelationshipType()))
+		        .thenReturn(Collections.singletonList(existing));
+		
+		relatedPersonService.create(rp);
+	}
+	
+	@Test
+	public void create_allowsWhenBothRelationshipsHaveExpiredEndDates() {
+		Date yesterday = new Date(System.currentTimeMillis() - 24 * 60 * 60 * 1000L);
+		Relationship newRel = buildRelationshipWithPersons();
+		newRel.setEndDate(yesterday);
+		RelatedPerson rp = buildRelatedPerson();
+		
+		when(translator.toOpenmrsType(rp)).thenReturn(newRel);
+		Relationship existing = buildRelationshipWithPersons();
+		existing.setEndDate(yesterday);
+		when(personService.getRelationships(newRel.getPersonA(), newRel.getPersonB(), newRel.getRelationshipType()))
+		        .thenReturn(Collections.singletonList(existing));
+		when(dao.createOrUpdate(newRel)).thenReturn(newRel);
+		when(translator.toFhirResource(newRel)).thenReturn(rp);
+		
+		RelatedPerson result = relatedPersonService.create(rp);
+		assertThat(result, notNullValue());
+	}
+	
+	@Test
+	public void create_allowsWhenExistingRelationshipIsExpiredAndNewIsActive() {
+		Date yesterday = new Date(System.currentTimeMillis() - 24 * 60 * 60 * 1000L);
+		Relationship newRel = buildRelationshipWithPersons();
+		// new relationship has no end date (active)
+		RelatedPerson rp = buildRelatedPerson();
+		
+		when(translator.toOpenmrsType(rp)).thenReturn(newRel);
+		Relationship existing = buildRelationshipWithPersons();
+		existing.setEndDate(yesterday);
+		when(personService.getRelationships(newRel.getPersonA(), newRel.getPersonB(), newRel.getRelationshipType()))
+		        .thenReturn(Collections.singletonList(existing));
+		when(dao.createOrUpdate(newRel)).thenReturn(newRel);
+		when(translator.toFhirResource(newRel)).thenReturn(rp);
+		
+		RelatedPerson result = relatedPersonService.create(rp);
+		assertThat(result, notNullValue());
+	}
+	
+	@Test(expected = UnprocessableEntityException.class)
+	public void create_throwsWhenExistingRelationshipHasFutureEndDateAndNewIsActive() {
+		Date tomorrow = new Date(System.currentTimeMillis() + 24 * 60 * 60 * 1000L);
+		Relationship newRel = buildRelationshipWithPersons();
+		RelatedPerson rp = buildRelatedPerson();
+		
+		when(translator.toOpenmrsType(rp)).thenReturn(newRel);
+		Relationship existing = buildRelationshipWithPersons();
+		existing.setEndDate(tomorrow);
+		when(personService.getRelationships(newRel.getPersonA(), newRel.getPersonB(), newRel.getRelationshipType()))
+		        .thenReturn(Collections.singletonList(existing));
+		
+		relatedPersonService.create(rp);
+	}
+	
+	@Test
+	public void create_succeedsWhenNoExistingRelationship() {
+		Relationship newRel = buildRelationshipWithPersons();
+		RelatedPerson rp = buildRelatedPerson();
+		
+		when(translator.toOpenmrsType(rp)).thenReturn(newRel);
+		when(personService.getRelationships(newRel.getPersonA(), newRel.getPersonB(), newRel.getRelationshipType()))
+		        .thenReturn(Collections.emptyList());
+		when(dao.createOrUpdate(newRel)).thenReturn(newRel);
+		when(translator.toFhirResource(newRel)).thenReturn(rp);
+		
+		RelatedPerson result = relatedPersonService.create(rp);
+		assertThat(result, notNullValue());
+	}
+	
+	// ===============================
 	// TEST DATA BUILDERS
 	// ===============================
 	
@@ -250,6 +420,25 @@ public class BahmniFhirRelatedPersonServiceImplTest {
 		Relationship relationship = new Relationship();
 		relationship.setUuid(RELATIONSHIP_UUID);
 		relationship.setRelationshipType(type);
+		return relationship;
+	}
+	
+	private Relationship buildRelationshipWithPersons() {
+		RelationshipType type = new RelationshipType();
+		type.setUuid(UUID.randomUUID().toString());
+		type.setaIsToB("Parent");
+		type.setbIsToA("Child");
+		
+		Person personA = new Person();
+		personA.setUuid(UUID.randomUUID().toString());
+		Person personB = new Person();
+		personB.setUuid(UUID.randomUUID().toString());
+		
+		Relationship relationship = new Relationship();
+		relationship.setUuid(RELATIONSHIP_UUID);
+		relationship.setRelationshipType(type);
+		relationship.setPersonA(personA);
+		relationship.setPersonB(personB);
 		return relationship;
 	}
 	
