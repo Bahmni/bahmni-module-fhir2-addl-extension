@@ -86,13 +86,13 @@ public class BahmniFhirRelatedPersonServiceImpl implements BahmniFhirRelatedPers
 			return;
 		}
 		for (Relationship rel : existing) {
-			if (!rel.getVoided() && periodsOverlap(rel, newRel)) {
+			if (!rel.getVoided() && bothCurrentlyActive(rel, newRel)) {
 				throw new UnprocessableEntityException("A relationship of this type between these patients already exists");
 			}
 		}
 	}
-	
-	private boolean periodsOverlap(Relationship a, Relationship b) {
+
+	private boolean bothCurrentlyActive(Relationship a, Relationship b) {
 		Date now = new Date();
 		// A relationship with a past end date is historical — no conflict with a new one
 		if (a.getEndDate() != null && a.getEndDate().before(now)) {
