@@ -190,4 +190,32 @@ public class BahmniFhirMedicationRequestDaoImplTest {
 		assertThat(result, notNullValue());
 		assertThat(result, instanceOf(org.hibernate.criterion.PropertySubqueryExpression.class));
 	}
+	
+	@Test
+	public void setupSearchParams_shouldAddVisitUuidRestriction() {
+		Criteria criteria = mock(Criteria.class);
+		SearchParameterMap params = new SearchParameterMap();
+
+		ReferenceAndListParam visitRef = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam("Visit", "visit-uuid-123")));
+		params.addParameter(BahmniFhirConstants.VISIT_REFERENCE_SEARCH_HANDLER, visitRef);
+
+		bahmniFhirMedicationRequestDao.setupSearchParams(criteria, params);
+
+		ArgumentCaptor<Criterion> captor = ArgumentCaptor.forClass(Criterion.class);
+		verify(criteria, atLeastOnce()).add(captor.capture());
+		assertThat(captor.getAllValues().stream().anyMatch(c -> c.toString().contains("v.uuid")), is(true));
+	}
+	
+	@Test
+	public void setupSearchParams_shouldNotFailWithNullVisitReference() {
+		Criteria criteria = mock(Criteria.class);
+		SearchParameterMap params = new SearchParameterMap();
+		
+		params.addParameter(BahmniFhirConstants.VISIT_REFERENCE_SEARCH_HANDLER, null);
+		
+		bahmniFhirMedicationRequestDao.setupSearchParams(criteria, params);
+		
+		assertThat(params, notNullValue());
+	}
 }

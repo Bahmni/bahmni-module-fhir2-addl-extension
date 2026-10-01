@@ -28,7 +28,7 @@ public class BahmniMedicationRequestSearchParamsTest {
 		        .add(new ReferenceParam("Location", "loc-uuid")));
 		
 		BahmniMedicationRequestSearchParams params = new BahmniMedicationRequestSearchParams(null, null, null, null, null,
-		        null, null, null, locationRef, null, null, null, null);
+		        null, null, null, locationRef, null, null, null, null, null);
 		
 		SearchParameterMap map = params.toSearchParameterMap();
 		
@@ -40,7 +40,7 @@ public class BahmniMedicationRequestSearchParamsTest {
 		SortSpec sort = new SortSpec("status").setChain(new SortSpec("date"));
 		
 		BahmniMedicationRequestSearchParams params = new BahmniMedicationRequestSearchParams(null, null, null, null, null,
-		        null, null, null, null, null, null, null, sort);
+		        null, null, null, null, null, null, null, sort, null);
 		
 		SearchParameterMap map = params.toSearchParameterMap();
 		
@@ -50,7 +50,7 @@ public class BahmniMedicationRequestSearchParamsTest {
 	@Test
 	public void toSearchParameterMap_shouldNotIncludeLocationWhenNull() {
 		BahmniMedicationRequestSearchParams params = new BahmniMedicationRequestSearchParams(null, null, null, null, null,
-		        null, null, null, null, null, null, null, null);
+		        null, null, null, null, null, null, null, null, null);
 		
 		SearchParameterMap map = params.toSearchParameterMap();
 		
@@ -60,7 +60,7 @@ public class BahmniMedicationRequestSearchParamsTest {
 	@Test
 	public void toSearchParameterMap_shouldNotSetSortWhenNull() {
 		BahmniMedicationRequestSearchParams params = new BahmniMedicationRequestSearchParams(null, null, null, null, null,
-		        null, null, null, null, null, null, null, null);
+		        null, null, null, null, null, null, null, null, null);
 		
 		SearchParameterMap map = params.toSearchParameterMap();
 		
@@ -84,7 +84,7 @@ public class BahmniMedicationRequestSearchParamsTest {
 		SortSpec sort = new SortSpec("status");
 
 		BahmniMedicationRequestSearchParams params = new BahmniMedicationRequestSearchParams(
-		    patientRef, encounterRef, code, null, null, null, status, null, locationRef, lastUpdated, includes, null, sort);
+		    patientRef, encounterRef, code, null, null, null, status, null, locationRef, lastUpdated, includes, null, sort, null);
 
 		SearchParameterMap map = params.toSearchParameterMap();
 
@@ -99,7 +99,7 @@ public class BahmniMedicationRequestSearchParamsTest {
 		SortSpec sort = new SortSpec("status");
 		
 		BahmniMedicationRequestSearchParams params = new BahmniMedicationRequestSearchParams(null, null, null, null, null,
-		        null, null, null, locationRef, null, null, null, sort);
+		        null, null, null, locationRef, null, null, null, sort, null);
 		
 		assertThat(params.getLocationReference(), notNullValue());
 		assertThat(params.getSort(), notNullValue());
