@@ -11,6 +11,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Provider;
 import org.openmrs.module.fhir2.api.FhirGlobalPropertyService;
+import org.openmrs.module.fhir2.api.translators.impl.PractitionerTranslatorProviderImpl;
+import org.springframework.context.annotation.Primary;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -83,5 +86,12 @@ public class BahmniPractitionerTranslatorImplTest {
 		Assert.assertNotNull(result);
 		Assert.assertEquals(1, result.getIdentifier().size());
 		Assert.assertEquals("base-identifier-value", result.getIdentifier().get(0).getValue());
+	}
+	
+	@Test
+	public void shouldBePrimaryAndSubstitutableForTheDefaultPractitionerTranslator() {
+		Assert.assertTrue(PractitionerTranslatorProviderImpl.class.isAssignableFrom(BahmniPractitionerTranslatorImpl.class));
+		Assert.assertTrue(BahmniPractitionerTranslatorImpl.class.isAnnotationPresent(Primary.class));
+		Assert.assertTrue(BahmniPractitionerTranslatorImpl.class.isAnnotationPresent(Component.class));
 	}
 }

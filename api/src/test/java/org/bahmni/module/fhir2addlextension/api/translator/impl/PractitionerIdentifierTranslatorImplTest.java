@@ -129,4 +129,25 @@ public class PractitionerIdentifierTranslatorImplTest {
 		Assert.assertEquals(1, identifiers.size());
 		Assert.assertEquals("LIC-123", identifiers.get(0).getValue());
 	}
+	
+	@Test
+	public void shouldReturnOneIdentifierPerActiveAttributeWhenSameTypeHasMultipleValues() {
+		Map<String, String> map = new HashMap<>();
+		map.put("License Number", "http://fhir.bahmni.org/identifier/provider-license");
+		when(appContext.getPractitionerAttributeIdentifierSystemMap()).thenReturn(map);
+
+		Provider provider = new Provider();
+		provider.addAttribute(buildAttribute("License Number", "LIC-123"));
+		provider.addAttribute(buildAttribute("License Number", "LIC-456"));
+
+		List<Identifier> identifiers = translator.getAttributeDerivedIdentifiers(provider);
+
+		Assert.assertEquals(2, identifiers.size());
+		Set<String> values = new HashSet<>();
+		for (Identifier identifier : identifiers) {
+			Assert.assertEquals("http://fhir.bahmni.org/identifier/provider-license", identifier.getSystem());
+			values.add(identifier.getValue());
+		}
+		Assert.assertEquals(new HashSet<>(java.util.Arrays.asList("LIC-123", "LIC-456")), values);
+	}
 }
