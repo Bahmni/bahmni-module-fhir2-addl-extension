@@ -50,7 +50,7 @@ public class BahmniMedicationRequestSearchParamsTest {
 	@Test
 	public void toSearchParameterMap_shouldNotIncludeLocationWhenNull() {
 		BahmniMedicationRequestSearchParams params = new BahmniMedicationRequestSearchParams(null, null, null, null, null,
-		        null, null, null, null, null, null, null, null);
+		        null, null, null, null, null, null, null, null, null);
 		
 		SearchParameterMap map = params.toSearchParameterMap();
 		
@@ -60,7 +60,7 @@ public class BahmniMedicationRequestSearchParamsTest {
 	@Test
 	public void toSearchParameterMap_shouldNotSetSortWhenNull() {
 		BahmniMedicationRequestSearchParams params = new BahmniMedicationRequestSearchParams(null, null, null, null, null,
-		        null, null, null, null, null, null, null, null);
+		        null, null, null, null, null, null, null, null, null);
 		
 		SearchParameterMap map = params.toSearchParameterMap();
 		
@@ -103,5 +103,19 @@ public class BahmniMedicationRequestSearchParamsTest {
 		
 		assertThat(params.getLocationReference(), notNullValue());
 		assertThat(params.getSort(), notNullValue());
+	}
+	
+	@Test
+	public void toSearchParameterMap_shouldIncludeVisitWhenSet() {
+		ReferenceAndListParam visitRef = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam("Visit", "visit-uuid")));
+		
+		BahmniMedicationRequestSearchParams params = new BahmniMedicationRequestSearchParams(null, null, null, null, null,
+		        null, null, null, null, visitRef, null, null, null, null);
+		
+		SearchParameterMap map = params.toSearchParameterMap();
+		
+		assertThat(params.getVisitReference(), notNullValue());
+		assertThat(map.getParameters(BahmniFhirConstants.VISIT_REFERENCE_SEARCH_HANDLER), not(empty()));
 	}
 }
