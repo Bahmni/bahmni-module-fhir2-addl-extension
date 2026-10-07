@@ -71,6 +71,6 @@ public class BahmniFhirMedicationRequestDaoImpl extends FhirMedicationRequestDao
 			criteria.createAlias("encounter", "e");
 		if (lacksAlias(criteria, "v"))
 			criteria.createAlias("e.visit", "v");
-		handleAndListParam(visitReference, token -> Optional.of(eq("v.uuid", token.getValue()))).ifPresent(criteria::add);
+		handleAndListParam(visitReference, token -> Optional.of(eq("v.uuid", token.getIdPart()))).ifPresent(criteria::add);
 	}
 }
