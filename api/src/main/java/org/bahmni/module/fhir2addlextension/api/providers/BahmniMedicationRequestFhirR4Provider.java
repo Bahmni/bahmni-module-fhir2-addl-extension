@@ -83,7 +83,7 @@ public class BahmniMedicationRequestFhirR4Provider extends MedicationRequestFhir
 		
 		return fhirMedicationRequestService.searchForMedicationRequests(new BahmniMedicationRequestSearchParams(
 		        patientReference, encounterReference, code, participantReference, medicationReference, id, status,
-		        fulfillerStatus, locationReference, lastUpdated, includes, revIncludes, sort, visitReference));
+		        fulfillerStatus, locationReference, visitReference, lastUpdated, includes, revIncludes, sort));
 	}
 	
 }

@@ -28,7 +28,7 @@ public class BahmniMedicationRequestSearchParamsTest {
 		        .add(new ReferenceParam("Location", "loc-uuid")));
 		
 		BahmniMedicationRequestSearchParams params = new BahmniMedicationRequestSearchParams(null, null, null, null, null,
-		        null, null, null, locationRef, null, null, null, null, null);
+		        null, null, null, locationRef, null, null, null, null);
 		
 		SearchParameterMap map = params.toSearchParameterMap();
 		
@@ -40,7 +40,7 @@ public class BahmniMedicationRequestSearchParamsTest {
 		SortSpec sort = new SortSpec("status").setChain(new SortSpec("date"));
 		
 		BahmniMedicationRequestSearchParams params = new BahmniMedicationRequestSearchParams(null, null, null, null, null,
-		        null, null, null, null, null, null, null, sort, null);
+		        null, null, null, null, null, null, null, sort);
 		
 		SearchParameterMap map = params.toSearchParameterMap();
 		
@@ -84,7 +84,7 @@ public class BahmniMedicationRequestSearchParamsTest {
 		SortSpec sort = new SortSpec("status");
 
 		BahmniMedicationRequestSearchParams params = new BahmniMedicationRequestSearchParams(
-		    patientRef, encounterRef, code, null, null, null, status, null, locationRef, lastUpdated, includes, null, sort, null);
+		    patientRef, encounterRef, code, null, null, null, status, null, locationRef, lastUpdated, includes, null, sort);
 
 		SearchParameterMap map = params.toSearchParameterMap();
 
@@ -99,9 +99,23 @@ public class BahmniMedicationRequestSearchParamsTest {
 		SortSpec sort = new SortSpec("status");
 		
 		BahmniMedicationRequestSearchParams params = new BahmniMedicationRequestSearchParams(null, null, null, null, null,
-		        null, null, null, locationRef, null, null, null, sort, null);
+		        null, null, null, locationRef, null, null, null, sort);
 		
 		assertThat(params.getLocationReference(), notNullValue());
 		assertThat(params.getSort(), notNullValue());
+	}
+	
+	@Test
+	public void toSearchParameterMap_shouldIncludeVisitWhenSet() {
+		ReferenceAndListParam visitRef = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+		        .add(new ReferenceParam("Visit", "visit-uuid")));
+		
+		BahmniMedicationRequestSearchParams params = new BahmniMedicationRequestSearchParams(null, null, null, null, null,
+		        null, null, null, null, visitRef, null, null, null, null);
+		
+		SearchParameterMap map = params.toSearchParameterMap();
+		
+		assertThat(params.getVisitReference(), notNullValue());
+		assertThat(map.getParameters(BahmniFhirConstants.VISIT_REFERENCE_SEARCH_HANDLER), not(empty()));
 	}
 }

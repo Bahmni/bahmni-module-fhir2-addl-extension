@@ -28,13 +28,22 @@ public class BahmniMedicationRequestSearchParams extends MedicationRequestSearch
 	public BahmniMedicationRequestSearchParams(ReferenceAndListParam patientReference,
 	    ReferenceAndListParam encounterReference, TokenAndListParam code, ReferenceAndListParam participantReference,
 	    ReferenceAndListParam medicationReference, TokenAndListParam id, TokenAndListParam status,
-	    TokenAndListParam fulfillerStatus, ReferenceAndListParam locationReference, DateRangeParam lastUpdated,
-	    Set<Include> includes, Set<Include> revIncludes, SortSpec sort, ReferenceAndListParam visitReference) {
+	    TokenAndListParam fulfillerStatus, ReferenceAndListParam locationReference, ReferenceAndListParam visitReference,
+	    DateRangeParam lastUpdated, Set<Include> includes, Set<Include> revIncludes, SortSpec sort) {
 		super(patientReference, encounterReference, code, participantReference, medicationReference, id, status,
 		        fulfillerStatus, lastUpdated, includes, revIncludes);
 		this.locationReference = locationReference;
-		this.sort = sort;
 		this.visitReference = visitReference;
+		this.sort = sort;
+	}
+	
+	public BahmniMedicationRequestSearchParams(ReferenceAndListParam patientReference,
+	    ReferenceAndListParam encounterReference, TokenAndListParam code, ReferenceAndListParam participantReference,
+	    ReferenceAndListParam medicationReference, TokenAndListParam id, TokenAndListParam status,
+	    TokenAndListParam fulfillerStatus, ReferenceAndListParam locationReference, DateRangeParam lastUpdated,
+	    Set<Include> includes, Set<Include> revIncludes, SortSpec sort) {
+		this(patientReference, encounterReference, code, participantReference, medicationReference, id, status,
+		        fulfillerStatus, locationReference, null, lastUpdated, includes, revIncludes, sort);
 	}
 	
 	@Override
