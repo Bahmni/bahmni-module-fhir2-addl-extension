@@ -47,11 +47,8 @@ public class BahmniFhirUtils {
 			String idStr = reference.substring(reference.lastIndexOf("#") + 1);
 			return idStr.trim().isEmpty() ? null : idStr.trim();
 		}
-		int separatorIndex = reference.indexOf("/");
-		if (separatorIndex == -1) {
-			return reference;
-		}
-		return FhirUtils.referenceToId(reference).orElse(null);
+		String idStr = reference.substring(reference.lastIndexOf("/") + 1);
+		return idStr.trim().isEmpty() ? null : idStr.trim();
 	}
 	
 }
