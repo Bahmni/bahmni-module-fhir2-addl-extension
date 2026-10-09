@@ -3,6 +3,7 @@ package org.bahmni.module.fhir2addlextension.api.validators.impl;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.AccessLevel;
 import lombok.Setter;
+import org.bahmni.module.fhir2addlextension.api.service.DispositionOrderTypeResolver;
 import org.bahmni.module.fhir2addlextension.api.validators.ServiceRequestValidator;
 import org.hl7.fhir.r4.model.ServiceRequest;
 import org.openmrs.Concept;
@@ -22,6 +23,9 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 	@Autowired
 	private OrderService orderService;
 	
+	@Autowired
+	private DispositionOrderTypeResolver dispositionOrderTypeResolver;
+	
 	@Override
 	public void validate(ServiceRequest serviceRequest) {
 		Concept conceptBeingOrdered = conceptTranslator.toOpenmrsType(serviceRequest.getCode());
@@ -29,6 +33,9 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 			throw new InvalidRequestException("Invalid ServiceRequest code");
 		}
 		OrderType orderType = orderService.getOrderTypeByConcept(conceptBeingOrdered);
+		if (orderType == null) {
+			orderType = dispositionOrderTypeResolver.resolve(conceptBeingOrdered);
+		}
 		if (orderType == null) {
 			throw new InvalidRequestException("Unable to determine order type for ServiceRequest");
 		}

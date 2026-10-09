@@ -5,6 +5,7 @@ import lombok.AccessLevel;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2addlextension.api.service.DispositionOrderTypeResolver;
 import org.bahmni.module.fhir2addlextension.api.service.ServiceRequestLocationReferenceResolver;
 import org.bahmni.module.fhir2addlextension.api.translator.BahmniOrderReferenceTranslator;
 import org.bahmni.module.fhir2addlextension.api.translator.OrderTypeTranslator;
@@ -18,6 +19,7 @@ import org.openmrs.Concept;
 import org.openmrs.Encounter;
 import org.openmrs.Order;
 import org.openmrs.OrderAttribute;
+import org.openmrs.OrderType;
 import org.openmrs.Provider;
 import org.openmrs.CareSetting;
 import org.openmrs.User;
@@ -89,6 +91,9 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 	
 	@Autowired
 	private PractitionerReferenceTranslator<User> userPractitionerReferenceTranslator;
+	
+	@Autowired
+	private DispositionOrderTypeResolver dispositionOrderTypeResolver;
 	
 	@Override
 	public ServiceRequest toFhirResource(@Nonnull Order order) {
@@ -186,14 +191,23 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 		//Set Constants
 		order.setAction(Order.Action.NEW);
 		order.setCareSetting(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString()));
-		order.setOrderType(orderService.getOrderTypeByConcept(conceptBeingOrdered));
-		
+		OrderType orderType = orderService.getOrderTypeByConcept(conceptBeingOrdered);
+		if (orderType == null) {
+			orderType = dispositionOrderTypeResolver.resolve(conceptBeingOrdered);
+		}
+		order.setOrderType(orderType);
+
 		order.setConcept(conceptBeingOrdered);
 		order.setPatient(patientReferenceTranslator.toOpenmrsType(resource.getSubject()));
 		order.setEncounter(encounterReferenceTranslator.toOpenmrsType(resource.getEncounter()));
 		order.setOrderer(providerReferenceTranslator.toOpenmrsType(resource.getRequester()));
 		order.setUrgency(serviceRequestPriorityTranslator.toOpenmrsType(resource.getPriority()));
-		
+
+		if (resource.hasOccurrenceDateTimeType() && resource.getOccurrenceDateTimeType().hasValue()) {
+			order.setScheduledDate(resource.getOccurrenceDateTimeType().getValue());
+			order.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
+		}
+
 		if (resource.hasNote() && !resource.getNote().isEmpty()) {
 			Annotation firstNote = resource.getNote().get(0);
 			if (firstNote.hasText()) {

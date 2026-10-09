@@ -1,6 +1,7 @@
 package org.bahmni.module.fhir2addlextension.api.validators.impl;
 
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
+import org.bahmni.module.fhir2addlextension.api.service.DispositionOrderTypeResolver;
 import org.bahmni.module.fhir2addlextension.api.validators.ServiceRequestValidator;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
@@ -28,6 +29,9 @@ public class ServiceRequestValidatorImplTest {
 	@Mock
 	private OrderService orderService;
 	
+	@Mock
+	private DispositionOrderTypeResolver dispositionOrderTypeResolver;
+	
 	private ServiceRequestValidator validator;
 	
 	private ServiceRequest serviceRequest;
@@ -43,6 +47,7 @@ public class ServiceRequestValidatorImplTest {
 		ServiceRequestValidatorImpl validatorImpl = new ServiceRequestValidatorImpl();
 		validatorImpl.setConceptTranslator(conceptTranslator);
 		validatorImpl.setOrderService(orderService);
+		validatorImpl.setDispositionOrderTypeResolver(dispositionOrderTypeResolver);
 		validator = validatorImpl;
 		
 		serviceRequest = new ServiceRequest();
@@ -87,6 +92,30 @@ public class ServiceRequestValidatorImplTest {
 		when(conceptTranslator.toOpenmrsType(codeableConcept)).thenReturn(concept);
 		when(orderService.getOrderTypeByConcept(concept)).thenReturn(null);
 		
+		// When & Then
+		InvalidRequestException exception = assertThrows(InvalidRequestException.class,
+			() -> validator.validate(serviceRequest));
+		assertEquals("Unable to determine order type for ServiceRequest", exception.getMessage());
+	}
+	
+	@Test
+	public void shouldValidateSuccessfullyWhenDispositionResolverFallbackSucceeds() {
+		// Given
+		when(conceptTranslator.toOpenmrsType(codeableConcept)).thenReturn(concept);
+		when(orderService.getOrderTypeByConcept(concept)).thenReturn(null);
+		when(dispositionOrderTypeResolver.resolve(concept)).thenReturn(orderType);
+		
+		// When & Then - should not throw any exception
+		validator.validate(serviceRequest);
+	}
+	
+	@Test
+	public void shouldThrowInvalidRequestExceptionWhenBothOrderTypeLookupAndDispositionResolverReturnNull() {
+		// Given
+		when(conceptTranslator.toOpenmrsType(codeableConcept)).thenReturn(concept);
+		when(orderService.getOrderTypeByConcept(concept)).thenReturn(null);
+		when(dispositionOrderTypeResolver.resolve(concept)).thenReturn(null);
+
 		// When & Then
 		InvalidRequestException exception = assertThrows(InvalidRequestException.class,
 			() -> validator.validate(serviceRequest));

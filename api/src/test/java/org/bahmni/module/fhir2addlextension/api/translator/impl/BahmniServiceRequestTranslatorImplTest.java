@@ -4,6 +4,7 @@ import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
 import org.bahmni.module.fhir2addlextension.api.context.AppContext;
 import org.bahmni.module.fhir2addlextension.api.dao.OrderAttributeTypeDao;
+import org.bahmni.module.fhir2addlextension.api.service.DispositionOrderTypeResolver;
 import org.bahmni.module.fhir2addlextension.api.service.impl.ServiceRequestLocationReferenceResolverImpl;
 import org.bahmni.module.fhir2addlextension.api.translator.OrderTypeTranslator;
 import org.bahmni.module.fhir2addlextension.api.translator.ServiceRequestExtensionTranslator;
@@ -156,6 +157,9 @@ public class BahmniServiceRequestTranslatorImplTest {
 	@Mock
 	private PractitionerReferenceTranslator<User> userPractitionerReferenceTranslator;
 	
+	@Mock
+	private DispositionOrderTypeResolver dispositionOrderTypeResolver;
+	
 	private Order discontinuedOrder;
 	
 	private Order order;
@@ -205,6 +209,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 		
 		translator.setLocationReferenceResolver(orderLocationReferenceResolver);
 		translator.setUserPractitionerReferenceTranslator(userPractitionerReferenceTranslator);
+		translator.setDispositionOrderTypeResolver(dispositionOrderTypeResolver);
 		
 		orderConcept = new Concept();
 		ConceptClass cc = new ConceptClass();
@@ -836,6 +841,68 @@ public class BahmniServiceRequestTranslatorImplTest {
 		verify(serviceRequestPriorityTranslator).toOpenmrsType(serviceRequest.getPriority());
 		verify(orderService).getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString());
 		verify(orderService).getOrderTypeByConcept(testConcept);
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldUseDispositionResolverFallbackWhenOrderTypeByConceptIsNull() {
+		// Setup mocks
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(null);
+		when(dispositionOrderTypeResolver.resolve(testConcept)).thenReturn(testOrderType);
+		
+		// Execute
+		Order result = translator.toOpenmrsType(serviceRequest);
+		
+		// Verify fallback resolver's OrderType was set on the saved Order
+		assertThat(result, notNullValue());
+		assertThat(result.getOrderType(), equalTo(testOrderType));
+		verify(orderService).getOrderTypeByConcept(testConcept);
+		verify(dispositionOrderTypeResolver).resolve(testConcept);
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldSetScheduledDateAndUrgencyWhenOccurrenceDateTimeIsPresent() {
+		Date occurrenceDate = new Date();
+		serviceRequest.setOccurrence(new DateTimeType(occurrenceDate));
+		
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		
+		Order result = translator.toOpenmrsType(serviceRequest);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getScheduledDate(), equalTo(occurrenceDate));
+		assertThat(result.getUrgency(), equalTo(Order.Urgency.ON_SCHEDULED_DATE));
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldNotSetScheduledDateWhenOccurrenceIsAbsent() {
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.ROUTINE);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		
+		Order result = translator.toOpenmrsType(serviceRequest);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getScheduledDate(), nullValue());
+		assertThat(result.getUrgency(), equalTo(Order.Urgency.ROUTINE));
 	}
 	
 	@Test
