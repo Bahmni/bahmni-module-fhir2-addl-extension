@@ -21,23 +21,36 @@ public class BahmniMedicationRequestSearchParams extends MedicationRequestSearch
 	
 	private ReferenceAndListParam locationReference;
 	
+	private ReferenceAndListParam visitReference;
+	
 	private SortSpec sort;
+	
+	public BahmniMedicationRequestSearchParams(ReferenceAndListParam patientReference,
+	    ReferenceAndListParam encounterReference, TokenAndListParam code, ReferenceAndListParam participantReference,
+	    ReferenceAndListParam medicationReference, TokenAndListParam id, TokenAndListParam status,
+	    TokenAndListParam fulfillerStatus, ReferenceAndListParam locationReference, ReferenceAndListParam visitReference,
+	    DateRangeParam lastUpdated, Set<Include> includes, Set<Include> revIncludes, SortSpec sort) {
+		super(patientReference, encounterReference, code, participantReference, medicationReference, id, status,
+		        fulfillerStatus, lastUpdated, includes, revIncludes);
+		this.locationReference = locationReference;
+		this.visitReference = visitReference;
+		this.sort = sort;
+	}
 	
 	public BahmniMedicationRequestSearchParams(ReferenceAndListParam patientReference,
 	    ReferenceAndListParam encounterReference, TokenAndListParam code, ReferenceAndListParam participantReference,
 	    ReferenceAndListParam medicationReference, TokenAndListParam id, TokenAndListParam status,
 	    TokenAndListParam fulfillerStatus, ReferenceAndListParam locationReference, DateRangeParam lastUpdated,
 	    Set<Include> includes, Set<Include> revIncludes, SortSpec sort) {
-		super(patientReference, encounterReference, code, participantReference, medicationReference, id, status,
-		        fulfillerStatus, lastUpdated, includes, revIncludes);
-		this.locationReference = locationReference;
-		this.sort = sort;
+		this(patientReference, encounterReference, code, participantReference, medicationReference, id, status,
+		        fulfillerStatus, locationReference, null, lastUpdated, includes, revIncludes, sort);
 	}
 	
 	@Override
 	public SearchParameterMap toSearchParameterMap() {
 		SearchParameterMap map = super.toSearchParameterMap();
 		map.addParameter(BahmniFhirConstants.ORDER_LOCATION_SEARCH_HANDLER, locationReference);
+		map.addParameter(BahmniFhirConstants.VISIT_REFERENCE_SEARCH_HANDLER, visitReference);
 		if (sort != null) {
 			map.setSortSpec(sort);
 		}
