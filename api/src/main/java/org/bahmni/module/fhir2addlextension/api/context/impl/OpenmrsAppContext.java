@@ -73,7 +73,7 @@ public class OpenmrsAppContext implements AppContext {
 	}
 	
 	@Override
-	@Cacheable(value = "fhir2extensionOrderTypeToCategoryMap")
+	@Cacheable(value = "fhir2addlextensionOrderTypeToCategoryMap")
 	public Map<String, String> getOrderTypeToCategoryMap() {
 		String propertyValue = administrationService.getGlobalProperty(PROP_ORDER_TYPE_TO_CATEGORY_MAP, "");
 		return parseStringToMap(propertyValue);
