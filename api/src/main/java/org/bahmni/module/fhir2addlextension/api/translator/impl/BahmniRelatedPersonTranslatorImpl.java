@@ -134,7 +134,12 @@ public class BahmniRelatedPersonTranslatorImpl implements BahmniRelatedPersonTra
 
 		if (relatedPerson.hasPatient()) {
 			String focalUuid = BahmniFhirUtils.extractId(relatedPerson.getPatient().getReference());
-			relationship.setPersonB(personService.getPersonByUuid(focalUuid));
+			org.openmrs.Person focal = personService.getPersonByUuid(focalUuid);
+			if (focal == null) {
+				throw new UnprocessableEntityException(
+				    "Patient reference not found: " + relatedPerson.getPatient().getReference());
+			}
+			relationship.setPersonB(focal);
 		}
 
 		relatedPerson.getExtensionsByUrl(RELATED_PATIENT_EXT_URL).stream()
@@ -150,6 +155,11 @@ public class BahmniRelatedPersonTranslatorImpl implements BahmniRelatedPersonTra
 		}
 
 		resolveRelationshipType(relatedPerson, relationship);
+
+		if (relationship.getRelationshipType() == null) {
+			throw new UnprocessableEntityException(
+			    "relationship.coding must contain a valid relationship type code");
+		}
 
 		if (relatedPerson.hasPeriod()) {
 			relationship.setStartDate(relatedPerson.getPeriod().getStart());
