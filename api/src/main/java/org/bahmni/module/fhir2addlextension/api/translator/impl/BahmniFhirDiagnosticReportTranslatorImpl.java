@@ -45,22 +45,6 @@ public class BahmniFhirDiagnosticReportTranslatorImpl implements BahmniFhirDiagn
 	@Override
     public DiagnosticReport toFhirResource(@Nonnull FhirDiagnosticReportExt fhirDiagnosticReportExt) {
         DiagnosticReport diagnosticReport = diagnosticReportTranslator.toFhirResource(fhirDiagnosticReportExt);
-        if (fhirDiagnosticReportExt.getStatusExt() != null) {
-            try {
-                diagnosticReport.setStatus(
-                        DiagnosticReport.DiagnosticReportStatus.valueOf(fhirDiagnosticReportExt.getStatusExt().toString()));
-            }
-            catch (IllegalArgumentException e) {
-                diagnosticReport.setStatus(DiagnosticReport.DiagnosticReportStatus.UNKNOWN);
-            }
-        } else {
-            diagnosticReport.setStatus(DiagnosticReport.DiagnosticReportStatus.UNKNOWN);
-        }
-        diagnosticReport.setConclusion(fhirDiagnosticReportExt.getConclusion());
-        if (fhirDiagnosticReportExt.getOrders() != null) {
-            fhirDiagnosticReportExt.getOrders()
-                .forEach(order -> diagnosticReport.addBasedOn(serviceRequestReferenceTranslator.toFhirResource(order)));
-        }
 
         fhirDiagnosticReportExt.getPerformers()
                 .forEach(provider -> diagnosticReport.addPerformer(providerReferenceTranslator.toFhirResource(provider)));
@@ -93,19 +77,6 @@ public class BahmniFhirDiagnosticReportTranslatorImpl implements BahmniFhirDiagn
 	@Override
     public FhirDiagnosticReportExt toOpenmrsType(@Nonnull FhirDiagnosticReportExt existingObject, @Nonnull DiagnosticReport resource) {
         FhirDiagnosticReportExt reportExt = (FhirDiagnosticReportExt) diagnosticReportTranslator.toOpenmrsType(existingObject, resource);
-        if (resource.hasStatus()) {
-            FhirDiagnosticReportExt.DiagnosticReportStatusExt status;
-            try {
-                status = FhirDiagnosticReportExt.DiagnosticReportStatusExt.valueOf(resource.getStatus().toString());
-            }
-            catch (IllegalArgumentException | NullPointerException ignored) {
-                status = FhirDiagnosticReportExt.DiagnosticReportStatusExt.UNKNOWN;
-            }
-            existingObject.setStatusExt(status);
-        }
-        if (resource.hasConclusion()) {
-            existingObject.setConclusion(resource.getConclusion());
-        }
         if (resource.hasBasedOn()) {
             Set<Order> orders = new HashSet<>();
             resource.getBasedOn().forEach(reference -> {
