@@ -43,8 +43,8 @@
 	</modules>
 
     <properties>
-			<openmrsPlatformVersion>2.5.12</openmrsPlatformVersion>
-			<openmrs.fhir2.version>2.8.0</openmrs.fhir2.version>
+			<openmrsPlatformVersion>2.8.0</openmrsPlatformVersion>
+			<openmrs.fhir2.version>4.3.0</openmrs.fhir2.version>
 			<web.services.version>2.44.0</web.services.version>
 			<junitVersion>4.13.1</junitVersion>
 			<lombokVersion>1.18.16</lombokVersion>
@@ -136,11 +136,11 @@
 				<groupId>org.openmrs.module</groupId>
 				<artifactId>fhir2-integration-tests</artifactId>
 				<type>test-jar</type>
-				<version>2.7.0</version>
+				<version>${openmrs.fhir2.version}</version>
 				<scope>test</scope>
 			</dependency>
 			<dependency>
-				<groupId>${project.parent.groupId}</groupId>
+				<groupId>org.openmrs.module</groupId>
 				<artifactId>fhir2-test-data</artifactId>
 				<version>${openmrs.fhir2.version}</version>
 				<type>test-jar</type>

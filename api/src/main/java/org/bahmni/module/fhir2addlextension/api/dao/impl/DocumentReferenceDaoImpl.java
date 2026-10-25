@@ -6,15 +6,16 @@ import org.bahmni.module.fhir2addlextension.api.dao.DocumentReferenceDao;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReference;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceAttribute;
 import org.bahmni.module.fhir2addlextension.api.model.FhirDocumentReferenceContent;
-import org.hibernate.Criteria;
 import org.openmrs.User;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.dao.impl.BaseFhirDao;
+import org.openmrs.module.fhir2.api.dao.internals.OpenmrsFhirCriteriaContext;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
+import javax.persistence.criteria.Join;
 import java.util.Date;
 
 @Component
@@ -67,36 +68,36 @@ public class DocumentReferenceDaoImpl extends BaseFhirDao<FhirDocumentReference>
 	}
 	
 	@Override
-    protected void setupSearchParams(Criteria criteria, SearchParameterMap theParams) {
-        super.setupSearchParams(criteria, theParams);
-        theParams.getParameters().forEach(param -> {
-            switch (param.getKey()) {
-                case FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER :
-                    param.getValue().forEach(patientReference -> handlePatientReference(criteria,
-                            (ReferenceAndListParam) patientReference.getParam(), "subject"));
-                    break;
-                case FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER:
-                    param.getValue().forEach(encounterReference -> handleEncounterReference(criteria,
-                            (ReferenceAndListParam) encounterReference.getParam(), ENCOUNTER_ALIAS));
-                    break;
-                case FhirConstants.CODED_SEARCH_HANDLER:
-                    param.getValue().forEach(type -> handleDocType(criteria, (TokenAndListParam) type.getParam()));
-                    break;
-                case FhirConstants.COMMON_SEARCH_HANDLER:
-                    handleCommonSearchParameters(param.getValue()).ifPresent(criteria::add);
-                    break;
-            }
-        });
-    }
+	protected <U> void setupSearchParams(OpenmrsFhirCriteriaContext<FhirDocumentReference, U> ctx,
+	        SearchParameterMap theParams) {
+		super.setupSearchParams(ctx, theParams);
+		theParams.getParameters().forEach(param -> {
+			switch (param.getKey()) {
+				case FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER:
+					param.getValue().forEach(patientReference -> getSearchQueryHelper().handlePatientReference(ctx,
+					    (ReferenceAndListParam) patientReference.getParam(), "subject"));
+					break;
+				case FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER:
+					param.getValue().forEach(encounterReference -> getSearchQueryHelper().handleEncounterReference(ctx,
+					    (ReferenceAndListParam) encounterReference.getParam(), ENCOUNTER_ALIAS));
+					break;
+				case FhirConstants.CODED_SEARCH_HANDLER:
+					param.getValue().forEach(type -> handleDocType(ctx, (TokenAndListParam) type.getParam()));
+					break;
+				case FhirConstants.COMMON_SEARCH_HANDLER:
+					handleCommonSearchParameters(ctx, param.getValue()).ifPresent(ctx::addPredicate);
+					break;
+			}
+		});
+	}
 	
-	private void handleDocType(Criteria criteria, TokenAndListParam type) {
-        if (type == null) {
-            return;
-        }
-        if (lacksAlias(criteria, DOC_TYPE_ALIAS)) {
-            criteria.createAlias(DOC_TYPE_PROPERTY, DOC_TYPE_ALIAS);
-        }
-        handleCodeableConcept(criteria, type, DOC_TYPE_ALIAS, DOC_TYPE_CONCEPT_MAP_ALIAS,
-            DOC_TYPE_CONCEPT_REFERENCE_TERM_ALIAS).ifPresent(criteria::add);
-    }
+	private <U> void handleDocType(OpenmrsFhirCriteriaContext<FhirDocumentReference, U> ctx, TokenAndListParam type) {
+		if (type == null) {
+			return;
+		}
+		Join<?, ?> dtJoin = ctx.getJoin(DOC_TYPE_ALIAS).orElseGet(() -> ctx.addJoin(DOC_TYPE_PROPERTY, DOC_TYPE_ALIAS));
+		getSearchQueryHelper()
+		        .handleCodeableConcept(ctx, type, dtJoin, DOC_TYPE_CONCEPT_MAP_ALIAS, DOC_TYPE_CONCEPT_REFERENCE_TERM_ALIAS)
+		        .ifPresent(ctx::addPredicate);
+	}
 }

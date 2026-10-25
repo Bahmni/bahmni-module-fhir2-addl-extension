@@ -1,22 +1,22 @@
 package org.bahmni.module.fhir2addlextension.api.dao.impl;
 
-import java.util.List;
-import java.util.Optional;
-
+import ca.uhn.fhir.rest.param.ReferenceAndListParam;
+import ca.uhn.fhir.rest.param.StringAndListParam;
 import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
 import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirTaskDao;
-import org.hibernate.Criteria;
-import org.hibernate.criterion.Restrictions;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.dao.impl.FhirTaskDaoImpl;
+import org.openmrs.module.fhir2.api.dao.internals.OpenmrsFhirCriteriaContext;
 import org.openmrs.module.fhir2.api.search.param.PropParam;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.openmrs.module.fhir2.model.FhirTask;
-import ca.uhn.fhir.rest.param.ReferenceAndListParam;
-import ca.uhn.fhir.rest.param.StringAndListParam;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
+
+import javax.persistence.criteria.Join;
+import java.util.List;
+import java.util.Optional;
 
 @Component
 @Primary
@@ -24,8 +24,8 @@ import org.springframework.stereotype.Component;
 public class BahmniFhirTaskDaoImpl extends FhirTaskDaoImpl implements BahmniFhirTaskDao {
 	
 	@Override
-	protected void setupSearchParams(Criteria criteria, SearchParameterMap theParams) {
-		List<PropParam<?>> forReferenceParams = theParams.getParameters(FhirConstants.FOR_REFERENCE_SEARCH_HANDLER);
+	protected <U> void setupSearchParams(OpenmrsFhirCriteriaContext<FhirTask, U> ctx, SearchParameterMap theParams) {
+		List<? extends PropParam<?>> forReferenceParams = theParams.getParameters(FhirConstants.FOR_REFERENCE_SEARCH_HANDLER);
 
 		SearchParameterMap paramsCopy = new SearchParameterMap();
 		theParams.getParameters().forEach(entry -> {
@@ -34,67 +34,64 @@ public class BahmniFhirTaskDaoImpl extends FhirTaskDaoImpl implements BahmniFhir
 			}
 		});
 
-		super.setupSearchParams(criteria, paramsCopy);
+		super.setupSearchParams(ctx, paramsCopy);
 
 		if (forReferenceParams != null) {
-			forReferenceParams.forEach(
-			    param -> handleForReference(criteria, (ReferenceAndListParam) param.getParam()));
+			forReferenceParams.forEach(param -> handleForReference(ctx, (ReferenceAndListParam) param.getParam()));
 		}
 
 		theParams.getParameters().forEach(entry -> {
 			switch (entry.getKey()) {
 				case FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER:
-					entry.getValue().forEach(
-					    param -> handleEncounterForTask(criteria, (ReferenceAndListParam) param.getParam()));
+					entry.getValue()
+					        .forEach(param -> handleEncounterForTask(ctx, (ReferenceAndListParam) param.getParam()));
 					break;
 				case BahmniFhirConstants.NAME_SEARCH_HANDLER:
-					entry.getValue().forEach(
-					    param -> handleName(criteria, (StringAndListParam) param.getParam()));
+					entry.getValue().forEach(param -> handleName(ctx, (StringAndListParam) param.getParam()));
 					break;
 			}
 		});
 	}
 	
-	private void handleEncounterForTask(Criteria criteria, ReferenceAndListParam encounterReference) {
+	private <U> void handleEncounterForTask(OpenmrsFhirCriteriaContext<FhirTask, U> ctx,
+	        ReferenceAndListParam encounterReference) {
 		if (encounterReference == null) {
 			return;
 		}
-		if (lacksAlias(criteria, "er")) {
-			criteria.createAlias("encounterReference", "er");
-		}
-		handleAndListParam(encounterReference,
-		    ref -> ref.getIdPart() != null ? Optional.of(Restrictions.eq("er.targetUuid", ref.getIdPart()))
-		            : Optional.empty()).ifPresent(criteria::add);
+		Join<?, ?> erJoin = ctx.getJoin("er").orElseGet(() -> ctx.addJoin("encounterReference", "er"));
+		handleAndListParam(ctx.getCriteriaBuilder(), encounterReference,
+		    ref -> ref.getIdPart() != null
+		            ? Optional.of(ctx.getCriteriaBuilder().equal(erJoin.get("targetUuid"), ref.getIdPart()))
+		            : Optional.empty()).ifPresent(ctx::addPredicate);
 	}
 	
-	private void handleName(Criteria criteria, StringAndListParam name) {
+	private <U> void handleName(OpenmrsFhirCriteriaContext<FhirTask, U> ctx, StringAndListParam name) {
 		if (name == null) {
 			return;
 		}
-		handleAndListParam(name,
-		    param -> param.getValue() != null ? Optional.of(Restrictions.eq("name", param.getValue()))
-		            : Optional.empty()).ifPresent(criteria::add);
+		handleAndListParam(ctx.getCriteriaBuilder(), name,
+		    param -> param.getValue() != null
+		            ? Optional.of(ctx.getCriteriaBuilder().equal(ctx.getRoot().get("name"), param.getValue()))
+		            : Optional.empty()).ifPresent(ctx::addPredicate);
 	}
 	
 	/**
 	 * Handles the forReference (subject) search parameter.
 	 * 
-	 * @param criteria The Hibernate criteria to add restrictions to
-	 * @param forReference The subject reference parameter
 	 * @note The forReference field stores Visit UUIDs from the write-side (fhir2Extension #81), not
 	 *       Patient UUIDs. This method matches by targetUuid without type validation. Callers
 	 *       should be aware that subject=Patient/{uuid} searches may return empty results if the
 	 *       write-side stored a Visit UUID instead.
 	 */
-	private void handleForReference(Criteria criteria, ReferenceAndListParam forReference) {
+	private <U> void handleForReference(OpenmrsFhirCriteriaContext<FhirTask, U> ctx,
+	        ReferenceAndListParam forReference) {
 		if (forReference == null) {
 			return;
 		}
-		if (lacksAlias(criteria, "fr")) {
-			criteria.createAlias("forReference", "fr");
-		}
-		handleAndListParam(forReference,
-		    ref -> ref.getIdPart() != null ? Optional.of(Restrictions.eq("fr.targetUuid", ref.getIdPart()))
-		            : Optional.empty()).ifPresent(criteria::add);
+		Join<?, ?> frJoin = ctx.getJoin("fr").orElseGet(() -> ctx.addJoin("forReference", "fr"));
+		handleAndListParam(ctx.getCriteriaBuilder(), forReference,
+		    ref -> ref.getIdPart() != null
+		            ? Optional.of(ctx.getCriteriaBuilder().equal(frJoin.get("targetUuid"), ref.getIdPart()))
+		            : Optional.empty()).ifPresent(ctx::addPredicate);
 	}
 }
