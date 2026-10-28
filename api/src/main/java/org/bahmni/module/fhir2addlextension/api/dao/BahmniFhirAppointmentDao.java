@@ -11,14 +11,14 @@ import java.util.List;
 public interface BahmniFhirAppointmentDao extends FhirDao<org.openmrs.module.appointments.model.Appointment> {
 	
 	@Override
-	@Authorized({ PrivilegeConstants.GET_APPOINTMENTS })
+	@Authorized({ PrivilegeConstants.VIEW_APPOINTMENTS })
 	org.openmrs.module.appointments.model.Appointment get(@Nonnull String uuid);
 	
 	@Override
-	@Authorized({ PrivilegeConstants.GET_APPOINTMENTS })
+	@Authorized({ PrivilegeConstants.VIEW_APPOINTMENTS })
 	List<org.openmrs.module.appointments.model.Appointment> getSearchResults(@Nonnull SearchParameterMap searchParameterMap);
 	
 	@Override
-	@Authorized({ PrivilegeConstants.GET_APPOINTMENTS })
+	@Authorized({ PrivilegeConstants.VIEW_APPOINTMENTS })
 	int getSearchResultsCount(@Nonnull SearchParameterMap searchParameterMap);
 }
