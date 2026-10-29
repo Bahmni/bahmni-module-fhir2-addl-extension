@@ -29,11 +29,15 @@ public class BahmniFhirEpisodeOfCareEncounterServiceImpl implements BahmniFhirEp
 	
 	private final EncounterTranslator<org.openmrs.Encounter> encounterTranslator;
 	
+	private final EncounterTranslator<org.openmrs.Visit> visitTranslator;
+	
 	@Autowired
 	public BahmniFhirEpisodeOfCareEncounterServiceImpl(BahmniEpisodeOfCareEncounterDao episodeOfCareEncounterDao,
-	    EncounterTranslator<org.openmrs.Encounter> encounterTranslator) {
+	    EncounterTranslator<org.openmrs.Encounter> encounterTranslator,
+	    EncounterTranslator<org.openmrs.Visit> visitTranslator) {
 		this.episodeOfCareEncounterDao = episodeOfCareEncounterDao;
 		this.encounterTranslator = encounterTranslator;
+		this.visitTranslator = visitTranslator;
 	}
 	
 	@Override
@@ -52,17 +56,38 @@ public class BahmniFhirEpisodeOfCareEncounterServiceImpl implements BahmniFhirEp
 		Map<String, List<org.openmrs.Encounter>> episodeEncounters = episodeOfCareEncounterDao.getEncountersForEpisodes(episodeUuids);
 		List<Encounter> allFhirEncounterResources = new ArrayList<>();
 		episodeEncounters.forEach((episodeUuid, encounters) -> {
-			List<Encounter> fhirEncounters = encounterTranslator.toFhirResources(encounters);
-			fhirEncounters.forEach(encounter -> {
-				Reference reference = new Reference();
-				reference.setReference("EpisodeOfCare/".concat(episodeUuid));
-				encounter.setEpisodeOfCare(Collections.singletonList(reference));
-			});
+			List<Encounter> fhirEncounters = mapFhirResourcesFromEncounters(episodeUuid, encounters);
+			allFhirEncounterResources.addAll(fhirEncounters);
+		});
+
+		Map<String, List<org.openmrs.Visit>> episodeVisits = episodeOfCareEncounterDao.getVisitsForEpisodes(episodeUuids);
+		episodeVisits.forEach((episodeUuid, visits) -> {
+			List<Encounter> fhirEncounters = mapFhirResourcesFromVisits(episodeUuid, visits);
 			allFhirEncounterResources.addAll(fhirEncounters);
 		});
 
 		BahmniSimpleBundleProvider bundleProvider = new BahmniSimpleBundleProvider(allFhirEncounterResources);
 		bundleProvider.setPreferredPageSize(allFhirEncounterResources.size());
 		return bundleProvider;
+	}
+	
+	private List<Encounter> mapFhirResourcesFromEncounters(String episodeUuid, List<org.openmrs.Encounter> encounters) {
+		List<Encounter> fhirEncounters = encounterTranslator.toFhirResources(encounters);
+		fhirEncounters.forEach(encounter -> {
+			Reference reference = new Reference();
+			reference.setReference("EpisodeOfCare/".concat(episodeUuid));
+			encounter.setEpisodeOfCare(Collections.singletonList(reference));
+		});
+		return fhirEncounters;
+	}
+	
+	private List<Encounter> mapFhirResourcesFromVisits(String episodeUuid, List<org.openmrs.Visit> visits) {
+		List<Encounter> fhirEncounters = visitTranslator.toFhirResources(visits);
+		fhirEncounters.forEach(encounter -> {
+			Reference reference = new Reference();
+			reference.setReference("EpisodeOfCare/".concat(episodeUuid));
+			encounter.setEpisodeOfCare(Collections.singletonList(reference));
+		});
+		return fhirEncounters;
 	}
 }

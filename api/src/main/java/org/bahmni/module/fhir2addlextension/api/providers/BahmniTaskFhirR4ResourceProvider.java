@@ -58,7 +58,7 @@ public class BahmniTaskFhirR4ResourceProvider extends TaskFhirResourceProvider {
 		params.setBasedOnReference(basedOnReference);
 		params.setOwnerReference(ownerReference);
 		params.setForReference(forReference);
-		params.setFocusReference(focusReference);
+		//params.setFocusReference(focusReference);
 		params.setStatus(status);
 		params.setEncounterReference(encounterReference);
 		params.setName(name);

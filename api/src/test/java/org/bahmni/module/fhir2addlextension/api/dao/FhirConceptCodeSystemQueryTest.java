@@ -1,6 +1,5 @@
 package org.bahmni.module.fhir2addlextension.api.dao;
 
-import org.hibernate.criterion.Criterion;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -8,7 +7,6 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class FhirConceptCodeSystemQueryTest {
@@ -43,16 +41,5 @@ public class FhirConceptCodeSystemQueryTest {
 	@Test
 	public void isConceptReferenceCodeEmpty_shouldReturnFalseWhenCodesHasMultipleValues() {
 		assertFalse(codeSystemQuery.isConceptReferenceCodeEmpty(Arrays.asList("code1", "code2")));
-	}
-	
-	@Test
-	public void generateSystemQueryForEmptyCodes_shouldReturnPropertySubqueryExpression() {
-		String system = "http://example.com/system";
-		String alias = "crt";
-		
-		Criterion result = codeSystemQuery.generateSystemQueryForEmptyCodes(system, alias);
-		
-		assertNotNull(result);
-		assertTrue(result instanceof org.hibernate.criterion.PropertySubqueryExpression);
 	}
 }

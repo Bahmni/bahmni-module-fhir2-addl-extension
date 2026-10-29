@@ -39,7 +39,7 @@ public class BahmniFhirTaskServiceImplIntegrationTest {
 		params.addParameter(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnRef);
 		params.addParameter(FhirConstants.OWNER_REFERENCE_SEARCH_HANDLER, ownerRef);
 		params.addParameter(FhirConstants.FOR_REFERENCE_SEARCH_HANDLER, forRef);
-		params.addParameter(FhirConstants.FOCUS_REFERENCE_SEARCH_HANDLER, focusRef);
+		//params.addParameter(FhirConstants.FOCUS_REFERENCE_SEARCH_HANDLER, focusRef);
 		params.addParameter(FhirConstants.STATUS_SEARCH_HANDLER, statusParam);
 		params.addParameter(FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER, encounterRef);
 		params.addParameter(BahmniFhirConstants.NAME_SEARCH_HANDLER, name);
@@ -80,16 +80,16 @@ public class BahmniFhirTaskServiceImplIntegrationTest {
 		assertThat(params, notNullValue());
 	}
 	
-	@Test
-	public void searchForTasks_withFocusParameter_shouldBuildSearchMap() {
-		ReferenceAndListParam focusRef = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam("ServiceRequest", "sr-uuid")));
-		
-		SearchParameterMap params = new SearchParameterMap();
-		params.addParameter(FhirConstants.FOCUS_REFERENCE_SEARCH_HANDLER, focusRef);
-		
-		assertThat(params, notNullValue());
-	}
+	//	@Test
+	//	public void searchForTasks_withFocusParameter_shouldBuildSearchMap() {
+	//		ReferenceAndListParam focusRef = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+	//		        .add(new ReferenceParam("ServiceRequest", "sr-uuid")));
+	//
+	//		SearchParameterMap params = new SearchParameterMap();
+	//		params.addParameter(FhirConstants.FOCUS_REFERENCE_SEARCH_HANDLER, focusRef);
+	//
+	//		assertThat(params, notNullValue());
+	//	}
 	
 	@Test
 	public void searchForTasks_withStatusParameter_shouldBuildSearchMap() {

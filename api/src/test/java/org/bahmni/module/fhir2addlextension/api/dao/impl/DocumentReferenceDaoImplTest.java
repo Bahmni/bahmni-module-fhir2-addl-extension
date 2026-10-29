@@ -9,18 +9,18 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.User;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.context.UserContext;
 import org.openmrs.api.db.ContextDAO;
+import org.openmrs.module.fhir2.api.dao.impl.BaseDao;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -28,7 +28,6 @@ import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.class)
 public class DocumentReferenceDaoImplTest {
 	
-	@Spy
 	private DocumentReferenceDaoImpl documentReferenceDao;
 	
 	@Mock
@@ -41,6 +40,10 @@ public class DocumentReferenceDaoImplTest {
 	
 	@Before
 	public void setUp() {
+		documentReferenceDao = new DocumentReferenceDaoImpl();
+		ReflectionTestUtils.setField(documentReferenceDao, BaseDao.class, "sessionFactory", sessionFactory,
+		    SessionFactory.class);
+		
 		user = new User();
 		ContextDAO contextDAO = mock(ContextDAO.class);
 		UserContext userContext = mock(UserContext.class);
@@ -50,7 +53,6 @@ public class DocumentReferenceDaoImplTest {
 		Context.setUserContext(userContext);
 		
 		when(sessionFactory.getCurrentSession()).thenReturn(session);
-		doReturn(sessionFactory).when(documentReferenceDao).getSessionFactory();
 	}
 	
 	@Test

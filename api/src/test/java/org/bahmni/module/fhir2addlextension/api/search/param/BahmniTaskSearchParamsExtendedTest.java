@@ -93,7 +93,7 @@ public class BahmniTaskSearchParamsExtendedTest {
 		BahmniTaskSearchParams params = new BahmniTaskSearchParams();
 		params.setEncounterReference(new ReferenceAndListParam());
 		params.setName(new StringAndListParam());
-		params.setFocusReference(new ReferenceAndListParam());
+		//params.setFocusReference(new ReferenceAndListParam());
 		
 		assertThat(params.toSearchParameterMap(), notNullValue());
 	}

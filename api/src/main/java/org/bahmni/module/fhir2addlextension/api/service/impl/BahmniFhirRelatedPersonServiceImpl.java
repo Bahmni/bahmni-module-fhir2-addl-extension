@@ -91,7 +91,7 @@ public class BahmniFhirRelatedPersonServiceImpl implements BahmniFhirRelatedPers
 			}
 		}
 	}
-
+	
 	private boolean bothCurrentlyActive(Relationship a, Relationship b) {
 		Date now = new Date();
 		// A relationship with a past end date is historical — no conflict with a new one
