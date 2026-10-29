@@ -23,8 +23,10 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component
 @Setter(value = AccessLevel.PACKAGE)
@@ -34,22 +36,24 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 
 	private static final String EMRAPI_CONCEPT_SOURCE_NAME = "org.openmrs.module.emrapi";
 
-	// Maps a disposition's emrapi code to the encounter type(s) whose occurrence after
-	// the order date means that order has already been fulfilled, and is therefore no
-	// longer "active" (i.e. no longer blocks a new order of the same kind).
-	private static final Map<String, Set<String>> SUPERSEDING_ENCOUNTER_TYPES_BY_CODE = new HashMap<>();
-	static {
-		SUPERSEDING_ENCOUNTER_TYPES_BY_CODE.put("ADMIT", new HashSet<>(Collections.singletonList("ADMISSION")));
-		SUPERSEDING_ENCOUNTER_TYPES_BY_CODE.put("DISCHARGE", new HashSet<>(Collections.singletonList("DISCHARGE")));
-		SUPERSEDING_ENCOUNTER_TYPES_BY_CODE.put("TRANSFER",
-		    new HashSet<>(Arrays.asList("TRANSFER", "DISCHARGE")));
-	}
+	private static final Set<String> DUPLICATE_CHECKED_CODES = new HashSet<>(
+	        Arrays.asList("ADMIT", "DISCHARGE", "UNDO_DISCHARGE"));
 
 	private static final Map<String, String> DISPOSITION_LABEL_BY_CODE = new HashMap<>();
 	static {
 		DISPOSITION_LABEL_BY_CODE.put("ADMIT", "Admit");
 		DISPOSITION_LABEL_BY_CODE.put("DISCHARGE", "Discharge");
 		DISPOSITION_LABEL_BY_CODE.put("TRANSFER", "Transfer");
+		DISPOSITION_LABEL_BY_CODE.put("UNDO_DISCHARGE", "Undo Discharge");
+	}
+
+	// Real Bed Management encounter types that mark an ADT Order as fulfilled, matching the
+	// gating used by the emrapi.sqlSearch.patientsTo* worklist queries.
+	private static final Map<String, Set<String>> FULFILLING_ENCOUNTER_TYPES_BY_CODE = new HashMap<>();
+	static {
+		FULFILLING_ENCOUNTER_TYPES_BY_CODE.put("ADMIT", new HashSet<>(Arrays.asList("ADMISSION", "DISCHARGE")));
+		FULFILLING_ENCOUNTER_TYPES_BY_CODE.put("UNDO_DISCHARGE", new HashSet<>(Arrays.asList("ADMISSION", "DISCHARGE")));
+		FULFILLING_ENCOUNTER_TYPES_BY_CODE.put("DISCHARGE", new HashSet<>(Collections.singletonList("DISCHARGE")));
 	}
 	
 	@Autowired
@@ -78,7 +82,7 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 			throw new InvalidRequestException("Unable to determine order type for ServiceRequest");
 		}
 		String emrapiCode = getEmrapiMappingCode(conceptBeingOrdered);
-		if (ADT_ORDER_TYPE_NAME.equals(orderType.getName()) && SUPERSEDING_ENCOUNTER_TYPES_BY_CODE.containsKey(emrapiCode)) {
+		if (ADT_ORDER_TYPE_NAME.equals(orderType.getName()) && DUPLICATE_CHECKED_CODES.contains(emrapiCode)) {
 			rejectIfActiveOrderExists(serviceRequest, emrapiCode);
 		}
 	}
@@ -93,11 +97,14 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 		}
 
 		Visit visit = encounter.getVisit();
-		boolean activeOrderExists = visit.getEncounters().stream().filter(e -> !e.getVoided())
+		List<Order> adtOrders = visit.getEncounters().stream().filter(e -> !e.getVoided())
 		        .flatMap(e -> e.getOrders().stream()).filter(order -> !order.getVoided())
 		        .filter(order -> order.getOrderType() != null && ADT_ORDER_TYPE_NAME.equals(order.getOrderType().getName()))
+		        .collect(Collectors.toList());
+
+		boolean activeOrderExists = adtOrders.stream()
 		        .filter(order -> emrapiCode.equals(getEmrapiMappingCode(order.getConcept())))
-		        .anyMatch(order -> !isSuperseded(visit, order, emrapiCode));
+		        .anyMatch(order -> !isSuperseded(adtOrders, order) && !isFulfilled(visit, order, emrapiCode));
 
 		if (activeOrderExists) {
 			throw new InvalidRequestException(
@@ -105,11 +112,37 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 		}
 	}
 
-	private boolean isSuperseded(Visit visit, Order order, String emrapiCode) {
+	/**
+	 * An ADT Order is superseded once any other ADT Order (of any disposition kind) is
+	 * placed after it in the same visit - the new ServiceRequest-driven flow has no
+	 * reliable ADMISSION/DISCHARGE/TRANSFER encounter-type flip to check against, so the
+	 * order timeline itself is the source of truth for "has this been moved past".
+	 */
+	private boolean isSuperseded(List<Order> adtOrders, Order order) {
 		Date orderDate = order.getDateActivated() != null ? order.getDateActivated() : order.getDateCreated();
-		Set<String> supersedingEncounterTypes = SUPERSEDING_ENCOUNTER_TYPES_BY_CODE.get(emrapiCode);
+		return adtOrders.stream().filter(other -> !other.getUuid().equals(order.getUuid())).anyMatch(other -> {
+			Date otherDate = other.getDateActivated() != null ? other.getDateActivated() : other.getDateCreated();
+			return otherDate != null && orderDate != null && otherDate.after(orderDate);
+		});
+	}
+
+	/**
+	 * An ADT Order is also considered done once the fulfiller (real Bed Management action)
+	 * has actually carried it out - e.g. a Transfer order is fulfilled once a real TRANSFER
+	 * encounter is recorded after it, so a new Transfer order can be placed again. Mirrors
+	 * the encounter-type gating used by the emrapi.sqlSearch.patientsTo* worklist queries.
+	 */
+	private boolean isFulfilled(Visit visit, Order order, String emrapiCode) {
+		Set<String> fulfillingEncounterTypes = FULFILLING_ENCOUNTER_TYPES_BY_CODE.get(emrapiCode);
+		if (fulfillingEncounterTypes == null || fulfillingEncounterTypes.isEmpty()) {
+			return false;
+		}
+		Date orderDate = order.getDateActivated() != null ? order.getDateActivated() : order.getDateCreated();
+		if (orderDate == null) {
+			return false;
+		}
 		return visit.getEncounters().stream().filter(e -> !e.getVoided())
-		        .filter(e -> e.getEncounterType() != null && supersedingEncounterTypes.contains(e.getEncounterType().getName()))
+		        .filter(e -> e.getEncounterType() != null && fulfillingEncounterTypes.contains(e.getEncounterType().getName()))
 		        .anyMatch(e -> e.getEncounterDatetime() != null && e.getEncounterDatetime().after(orderDate));
 	}
 	

@@ -17,7 +17,6 @@ import org.openmrs.ConceptMap;
 import org.openmrs.ConceptReferenceTerm;
 import org.openmrs.ConceptSource;
 import org.openmrs.Encounter;
-import org.openmrs.EncounterType;
 import org.openmrs.Order;
 import org.openmrs.OrderType;
 import org.openmrs.Visit;
@@ -179,8 +178,11 @@ public class ServiceRequestValidatorImplTest {
 		return concept;
 	}
 	
+	private int orderUuidCounter = 0;
+	
 	private Order admitOrder(OrderType adtOrderType, Concept admitConcept, Date dateActivated) {
 		Order order = new Order();
+		order.setUuid("order-uuid-" + (orderUuidCounter++));
 		order.setOrderType(adtOrderType);
 		order.setConcept(admitConcept);
 		order.setDateActivated(dateActivated);
@@ -223,8 +225,9 @@ public class ServiceRequestValidatorImplTest {
 	}
 	
 	@Test
-	public void shouldAllowAdmitOrderWhenThePreviousAdmitOrderWasAlreadyFulfilledByAnAdmissionEncounter() {
+	public void shouldAllowAdmitOrderWhenThePreviousAdmitOrderWasAlreadySupersededByALaterOrder() {
 		Concept admitConcept = conceptWithEmrapiMapping("ADMIT");
+		Concept dischargeConcept = conceptWithEmrapiMapping("DISCHARGE");
 		orderType.setName("ADT Order");
 		CodeableConcept admitCodeableConcept = new CodeableConcept();
 		admitCodeableConcept.addCoding(new Coding().setCode("admit-uuid"));
@@ -234,22 +237,45 @@ public class ServiceRequestValidatorImplTest {
 		Visit visit = new Visit();
 		Date orderDate = new Date(System.currentTimeMillis() - 100000);
 		Order fulfilledAdmitOrder = admitOrder(orderType, admitConcept, orderDate);
-		Encounter orderEncounter = encounterWithOrders(visit, fulfilledAdmitOrder);
+		Order laterDischargeOrder = admitOrder(orderType, dischargeConcept, new Date());
+		Encounter orderEncounter = encounterWithOrders(visit, fulfilledAdmitOrder, laterDischargeOrder);
 
-		EncounterType admissionType = new EncounterType();
-		admissionType.setName("ADMISSION");
-		Encounter admissionEncounter = new Encounter();
-		admissionEncounter.setVisit(visit);
-		admissionEncounter.setEncounterType(admissionType);
-		admissionEncounter.setEncounterDatetime(new Date());
-
-		visit.setEncounters(new HashSet<>(java.util.Arrays.asList(orderEncounter, admissionEncounter)));
+		visit.setEncounters(new HashSet<>(Collections.singletonList(orderEncounter)));
 
 		Encounter newEncounter = new Encounter();
 		newEncounter.setVisit(visit);
 
 		when(conceptTranslator.toOpenmrsType(admitCodeableConcept)).thenReturn(admitConcept);
 		when(orderService.getOrderTypeByConcept(admitConcept)).thenReturn(orderType);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(newEncounter);
+
+		validator.validate(serviceRequest);
+	}
+	
+	@Test
+	public void shouldAllowDischargeOrderAfterThePreviousDischargeWasSupersededByAnUndoDischargeOrder() {
+		Concept dischargeConcept = conceptWithEmrapiMapping("DISCHARGE");
+		Concept undoDischargeConcept = conceptWithEmrapiMapping("UNDO_DISCHARGE");
+		orderType.setName("ADT Order");
+		CodeableConcept dischargeCodeableConcept = new CodeableConcept();
+		dischargeCodeableConcept.addCoding(new Coding().setCode("discharge-uuid"));
+		serviceRequest.setCode(dischargeCodeableConcept);
+		serviceRequest.setEncounter(new Reference("Encounter/encounter-uuid"));
+
+		Visit visit = new Visit();
+		Date firstDischargeDate = new Date(System.currentTimeMillis() - 200000);
+		Date undoDischargeDate = new Date(System.currentTimeMillis() - 100000);
+		Order firstDischargeOrder = admitOrder(orderType, dischargeConcept, firstDischargeDate);
+		Order undoDischargeOrder = admitOrder(orderType, undoDischargeConcept, undoDischargeDate);
+		Encounter orderEncounter = encounterWithOrders(visit, firstDischargeOrder, undoDischargeOrder);
+
+		visit.setEncounters(new HashSet<>(Collections.singletonList(orderEncounter)));
+
+		Encounter newEncounter = new Encounter();
+		newEncounter.setVisit(visit);
+
+		when(conceptTranslator.toOpenmrsType(dischargeCodeableConcept)).thenReturn(dischargeConcept);
+		when(orderService.getOrderTypeByConcept(dischargeConcept)).thenReturn(orderType);
 		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(newEncounter);
 
 		validator.validate(serviceRequest);
@@ -296,7 +322,33 @@ public class ServiceRequestValidatorImplTest {
 	}
 	
 	@Test
-	public void shouldThrowInvalidRequestExceptionWhenActiveTransferOrderAlreadyExistsForTheVisit() {
+	public void shouldThrowInvalidRequestExceptionWhenActiveUndoDischargeOrderAlreadyExistsForTheVisit() {
+		Concept undoDischargeConcept = conceptWithEmrapiMapping("UNDO_DISCHARGE");
+		orderType.setName("ADT Order");
+		CodeableConcept undoDischargeCodeableConcept = new CodeableConcept();
+		undoDischargeCodeableConcept.addCoding(new Coding().setCode("undo-discharge-uuid"));
+		serviceRequest.setCode(undoDischargeCodeableConcept);
+		serviceRequest.setEncounter(new Reference("Encounter/encounter-uuid"));
+
+		Visit visit = new Visit();
+		Order existingUndoDischargeOrder = admitOrder(orderType, undoDischargeConcept, new Date());
+		Encounter existingEncounter = encounterWithOrders(visit, existingUndoDischargeOrder);
+		visit.setEncounters(new HashSet<>(Collections.singletonList(existingEncounter)));
+
+		Encounter newEncounter = new Encounter();
+		newEncounter.setVisit(visit);
+
+		when(conceptTranslator.toOpenmrsType(undoDischargeCodeableConcept)).thenReturn(undoDischargeConcept);
+		when(orderService.getOrderTypeByConcept(undoDischargeConcept)).thenReturn(orderType);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(newEncounter);
+
+		InvalidRequestException exception = assertThrows(InvalidRequestException.class,
+			() -> validator.validate(serviceRequest));
+		assertEquals("An active Undo Discharge order already exists for this visit", exception.getMessage());
+	}
+	
+	@Test
+	public void shouldAllowTransferOrderWhenAnActiveTransferOrderAlreadyExistsForTheVisit() {
 		Concept transferConcept = conceptWithEmrapiMapping("TRANSFER");
 		orderType.setName("ADT Order");
 		CodeableConcept transferCodeableConcept = new CodeableConcept();
@@ -309,47 +361,8 @@ public class ServiceRequestValidatorImplTest {
 		Encounter existingEncounter = encounterWithOrders(visit, existingTransferOrder);
 		visit.setEncounters(new HashSet<>(Collections.singletonList(existingEncounter)));
 
-		Encounter newEncounter = new Encounter();
-		newEncounter.setVisit(visit);
-
 		when(conceptTranslator.toOpenmrsType(transferCodeableConcept)).thenReturn(transferConcept);
 		when(orderService.getOrderTypeByConcept(transferConcept)).thenReturn(orderType);
-		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(newEncounter);
-
-		InvalidRequestException exception = assertThrows(InvalidRequestException.class,
-			() -> validator.validate(serviceRequest));
-		assertEquals("An active Transfer order already exists for this visit", exception.getMessage());
-	}
-	
-	@Test
-	public void shouldAllowTransferOrderWhenThePreviousTransferOrderWasAlreadyFulfilledByADischargeEncounter() {
-		Concept transferConcept = conceptWithEmrapiMapping("TRANSFER");
-		orderType.setName("ADT Order");
-		CodeableConcept transferCodeableConcept = new CodeableConcept();
-		transferCodeableConcept.addCoding(new Coding().setCode("transfer-uuid"));
-		serviceRequest.setCode(transferCodeableConcept);
-		serviceRequest.setEncounter(new Reference("Encounter/encounter-uuid"));
-
-		Visit visit = new Visit();
-		Date orderDate = new Date(System.currentTimeMillis() - 100000);
-		Order fulfilledTransferOrder = admitOrder(orderType, transferConcept, orderDate);
-		Encounter orderEncounter = encounterWithOrders(visit, fulfilledTransferOrder);
-
-		EncounterType dischargeType = new EncounterType();
-		dischargeType.setName("DISCHARGE");
-		Encounter dischargeEncounter = new Encounter();
-		dischargeEncounter.setVisit(visit);
-		dischargeEncounter.setEncounterType(dischargeType);
-		dischargeEncounter.setEncounterDatetime(new Date());
-
-		visit.setEncounters(new HashSet<>(java.util.Arrays.asList(orderEncounter, dischargeEncounter)));
-
-		Encounter newEncounter = new Encounter();
-		newEncounter.setVisit(visit);
-
-		when(conceptTranslator.toOpenmrsType(transferCodeableConcept)).thenReturn(transferConcept);
-		when(orderService.getOrderTypeByConcept(transferConcept)).thenReturn(orderType);
-		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(newEncounter);
 
 		validator.validate(serviceRequest);
 	}
