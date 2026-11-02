@@ -22,8 +22,6 @@ public class DispositionOrderTypeResolverImpl implements DispositionOrderTypeRes
 
 	private static final String EMRAPI_CONCEPT_SOURCE_NAME = "org.openmrs.module.emrapi";
 
-	private static final String ADT_ORDER_TYPE_NAME = "ADT Order";
-
 	private static final Set<String> DISPOSITION_EMRAPI_CODES = new HashSet<>(
 	        Arrays.asList("ADMIT", "DISCHARGE", "TRANSFER", "UNDO_DISCHARGE"));
 
@@ -32,13 +30,7 @@ public class DispositionOrderTypeResolverImpl implements DispositionOrderTypeRes
 
 	@Override
 	public OrderType resolve(Concept concept) {
-		if (concept == null || concept.getConceptMappings() == null) {
-			return null;
-		}
-
-		boolean isDispositionConcept = concept.getConceptMappings().stream().anyMatch(this::isDispositionMapping);
-
-		if (!isDispositionConcept) {
+		if (getDispositionCode(concept) == null) {
 			return null;
 		}
 
@@ -50,12 +42,22 @@ public class DispositionOrderTypeResolverImpl implements DispositionOrderTypeRes
 		return adtOrderType;
 	}
 
-	private boolean isDispositionMapping(ConceptMap conceptMap) {
-		if (conceptMap.getConceptReferenceTerm() == null || conceptMap.getConceptReferenceTerm().getConceptSource() == null) {
-			return false;
+	@Override
+	public String getDispositionCode(Concept concept) {
+		if (concept == null || concept.getConceptMappings() == null) {
+			return null;
 		}
-		String sourceName = conceptMap.getConceptReferenceTerm().getConceptSource().getName();
-		String code = conceptMap.getConceptReferenceTerm().getCode();
-		return EMRAPI_CONCEPT_SOURCE_NAME.equals(sourceName) && DISPOSITION_EMRAPI_CODES.contains(code);
+		for (ConceptMap conceptMap : concept.getConceptMappings()) {
+			if (conceptMap.getConceptReferenceTerm() == null
+			        || conceptMap.getConceptReferenceTerm().getConceptSource() == null) {
+				continue;
+			}
+			String sourceName = conceptMap.getConceptReferenceTerm().getConceptSource().getName();
+			String code = conceptMap.getConceptReferenceTerm().getCode();
+			if (EMRAPI_CONCEPT_SOURCE_NAME.equals(sourceName) && DISPOSITION_EMRAPI_CODES.contains(code)) {
+				return code;
+			}
+		}
+		return null;
 	}
 }

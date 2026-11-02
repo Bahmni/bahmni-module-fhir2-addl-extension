@@ -7,7 +7,6 @@ import org.bahmni.module.fhir2addlextension.api.service.DispositionOrderTypeReso
 import org.bahmni.module.fhir2addlextension.api.validators.ServiceRequestValidator;
 import org.hl7.fhir.r4.model.ServiceRequest;
 import org.openmrs.Concept;
-import org.openmrs.ConceptMap;
 import org.openmrs.Encounter;
 import org.openmrs.Order;
 import org.openmrs.OrderType;
@@ -31,10 +30,6 @@ import java.util.stream.Collectors;
 @Component
 @Setter(value = AccessLevel.PACKAGE)
 public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
-
-	private static final String ADT_ORDER_TYPE_NAME = "ADT Order";
-
-	private static final String EMRAPI_CONCEPT_SOURCE_NAME = "org.openmrs.module.emrapi";
 
 	private static final Set<String> DUPLICATE_CHECKED_CODES = new HashSet<>(
 	        Arrays.asList("ADMIT", "DISCHARGE", "UNDO_DISCHARGE"));
@@ -81,8 +76,8 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 		if (orderType == null) {
 			throw new InvalidRequestException("Unable to determine order type for ServiceRequest");
 		}
-		String emrapiCode = getEmrapiMappingCode(conceptBeingOrdered);
-		if (ADT_ORDER_TYPE_NAME.equals(orderType.getName()) && DUPLICATE_CHECKED_CODES.contains(emrapiCode)) {
+		String emrapiCode = dispositionOrderTypeResolver.getDispositionCode(conceptBeingOrdered);
+		if (DispositionOrderTypeResolver.ADT_ORDER_TYPE_NAME.equals(orderType.getName()) && DUPLICATE_CHECKED_CODES.contains(emrapiCode)) {
 			rejectIfActiveOrderExists(serviceRequest, emrapiCode);
 		}
 	}
@@ -99,11 +94,11 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 		Visit visit = encounter.getVisit();
 		List<Order> adtOrders = visit.getEncounters().stream().filter(e -> !e.getVoided())
 		        .flatMap(e -> e.getOrders().stream()).filter(order -> !order.getVoided())
-		        .filter(order -> order.getOrderType() != null && ADT_ORDER_TYPE_NAME.equals(order.getOrderType().getName()))
+		        .filter(order -> order.getOrderType() != null && DispositionOrderTypeResolver.ADT_ORDER_TYPE_NAME.equals(order.getOrderType().getName()))
 		        .collect(Collectors.toList());
 
 		boolean activeOrderExists = adtOrders.stream()
-		        .filter(order -> emrapiCode.equals(getEmrapiMappingCode(order.getConcept())))
+		        .filter(order -> emrapiCode.equals(dispositionOrderTypeResolver.getDispositionCode(order.getConcept())))
 		        .anyMatch(order -> !isSuperseded(adtOrders, order) && !isFulfilled(visit, order, emrapiCode));
 
 		if (activeOrderExists) {
@@ -144,21 +139,5 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 		return visit.getEncounters().stream().filter(e -> !e.getVoided())
 		        .filter(e -> e.getEncounterType() != null && fulfillingEncounterTypes.contains(e.getEncounterType().getName()))
 		        .anyMatch(e -> e.getEncounterDatetime() != null && e.getEncounterDatetime().after(orderDate));
-	}
-	
-	private String getEmrapiMappingCode(Concept concept) {
-		if (concept == null || concept.getConceptMappings() == null) {
-			return null;
-		}
-		for (ConceptMap conceptMap : concept.getConceptMappings()) {
-			if (conceptMap.getConceptReferenceTerm() == null
-			        || conceptMap.getConceptReferenceTerm().getConceptSource() == null) {
-				continue;
-			}
-			if (EMRAPI_CONCEPT_SOURCE_NAME.equals(conceptMap.getConceptReferenceTerm().getConceptSource().getName())) {
-				return conceptMap.getConceptReferenceTerm().getCode();
-			}
-		}
-		return null;
 	}
 }

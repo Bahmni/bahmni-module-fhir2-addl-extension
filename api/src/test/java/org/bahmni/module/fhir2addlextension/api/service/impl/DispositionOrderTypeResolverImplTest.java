@@ -126,4 +126,24 @@ public class DispositionOrderTypeResolverImplTest {
 		
 		assertNull(resolver.resolve(concept));
 	}
+	
+	@Test
+	public void shouldReturnDispositionCodeForDispositionConcept() {
+		assertEquals("TRANSFER", resolver.getDispositionCode(conceptWithMapping(EMRAPI_SOURCE_NAME, "TRANSFER")));
+	}
+	
+	@Test
+	public void shouldReturnNullDispositionCodeForNonDispositionOrNullConcept() {
+		assertNull(resolver.getDispositionCode(null));
+		assertNull(resolver.getDispositionCode(conceptWithMapping(EMRAPI_SOURCE_NAME, "SOME_OTHER_CODE")));
+		assertNull(resolver.getDispositionCode(conceptWithMapping("some.other.source", "ADMIT")));
+	}
+	
+	@Test
+	public void shouldReturnDispositionCodeEvenWhenAnotherEmrapiMappingExists() {
+		Concept concept = conceptWithMapping(EMRAPI_SOURCE_NAME, "SOME_OTHER_CODE");
+		concept.getConceptMappings().addAll(conceptWithMapping(EMRAPI_SOURCE_NAME, "ADMIT").getConceptMappings());
+		
+		assertEquals("ADMIT", resolver.getDispositionCode(concept));
+	}
 }

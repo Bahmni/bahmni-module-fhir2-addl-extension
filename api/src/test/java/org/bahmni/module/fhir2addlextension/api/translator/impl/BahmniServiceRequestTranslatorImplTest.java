@@ -867,7 +867,8 @@ public class BahmniServiceRequestTranslatorImplTest {
 	}
 	
 	@Test
-	public void toOpenmrsType_shouldSetScheduledDateAndUrgencyWhenOccurrenceDateTimeIsPresent() {
+	public void toOpenmrsType_shouldSetScheduledDateAndUrgencyForAdtOrderWhenOccurrenceDateTimeIsPresent() {
+		testOrderType.setName("ADT Order");
 		Date occurrenceDate = new Date();
 		serviceRequest.setOccurrence(new DateTimeType(occurrenceDate));
 		
@@ -885,6 +886,27 @@ public class BahmniServiceRequestTranslatorImplTest {
 		assertThat(result, notNullValue());
 		assertThat(result.getScheduledDate(), equalTo(occurrenceDate));
 		assertThat(result.getUrgency(), equalTo(Order.Urgency.ON_SCHEDULED_DATE));
+	}
+	
+	@Test
+	public void toOpenmrsType_shouldKeepPriorityAndIgnoreOccurrenceForNonAdtOrder() {
+		Date occurrenceDate = new Date();
+		serviceRequest.setOccurrence(new DateTimeType(occurrenceDate));
+		
+		when(conceptTranslator.toOpenmrsType(serviceRequest.getCode())).thenReturn(testConcept);
+		when(patientReferenceTranslator.toOpenmrsType(serviceRequest.getSubject())).thenReturn(testPatient);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(testEncounter);
+		when(practitionerReferenceTranslator.toOpenmrsType(serviceRequest.getRequester())).thenReturn(testProvider);
+		when(serviceRequestPriorityTranslator.toOpenmrsType(serviceRequest.getPriority())).thenReturn(Order.Urgency.STAT);
+		when(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString())).thenReturn(
+		    testCareSetting);
+		when(orderService.getOrderTypeByConcept(testConcept)).thenReturn(testOrderType);
+		
+		Order result = translator.toOpenmrsType(serviceRequest);
+		
+		assertThat(result, notNullValue());
+		assertThat(result.getScheduledDate(), nullValue());
+		assertThat(result.getUrgency(), equalTo(Order.Urgency.STAT));
 	}
 	
 	@Test

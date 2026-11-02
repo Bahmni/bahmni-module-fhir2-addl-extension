@@ -203,7 +203,8 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 		order.setOrderer(providerReferenceTranslator.toOpenmrsType(resource.getRequester()));
 		order.setUrgency(serviceRequestPriorityTranslator.toOpenmrsType(resource.getPriority()));
 
-		if (resource.hasOccurrenceDateTimeType() && resource.getOccurrenceDateTimeType().hasValue()) {
+		boolean isAdtOrder = orderType != null && DispositionOrderTypeResolver.ADT_ORDER_TYPE_NAME.equals(orderType.getName());
+		if (isAdtOrder && resource.hasOccurrenceDateTimeType() && resource.getOccurrenceDateTimeType().hasValue()) {
 			order.setScheduledDate(resource.getOccurrenceDateTimeType().getValue());
 			order.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
 		}

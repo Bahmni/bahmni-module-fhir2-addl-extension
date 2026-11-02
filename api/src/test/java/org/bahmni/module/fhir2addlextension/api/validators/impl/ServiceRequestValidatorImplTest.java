@@ -2,6 +2,7 @@ package org.bahmni.module.fhir2addlextension.api.validators.impl;
 
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.bahmni.module.fhir2addlextension.api.service.DispositionOrderTypeResolver;
+import org.bahmni.module.fhir2addlextension.api.service.impl.DispositionOrderTypeResolverImpl;
 import org.bahmni.module.fhir2addlextension.api.validators.ServiceRequestValidator;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
@@ -31,6 +32,8 @@ import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -66,6 +69,9 @@ public class ServiceRequestValidatorImplTest {
 		validatorImpl.setConceptTranslator(conceptTranslator);
 		validatorImpl.setOrderService(orderService);
 		validatorImpl.setDispositionOrderTypeResolver(dispositionOrderTypeResolver);
+		DispositionOrderTypeResolverImpl realResolver = new DispositionOrderTypeResolverImpl();
+		lenient().when(dispositionOrderTypeResolver.getDispositionCode(any()))
+		        .thenAnswer(invocation -> realResolver.getDispositionCode(invocation.getArgument(0)));
 		validatorImpl.setEncounterReferenceTranslator(encounterReferenceTranslator);
 		validator = validatorImpl;
 		
@@ -364,6 +370,65 @@ public class ServiceRequestValidatorImplTest {
 		when(conceptTranslator.toOpenmrsType(transferCodeableConcept)).thenReturn(transferConcept);
 		when(orderService.getOrderTypeByConcept(transferConcept)).thenReturn(orderType);
 
+		validator.validate(serviceRequest);
+	}
+	
+	private void stubAdmitRequestInVisit(Visit visit, Encounter... visitEncounters) {
+		Concept admitConcept = conceptWithEmrapiMapping("ADMIT");
+		orderType.setName("ADT Order");
+		CodeableConcept admitCodeableConcept = new CodeableConcept();
+		admitCodeableConcept.addCoding(new Coding().setCode("admit-uuid"));
+		serviceRequest.setCode(admitCodeableConcept);
+		serviceRequest.setEncounter(new Reference("Encounter/encounter-uuid"));
+		
+		Encounter newEncounter = new Encounter();
+		newEncounter.setVisit(visit);
+		when(conceptTranslator.toOpenmrsType(admitCodeableConcept)).thenReturn(admitConcept);
+		when(orderService.getOrderTypeByConcept(admitConcept)).thenReturn(orderType);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(newEncounter);
+	}
+	
+	private Encounter encounterOfType(String typeName, Date datetime) {
+		Encounter encounter = new Encounter();
+		org.openmrs.EncounterType type = new org.openmrs.EncounterType();
+		type.setName(typeName);
+		encounter.setEncounterType(type);
+		encounter.setEncounterDatetime(datetime);
+		return encounter;
+	}
+	
+	@Test
+	public void shouldAllowAdmitOrderWhenThePreviousAdmitOrderWasFulfilledByALaterAdmissionEncounter() {
+		Visit visit = new Visit();
+		Date orderDate = new Date(System.currentTimeMillis() - 3600_000L);
+		Order existingAdmitOrder = admitOrder(orderType, conceptWithEmrapiMapping("ADMIT"), orderDate);
+		orderType.setName("ADT Order");
+		Encounter orderEncounter = encounterWithOrders(visit, existingAdmitOrder);
+		Encounter admission = encounterOfType("ADMISSION", new Date());
+		visit.setEncounters(new HashSet<>(java.util.Arrays.asList(orderEncounter, admission)));
+		stubAdmitRequestInVisit(visit);
+		
+		validator.validate(serviceRequest);
+	}
+	
+	@Test
+	public void shouldRejectAdmitOrderWhenOnlyAnEarlierAdmissionEncounterExists() {
+		Visit visit = new Visit();
+		Date orderDate = new Date();
+		Order existingAdmitOrder = admitOrder(orderType, conceptWithEmrapiMapping("ADMIT"), orderDate);
+		orderType.setName("ADT Order");
+		Encounter orderEncounter = encounterWithOrders(visit, existingAdmitOrder);
+		Encounter earlierAdmission = encounterOfType("ADMISSION", new Date(orderDate.getTime() - 3600_000L));
+		visit.setEncounters(new HashSet<>(java.util.Arrays.asList(orderEncounter, earlierAdmission)));
+		stubAdmitRequestInVisit(visit);
+		
+		assertThrows(InvalidRequestException.class, () -> validator.validate(serviceRequest));
+	}
+	
+	@Test
+	public void shouldSkipDuplicateCheckWhenTheServiceRequestEncounterHasNoVisit() {
+		stubAdmitRequestInVisit(null);
+		
 		validator.validate(serviceRequest);
 	}
 }
