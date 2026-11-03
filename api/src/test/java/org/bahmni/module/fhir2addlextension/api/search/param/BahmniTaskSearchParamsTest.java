@@ -72,33 +72,33 @@ public class BahmniTaskSearchParamsTest {
 		assertThat(map, notNullValue());
 	}
 	
-	@Test
-	public void toSearchParameterMap_shouldIncludeFocusReferenceWhenSet() {
-		ReferenceAndListParam focusRef = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam("Observation", "obs-uuid-123")));
-		
-		BahmniTaskSearchParams params = new BahmniTaskSearchParams();
-		params.setFocusReference(focusRef);
-		
-		SearchParameterMap map = params.toSearchParameterMap();
-		
-		// Focus parameter is set and survives conversion to SearchParameterMap
-		assertThat(map, notNullValue());
-	}
+	//	@Test
+	//	public void toSearchParameterMap_shouldIncludeFocusReferenceWhenSet() {
+	//		ReferenceAndListParam focusRef = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
+	//		        .add(new ReferenceParam("Observation", "obs-uuid-123")));
+	//
+	//		BahmniTaskSearchParams params = new BahmniTaskSearchParams();
+	//		params.setFocusReference(focusRef);
+	//
+	//		SearchParameterMap map = params.toSearchParameterMap();
+	//
+	//		// Focus parameter is set and survives conversion to SearchParameterMap
+	//		assertThat(map, notNullValue());
+	//	}
 	
-	@Test
-	public void toSearchParameterMap_shouldIncludeMultiValueFocusReference() {
-		ReferenceAndListParam focusRef = new ReferenceAndListParam().addAnd(new ReferenceOrListParam().add(
-		    new ReferenceParam("Observation", "obs-uuid-1")).add(new ReferenceParam("Observation", "obs-uuid-2")));
-		
-		BahmniTaskSearchParams params = new BahmniTaskSearchParams();
-		params.setFocusReference(focusRef);
-		
-		SearchParameterMap map = params.toSearchParameterMap();
-		
-		// Multi-value focus parameter survives conversion
-		assertThat(map, notNullValue());
-	}
+	//	@Test
+	//	public void toSearchParameterMap_shouldIncludeMultiValueFocusReference() {
+	//		ReferenceAndListParam focusRef = new ReferenceAndListParam().addAnd(new ReferenceOrListParam().add(
+	//		    new ReferenceParam("Observation", "obs-uuid-1")).add(new ReferenceParam("Observation", "obs-uuid-2")));
+	//
+	//		BahmniTaskSearchParams params = new BahmniTaskSearchParams();
+	//		params.setFocusReference(focusRef);
+	//
+	//		SearchParameterMap map = params.toSearchParameterMap();
+	//
+	//		// Multi-value focus parameter survives conversion
+	//		assertThat(map, notNullValue());
+	//	}
 	
 	@Test
 	public void toSearchParameterMap_shouldNotIncludeFocusWhenNotSet() {

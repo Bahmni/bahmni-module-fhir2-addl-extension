@@ -2,8 +2,6 @@ package org.bahmni.module.fhir2addlextension.api.dao.impl;
 
 import ca.uhn.fhir.rest.param.StringParam;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
-import org.bahmni.module.fhir2addlextension.api.dao.FhirConceptCodeSystemQuery;
-import org.hibernate.criterion.Criterion;
 import org.openmrs.Drug;
 import org.openmrs.api.ConceptService;
 import org.openmrs.module.fhir2.FhirConstants;
@@ -20,14 +18,14 @@ import java.util.List;
 
 @Component
 @Primary
-public class BahmniFhirMedicationDaoImpl extends FhirMedicationDaoImpl implements FhirMedicationDao, FhirConceptCodeSystemQuery {
+public class BahmniFhirMedicationDaoImpl extends FhirMedicationDaoImpl implements FhirMedicationDao {
 	
 	@Autowired
 	private ConceptService conceptService;
 	
 	@Override
 	public List<Drug> getSearchResults(@Nonnull SearchParameterMap theParams) {
-		List<PropParam<?>> nameSearchParams = theParams.getParameters(FhirConstants.NAME_SEARCH_HANDLER);
+		List<? extends PropParam<?>> nameSearchParams = theParams.getParameters(FhirConstants.NAME_SEARCH_HANDLER);
 		if (nameSearchParams.isEmpty())
 			return super.getSearchResults(theParams);
 		String searchPhrase = getSearchPhrase(theParams);
@@ -40,7 +38,7 @@ public class BahmniFhirMedicationDaoImpl extends FhirMedicationDaoImpl implement
 	
 	@Override
 	public int getSearchResultsCount(@Nonnull SearchParameterMap theParams) {
-		List<PropParam<?>> nameSearchParams = theParams.getParameters(FhirConstants.NAME_SEARCH_HANDLER);
+		List<? extends PropParam<?>> nameSearchParams = theParams.getParameters(FhirConstants.NAME_SEARCH_HANDLER);
 		if (nameSearchParams.isEmpty())
 			return super.getSearchResultsCount(theParams);
 		String searchPhrase = getSearchPhrase(theParams);
@@ -48,7 +46,7 @@ public class BahmniFhirMedicationDaoImpl extends FhirMedicationDaoImpl implement
 	}
 	
 	private String getSearchPhrase(@Nonnull SearchParameterMap theParams) {
-		List<PropParam<?>> nameSearchParams = theParams.getParameters(FhirConstants.NAME_SEARCH_HANDLER);
+		List<? extends PropParam<?>> nameSearchParams = theParams.getParameters(FhirConstants.NAME_SEARCH_HANDLER);
 		if (nameSearchParams.isEmpty()) {
 			return null;
 		}
@@ -61,13 +59,5 @@ public class BahmniFhirMedicationDaoImpl extends FhirMedicationDaoImpl implement
 			throw new InvalidRequestException("Name search parameter cannot be empty");
 		}
 		return searchPhrase;
-	}
-	
-	@Override
-	protected Criterion generateSystemQuery(String system, List<String> codes, String conceptReferenceTermAlias) {
-		if (isConceptReferenceCodeEmpty(codes)) {
-			return generateSystemQueryForEmptyCodes(system, conceptReferenceTermAlias);
-		}
-		return super.generateSystemQuery(system, codes, conceptReferenceTermAlias);
 	}
 }

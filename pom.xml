@@ -10,7 +10,7 @@
 
 	<groupId>org.bahmni.module</groupId>
 	<artifactId>fhir2addlextension</artifactId>
-	<version>1.1.0-SNAPSHOT</version>
+	<version>2.0.0-SNAPSHOT</version>
   	<packaging>pom</packaging>
 	<name>FHIR2 module additional extensions</name>
 	<description>FHIR2 module additional extensions</description>
@@ -43,11 +43,11 @@
 	</modules>
 
     <properties>
-			<openmrsPlatformVersion>2.5.12</openmrsPlatformVersion>
-			<openmrs.fhir2.version>2.5.1</openmrs.fhir2.version>
+			<openmrsPlatformVersion>2.8.10</openmrsPlatformVersion>
+			<openmrs.fhir2.version>4.3.0</openmrs.fhir2.version>
 			<web.services.version>2.44.0</web.services.version>
 			<junitVersion>4.13.1</junitVersion>
-			<lombokVersion>1.18.16</lombokVersion>
+			<lombokVersion>1.18.30</lombokVersion>
 			<mockitoVersion>3.5.11</mockitoVersion>
 			<powerMockVersion>2.0.9</powerMockVersion>
 			<episodes.version>1.4.0</episodes.version>
@@ -136,11 +136,11 @@
 				<groupId>org.openmrs.module</groupId>
 				<artifactId>fhir2-integration-tests</artifactId>
 				<type>test-jar</type>
-				<version>2.7.0</version>
+				<version>${openmrs.fhir2.version}</version>
 				<scope>test</scope>
 			</dependency>
 			<dependency>
-				<groupId>${project.parent.groupId}</groupId>
+				<groupId>org.openmrs.module</groupId>
 				<artifactId>fhir2-test-data</artifactId>
 				<version>${openmrs.fhir2.version}</version>
 				<type>test-jar</type>
@@ -270,8 +270,8 @@
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-compiler-plugin</artifactId>
 					<configuration>
-						<target>1.8</target>
-						<source>1.8</source>
+						<target>17</target>
+						<source>17</source>
 					</configuration>
 				</plugin>
 				<plugin>
@@ -299,7 +299,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-surefire-plugin</artifactId>
-					<version>2.10</version>
+					<version>3.2.5</version>
 					<configuration>
 						<includes>
 							<include>**/*Test.java</include>
@@ -307,6 +307,12 @@
 						<excludes>
 							<exclude>**/BaseIntegrationTest.java</exclude>
 						</excludes>
+						<argLine>
+							--add-opens java.base/java.lang=ALL-UNNAMED
+							--add-opens java.base/java.lang.reflect=ALL-UNNAMED
+							--add-opens java.base/java.util=ALL-UNNAMED
+							--add-opens java.base/java.io=ALL-UNNAMED
+						</argLine>
 					</configuration>
 				</plugin>
 			</plugins>
