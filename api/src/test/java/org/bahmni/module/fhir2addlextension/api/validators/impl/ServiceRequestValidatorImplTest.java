@@ -46,6 +46,9 @@ public class ServiceRequestValidatorImplTest {
 	private OrderService orderService;
 	
 	@Mock
+	private org.openmrs.api.VisitService visitService;
+	
+	@Mock
 	private DispositionOrderTypeResolver dispositionOrderTypeResolver;
 	
 	@Mock
@@ -68,6 +71,7 @@ public class ServiceRequestValidatorImplTest {
 		ServiceRequestValidatorImpl validatorImpl = new ServiceRequestValidatorImpl();
 		validatorImpl.setConceptTranslator(conceptTranslator);
 		validatorImpl.setOrderService(orderService);
+		validatorImpl.setVisitService(visitService);
 		validatorImpl.setDispositionOrderTypeResolver(dispositionOrderTypeResolver);
 		DispositionOrderTypeResolverImpl realResolver = new DispositionOrderTypeResolverImpl();
 		lenient().when(dispositionOrderTypeResolver.getDispositionCode(any()))
@@ -426,9 +430,31 @@ public class ServiceRequestValidatorImplTest {
 	}
 	
 	@Test
-	public void shouldSkipDuplicateCheckWhenTheServiceRequestEncounterHasNoVisit() {
+	public void shouldSkipDuplicateCheckWhenThereIsNoVisitAndNoActiveVisit() {
 		stubAdmitRequestInVisit(null);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(
+		    encounterWithPatient(null));
 		
 		validator.validate(serviceRequest);
+	}
+	
+	@Test
+	public void shouldRejectDuplicateAdmitUsingTheActiveVisitWhenTheEncounterHasNoVisit() {
+		Visit visit = new Visit();
+		Order existingAdmitOrder = admitOrder(orderType, conceptWithEmrapiMapping("ADMIT"), new Date());
+		orderType.setName("ADT Order");
+		visit.setEncounters(new HashSet<>(java.util.Arrays.asList(encounterWithOrders(visit, existingAdmitOrder))));
+		stubAdmitRequestInVisit(null);
+		org.openmrs.Patient patient = new org.openmrs.Patient();
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(encounterWithPatient(patient));
+		when(visitService.getActiveVisitsByPatient(patient)).thenReturn(java.util.Collections.singletonList(visit));
+		
+		assertThrows(InvalidRequestException.class, () -> validator.validate(serviceRequest));
+	}
+	
+	private Encounter encounterWithPatient(org.openmrs.Patient patient) {
+		Encounter encounter = new Encounter();
+		encounter.setPatient(patient);
+		return encounter;
 	}
 }

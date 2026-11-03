@@ -12,6 +12,7 @@ import org.openmrs.Order;
 import org.openmrs.OrderType;
 import org.openmrs.Visit;
 import org.openmrs.api.OrderService;
+import org.openmrs.api.VisitService;
 import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
 import org.openmrs.module.fhir2.api.translators.EncounterReferenceTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,6 +59,9 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 	private OrderService orderService;
 	
 	@Autowired
+	private VisitService visitService;
+	
+	@Autowired
 	private DispositionOrderTypeResolver dispositionOrderTypeResolver;
 	
 	@Autowired
@@ -82,16 +86,26 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 		}
 	}
 
+	private Visit resolveVisit(Encounter encounter) {
+		if (encounter.getVisit() != null || encounter.getPatient() == null) {
+			return encounter.getVisit();
+		}
+		List<Visit> activeVisits = visitService.getActiveVisitsByPatient(encounter.getPatient());
+		return activeVisits == null || activeVisits.isEmpty() ? null : activeVisits.get(0);
+	}
+	
 	private void rejectIfActiveOrderExists(ServiceRequest serviceRequest, String emrapiCode) {
 		if (serviceRequest.getEncounter() == null) {
 			return;
 		}
 		Encounter encounter = encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter());
-		if (encounter == null || encounter.getVisit() == null) {
+		if (encounter == null) {
 			return;
 		}
-
-		Visit visit = encounter.getVisit();
+		final Visit visit = resolveVisit(encounter);
+		if (visit == null) {
+			return;
+		}
 		List<Order> adtOrders = visit.getEncounters().stream().filter(e -> !e.getVoided())
 		        .flatMap(e -> e.getOrders().stream()).filter(order -> !order.getVoided())
 		        .filter(order -> order.getOrderType() != null && DispositionOrderTypeResolver.ADT_ORDER_TYPE_NAME.equals(order.getOrderType().getName()))
