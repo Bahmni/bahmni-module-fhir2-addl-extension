@@ -11,6 +11,8 @@ import org.openmrs.Encounter;
 import org.openmrs.Order;
 import org.openmrs.OrderType;
 import org.openmrs.Visit;
+import org.openmrs.Patient;
+import org.openmrs.api.EncounterService;
 import org.openmrs.api.OrderService;
 import org.openmrs.api.VisitService;
 import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
@@ -62,6 +64,9 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 	private VisitService visitService;
 	
 	@Autowired
+	private EncounterService encounterService;
+	
+	@Autowired
 	private DispositionOrderTypeResolver dispositionOrderTypeResolver;
 	
 	@Autowired
@@ -94,6 +99,29 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 		return activeVisits == null || activeVisits.isEmpty() ? null : activeVisits.get(0);
 	}
 	
+	/**
+	 * Non-voided encounters of the visit, plus the patient's visit-less encounters that fall
+	 * within the visit's time window (clients that omit Encounter.partOf save with no visit).
+	 */
+	private List<Encounter> collectVisitEncounters(Visit visit, Encounter requestEncounter) {
+		Set<Encounter> result = new HashSet<>();
+		if (visit.getEncounters() != null) {
+			result.addAll(visit.getEncounters());
+		}
+		Patient patient = requestEncounter.getPatient() != null ? requestEncounter.getPatient() : visit.getPatient();
+		if (patient != null && visit.getStartDatetime() != null) {
+			Date windowEnd = visit.getStopDatetime() != null ? visit.getStopDatetime() : new Date();
+			List<Encounter> patientEncounters = encounterService.getEncountersByPatient(patient);
+			if (patientEncounters != null) {
+				patientEncounters.stream().filter(e -> e.getVisit() == null && e.getEncounterDatetime() != null)
+				        .filter(e -> !e.getEncounterDatetime().before(visit.getStartDatetime())
+				                && !e.getEncounterDatetime().after(windowEnd))
+				        .forEach(result::add);
+			}
+		}
+		return result.stream().filter(e -> !e.getVoided()).collect(Collectors.toList());
+	}
+	
 	private void rejectIfActiveOrderExists(ServiceRequest serviceRequest, String emrapiCode) {
 		if (serviceRequest.getEncounter() == null) {
 			return;
@@ -106,14 +134,15 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 		if (visit == null) {
 			return;
 		}
-		List<Order> adtOrders = visit.getEncounters().stream().filter(e -> !e.getVoided())
+		final List<Encounter> visitEncounters = collectVisitEncounters(visit, encounter);
+		List<Order> adtOrders = visitEncounters.stream()
 		        .flatMap(e -> e.getOrders().stream()).filter(order -> !order.getVoided())
 		        .filter(order -> order.getOrderType() != null && DispositionOrderTypeResolver.ADT_ORDER_TYPE_NAME.equals(order.getOrderType().getName()))
 		        .collect(Collectors.toList());
 
 		boolean activeOrderExists = adtOrders.stream()
 		        .filter(order -> emrapiCode.equals(dispositionOrderTypeResolver.getDispositionCode(order.getConcept())))
-		        .anyMatch(order -> !isSuperseded(adtOrders, order) && !isFulfilled(visit, order, emrapiCode));
+		        .anyMatch(order -> !isSuperseded(adtOrders, order) && !isFulfilled(visitEncounters, order, emrapiCode));
 
 		if (activeOrderExists) {
 			throw new InvalidRequestException(
@@ -141,7 +170,7 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 	 * encounter is recorded after it, so a new Transfer order can be placed again. Mirrors
 	 * the encounter-type gating used by the emrapi.sqlSearch.patientsTo* worklist queries.
 	 */
-	private boolean isFulfilled(Visit visit, Order order, String emrapiCode) {
+	private boolean isFulfilled(List<Encounter> visitEncounters, Order order, String emrapiCode) {
 		Set<String> fulfillingEncounterTypes = FULFILLING_ENCOUNTER_TYPES_BY_CODE.get(emrapiCode);
 		if (fulfillingEncounterTypes == null || fulfillingEncounterTypes.isEmpty()) {
 			return false;
@@ -150,7 +179,7 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 		if (orderDate == null) {
 			return false;
 		}
-		return visit.getEncounters().stream().filter(e -> !e.getVoided())
+		return visitEncounters.stream()
 		        .filter(e -> e.getEncounterType() != null && fulfillingEncounterTypes.contains(e.getEncounterType().getName()))
 		        .anyMatch(e -> e.getEncounterDatetime() != null && e.getEncounterDatetime().after(orderDate));
 	}

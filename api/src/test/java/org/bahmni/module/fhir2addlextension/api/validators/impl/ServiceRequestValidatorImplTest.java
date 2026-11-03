@@ -49,6 +49,9 @@ public class ServiceRequestValidatorImplTest {
 	private org.openmrs.api.VisitService visitService;
 	
 	@Mock
+	private org.openmrs.api.EncounterService encounterService;
+	
+	@Mock
 	private DispositionOrderTypeResolver dispositionOrderTypeResolver;
 	
 	@Mock
@@ -72,6 +75,7 @@ public class ServiceRequestValidatorImplTest {
 		validatorImpl.setConceptTranslator(conceptTranslator);
 		validatorImpl.setOrderService(orderService);
 		validatorImpl.setVisitService(visitService);
+		validatorImpl.setEncounterService(encounterService);
 		validatorImpl.setDispositionOrderTypeResolver(dispositionOrderTypeResolver);
 		DispositionOrderTypeResolverImpl realResolver = new DispositionOrderTypeResolverImpl();
 		lenient().when(dispositionOrderTypeResolver.getDispositionCode(any()))
@@ -450,6 +454,40 @@ public class ServiceRequestValidatorImplTest {
 		when(visitService.getActiveVisitsByPatient(patient)).thenReturn(java.util.Collections.singletonList(visit));
 		
 		assertThrows(InvalidRequestException.class, () -> validator.validate(serviceRequest));
+	}
+	
+	@Test
+	public void shouldRejectDuplicateAdmitFoundInAVisitLessEncounterWithinTheActiveVisitWindow() {
+		Visit visit = new Visit();
+		visit.setStartDatetime(new Date(System.currentTimeMillis() - 86400_000L));
+		Order existingAdmitOrder = admitOrder(orderType, conceptWithEmrapiMapping("ADMIT"), new Date());
+		orderType.setName("ADT Order");
+		Encounter visitLess = encounterWithOrders(null, existingAdmitOrder);
+		visitLess.setEncounterDatetime(new Date());
+		stubAdmitRequestInVisit(null);
+		org.openmrs.Patient patient = new org.openmrs.Patient();
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(encounterWithPatient(patient));
+		when(visitService.getActiveVisitsByPatient(patient)).thenReturn(java.util.Collections.singletonList(visit));
+		when(encounterService.getEncountersByPatient(patient)).thenReturn(java.util.Collections.singletonList(visitLess));
+		
+		assertThrows(InvalidRequestException.class, () -> validator.validate(serviceRequest));
+	}
+	
+	@Test
+	public void shouldIgnoreVisitLessEncountersOutsideTheActiveVisitWindow() {
+		Visit visit = new Visit();
+		visit.setStartDatetime(new Date(System.currentTimeMillis() - 3600_000L));
+		Order oldAdmitOrder = admitOrder(orderType, conceptWithEmrapiMapping("ADMIT"), new Date());
+		orderType.setName("ADT Order");
+		Encounter visitLess = encounterWithOrders(null, oldAdmitOrder);
+		visitLess.setEncounterDatetime(new Date(System.currentTimeMillis() - 86400_000L));
+		stubAdmitRequestInVisit(null);
+		org.openmrs.Patient patient = new org.openmrs.Patient();
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(encounterWithPatient(patient));
+		when(visitService.getActiveVisitsByPatient(patient)).thenReturn(java.util.Collections.singletonList(visit));
+		when(encounterService.getEncountersByPatient(patient)).thenReturn(java.util.Collections.singletonList(visitLess));
+		
+		validator.validate(serviceRequest);
 	}
 	
 	private Encounter encounterWithPatient(org.openmrs.Patient patient) {
