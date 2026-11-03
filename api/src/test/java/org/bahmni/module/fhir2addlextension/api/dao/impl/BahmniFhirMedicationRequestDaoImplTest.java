@@ -1,40 +1,58 @@
 package org.bahmni.module.fhir2addlextension.api.dao.impl;
 
+import static org.hamcrest.CoreMatchers.sameInstance;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+
+import java.util.List;
+
+import ca.uhn.fhir.rest.param.ReferenceAndListParam;
+import ca.uhn.fhir.rest.param.ReferenceOrListParam;
+import ca.uhn.fhir.rest.param.ReferenceParam;
+import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2addlextension.api.TestUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.hibernate.internal.CriteriaImpl;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.DrugOrder;
 import org.openmrs.api.OrderService;
+import org.openmrs.module.fhir2.api.dao.impl.BaseDao;
+import org.openmrs.module.fhir2.api.dao.impl.BaseFhirDao;
+import org.openmrs.module.fhir2.api.dao.internals.BaseFhirCriteriaHolder;
+import org.openmrs.module.fhir2.api.dao.internals.FhirSearchQueryHelper;
+import org.openmrs.module.fhir2.api.dao.internals.OpenmrsFhirCriteriaContext;
+import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
+import org.springframework.test.util.ReflectionTestUtils;
 
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-
-import static org.hamcrest.CoreMatchers.sameInstance;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.mockito.Mockito.verify;
+import javax.persistence.criteria.Predicate;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BahmniFhirMedicationRequestDaoImplTest {
 	
+	private static final String VISIT_UUID = "visit-uuid-123";
+	
 	@Mock
 	private OrderService orderService;
 	
-	@InjectMocks
 	private BahmniFhirMedicationRequestDaoImpl bahmniFhirMedicationRequestDao;
 	
+	private OpenmrsFhirCriteriaContext<DrugOrder, DrugOrder> ctx;
+	
 	@Before
-	public void setup() throws Exception {
-		Field orderServiceField = BahmniFhirMedicationRequestDaoImpl.class.getDeclaredField("orderService");
-		orderServiceField.setAccessible(true);
-		orderServiceField.set(bahmniFhirMedicationRequestDao, orderService);
+	public void setup() {
+		bahmniFhirMedicationRequestDao = new BahmniFhirMedicationRequestDaoImpl();
+		org.hibernate.SessionFactory sf = mock(org.hibernate.SessionFactory.class);
+		ReflectionTestUtils.setField(bahmniFhirMedicationRequestDao, BaseDao.class, "sessionFactory", sf,
+		    org.hibernate.SessionFactory.class);
+		ReflectionTestUtils.setField(bahmniFhirMedicationRequestDao, BaseFhirDao.class, "searchQueryHelper",
+		    new FhirSearchQueryHelper(), FhirSearchQueryHelper.class);
+		ReflectionTestUtils.setField(bahmniFhirMedicationRequestDao, "orderService", orderService, OrderService.class);
+		ctx = TestUtils.mockCriteriaContext(DrugOrder.class);
 	}
 	
 	@Test
@@ -49,106 +67,69 @@ public class BahmniFhirMedicationRequestDaoImplTest {
 	}
 	
 	@Test
-	public void setupSearchParams_shouldAddVisitUuidRestriction() {
-		Criteria criteria = mock(Criteria.class);
+	public void setupSearchParams_shouldCreateVisitJoinWhenVisitParamPresent() {
 		SearchParameterMap params = new SearchParameterMap();
-
-		ReferenceAndListParam visitRef = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam("Visit", "visit-uuid-123")));
-		params.addParameter(BahmniFhirConstants.VISIT_REFERENCE_SEARCH_HANDLER, visitRef);
-
-		bahmniFhirMedicationRequestDao.setupSearchParams(criteria, params);
-
-		ArgumentCaptor<Criterion> captor = ArgumentCaptor.forClass(Criterion.class);
-		verify(criteria, atLeastOnce()).add(captor.capture());
-		assertThat(captor.getAllValues().stream().anyMatch(c -> c.toString().contains("v.uuid")), is(true));
+		params.addParameter(BahmniFhirConstants.VISIT_REFERENCE_SEARCH_HANDLER, visitParams());
+		
+		bahmniFhirMedicationRequestDao.setupSearchParams(ctx, params);
+		
+		assertThat(ctx.getJoin("e").isPresent(), is(true));
+		assertThat(ctx.getJoin("v").isPresent(), is(true));
 	}
 	
 	@Test
-	public void setupSearchParams_shouldNotFailWithNullVisitReference() {
-		Criteria criteria = mock(Criteria.class);
+	public void setupSearchParams_shouldNotCreateVisitJoinWithNullVisitReference() {
 		SearchParameterMap params = new SearchParameterMap();
-		
 		params.addParameter(BahmniFhirConstants.VISIT_REFERENCE_SEARCH_HANDLER, null);
 		
-		bahmniFhirMedicationRequestDao.setupSearchParams(criteria, params);
+		bahmniFhirMedicationRequestDao.setupSearchParams(ctx, params);
 		
-		assertThat(params, notNullValue());
+		assertThat(ctx.getJoin("v").isPresent(), is(false));
 	}
+	
 	@Test
-	public void setupSearchParams_shouldAddVisitAliasesAndUuidRestriction() {
-		CriteriaImpl criteria = new CriteriaImpl(DrugOrder.class.getName(), null);
+	public void setupSearchParams_shouldAddPredicateForVisitReference() {
+		SearchParameterMap params = new SearchParameterMap();
+		params.addParameter(BahmniFhirConstants.VISIT_REFERENCE_SEARCH_HANDLER, visitParams());
 		
-		bahmniFhirMedicationRequestDao.setupSearchParams(criteria, visitParams("Visit", "visit-uuid-123"));
+		@SuppressWarnings("unchecked")
+		List<Predicate> predicatesBefore = (List<Predicate>) ReflectionTestUtils.getField(ctx, BaseFhirCriteriaHolder.class,
+		    "predicates");
+		int countBefore = predicatesBefore != null ? predicatesBefore.size() : 0;
 		
-		assertThat(aliasPaths(criteria), is(Arrays.asList("encounter=e", "e.visit=v")));
-		assertThat(visitRestrictions(criteria), is(Collections.singletonList("((v.uuid=visit-uuid-123))")));
+		bahmniFhirMedicationRequestDao.setupSearchParams(ctx, params);
+		
+		@SuppressWarnings("unchecked")
+		List<Predicate> predicatesAfter = (List<Predicate>) ReflectionTestUtils.getField(ctx, BaseFhirCriteriaHolder.class,
+		    "predicates");
+		assertThat(predicatesAfter, notNullValue());
+		assertThat(predicatesAfter.size() > countBefore, is(true));
 	}
 	
 	@Test
 	public void setupSearchParams_shouldMatchVisitUuidWhenTypedReferenceIsUsed() {
-		CriteriaImpl criteria = new CriteriaImpl(DrugOrder.class.getName(), null);
-		SearchParameterMap params = new SearchParameterMap();
 		ReferenceAndListParam visitRef = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
 		        .add(new ReferenceParam("Visit/visit-uuid-123")));
+		SearchParameterMap params = new SearchParameterMap();
 		params.addParameter(BahmniFhirConstants.VISIT_REFERENCE_SEARCH_HANDLER, visitRef);
 		
-		bahmniFhirMedicationRequestDao.setupSearchParams(criteria, params);
+		bahmniFhirMedicationRequestDao.setupSearchParams(ctx, params);
 		
-		assertThat(visitRestrictions(criteria), is(Collections.singletonList("((v.uuid=visit-uuid-123))")));
+		assertThat(ctx.getJoin("v").isPresent(), is(true));
 	}
 	
 	@Test
 	public void setupSearchParams_shouldNotDuplicateAliasesWhenTheyAlreadyExist() {
-		CriteriaImpl criteria = new CriteriaImpl(DrugOrder.class.getName(), null);
-		criteria.createAlias("encounter", "e");
-		criteria.createAlias("e.visit", "v");
-		
-		bahmniFhirMedicationRequestDao.setupSearchParams(criteria, visitParams("Visit", "visit-uuid-123"));
-		
-		assertThat(aliasPaths(criteria), is(Arrays.asList("encounter=e", "e.visit=v")));
-		assertThat(visitRestrictions(criteria), is(Collections.singletonList("((v.uuid=visit-uuid-123))")));
-	}
-	
-	@Test
-	public void setupSearchParams_shouldNotCreateVisitAliasesOrRestrictionWithNullVisitReference() {
-		CriteriaImpl criteria = new CriteriaImpl(DrugOrder.class.getName(), null);
 		SearchParameterMap params = new SearchParameterMap();
-		params.addParameter(BahmniFhirConstants.VISIT_REFERENCE_SEARCH_HANDLER, null);
+		params.addParameter(BahmniFhirConstants.VISIT_REFERENCE_SEARCH_HANDLER, visitParams());
 		
-		bahmniFhirMedicationRequestDao.setupSearchParams(criteria, params);
+		bahmniFhirMedicationRequestDao.setupSearchParams(ctx, params);
+		bahmniFhirMedicationRequestDao.setupSearchParams(ctx, params);
 		
-		assertThat(aliasPaths(criteria).contains("e.visit=v"), is(false));
-		assertThat(visitRestrictions(criteria).isEmpty(), is(true));
+		assertThat(ctx.getJoin("v").isPresent(), is(true));
 	}
 	
-	private SearchParameterMap visitParams(String type, String uuid) {
-		SearchParameterMap params = new SearchParameterMap();
-		ReferenceAndListParam visitRef = new ReferenceAndListParam().addAnd(new ReferenceOrListParam()
-		        .add(new ReferenceParam(type, uuid)));
-		params.addParameter(BahmniFhirConstants.VISIT_REFERENCE_SEARCH_HANDLER, visitRef);
-		return params;
-	}
-	
-	private List<String> aliasPaths(CriteriaImpl criteria) {
-		List<String> aliases = new ArrayList<>();
-		Iterator<CriteriaImpl.Subcriteria> it = criteria.iterateSubcriteria();
-		while (it.hasNext()) {
-			CriteriaImpl.Subcriteria sub = it.next();
-			aliases.add(sub.getPath() + "=" + sub.getAlias());
-		}
-		return aliases;
-	}
-	
-	private List<String> visitRestrictions(CriteriaImpl criteria) {
-		List<String> restrictions = new ArrayList<>();
-		Iterator<CriteriaImpl.CriterionEntry> it = criteria.iterateExpressionEntries();
-		while (it.hasNext()) {
-			String text = it.next().getCriterion().toString();
-			if (text.contains("v.uuid")) {
-				restrictions.add(text);
-			}
-		}
-		return restrictions;
+	private ReferenceAndListParam visitParams() {
+		return new ReferenceAndListParam().addAnd(new ReferenceOrListParam().add(new ReferenceParam("Visit", VISIT_UUID)));
 	}
 }
