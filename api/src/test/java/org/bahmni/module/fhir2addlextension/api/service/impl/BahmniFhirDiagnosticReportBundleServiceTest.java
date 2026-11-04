@@ -237,6 +237,37 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
         verify(bahmniFhirDiagnosticReportDao, times(1)).createOrUpdate(any(FhirDiagnosticReportExt.class));
         verify(diagnosticReportTranslator, times(1)).toOpenmrsType(any(DiagnosticReport.class));
         verify(bahmniFhirDiagnosticReportBundleTranslator, times(1)).toFhirResource(any(FhirDiagnosticReportExt.class));
+        assertEquals(Order.FulfillerStatus.COMPLETED, order.getFulfillerStatus());
+    }
+	
+	@Test
+    public void shouldNotUpdateFulfillerStatusWhenDiagnosticReportStatusIsNotFinal() throws IOException {
+        Bundle reportBundle = loadDiagnosticReportBundle("example-diagnostic-report-bundle-with-encounter-reference-nested-results.json");
+        List<DiagnosticReport> diagnosticReports = BahmniFhirUtils.findResourcesOfTypeInBundle(reportBundle, DiagnosticReport.class);
+        diagnosticReports.forEach(dr -> dr.setStatus(DiagnosticReport.DiagnosticReportStatus.PRELIMINARY));
+        org.openmrs.Patient patient = examplePatient("fa2a71fd-895d-428f-8245-dcb4f0664b60");
+        Encounter encounter = exampleEncounter("81db700c-93f5-4b04-b9ae-d162a775da84", patient);
+        when(patientReferenceTranslator.toOpenmrsType(
+                argThat(reference -> reference.getReference().equals("Patient/fa2a71fd-895d-428f-8245-dcb4f0664b60"))
+        )).thenReturn(patient);
+        Order order = exampleOrder("99e8cb58-3d40-4d41-99b0-20449df8edac", patient, encounter);
+        when(serviceRequestReferenceTranslator.toOpenmrsType(
+                argThat(reference -> reference.getReference().equals("ServiceRequest/99e8cb58-3d40-4d41-99b0-20449df8edac"))
+        )).thenReturn(order);
+        final int[] counter = {0};
+        when(observationService.create(any(Observation.class))).thenAnswer(invocation -> {
+            ++counter[0];
+            Observation mockedResponse = new Observation();
+            mockedResponse.setId("result-observation-id-" + counter[0]);
+            return mockedResponse;
+        });
+        FhirDiagnosticReportExt mockedReport = new FhirDiagnosticReportExt();
+        mockedReport.setUuid("example-diagnostic-report");
+        when(bahmniFhirDiagnosticReportDao.createOrUpdate(any(FhirDiagnosticReportExt.class))).thenReturn(mockedReport);
+        when(diagnosticReportTranslator.toOpenmrsType(any(DiagnosticReport.class))).thenReturn(mockedReport);
+        when(fhirEncounterService.get("81db700c-93f5-4b04-b9ae-d162a775da84")).thenReturn(exampleFhirEncounterResource(encounter.getUuid()));
+        diagnosticReportBundleService.create(reportBundle);
+        assertNull(order.getFulfillerStatus());
     }
 	
 	@Test
