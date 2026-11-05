@@ -1,0 +1,17 @@
+caches:
+    fhir2addlextensionDocAttributeType:
+        configuration: "entity"
+    fhir2addlextensionOrderAttributeType:
+        configuration: "entity"
+    fhir2addlextensionOrderGroupAttributeType:
+        configuration: "entity"
+    fhir2addlextensionOrderTypeToLocationAttributeMap:
+        configuration: "entity"
+    fhir2addlextensionOrderTypeToCategoryMap:
+        configuration: "entity"
+    fhir2addlextensionEncounterTypeByName:
+        configuration: "entity"
+    fhir2addlextensionLabEncounterRole:
+        configuration: "entity"
+    fhir2addlextensionTelecomAttributeTypeMappings:
+        configuration: "entity"

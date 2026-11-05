@@ -74,11 +74,11 @@ public class BahmniPatientTranslatorImpl extends PatientTranslatorImpl {
 	@Autowired
 	private AppContext appContext;
 	
-	void setFhirPersonDao(FhirPersonDao fhirPersonDao) {
+	protected void setFhirPersonDao(FhirPersonDao fhirPersonDao) {
 		this.fhirPersonDao = fhirPersonDao;
 	}
 	
-	void setTelecomTranslator(TelecomTranslator<BaseOpenmrsData> telecomTranslator) {
+	protected void setTelecomTranslator(TelecomTranslator<BaseOpenmrsData> telecomTranslator) {
 		this.telecomTranslator = telecomTranslator;
 	}
 	
