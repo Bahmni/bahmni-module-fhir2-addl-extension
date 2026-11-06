@@ -45,6 +45,14 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 		DISPOSITION_LABEL_BY_CODE.put("UNDO_DISCHARGE", "Undo Discharge");
 	}
 
+	// Dispositions that close an earlier order of the given kind; other kinds (e.g. TRANSFER) do not.
+	private static final Map<String, Set<String>> CLOSING_CODES_BY_CODE = new HashMap<>();
+	static {
+		CLOSING_CODES_BY_CODE.put("ADMIT", new HashSet<>(Collections.singletonList("DISCHARGE")));
+		CLOSING_CODES_BY_CODE.put("DISCHARGE", new HashSet<>(Arrays.asList("ADMIT", "UNDO_DISCHARGE")));
+		CLOSING_CODES_BY_CODE.put("UNDO_DISCHARGE", new HashSet<>(Collections.singletonList("DISCHARGE")));
+	}
+
 	// Real Bed Management encounter types that mark an ADT Order as fulfilled, matching the
 	// gating used by the emrapi.sqlSearch.patientsTo* worklist queries.
 	private static final Map<String, Set<String>> FULFILLING_ENCOUNTER_TYPES_BY_CODE = new HashMap<>();
@@ -137,12 +145,13 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 		final List<Encounter> visitEncounters = collectVisitEncounters(visit, encounter);
 		List<Order> adtOrders = visitEncounters.stream()
 		        .flatMap(e -> e.getOrders().stream()).filter(order -> !order.getVoided())
+		        .filter(order -> order.getAction() != Order.Action.DISCONTINUE && !order.isDiscontinuedRightNow() && !order.isExpired())
 		        .filter(order -> order.getOrderType() != null && DispositionOrderTypeResolver.ADT_ORDER_TYPE_NAME.equals(order.getOrderType().getName()))
 		        .collect(Collectors.toList());
 
 		boolean activeOrderExists = adtOrders.stream()
 		        .filter(order -> emrapiCode.equals(dispositionOrderTypeResolver.getDispositionCode(order.getConcept())))
-		        .anyMatch(order -> !isSuperseded(adtOrders, order) && !isFulfilled(visitEncounters, order, emrapiCode));
+		        .anyMatch(order -> !isSuperseded(adtOrders, order, emrapiCode) && !isFulfilled(visitEncounters, order, emrapiCode));
 
 		if (activeOrderExists) {
 			throw new InvalidRequestException(
@@ -151,16 +160,20 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 	}
 
 	/**
-	 * An ADT Order is superseded once any other ADT Order (of any disposition kind) is
-	 * placed after it in the same visit - the new ServiceRequest-driven flow has no
-	 * reliable ADMISSION/DISCHARGE/TRANSFER encounter-type flip to check against, so the
-	 * order timeline itself is the source of truth for "has this been moved past".
+	 * An ADT Order is superseded once a later order of a closing kind is placed in the same
+	 * visit (Discharge closes Admit; Admit or Undo Discharge closes Discharge). Other kinds,
+	 * such as Transfer, do not close it. An order at the same instant counts as later.
 	 */
-	private boolean isSuperseded(List<Order> adtOrders, Order order) {
+	private boolean isSuperseded(List<Order> adtOrders, Order order, String emrapiCode) {
+		Set<String> closingCodes = CLOSING_CODES_BY_CODE.get(emrapiCode);
+		if (closingCodes == null) {
+			return false;
+		}
 		Date orderDate = order.getDateActivated() != null ? order.getDateActivated() : order.getDateCreated();
 		return adtOrders.stream().filter(other -> !other.getUuid().equals(order.getUuid())).anyMatch(other -> {
 			Date otherDate = other.getDateActivated() != null ? other.getDateActivated() : other.getDateCreated();
-			return otherDate != null && orderDate != null && otherDate.after(orderDate);
+			return otherDate != null && orderDate != null && !otherDate.before(orderDate)
+			        && closingCodes.contains(dispositionOrderTypeResolver.getDispositionCode(other.getConcept()));
 		});
 	}
 

@@ -295,6 +295,57 @@ public class ServiceRequestValidatorImplTest {
 		validator.validate(serviceRequest);
 	}
 	
+	private void validateAdmitAgainst(Order... existingOrders) {
+		Visit visit = new Visit();
+		orderType.setName("ADT Order");
+		Encounter orderEncounter = encounterWithOrders(visit, existingOrders);
+		visit.setEncounters(new HashSet<>(Collections.singletonList(orderEncounter)));
+		stubAdmitRequestInVisit(visit);
+		validator.validate(serviceRequest);
+	}
+	
+	@Test
+	public void shouldRejectAdmitOrderWhenAnAdmitWasFollowedByATransferButNeverDischarged() {
+		Order admit = admitOrder(orderType, conceptWithEmrapiMapping("ADMIT"), new Date(System.currentTimeMillis() - 200000));
+		Order transfer = admitOrder(orderType, conceptWithEmrapiMapping("TRANSFER"), new Date(System.currentTimeMillis() - 100000));
+		
+		assertThrows(InvalidRequestException.class, () -> validateAdmitAgainst(admit, transfer));
+	}
+	
+	@Test
+	public void shouldAllowAdmitOrderWhenTheAdmitWasClosedByADischargeAtTheSameInstant() {
+		Date sameTime = new Date();
+		Order admit = admitOrder(orderType, conceptWithEmrapiMapping("ADMIT"), sameTime);
+		Order discharge = admitOrder(orderType, conceptWithEmrapiMapping("DISCHARGE"), sameTime);
+		
+		validateAdmitAgainst(admit, discharge);
+	}
+	
+	@Test
+	public void shouldAllowAdmitOrderWhenThePreviousAdmitOrderWasDiscontinued() {
+		Order admit = admitOrder(orderType, conceptWithEmrapiMapping("ADMIT"), new Date(System.currentTimeMillis() - 200000));
+		Order discontinuedAdmit = org.mockito.Mockito.spy(admit);
+		org.mockito.Mockito.doReturn(true).when(discontinuedAdmit).isDiscontinuedRightNow();
+		
+		validateAdmitAgainst(discontinuedAdmit);
+	}
+	
+	@Test
+	public void shouldAllowAdmitOrderWhenThePreviousAdmitOrderHasExpired() {
+		Order admit = admitOrder(orderType, conceptWithEmrapiMapping("ADMIT"), new Date(System.currentTimeMillis() - 200000));
+		admit.setAutoExpireDate(new Date(System.currentTimeMillis() - 100000));
+		
+		validateAdmitAgainst(admit);
+	}
+	
+	@Test
+	public void shouldIgnoreDiscontinueActionOrdersWhenCheckingForAnActiveAdmit() {
+		Order admit = admitOrder(orderType, conceptWithEmrapiMapping("ADMIT"), new Date());
+		admit.setAction(Order.Action.DISCONTINUE);
+		
+		validateAdmitAgainst(admit);
+	}
+	
 	@Test
 	public void shouldAllowAdmitOrderWhenNoEncounterReferenceIsPresent() {
 		Concept admitConcept = conceptWithEmrapiMapping("ADMIT");
