@@ -59,4 +59,8 @@ public class PrivilegeConstants {
 	public static final String EDIT_DIAGNOSTIC_REPORT = "Edit Diagnostic Report";
 	
 	public static final String DELETE_DIAGNOSTIC_REPORT = "Delete Diagnostic Report";
+	
+	public static final String GET_PEOPLE = "Get People";
+	
+	public static final String GET_PATIENTS = "Get Patients";
 }
