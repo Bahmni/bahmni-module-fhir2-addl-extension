@@ -4,6 +4,7 @@ import ca.uhn.fhir.rest.api.server.RequestDetails;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.bahmni.module.fhir2addlextension.api.service.BahmniPatientMatchService;
 import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.Enumerations;
 import org.hl7.fhir.r4.model.HumanName;
 import org.hl7.fhir.r4.model.Patient;
@@ -14,9 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.module.fhir2.api.translators.PatientTranslator;
 
-import java.text.SimpleDateFormat;
 import java.util.Collections;
-import java.util.Date;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -45,11 +44,10 @@ public class BahmniPatientMatchProviderTest {
 	}
 	
 	@Test
-	public void shouldReturnSearchsetBundleWithMatchingPatients() throws Exception {
-		Date birthDate = new SimpleDateFormat("yyyy-MM-dd").parse("2002-02-11");
+	public void shouldReturnSearchsetBundleWithMatchingPatients() {
 		Patient request = patient("Sasirekha", "P");
 		request.setGender(Enumerations.AdministrativeGender.FEMALE);
-		request.setBirthDate(birthDate);
+		request.setBirthDateElement(new DateType("2002-02-11"));
 		org.openmrs.Patient openmrsPatient = new org.openmrs.Patient();
 		Patient fhirPatient = new Patient();
 		fhirPatient.setId("uuid-1");

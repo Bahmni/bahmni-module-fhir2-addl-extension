@@ -1,5 +1,6 @@
 package org.bahmni.module.fhir2addlextension.api.service.impl;
 
+import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.Enumerations;
 import org.hl7.fhir.r4.model.HumanName;
 import org.junit.After;
@@ -17,10 +18,8 @@ import org.openmrs.api.PersonService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.fhir2.api.translators.impl.GenderTranslatorImpl;
 
-import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 
@@ -58,11 +57,11 @@ public class BahmniPatientMatchServiceImplTest {
 	}
 	
 	@Test
-	public void shouldJoinNamesAndConvertGenderAndYear() throws Exception {
+	public void shouldJoinNamesAndConvertGenderAndYear() {
 		when(personService.getSimilarPeople(any(), any(), any())).thenReturn(Collections.emptySet());
 		
 		service.findMatches(fhirPatient(Arrays.asList("Sasirekha", "Devi"), "P", Enumerations.AdministrativeGender.FEMALE,
-		    new SimpleDateFormat("yyyy-MM-dd").parse("2002-02-11")));
+		    "2002-02-11"));
 		
 		verify(personService).getSimilarPeople("Sasirekha Devi P", 2002, "F");
 	}
@@ -124,13 +123,15 @@ public class BahmniPatientMatchServiceImplTest {
 	}
 	
 	private org.hl7.fhir.r4.model.Patient fhirPatient(List<String> givenNames, String familyName,
-	        Enumerations.AdministrativeGender gender, Date birthDate) {
+	        Enumerations.AdministrativeGender gender, String birthDate) {
 		org.hl7.fhir.r4.model.Patient patient = new org.hl7.fhir.r4.model.Patient();
 		HumanName name = patient.addName();
 		givenNames.forEach(name::addGiven);
 		name.setFamily(familyName);
 		patient.setGender(gender);
-		patient.setBirthDate(birthDate);
+		if (birthDate != null) {
+			patient.setBirthDateElement(new DateType(birthDate));
+		}
 		return patient;
 	}
 	

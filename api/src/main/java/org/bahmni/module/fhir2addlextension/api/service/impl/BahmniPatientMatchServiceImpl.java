@@ -11,9 +11,8 @@ import org.openmrs.module.fhir2.api.translators.GenderTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -34,7 +33,8 @@ public class BahmniPatientMatchServiceImpl implements BahmniPatientMatchService 
 		HumanName humanName = fhirPatient.getNameFirstRep();
 		List<String> givenNames = humanName.getGiven().stream().map(StringType::getValue).collect(Collectors.toList());
 		String name = joinNames(givenNames, humanName.getFamily());
-		Integer birthYear = toYear(fhirPatient.getBirthDate());
+		Integer birthYear = fhirPatient.hasBirthDate()
+		        ? fhirPatient.getBirthDate().toInstant().atZone(ZoneId.systemDefault()).getYear() : null;
 
 		Set<Person> similarPeople = Context.getPersonService().getSimilarPeople(name, birthYear,
 		    genderTranslator.toOpenmrsType(fhirPatient.getGender()));
@@ -55,14 +55,5 @@ public class BahmniPatientMatchServiceImpl implements BahmniPatientMatchService 
 	private String joinNames(List<String> givenNames, String familyName) {
 		return Stream.concat(givenNames.stream(), Stream.of(familyName)).filter(StringUtils::isNotBlank)
 		        .map(String::trim).collect(Collectors.joining(" "));
-	}
-	
-	private Integer toYear(Date birthDate) {
-		if (birthDate == null) {
-			return null;
-		}
-		Calendar calendar = Calendar.getInstance();
-		calendar.setTime(birthDate);
-		return calendar.get(Calendar.YEAR);
 	}
 }
