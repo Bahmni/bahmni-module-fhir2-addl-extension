@@ -8,6 +8,6 @@ import java.util.List;
 
 public interface BahmniPatientMatchService {
 	
-	@Authorized(value = { PrivilegeConstants.GET_PEOPLE, PrivilegeConstants.GET_PATIENTS }, requireAll = true)
+	@Authorized({ PrivilegeConstants.GET_PATIENTS })
 	List<Patient> findMatches(org.hl7.fhir.r4.model.Patient patient);
 }
