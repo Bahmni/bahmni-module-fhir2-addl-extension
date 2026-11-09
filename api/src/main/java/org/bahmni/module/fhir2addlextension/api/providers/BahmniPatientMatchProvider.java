@@ -8,7 +8,6 @@ import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.bahmni.module.fhir2addlextension.api.service.BahmniPatientMatchService;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
-import org.hl7.fhir.r4.model.HumanName;
 import org.hl7.fhir.r4.model.Patient;
 import org.openmrs.module.fhir2.api.annotations.R4Provider;
 import org.openmrs.module.fhir2.api.translators.PatientTranslator;
@@ -40,10 +39,6 @@ public class BahmniPatientMatchProvider implements IResourceProvider {
 	public Bundle match(@OperationParam(name = "resource") Patient resource, RequestDetails requestDetails) {
 		if (resource == null) {
 			throw new InvalidRequestException("Parameter 'resource' with a Patient is required");
-		}
-		HumanName name = resource.getNameFirstRep();
-		if (!resource.hasName() || (!name.hasGiven() && !name.hasFamily())) {
-			throw new InvalidRequestException("At least one name is required");
 		}
 		
 		List<org.openmrs.Patient> matches = matchService.findMatches(resource);

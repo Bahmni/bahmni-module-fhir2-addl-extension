@@ -6,7 +6,6 @@ import org.bahmni.module.fhir2addlextension.api.service.BahmniPatientMatchServic
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.Enumerations;
-import org.hl7.fhir.r4.model.HumanName;
 import org.hl7.fhir.r4.model.Patient;
 import org.junit.Before;
 import org.junit.Test;
@@ -75,18 +74,6 @@ public class BahmniPatientMatchProviderTest {
 	}
 	
 	@Test(expected = InvalidRequestException.class)
-	public void shouldRejectPatientWithoutName() {
-		provider.match(new Patient(), requestDetails);
-	}
-	
-	@Test(expected = InvalidRequestException.class)
-	public void shouldRejectPatientWithEmptyName() {
-		Patient request = new Patient();
-		request.addName(new HumanName());
-		provider.match(request, requestDetails);
-	}
-	
-	@Test(expected = InvalidRequestException.class)
 	public void shouldRejectMissingResource() {
 		provider.match(null, requestDetails);
 	}
@@ -99,6 +86,7 @@ public class BahmniPatientMatchProviderTest {
 	private Patient patient(String given, String family) {
 		Patient patient = new Patient();
 		patient.addName().addGiven(given).setFamily(family);
+		patient.setGender(Enumerations.AdministrativeGender.MALE);
 		return patient;
 	}
 }
