@@ -1,7 +1,10 @@
 package org.bahmni.module.fhir2addlextension.api.context.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2addlextension.api.context.AppContext;
+import org.bahmni.module.fhir2addlextension.api.model.DispositionConfig;
 import org.bahmni.module.fhir2addlextension.api.model.TelecomAttributeTypeMapping;
 import org.hl7.fhir.r4.model.ContactPoint;
 import org.openmrs.EncounterRole;
@@ -36,6 +39,22 @@ public class OpenmrsAppContext implements AppContext {
 	public static final String LAB_RESULTS_ENCOUNTER_ROLE = "Supporting services";
 	
 	public static final String PROP_ORDER_TYPE_TO_CATEGORY_MAP = "fhir2Extension.orderTypeToCategoryMap";
+	
+	public static final String PROP_ADT_ORDER_TYPE_NAME = "fhir2Extension.adtOrderTypeName";
+	
+	public static final String PROP_ADT_DISPOSITION_RULES = "fhir2Extension.adtDispositionRules";
+	
+	public static final String DEFAULT_ADT_ORDER_TYPE_NAME = "ADT Order";
+	
+	public static final String DEFAULT_ADT_DISPOSITION_RULES = "{"
+	        + "\"ADMIT\":{\"duplicateChecked\":true,\"closedBy\":[\"DISCHARGE\"],"
+	        + "\"fulfilledByEncounterTypes\":[\"ADMISSION\",\"DISCHARGE\"]},"
+	        + "\"DISCHARGE\":{\"duplicateChecked\":true,\"closedBy\":[\"ADMIT\",\"UNDO_DISCHARGE\"],"
+	        + "\"fulfilledByEncounterTypes\":[\"DISCHARGE\"]},"
+	        + "\"UNDO_DISCHARGE\":{\"duplicateChecked\":true,\"closedBy\":[\"DISCHARGE\"],"
+	        + "\"fulfilledByEncounterTypes\":[\"ADMISSION\",\"DISCHARGE\"]}," + "\"TRANSFER\":{}}";
+	
+	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 	
 	@Autowired
 	public OpenmrsAppContext(@Qualifier("adminService") AdministrationService administrationService,
@@ -77,6 +96,24 @@ public class OpenmrsAppContext implements AppContext {
 	public Map<String, String> getOrderTypeToCategoryMap() {
 		String propertyValue = administrationService.getGlobalProperty(PROP_ORDER_TYPE_TO_CATEGORY_MAP, "");
 		return parseStringToMap(propertyValue);
+	}
+	
+	@Override
+	@Cacheable(value = "fhir2addlextensionDispositionConfig")
+	public DispositionConfig getDispositionConfig() {
+		String orderTypeName = administrationService
+		        .getGlobalProperty(PROP_ADT_ORDER_TYPE_NAME, DEFAULT_ADT_ORDER_TYPE_NAME);
+		String rulesJson = administrationService
+		        .getGlobalProperty(PROP_ADT_DISPOSITION_RULES, DEFAULT_ADT_DISPOSITION_RULES);
+		try {
+			Map<String, DispositionConfig.Rule> rules = OBJECT_MAPPER.readValue(rulesJson,
+			    new TypeReference<Map<String, DispositionConfig.Rule>>() {});
+			return new DispositionConfig(orderTypeName, Collections.unmodifiableMap(rules));
+		}
+		catch (Exception e) {
+			throw new IllegalStateException("Global property '" + PROP_ADT_DISPOSITION_RULES
+			        + "' does not contain valid disposition rules JSON", e);
+		}
 	}
 	
 	@Cacheable(value = "fhir2addlextensionTelecomAttributeTypeMappings")

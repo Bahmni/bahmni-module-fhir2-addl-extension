@@ -3,6 +3,7 @@ package org.bahmni.module.fhir2addlextension.api.validators.impl;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import lombok.AccessLevel;
 import lombok.Setter;
+import org.bahmni.module.fhir2addlextension.api.model.DispositionInfo;
 import org.bahmni.module.fhir2addlextension.api.service.DispositionOrderTypeResolver;
 import org.bahmni.module.fhir2addlextension.api.validators.ServiceRequestValidator;
 import org.hl7.fhir.r4.model.ServiceRequest;
@@ -20,47 +21,15 @@ import org.openmrs.module.fhir2.api.translators.EncounterReferenceTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
 @Setter(value = AccessLevel.PACKAGE)
 public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
-
-	private static final Set<String> DUPLICATE_CHECKED_CODES = new HashSet<>(
-	        Arrays.asList("ADMIT", "DISCHARGE", "UNDO_DISCHARGE"));
-
-	private static final Map<String, String> DISPOSITION_LABEL_BY_CODE = new HashMap<>();
-	static {
-		DISPOSITION_LABEL_BY_CODE.put("ADMIT", "Admit");
-		DISPOSITION_LABEL_BY_CODE.put("DISCHARGE", "Discharge");
-		DISPOSITION_LABEL_BY_CODE.put("TRANSFER", "Transfer");
-		DISPOSITION_LABEL_BY_CODE.put("UNDO_DISCHARGE", "Undo Discharge");
-	}
-
-	// Dispositions that close an earlier order of the given kind; other kinds (e.g. TRANSFER) do not.
-	private static final Map<String, Set<String>> CLOSING_CODES_BY_CODE = new HashMap<>();
-	static {
-		CLOSING_CODES_BY_CODE.put("ADMIT", new HashSet<>(Collections.singletonList("DISCHARGE")));
-		CLOSING_CODES_BY_CODE.put("DISCHARGE", new HashSet<>(Arrays.asList("ADMIT", "UNDO_DISCHARGE")));
-		CLOSING_CODES_BY_CODE.put("UNDO_DISCHARGE", new HashSet<>(Collections.singletonList("DISCHARGE")));
-	}
-
-	// Real Bed Management encounter types that mark an ADT Order as fulfilled, matching the
-	// gating used by the emrapi.sqlSearch.patientsTo* worklist queries.
-	private static final Map<String, Set<String>> FULFILLING_ENCOUNTER_TYPES_BY_CODE = new HashMap<>();
-	static {
-		FULFILLING_ENCOUNTER_TYPES_BY_CODE.put("ADMIT", new HashSet<>(Arrays.asList("ADMISSION", "DISCHARGE")));
-		FULFILLING_ENCOUNTER_TYPES_BY_CODE.put("UNDO_DISCHARGE", new HashSet<>(Arrays.asList("ADMISSION", "DISCHARGE")));
-		FULFILLING_ENCOUNTER_TYPES_BY_CODE.put("DISCHARGE", new HashSet<>(Collections.singletonList("DISCHARGE")));
-	}
 	
 	@Autowired
 	private ConceptTranslator conceptTranslator;
@@ -93,12 +62,13 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 		if (orderType == null) {
 			throw new InvalidRequestException("Unable to determine order type for ServiceRequest");
 		}
-		String emrapiCode = dispositionOrderTypeResolver.getDispositionCode(conceptBeingOrdered);
-		if (DispositionOrderTypeResolver.ADT_ORDER_TYPE_NAME.equals(orderType.getName()) && DUPLICATE_CHECKED_CODES.contains(emrapiCode)) {
-			rejectIfActiveOrderExists(serviceRequest, emrapiCode);
+		DispositionInfo disposition = dispositionOrderTypeResolver.getDisposition(conceptBeingOrdered);
+		if (disposition != null && disposition.getRule() != null && disposition.getRule().isDuplicateChecked()
+		        && dispositionOrderTypeResolver.getAdtOrderTypeName().equals(orderType.getName())) {
+			rejectIfActiveOrderExists(serviceRequest, disposition);
 		}
 	}
-
+	
 	private Visit resolveVisit(Encounter encounter) {
 		if (encounter.getVisit() != null || encounter.getPatient() == null) {
 			return encounter.getVisit();
@@ -108,8 +78,8 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 	}
 	
 	/**
-	 * Non-voided encounters of the visit, plus the patient's visit-less encounters that fall
-	 * within the visit's time window (clients that omit Encounter.partOf save with no visit).
+	 * Non-voided encounters of the visit, plus the patient's visit-less encounters that fall within
+	 * the visit's time window (clients that omit Encounter.partOf save with no visit).
 	 */
 	private List<Encounter> collectVisitEncounters(Visit visit, Encounter requestEncounter) {
 		Set<Encounter> result = new HashSet<>();
@@ -130,7 +100,9 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 		return result.stream().filter(e -> !e.getVoided()).collect(Collectors.toList());
 	}
 	
-	private void rejectIfActiveOrderExists(ServiceRequest serviceRequest, String emrapiCode) {
+	private void rejectIfActiveOrderExists(ServiceRequest serviceRequest, DispositionInfo disposition) {
+		String emrapiCode = disposition.getCode();
+		String adtOrderTypeName = dispositionOrderTypeResolver.getAdtOrderTypeName();
 		if (serviceRequest.getEncounter() == null) {
 			return;
 		}
@@ -146,45 +118,45 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 		List<Order> adtOrders = visitEncounters.stream()
 		        .flatMap(e -> e.getOrders().stream()).filter(order -> !order.getVoided())
 		        .filter(order -> order.getAction() != Order.Action.DISCONTINUE && !order.isDiscontinuedRightNow() && !order.isExpired())
-		        .filter(order -> order.getOrderType() != null && DispositionOrderTypeResolver.ADT_ORDER_TYPE_NAME.equals(order.getOrderType().getName()))
+		        .filter(order -> order.getOrderType() != null && adtOrderTypeName.equals(order.getOrderType().getName()))
 		        .collect(Collectors.toList());
 
 		boolean activeOrderExists = adtOrders.stream()
-		        .filter(order -> emrapiCode.equals(dispositionOrderTypeResolver.getDispositionCode(order.getConcept())))
-		        .anyMatch(order -> !isSuperseded(adtOrders, order, emrapiCode) && !isFulfilled(visitEncounters, order, emrapiCode));
+		        .filter(order -> emrapiCode.equals(codeOf(order)))
+		        .anyMatch(order -> !isSuperseded(adtOrders, order, disposition) && !isFulfilled(visitEncounters, order, disposition));
 
 		if (activeOrderExists) {
 			throw new InvalidRequestException(
-			        "An active " + DISPOSITION_LABEL_BY_CODE.get(emrapiCode) + " order already exists for this visit");
+			        "An active " + disposition.getLabel() + " order already exists for this visit");
 		}
 	}
-
+	
 	/**
-	 * An ADT Order is superseded once a later order of a closing kind is placed in the same
-	 * visit (Discharge closes Admit; Admit or Undo Discharge closes Discharge). Other kinds,
-	 * such as Transfer, do not close it. An order at the same instant counts as later.
+	 * An ADT Order is superseded once a later order of a closing kind is placed in the same visit
+	 * (Discharge closes Admit; Admit or Undo Discharge closes Discharge). Other kinds, such as
+	 * Transfer, do not close it. An order at the same instant counts as later.
 	 */
-	private boolean isSuperseded(List<Order> adtOrders, Order order, String emrapiCode) {
-		Set<String> closingCodes = CLOSING_CODES_BY_CODE.get(emrapiCode);
-		if (closingCodes == null) {
+	private boolean isSuperseded(List<Order> adtOrders, Order order, DispositionInfo disposition) {
+		Set<String> closingCodes = disposition.getRule().getClosedBy();
+		if (closingCodes == null || closingCodes.isEmpty()) {
 			return false;
 		}
 		Date orderDate = order.getDateActivated() != null ? order.getDateActivated() : order.getDateCreated();
 		return adtOrders.stream().filter(other -> !other.getUuid().equals(order.getUuid())).anyMatch(other -> {
 			Date otherDate = other.getDateActivated() != null ? other.getDateActivated() : other.getDateCreated();
 			return otherDate != null && orderDate != null && !otherDate.before(orderDate)
-			        && closingCodes.contains(dispositionOrderTypeResolver.getDispositionCode(other.getConcept()));
+			        && closingCodes.contains(codeOf(other));
 		});
 	}
-
+	
 	/**
-	 * An ADT Order is also considered done once the fulfiller (real Bed Management action)
-	 * has actually carried it out - e.g. a Transfer order is fulfilled once a real TRANSFER
-	 * encounter is recorded after it, so a new Transfer order can be placed again. Mirrors
-	 * the encounter-type gating used by the emrapi.sqlSearch.patientsTo* worklist queries.
+	 * An ADT Order is also considered done once the fulfiller (real Bed Management action) has
+	 * actually carried it out - e.g. a Transfer order is fulfilled once a real TRANSFER encounter
+	 * is recorded after it, so a new Transfer order can be placed again. Mirrors the encounter-type
+	 * gating used by the emrapi.sqlSearch.patientsTo* worklist queries.
 	 */
-	private boolean isFulfilled(List<Encounter> visitEncounters, Order order, String emrapiCode) {
-		Set<String> fulfillingEncounterTypes = FULFILLING_ENCOUNTER_TYPES_BY_CODE.get(emrapiCode);
+	private boolean isFulfilled(List<Encounter> visitEncounters, Order order, DispositionInfo disposition) {
+		Set<String> fulfillingEncounterTypes = disposition.getRule().getFulfilledByEncounterTypes();
 		if (fulfillingEncounterTypes == null || fulfillingEncounterTypes.isEmpty()) {
 			return false;
 		}
@@ -195,5 +167,10 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 		return visitEncounters.stream()
 		        .filter(e -> e.getEncounterType() != null && fulfillingEncounterTypes.contains(e.getEncounterType().getName()))
 		        .anyMatch(e -> e.getEncounterDatetime() != null && e.getEncounterDatetime().after(orderDate));
+	}
+	
+	private String codeOf(Order order) {
+		DispositionInfo info = dispositionOrderTypeResolver.getDisposition(order.getConcept());
+		return info == null ? null : info.getCode();
 	}
 }

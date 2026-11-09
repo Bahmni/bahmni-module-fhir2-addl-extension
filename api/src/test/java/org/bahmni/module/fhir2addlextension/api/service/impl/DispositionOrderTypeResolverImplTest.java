@@ -1,5 +1,9 @@
 package org.bahmni.module.fhir2addlextension.api.service.impl;
 
+import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
+import org.bahmni.module.fhir2addlextension.api.context.AppContext;
+import org.bahmni.module.fhir2addlextension.api.model.DispositionConfig;
+import org.bahmni.module.fhir2addlextension.api.model.DispositionInfo;
 import org.bahmni.module.fhir2addlextension.api.service.DispositionOrderTypeResolver;
 import org.junit.Before;
 import org.junit.Test;
@@ -7,18 +11,27 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Concept;
+import org.openmrs.ConceptAnswer;
 import org.openmrs.ConceptMap;
+import org.openmrs.ConceptName;
 import org.openmrs.ConceptReferenceTerm;
 import org.openmrs.ConceptSource;
 import org.openmrs.OrderType;
+import org.openmrs.api.ConceptService;
 import org.openmrs.api.OrderService;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -31,6 +44,12 @@ public class DispositionOrderTypeResolverImplTest {
 	@Mock
 	private OrderService orderService;
 	
+	@Mock
+	private ConceptService conceptService;
+	
+	@Mock
+	private AppContext appContext;
+	
 	private DispositionOrderTypeResolver resolver;
 	
 	private OrderType adtOrderType;
@@ -39,6 +58,13 @@ public class DispositionOrderTypeResolverImplTest {
 	public void setup() {
 		DispositionOrderTypeResolverImpl resolverImpl = new DispositionOrderTypeResolverImpl();
 		resolverImpl.setOrderService(orderService);
+		resolverImpl.setConceptService(conceptService);
+		resolverImpl.setAppContext(appContext);
+		Map<String, DispositionConfig.Rule> rules = new HashMap<>();
+		for (String code : new String[] { "ADMIT", "DISCHARGE", "TRANSFER", "UNDO_DISCHARGE" }) {
+			rules.put(code, new DispositionConfig.Rule());
+		}
+		lenient().when(appContext.getDispositionConfig()).thenReturn(new DispositionConfig(ADT_ORDER_TYPE_NAME, rules));
 		resolver = resolverImpl;
 		
 		adtOrderType = new OrderType();
@@ -120,30 +146,51 @@ public class DispositionOrderTypeResolverImplTest {
 	}
 	
 	@Test
-	public void shouldReturnNullWhenCodeMatchesButOrderTypeNotFound() {
+	public void shouldThrowWhenCodeMatchesButOrderTypeNotConfigured() {
 		Concept concept = conceptWithMapping(EMRAPI_SOURCE_NAME, "ADMIT");
 		when(orderService.getOrderTypeByName(ADT_ORDER_TYPE_NAME)).thenReturn(null);
 		
-		assertNull(resolver.resolve(concept));
+		InvalidRequestException e = assertThrows(InvalidRequestException.class, () -> resolver.resolve(concept));
+		assertEquals("OrderType 'ADT Order' is not configured", e.getMessage());
 	}
 	
 	@Test
-	public void shouldReturnDispositionCodeForDispositionConcept() {
-		assertEquals("TRANSFER", resolver.getDispositionCode(conceptWithMapping(EMRAPI_SOURCE_NAME, "TRANSFER")));
+	public void shouldReturnDispositionWithLabelAndRule() {
+		Concept concept = org.mockito.Mockito.spy(conceptWithMapping(EMRAPI_SOURCE_NAME, "TRANSFER"));
+		org.mockito.Mockito.doReturn(new ConceptName("Transfer Patient", Locale.ENGLISH)).when(concept).getName();
+		
+		DispositionInfo info = resolver.getDisposition(concept);
+		assertEquals("TRANSFER", info.getCode());
+		assertEquals("Transfer Patient", info.getLabel());
+		assertNotNull(info.getRule());
 	}
 	
 	@Test
-	public void shouldReturnNullDispositionCodeForNonDispositionOrNullConcept() {
-		assertNull(resolver.getDispositionCode(null));
-		assertNull(resolver.getDispositionCode(conceptWithMapping(EMRAPI_SOURCE_NAME, "SOME_OTHER_CODE")));
-		assertNull(resolver.getDispositionCode(conceptWithMapping("some.other.source", "ADMIT")));
+	public void shouldReturnNullDispositionForNonDispositionOrNullConcept() {
+		assertNull(resolver.getDisposition(null));
+		assertNull(resolver.getDisposition(conceptWithMapping(EMRAPI_SOURCE_NAME, "SOME_OTHER_CODE")));
+		assertNull(resolver.getDisposition(conceptWithMapping("some.other.source", "ADMIT")));
 	}
 	
 	@Test
-	public void shouldReturnDispositionCodeEvenWhenAnotherEmrapiMappingExists() {
+	public void shouldRecogniseAnswerOfDispositionConceptEvenWithoutConfiguredRule() {
+		Concept answerConcept = conceptWithMapping(EMRAPI_SOURCE_NAME, "NEW_DISPOSITION");
+		Concept dispositionConcept = new Concept();
+		dispositionConcept.addAnswer(new ConceptAnswer(answerConcept));
+		when(conceptService.getConceptByMapping("Disposition", EMRAPI_SOURCE_NAME)).thenReturn(dispositionConcept);
+		when(orderService.getOrderTypeByName(ADT_ORDER_TYPE_NAME)).thenReturn(adtOrderType);
+		
+		DispositionInfo info = resolver.getDisposition(answerConcept);
+		assertEquals("NEW_DISPOSITION", info.getCode());
+		assertNull(info.getRule());
+		assertEquals(adtOrderType, resolver.resolve(answerConcept));
+	}
+	
+	@Test
+	public void shouldReturnDispositionEvenWhenAnotherEmrapiMappingExists() {
 		Concept concept = conceptWithMapping(EMRAPI_SOURCE_NAME, "SOME_OTHER_CODE");
 		concept.getConceptMappings().addAll(conceptWithMapping(EMRAPI_SOURCE_NAME, "ADMIT").getConceptMappings());
 		
-		assertEquals("ADMIT", resolver.getDispositionCode(concept));
+		assertEquals("ADMIT", resolver.getDisposition(concept).getCode());
 	}
 }

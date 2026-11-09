@@ -1,6 +1,9 @@
 package org.bahmni.module.fhir2addlextension.api.validators.impl;
 
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
+import org.bahmni.module.fhir2addlextension.api.context.AppContext;
+import org.bahmni.module.fhir2addlextension.api.model.DispositionConfig;
+import org.bahmni.module.fhir2addlextension.api.model.DispositionInfo;
 import org.bahmni.module.fhir2addlextension.api.service.DispositionOrderTypeResolver;
 import org.bahmni.module.fhir2addlextension.api.service.impl.DispositionOrderTypeResolverImpl;
 import org.bahmni.module.fhir2addlextension.api.validators.ServiceRequestValidator;
@@ -25,7 +28,10 @@ import org.openmrs.api.OrderService;
 import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
 import org.openmrs.module.fhir2.api.translators.EncounterReferenceTranslator;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
@@ -57,6 +63,17 @@ public class ServiceRequestValidatorImplTest {
 	@Mock
 	private EncounterReferenceTranslator<Encounter> encounterReferenceTranslator;
 	
+	@Mock
+	private AppContext appContext;
+	
+	private static DispositionConfig.Rule rule(boolean duplicateChecked, String closedBy, String... encounterTypes) {
+		DispositionConfig.Rule r = new DispositionConfig.Rule();
+		r.setDuplicateChecked(duplicateChecked);
+		r.setClosedBy(new HashSet<>(Arrays.asList(closedBy.split(","))));
+		r.setFulfilledByEncounterTypes(new HashSet<>(Arrays.asList(encounterTypes)));
+		return r;
+	}
+	
 	private static final String EMRAPI_SOURCE_NAME = "org.openmrs.module.emrapi";
 	
 	private ServiceRequestValidator validator;
@@ -77,9 +94,24 @@ public class ServiceRequestValidatorImplTest {
 		validatorImpl.setVisitService(visitService);
 		validatorImpl.setEncounterService(encounterService);
 		validatorImpl.setDispositionOrderTypeResolver(dispositionOrderTypeResolver);
+		Map<String, DispositionConfig.Rule> rules = new HashMap<>();
+		rules.put("ADMIT", rule(true, "DISCHARGE", "ADMISSION", "DISCHARGE"));
+		rules.put("DISCHARGE", rule(true, "ADMIT,UNDO_DISCHARGE", "DISCHARGE"));
+		rules.put("UNDO_DISCHARGE", rule(true, "DISCHARGE", "ADMISSION", "DISCHARGE"));
+		rules.put("TRANSFER", new DispositionConfig.Rule());
+		when(appContext.getDispositionConfig()).thenReturn(new DispositionConfig("ADT Order", rules));
 		DispositionOrderTypeResolverImpl realResolver = new DispositionOrderTypeResolverImpl();
-		lenient().when(dispositionOrderTypeResolver.getDispositionCode(any()))
-		        .thenAnswer(invocation -> realResolver.getDispositionCode(invocation.getArgument(0)));
+		org.springframework.test.util.ReflectionTestUtils.setField(realResolver, "appContext", appContext);
+		Map<String, String> labels = new HashMap<>();
+		labels.put("ADMIT", "Admit");
+		labels.put("DISCHARGE", "Discharge");
+		labels.put("TRANSFER", "Transfer");
+		labels.put("UNDO_DISCHARGE", "Undo Discharge");
+		lenient().when(dispositionOrderTypeResolver.getAdtOrderTypeName()).thenReturn("ADT Order");
+		lenient().when(dispositionOrderTypeResolver.getDisposition(any())).thenAnswer(invocation -> {
+			DispositionInfo info = realResolver.getDisposition(invocation.getArgument(0));
+			return info == null ? null : new DispositionInfo(info.getCode(), labels.get(info.getCode()), info.getRule());
+		});
 		validatorImpl.setEncounterReferenceTranslator(encounterReferenceTranslator);
 		validator = validatorImpl;
 		

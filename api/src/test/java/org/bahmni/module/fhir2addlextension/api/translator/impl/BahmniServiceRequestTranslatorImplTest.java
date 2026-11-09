@@ -210,6 +210,7 @@ public class BahmniServiceRequestTranslatorImplTest {
 		translator.setLocationReferenceResolver(orderLocationReferenceResolver);
 		translator.setUserPractitionerReferenceTranslator(userPractitionerReferenceTranslator);
 		translator.setDispositionOrderTypeResolver(dispositionOrderTypeResolver);
+		org.mockito.Mockito.lenient().when(dispositionOrderTypeResolver.getAdtOrderTypeName()).thenReturn("ADT Order");
 		
 		orderConcept = new Concept();
 		ConceptClass cc = new ConceptClass();
