@@ -5,7 +5,7 @@ import ca.uhn.fhir.rest.annotation.OperationParam;
 import ca.uhn.fhir.rest.api.server.RequestDetails;
 import ca.uhn.fhir.rest.server.IResourceProvider;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
-import org.bahmni.module.fhir2addlextension.api.service.BahmniPatientMatchService;
+import org.bahmni.module.fhir2addlextension.api.service.PatientMatchService;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Patient;
@@ -16,16 +16,16 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-@Component("bahmniPatientMatchProvider")
+@Component("patientMatchProvider")
 @R4Provider
-public class BahmniPatientMatchProvider implements IResourceProvider {
+public class PatientMatchProvider implements IResourceProvider {
 	
-	private final BahmniPatientMatchService matchService;
+	private final PatientMatchService matchService;
 	
 	private final PatientTranslator patientTranslator;
 	
 	@Autowired
-	public BahmniPatientMatchProvider(BahmniPatientMatchService matchService, PatientTranslator patientTranslator) {
+	public PatientMatchProvider(PatientMatchService matchService, PatientTranslator patientTranslator) {
 		this.matchService = matchService;
 		this.patientTranslator = patientTranslator;
 	}

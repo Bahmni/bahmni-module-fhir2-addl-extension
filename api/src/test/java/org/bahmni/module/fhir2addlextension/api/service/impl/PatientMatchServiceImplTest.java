@@ -34,7 +34,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.Silent.class)
-public class BahmniPatientMatchServiceImplTest {
+public class PatientMatchServiceImplTest {
 	
 	@Mock
 	private PersonService personService;
@@ -44,7 +44,7 @@ public class BahmniPatientMatchServiceImplTest {
 	
 	private MockedStatic<Context> contextMock;
 	
-	private final BahmniPatientMatchServiceImpl service = new BahmniPatientMatchServiceImpl(new GenderTranslatorImpl());
+	private final PatientMatchServiceImpl service = new PatientMatchServiceImpl(new GenderTranslatorImpl());
 	
 	@Before
 	public void setUp() {

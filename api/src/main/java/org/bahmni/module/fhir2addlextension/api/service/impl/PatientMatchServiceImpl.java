@@ -2,7 +2,7 @@ package org.bahmni.module.fhir2addlextension.api.service.impl;
 
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.apache.commons.lang3.StringUtils;
-import org.bahmni.module.fhir2addlextension.api.service.BahmniPatientMatchService;
+import org.bahmni.module.fhir2addlextension.api.service.PatientMatchService;
 import org.hl7.fhir.r4.model.Enumerations;
 import org.hl7.fhir.r4.model.HumanName;
 import org.hl7.fhir.r4.model.StringType;
@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Component("defaultPatientMatchService")
-public class BahmniPatientMatchServiceImpl implements BahmniPatientMatchService {
+public class PatientMatchServiceImpl implements PatientMatchService {
 	
 	private static final Set<Enumerations.AdministrativeGender> ALLOWED_GENDERS = EnumSet.of(
 	    Enumerations.AdministrativeGender.MALE, Enumerations.AdministrativeGender.FEMALE,
@@ -31,7 +31,7 @@ public class BahmniPatientMatchServiceImpl implements BahmniPatientMatchService 
 	private final GenderTranslator genderTranslator;
 	
 	@Autowired
-	public BahmniPatientMatchServiceImpl(GenderTranslator genderTranslator) {
+	public PatientMatchServiceImpl(GenderTranslator genderTranslator) {
 		this.genderTranslator = genderTranslator;
 	}
 	

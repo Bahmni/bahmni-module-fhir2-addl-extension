@@ -2,7 +2,7 @@ package org.bahmni.module.fhir2addlextension.api.providers;
 
 import ca.uhn.fhir.rest.api.server.RequestDetails;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
-import org.bahmni.module.fhir2addlextension.api.service.BahmniPatientMatchService;
+import org.bahmni.module.fhir2addlextension.api.service.PatientMatchService;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.DateType;
 import org.hl7.fhir.r4.model.Enumerations;
@@ -23,10 +23,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.Silent.class)
-public class BahmniPatientMatchProviderTest {
+public class PatientMatchProviderTest {
 	
 	@Mock
-	private BahmniPatientMatchService matchService;
+	private PatientMatchService matchService;
 	
 	@Mock
 	private PatientTranslator patientTranslator;
@@ -34,12 +34,12 @@ public class BahmniPatientMatchProviderTest {
 	@Mock
 	private RequestDetails requestDetails;
 	
-	private BahmniPatientMatchProvider provider;
+	private PatientMatchProvider provider;
 	
 	@Before
 	public void setUp() {
 		when(requestDetails.getFhirServerBase()).thenReturn("http://localhost/openmrs/ws/fhir2/R4");
-		provider = new BahmniPatientMatchProvider(matchService, patientTranslator);
+		provider = new PatientMatchProvider(matchService, patientTranslator);
 	}
 	
 	@Test
