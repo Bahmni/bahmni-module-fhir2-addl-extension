@@ -130,11 +130,10 @@ public class OpenmrsAppContextTest {
 	}
 	
 	@Test
-	public void shouldFallBackToDefaultDispositionConfigWhenPropertiesUnset() {
-		when(adminService.getGlobalProperty(OpenmrsAppContext.PROP_ADT_ORDER_TYPE_NAME,
-		    OpenmrsAppContext.DEFAULT_ADT_ORDER_TYPE_NAME)).thenReturn(OpenmrsAppContext.DEFAULT_ADT_ORDER_TYPE_NAME);
-		when(adminService.getGlobalProperty(OpenmrsAppContext.PROP_ADT_DISPOSITION_RULES,
-		    OpenmrsAppContext.DEFAULT_ADT_DISPOSITION_RULES)).thenReturn(OpenmrsAppContext.DEFAULT_ADT_DISPOSITION_RULES);
+	public void shouldParseTheShippedDispositionRules() {
+		when(adminService.getGlobalProperty(OpenmrsAppContext.PROP_ADT_ORDER_TYPE_NAME)).thenReturn("ADT Order");
+		when(adminService.getGlobalProperty(OpenmrsAppContext.PROP_ADT_DISPOSITION_RULES)).thenReturn(
+		    "{\"ADMIT\":{\"duplicateChecked\":true,\"closedBy\":[\"DISCHARGE\"],\"fulfilledByEncounterTypes\":[\"ADMISSION\",\"DISCHARGE\"]},\"DISCHARGE\":{\"duplicateChecked\":true,\"closedBy\":[\"ADMIT\",\"UNDO_DISCHARGE\"],\"fulfilledByEncounterTypes\":[\"DISCHARGE\"]},\"UNDO_DISCHARGE\":{\"duplicateChecked\":true,\"closedBy\":[\"DISCHARGE\"],\"fulfilledByEncounterTypes\":[\"ADMISSION\",\"DISCHARGE\"]},\"TRANSFER\":{}}");
 		
 		DispositionConfig config = new OpenmrsAppContext(adminService, encounterService).getDispositionConfig();
 		
@@ -151,12 +150,8 @@ public class OpenmrsAppContextTest {
 	
 	@Test
 	public void shouldReadDispositionConfigFromGlobalProperties() {
-		when(
-		    adminService.getGlobalProperty(OpenmrsAppContext.PROP_ADT_ORDER_TYPE_NAME,
-		        OpenmrsAppContext.DEFAULT_ADT_ORDER_TYPE_NAME)).thenReturn("Bed Order");
-		when(
-		    adminService.getGlobalProperty(OpenmrsAppContext.PROP_ADT_DISPOSITION_RULES,
-		        OpenmrsAppContext.DEFAULT_ADT_DISPOSITION_RULES)).thenReturn(
+		when(adminService.getGlobalProperty(OpenmrsAppContext.PROP_ADT_ORDER_TYPE_NAME)).thenReturn("Bed Order");
+		when(adminService.getGlobalProperty(OpenmrsAppContext.PROP_ADT_DISPOSITION_RULES)).thenReturn(
 		    "{\"ADMIT\":{\"duplicateChecked\":true,\"closedBy\":[\"LEAVE\"],\"fulfilledByEncounterTypes\":[\"IN\"]}}");
 		
 		DispositionConfig config = new OpenmrsAppContext(adminService, encounterService).getDispositionConfig();
@@ -169,13 +164,20 @@ public class OpenmrsAppContextTest {
 	
 	@Test
 	public void shouldFailWithClearMessageWhenDispositionRulesJsonIsInvalid() {
-		when(adminService.getGlobalProperty(OpenmrsAppContext.PROP_ADT_ORDER_TYPE_NAME,
-		    OpenmrsAppContext.DEFAULT_ADT_ORDER_TYPE_NAME)).thenReturn("ADT Order");
-		when(adminService.getGlobalProperty(OpenmrsAppContext.PROP_ADT_DISPOSITION_RULES,
-		    OpenmrsAppContext.DEFAULT_ADT_DISPOSITION_RULES)).thenReturn("not json");
+		when(adminService.getGlobalProperty(OpenmrsAppContext.PROP_ADT_ORDER_TYPE_NAME)).thenReturn("ADT Order");
+		when(adminService.getGlobalProperty(OpenmrsAppContext.PROP_ADT_DISPOSITION_RULES)).thenReturn("not json");
 		
 		IllegalStateException e = assertThrows(IllegalStateException.class,
 		    () -> new OpenmrsAppContext(adminService, encounterService).getDispositionConfig());
 		assertTrue(e.getMessage().contains(OpenmrsAppContext.PROP_ADT_DISPOSITION_RULES));
+	}
+	
+	@Test
+	public void shouldFailWhenDispositionGlobalPropertiesAreNotConfigured() {
+		when(adminService.getGlobalProperty(OpenmrsAppContext.PROP_ADT_ORDER_TYPE_NAME)).thenReturn(null);
+		
+		IllegalStateException e = assertThrows(IllegalStateException.class,
+		    () -> new OpenmrsAppContext(adminService, encounterService).getDispositionConfig());
+		assertTrue(e.getMessage().contains(OpenmrsAppContext.PROP_ADT_ORDER_TYPE_NAME));
 	}
 }

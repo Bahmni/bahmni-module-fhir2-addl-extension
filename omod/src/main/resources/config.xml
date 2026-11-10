@@ -125,6 +125,26 @@
 		</description>
 	</globalProperty>
 	<globalProperty>
+		<property>fhir2Extension.adtOrderTypeName</property>
+		<defaultValue>ADT Order</defaultValue>
+		<description>
+			Name of the OpenMRS OrderType used for disposition (Admit/Discharge/Transfer/Undo Discharge)
+			ServiceRequests. The OrderType must exist, otherwise saving a disposition ServiceRequest fails.
+		</description>
+	</globalProperty>
+	<globalProperty>
+		<property>fhir2Extension.adtDispositionRules</property>
+		<defaultValue>{"ADMIT":{"duplicateChecked":true,"closedBy":["DISCHARGE"],"fulfilledByEncounterTypes":["ADMISSION","DISCHARGE"]},"DISCHARGE":{"duplicateChecked":true,"closedBy":["ADMIT","UNDO_DISCHARGE"],"fulfilledByEncounterTypes":["DISCHARGE"]},"UNDO_DISCHARGE":{"duplicateChecked":true,"closedBy":["DISCHARGE"],"fulfilledByEncounterTypes":["ADMISSION","DISCHARGE"]},"TRANSFER":{}}</defaultValue>
+		<description>
+			JSON map keyed by the org.openmrs.module.emrapi reference-term code of a disposition concept.
+			Which concepts are dispositions and their display names come from the emrapi "Disposition"
+			concept answers; this property only holds the rules concepts cannot express.
+			Per code: duplicateChecked (reject a new order while an active one of the same kind exists in the
+			visit), closedBy (codes whose later order supersedes it), fulfilledByEncounterTypes (encounter type
+			names whose later encounter marks it fulfilled).
+		</description>
+	</globalProperty>
+	<globalProperty>
 		<property>bahmni.documentUpload.maxFileSizeInMB</property>
 		<defaultValue>5</defaultValue>
 		<description>

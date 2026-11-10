@@ -44,16 +44,6 @@ public class OpenmrsAppContext implements AppContext {
 	
 	public static final String PROP_ADT_DISPOSITION_RULES = "fhir2Extension.adtDispositionRules";
 	
-	public static final String DEFAULT_ADT_ORDER_TYPE_NAME = "ADT Order";
-	
-	public static final String DEFAULT_ADT_DISPOSITION_RULES = "{"
-	        + "\"ADMIT\":{\"duplicateChecked\":true,\"closedBy\":[\"DISCHARGE\"],"
-	        + "\"fulfilledByEncounterTypes\":[\"ADMISSION\",\"DISCHARGE\"]},"
-	        + "\"DISCHARGE\":{\"duplicateChecked\":true,\"closedBy\":[\"ADMIT\",\"UNDO_DISCHARGE\"],"
-	        + "\"fulfilledByEncounterTypes\":[\"DISCHARGE\"]},"
-	        + "\"UNDO_DISCHARGE\":{\"duplicateChecked\":true,\"closedBy\":[\"DISCHARGE\"],"
-	        + "\"fulfilledByEncounterTypes\":[\"ADMISSION\",\"DISCHARGE\"]}," + "\"TRANSFER\":{}}";
-	
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 	
 	@Autowired
@@ -101,10 +91,8 @@ public class OpenmrsAppContext implements AppContext {
 	@Override
 	@Cacheable(value = "fhir2addlextensionDispositionConfig")
 	public DispositionConfig getDispositionConfig() {
-		String orderTypeName = administrationService
-		        .getGlobalProperty(PROP_ADT_ORDER_TYPE_NAME, DEFAULT_ADT_ORDER_TYPE_NAME);
-		String rulesJson = administrationService
-		        .getGlobalProperty(PROP_ADT_DISPOSITION_RULES, DEFAULT_ADT_DISPOSITION_RULES);
+		String orderTypeName = requiredGlobalProperty(PROP_ADT_ORDER_TYPE_NAME);
+		String rulesJson = requiredGlobalProperty(PROP_ADT_DISPOSITION_RULES);
 		try {
 			Map<String, DispositionConfig.Rule> rules = OBJECT_MAPPER.readValue(rulesJson,
 			    new TypeReference<Map<String, DispositionConfig.Rule>>() {});
@@ -114,6 +102,14 @@ public class OpenmrsAppContext implements AppContext {
 			throw new IllegalStateException("Global property '" + PROP_ADT_DISPOSITION_RULES
 			        + "' does not contain valid disposition rules JSON", e);
 		}
+	}
+	
+	private String requiredGlobalProperty(String property) {
+		String value = administrationService.getGlobalProperty(property);
+		if (value == null || value.trim().isEmpty()) {
+			throw new IllegalStateException("Global property '" + property + "' is not configured");
+		}
+		return value;
 	}
 	
 	@Cacheable(value = "fhir2addlextensionTelecomAttributeTypeMappings")
