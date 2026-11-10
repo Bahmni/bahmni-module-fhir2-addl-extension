@@ -13,6 +13,9 @@ import org.openmrs.parameter.EncounterSearchCriteriaBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import org.apache.commons.collections.CollectionUtils;
+
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
@@ -57,7 +60,7 @@ public class DispositionOrderLifecycleServiceImpl implements DispositionOrderLif
 			return encounter.getVisit();
 		}
 		List<Visit> activeVisits = visitService.getActiveVisitsByPatient(encounter.getPatient());
-		return activeVisits == null || activeVisits.isEmpty() ? null : activeVisits.get(0);
+		return activeVisits.isEmpty() ? null : activeVisits.get(0);
 	}
 	
 	/**
@@ -67,21 +70,17 @@ public class DispositionOrderLifecycleServiceImpl implements DispositionOrderLif
 	 */
 	private List<Encounter> collectVisitEncounters(Visit visit, Encounter requestEncounter) {
 		Set<Encounter> result = new HashSet<>();
-		if (visit.getEncounters() != null) {
-			result.addAll(visit.getEncounters());
-		}
+		result.addAll(visit.getEncounters());
 		Patient patient = requestEncounter.getPatient() != null ? requestEncounter.getPatient() : visit.getPatient();
 		if (patient != null && visit.getStartDatetime() != null) {
-			Date windowEnd = visit.getStopDatetime() != null ? visit.getStopDatetime() : new Date();
+			Date windowEnd = visit.getStopDatetime() != null ? visit.getStopDatetime() : Date.from(Instant.now());
 			List<Encounter> patientEncounters = encounterService.getEncounters(new EncounterSearchCriteriaBuilder()
 				        .setPatient(patient).setFromDate(visit.getStartDatetime()).setToDate(windowEnd)
 				        .setIncludeVoided(true).createEncounterSearchCriteria());
-			if (patientEncounters != null) {
-				patientEncounters.stream().filter(e -> e.getVisit() == null && e.getEncounterDatetime() != null)
-				        .filter(e -> !e.getEncounterDatetime().before(visit.getStartDatetime())
-				                && !e.getEncounterDatetime().after(windowEnd))
-				        .forEach(result::add);
-			}
+			patientEncounters.stream().filter(e -> e.getVisit() == null)
+			        .filter(e -> !e.getEncounterDatetime().before(visit.getStartDatetime())
+			                && !e.getEncounterDatetime().after(windowEnd))
+			        .forEach(result::add);
 		}
 		return new ArrayList<>(result);
 	}
@@ -99,16 +98,14 @@ public class DispositionOrderLifecycleServiceImpl implements DispositionOrderLif
 	
 	private boolean isSuperseded(List<Order> adtOrders, Order order, DispositionInfo disposition, Set<String> inProgress) {
 		Set<String> closingCodes = disposition.getRule().getClosedBy();
-		if (closingCodes == null || closingCodes.isEmpty()) {
+		if (CollectionUtils.isEmpty(closingCodes)) {
 			return false;
 		}
-		Date orderDate = order.getDateActivated() != null ? order.getDateActivated() : order.getDateCreated();
+		Date orderDate = effectiveDate(order);
 		inProgress.add(order.getUuid());
 		try {
 			return adtOrders.stream().filter(other -> !inProgress.contains(other.getUuid())).anyMatch(other -> {
-				Date otherDate = other.getDateActivated() != null ? other.getDateActivated() : other.getDateCreated();
-				if (otherDate == null || orderDate == null || otherDate.before(orderDate)
-				        || !closingCodes.contains(codeOf(other))) {
+				if (effectiveDate(other).before(orderDate) || !closingCodes.contains(codeOf(other))) {
 					return false;
 				}
 				DispositionInfo otherInfo = dispositionOrderTypeResolver.getDisposition(other.getConcept());
@@ -128,20 +125,21 @@ public class DispositionOrderLifecycleServiceImpl implements DispositionOrderLif
 	 */
 	private boolean isFulfilled(List<Encounter> visitEncounters, Order order, DispositionInfo disposition) {
 		Set<String> fulfillingEncounterTypes = disposition.getRule().getFulfilledByEncounterTypes();
-		if (fulfillingEncounterTypes == null || fulfillingEncounterTypes.isEmpty()) {
+		if (CollectionUtils.isEmpty(fulfillingEncounterTypes)) {
 			return false;
 		}
-		Date orderDate = order.getDateActivated() != null ? order.getDateActivated() : order.getDateCreated();
-		if (orderDate == null) {
-			return false;
-		}
+		Date orderDate = effectiveDate(order);
 		boolean byVoiding = disposition.getRule().isFulfilledByVoiding();
 		return visitEncounters.stream().filter(e -> byVoiding == Boolean.TRUE.equals(e.getVoided()))
 		        .filter(e -> e.getEncounterType() != null && fulfillingEncounterTypes.contains(e.getEncounterType().getName()))
 		        .anyMatch(e -> {
 			        Date happened = byVoiding ? e.getDateVoided() : e.getEncounterDatetime();
-			        return happened != null && happened.after(orderDate);
+			        return happened.after(orderDate);
 		        });
+	}
+	
+	private Date effectiveDate(Order order) {
+		return order.getDateActivated() != null ? order.getDateActivated() : order.getDateCreated();
 	}
 	
 	private String codeOf(Order order) {

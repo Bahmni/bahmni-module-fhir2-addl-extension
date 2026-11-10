@@ -193,4 +193,22 @@ public class DispositionOrderTypeResolverImplTest {
 		
 		assertEquals("ADMIT", resolver.getDisposition(concept).getCode());
 	}
+	
+	@Test
+	public void shouldNotTreatConceptAsDispositionWhenDispositionConceptIsMissing() {
+		Concept concept = conceptWithMapping(EMRAPI_SOURCE_NAME, "NEW_DISPOSITION");
+		when(conceptService.getConceptByMapping("Disposition", EMRAPI_SOURCE_NAME)).thenReturn(null);
+		
+		assertNull(resolver.getDisposition(concept));
+	}
+	
+	@Test
+	public void shouldNotTreatConceptAsDispositionWhenItIsNotAnAnswer() {
+		Concept concept = conceptWithMapping(EMRAPI_SOURCE_NAME, "NEW_DISPOSITION");
+		Concept dispositionConcept = new Concept();
+		dispositionConcept.addAnswer(new ConceptAnswer(new Concept()));
+		when(conceptService.getConceptByMapping("Disposition", EMRAPI_SOURCE_NAME)).thenReturn(dispositionConcept);
+		
+		assertNull(resolver.getDisposition(concept));
+	}
 }

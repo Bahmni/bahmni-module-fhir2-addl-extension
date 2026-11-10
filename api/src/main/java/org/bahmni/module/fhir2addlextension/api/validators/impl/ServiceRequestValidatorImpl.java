@@ -57,7 +57,7 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 	}
 	
 	private void rejectIfActiveOrderExists(ServiceRequest serviceRequest, DispositionInfo disposition) {
-		if (serviceRequest.getEncounter() == null) {
+		if (!serviceRequest.hasEncounter()) {
 			return;
 		}
 		Encounter encounter = encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter());

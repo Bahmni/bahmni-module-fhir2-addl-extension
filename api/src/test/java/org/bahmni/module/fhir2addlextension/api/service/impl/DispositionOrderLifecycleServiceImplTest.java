@@ -274,6 +274,86 @@ public class DispositionOrderLifecycleServiceImplTest {
 		assertFalse(service.hasActiveOrder(requestEncounter, info("ADMIT")));
 	}
 
+	@Test
+	public void shouldReturnFalseWhenEncounterHasNeitherVisitNorPatient() {
+		requestEncounter.setVisit(null);
+		requestEncounter.setPatient(null);
+
+		assertFalse(service.hasActiveOrder(requestEncounter, info("ADMIT")));
+		verify(visitService, never()).getActiveVisitsByPatient(any(Patient.class));
+	}
+
+	@Test
+	public void shouldFallBackToTheVisitPatientWhenEncounterHasNoPatient() {
+		requestEncounter.setPatient(null);
+		Encounter visitless = new Encounter();
+		visitless.setEncounterDatetime(at(2));
+		visitless.addOrder(order("ADMIT", at(2)));
+		lenient().when(encounterService.getEncounters(any(EncounterSearchCriteria.class)))
+		        .thenReturn(Collections.singletonList(visitless));
+
+		assertTrue(service.hasActiveOrder(requestEncounter, info("ADMIT")));
+	}
+
+	@Test
+	public void shouldNotSearchPatientEncountersWhenVisitHasNoStartDate() {
+		visit.setStartDatetime(null);
+		addOrder("ADMIT", at(1));
+
+		assertTrue(service.hasActiveOrder(requestEncounter, info("ADMIT")));
+		verify(encounterService, never()).getEncounters(any(EncounterSearchCriteria.class));
+	}
+
+	@Test
+	public void shouldBoundVisitlessEncountersByTheVisitStopDate() {
+		visit.setStopDatetime(at(5));
+		Encounter inside = new Encounter();
+		inside.setPatient(patient);
+		inside.setEncounterDatetime(at(2));
+		inside.addOrder(order("ADMIT", at(2)));
+		Encounter afterStop = new Encounter();
+		afterStop.setPatient(patient);
+		afterStop.setEncounterDatetime(at(8));
+		afterStop.addOrder(order("DISCHARGE", at(8)));
+		lenient().when(encounterService.getEncounters(any(EncounterSearchCriteria.class)))
+		        .thenReturn(Arrays.asList(inside, afterStop));
+
+		assertTrue(service.hasActiveOrder(requestEncounter, info("ADMIT")));
+	}
+
+	@Test
+	public void shouldIgnoreOrdersWithoutAnOrderType() {
+		addOrder("ADMIT", at(1)).setOrderType(null);
+
+		assertFalse(service.hasActiveOrder(requestEncounter, info("ADMIT")));
+	}
+
+	@Test
+	public void shouldTreatAClosingOrderWithoutARuleAsAlwaysClosing() {
+		define("DISCHARGE", null);
+		addOrder("ADMIT", at(1));
+		addOrder("DISCHARGE", at(2));
+
+		assertFalse(service.hasActiveOrder(requestEncounter, info("ADMIT")));
+	}
+
+	@Test
+	public void shouldNotFulfilWhenTheEncounterHasNoType() {
+		addOrder("TRANSFER", at(1));
+		Encounter untyped = encounter("TRANSFER", at(2));
+		untyped.setEncounterType(null);
+
+		assertTrue(service.hasActiveOrder(requestEncounter, info("TRANSFER")));
+	}
+
+	@Test
+	public void shouldNotFulfilWhenTheEncounterIsOfAnotherType() {
+		addOrder("TRANSFER", at(1));
+		encounter("CONSULTATION", at(2));
+
+		assertTrue(service.hasActiveOrder(requestEncounter, info("TRANSFER")));
+	}
+
 	private Date at(int hours) {
 		return new Date(base + hours * HOUR);
 	}
@@ -295,8 +375,8 @@ public class DispositionOrderLifecycleServiceImplTest {
 	        HashSet<String> fulfilledBy, boolean byVoiding) {
 		DispositionConfig.Rule rule = new DispositionConfig.Rule();
 		rule.setDuplicateChecked(duplicateChecked);
-		rule.setClosedBy(closedBy);
-		rule.setFulfilledByEncounterTypes(fulfilledBy);
+		rule.getClosedBy().addAll(closedBy);
+		rule.getFulfilledByEncounterTypes().addAll(fulfilledBy);
 		rule.setFulfilledByVoiding(byVoiding);
 		return rule;
 	}

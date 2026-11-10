@@ -8,7 +8,6 @@ import org.bahmni.module.fhir2addlextension.api.model.DispositionConfig;
 import org.bahmni.module.fhir2addlextension.api.model.DispositionInfo;
 import org.bahmni.module.fhir2addlextension.api.service.DispositionOrderTypeResolver;
 import org.openmrs.Concept;
-import org.openmrs.ConceptAnswer;
 import org.openmrs.ConceptMap;
 import org.openmrs.ConceptName;
 import org.openmrs.OrderType;
@@ -54,14 +53,12 @@ public class DispositionOrderTypeResolverImpl implements DispositionOrderTypeRes
 	
 	@Override
 	public DispositionInfo getDisposition(Concept concept) {
-		if (concept == null || concept.getConceptMappings() == null) {
+		if (concept == null) {
 			return null;
 		}
 		DispositionConfig config = appContext.getDispositionConfig();
 		for (ConceptMap conceptMap : concept.getConceptMappings()) {
-			if (conceptMap.getConceptReferenceTerm() == null
-			        || conceptMap.getConceptReferenceTerm().getConceptSource() == null
-			        || !EMRAPI_CONCEPT_SOURCE_NAME.equals(conceptMap.getConceptReferenceTerm().getConceptSource().getName())) {
+			if (!EMRAPI_CONCEPT_SOURCE_NAME.equals(conceptMap.getConceptReferenceTerm().getConceptSource().getName())) {
 				continue;
 			}
 			String code = conceptMap.getConceptReferenceTerm().getCode();
@@ -76,19 +73,12 @@ public class DispositionOrderTypeResolverImpl implements DispositionOrderTypeRes
 	private boolean isDispositionAnswer(Concept concept) {
 		Concept dispositionConcept = conceptService.getConceptByMapping(EMRAPI_DISPOSITION_CONCEPT_CODE,
 		    EMRAPI_CONCEPT_SOURCE_NAME);
-		if (dispositionConcept == null || dispositionConcept.getAnswers() == null) {
-			return false;
-		}
-		for (ConceptAnswer answer : dispositionConcept.getAnswers()) {
-			if (concept.equals(answer.getAnswerConcept())) {
-				return true;
-			}
-		}
-		return false;
+		return dispositionConcept != null
+		        && dispositionConcept.getAnswers().stream().anyMatch(answer -> concept.equals(answer.getAnswerConcept()));
 	}
 	
 	private String labelOf(Concept concept, String fallback) {
 		ConceptName name = concept.getName();
-		return name != null && name.getName() != null ? name.getName() : fallback;
+		return name != null ? name.getName() : fallback;
 	}
 }

@@ -39,7 +39,9 @@ import java.util.Set;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -69,8 +71,8 @@ public class ServiceRequestValidatorImplTest {
 	private static DispositionConfig.Rule rule(boolean duplicateChecked, String closedBy, String... encounterTypes) {
 		DispositionConfig.Rule r = new DispositionConfig.Rule();
 		r.setDuplicateChecked(duplicateChecked);
-		r.setClosedBy(new HashSet<>(Arrays.asList(closedBy.split(","))));
-		r.setFulfilledByEncounterTypes(new HashSet<>(Arrays.asList(encounterTypes)));
+		r.getClosedBy().addAll(Arrays.asList(closedBy.split(",")));
+		r.getFulfilledByEncounterTypes().addAll(Arrays.asList(encounterTypes));
 		return r;
 	}
 	
@@ -215,7 +217,7 @@ public class ServiceRequestValidatorImplTest {
 	}
 	
 	private Concept conceptWithEmrapiMapping(String code) {
-		Concept concept = new Concept();
+		Concept mapped = new Concept();
 		ConceptSource source = new ConceptSource();
 		source.setName(EMRAPI_SOURCE_NAME);
 		ConceptReferenceTerm term = new ConceptReferenceTerm();
@@ -225,8 +227,8 @@ public class ServiceRequestValidatorImplTest {
 		conceptMap.setConceptReferenceTerm(term);
 		Set<ConceptMap> mappings = new HashSet<>();
 		mappings.add(conceptMap);
-		concept.setConceptMappings(mappings);
-		return concept;
+		mapped.setConceptMappings(mappings);
+		return mapped;
 	}
 	
 	private int orderUuidCounter = 0;
@@ -498,7 +500,7 @@ public class ServiceRequestValidatorImplTest {
 		validator.validate(serviceRequest);
 	}
 	
-	private void stubAdmitRequestInVisit(Visit visit, Encounter... visitEncounters) {
+	private void stubAdmitRequestInVisit(Visit visit) {
 		Concept admitConcept = conceptWithEmrapiMapping("ADMIT");
 		orderType.setName("ADT Order");
 		CodeableConcept admitCodeableConcept = new CodeableConcept();
@@ -666,5 +668,54 @@ public class ServiceRequestValidatorImplTest {
 		Encounter encounter = new Encounter();
 		encounter.setPatient(patient);
 		return encounter;
+	}
+	
+	private Concept stubOrderableConcept(Concept orderableConcept, String orderTypeName) {
+		CodeableConcept code = new CodeableConcept();
+		code.addCoding(new Coding().setCode("orderable-uuid"));
+		serviceRequest.setCode(code);
+		orderType.setName(orderTypeName);
+		when(conceptTranslator.toOpenmrsType(code)).thenReturn(orderableConcept);
+		when(orderService.getOrderTypeByConcept(orderableConcept)).thenReturn(orderType);
+		return orderableConcept;
+	}
+	
+	@Test
+	public void shouldSkipDuplicateCheckWhenOrderTypeIsNotTheAdtOrderType() {
+		stubOrderableConcept(conceptWithEmrapiMapping("ADMIT"), "Lab Order");
+		
+		validator.validate(serviceRequest);
+		
+		verifyNoInteractions(encounterReferenceTranslator);
+	}
+	
+	@Test
+	public void shouldSkipDuplicateCheckWhenDispositionHasNoConfiguredRule() {
+		Concept unconfigured = stubOrderableConcept(conceptWithEmrapiMapping("NEW_DISPOSITION"), "ADT Order");
+		doReturn(new DispositionInfo("NEW_DISPOSITION", "New", null)).when(dispositionOrderTypeResolver).getDisposition(
+		    unconfigured);
+		
+		validator.validate(serviceRequest);
+		
+		verifyNoInteractions(encounterReferenceTranslator);
+	}
+	
+	@Test
+	public void shouldSkipDuplicateCheckWhenServiceRequestHasNoEncounter() {
+		stubOrderableConcept(conceptWithEmrapiMapping("ADMIT"), "ADT Order");
+		serviceRequest.setEncounter(null);
+		
+		validator.validate(serviceRequest);
+		
+		verifyNoInteractions(encounterReferenceTranslator);
+	}
+	
+	@Test
+	public void shouldSkipDuplicateCheckWhenEncounterReferenceCannotBeResolved() {
+		stubOrderableConcept(conceptWithEmrapiMapping("ADMIT"), "ADT Order");
+		serviceRequest.setEncounter(new Reference("Encounter/missing"));
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(null);
+		
+		validator.validate(serviceRequest);
 	}
 }

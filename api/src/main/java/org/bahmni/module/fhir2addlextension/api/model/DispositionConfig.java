@@ -1,35 +1,39 @@
 package org.bahmni.module.fhir2addlextension.api.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-@Data
-@AllArgsConstructor
+@Getter
 public class DispositionConfig {
 	
 	private final String adtOrderTypeName;
 	
 	private final Map<String, Rule> rulesByCode;
 	
+	public DispositionConfig(String adtOrderTypeName, Map<String, Rule> rulesByCode) {
+		this.adtOrderTypeName = adtOrderTypeName;
+		this.rulesByCode = rulesByCode;
+	}
+	
 	public Rule getRule(String code) {
 		return rulesByCode.get(code);
 	}
 	
-	@Data
-	@NoArgsConstructor
+	@Getter
 	public static class Rule {
 		
+		@Setter
 		private boolean duplicateChecked;
 		
-		private Set<String> closedBy = new HashSet<>();
+		private final Set<String> closedBy = new HashSet<>();
 		
-		private Set<String> fulfilledByEncounterTypes = new HashSet<>();
+		private final Set<String> fulfilledByEncounterTypes = new HashSet<>();
 		
+		@Setter
 		private boolean fulfilledByVoiding;
 	}
 }

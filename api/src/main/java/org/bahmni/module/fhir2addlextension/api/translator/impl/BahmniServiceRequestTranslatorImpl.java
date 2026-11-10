@@ -196,27 +196,41 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 			orderType = dispositionOrderTypeResolver.resolve(conceptBeingOrdered);
 		}
 		order.setOrderType(orderType);
-
+		
 		order.setConcept(conceptBeingOrdered);
 		order.setPatient(patientReferenceTranslator.toOpenmrsType(resource.getSubject()));
 		order.setEncounter(encounterReferenceTranslator.toOpenmrsType(resource.getEncounter()));
 		order.setOrderer(providerReferenceTranslator.toOpenmrsType(resource.getRequester()));
 		order.setUrgency(serviceRequestPriorityTranslator.toOpenmrsType(resource.getPriority()));
-
-		boolean isAdtOrder = orderType != null && dispositionOrderTypeResolver.getAdtOrderTypeName().equals(orderType.getName());
+		
+		applyAdtSchedule(order, orderType, resource);
+		applyNote(order, resource);
+		applyPreviousOrder(order, resource);
+		applyAttributeExtensions(order, resource);
+		
+		return order;
+	}
+	
+	private void applyAdtSchedule(Order order, OrderType orderType, ServiceRequest resource) {
+		boolean isAdtOrder = orderType != null
+		        && dispositionOrderTypeResolver.getAdtOrderTypeName().equals(orderType.getName());
 		if (isAdtOrder && resource.hasOccurrenceDateTimeType() && resource.getOccurrenceDateTimeType().hasValue()) {
 			order.setScheduledDate(resource.getOccurrenceDateTimeType().getValue());
 			order.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
 		}
-
+	}
+	
+	private void applyNote(Order order, ServiceRequest resource) {
 		if (resource.hasNote() && !resource.getNote().isEmpty()) {
 			Annotation firstNote = resource.getNote().get(0);
 			if (firstNote.hasText()) {
 				order.setCommentToFulfiller(firstNote.getText());
 			}
 		}
-		
-		// TODO: Handle cases for revise and renew orders
+	}
+	
+	// TODO: Handle cases for revise and renew orders
+	private void applyPreviousOrder(Order order, ServiceRequest resource) {
 		if (resource.hasBasedOn() && !resource.getBasedOn().isEmpty()) {
 			List<Reference> basedOnReferences = resource.getBasedOn();
 			if (basedOnReferences.size() > 1)
@@ -224,26 +238,19 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 			Order previousOrder = bahmniOrderReferenceTranslator.toOpenmrsType(basedOnReferences.get(0));
 			order.setPreviousOrder(previousOrder);
 		}
-		
-		// Handle extensions to attributes
-		if (resource.hasExtension()) {
-			Map<String, List<Extension>> attributeExtensions = resource.getExtension().stream()
-					.collect(Collectors.groupingBy(Extension::getUrl));
-			List<OrderAttribute> allAttributesFromExt = new ArrayList<>();
-			
-			for (String extUrl : attributeExtensions.keySet()) {
-				Optional<ServiceRequestAttributeTranslator> attributeTranslator = extensionTranslator.getAttributeTranslator(extUrl);
-				if (!attributeTranslator.isPresent()) {
-					continue;
-				}
-				allAttributesFromExt.addAll(attributeTranslator.get().toOpenmrsType(extUrl, attributeExtensions.get(extUrl)));
-			}
-			
-			// Add all attributes to the order
-			allAttributesFromExt.forEach(order::addAttribute);
+	}
+	
+	private void applyAttributeExtensions(Order order, ServiceRequest resource) {
+		if (!resource.hasExtension()) {
+			return;
 		}
-		
-		return order;
+		Map<String, List<Extension>> attributeExtensions = resource.getExtension().stream()
+		        .collect(Collectors.groupingBy(Extension::getUrl));
+		for (Map.Entry<String, List<Extension>> entry : attributeExtensions.entrySet()) {
+			extensionTranslator.getAttributeTranslator(entry.getKey())
+			        .ifPresent(translator -> translator.toOpenmrsType(entry.getKey(), entry.getValue())
+			                .forEach(order::addAttribute));
+		}
 	}
 	
 	private Reference createOrderReferenceInternal(Order order) {
