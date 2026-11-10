@@ -42,7 +42,7 @@ public class BahmniMedicationRequestFhirR4ProviderTest {
 		    .thenReturn(null);
 
 		provider.searchForMedicationRequestsWithLocation(null, null, null, null, null, null, null, null, null, null,
-		    null, new HashSet<>(), new HashSet<>(), null);
+		    null, null, new HashSet<>(), new HashSet<>(), null);
 
 		verify(fhirMedicationRequestService).searchForMedicationRequests(any(BahmniMedicationRequestSearchParams.class));
 	}
@@ -53,7 +53,7 @@ public class BahmniMedicationRequestFhirR4ProviderTest {
 		    .thenReturn(null);
 
 		provider.searchForMedicationRequestsWithLocation(null, null, null, null, null, null, null, null, null, null,
-		    null, new HashSet<>(), new HashSet<>(), null);
+		    null, null, new HashSet<>(), new HashSet<>(), null);
 
 		verify(fhirMedicationRequestService).searchForMedicationRequests(any(BahmniMedicationRequestSearchParams.class));
 	}
@@ -68,7 +68,7 @@ public class BahmniMedicationRequestFhirR4ProviderTest {
 		    .thenReturn(null);
 
 		provider.searchForMedicationRequestsWithLocation(patientRef, null, null, null, null, null, null, null, null, null,
-		    null, new HashSet<>(), new HashSet<>(), null);
+		    null, null, new HashSet<>(), new HashSet<>(), null);
 
 		verify(fhirMedicationRequestService).searchForMedicationRequests(any(BahmniMedicationRequestSearchParams.class));
 	}
@@ -86,7 +86,7 @@ public class BahmniMedicationRequestFhirR4ProviderTest {
 		    .thenReturn(null);
 
 		provider.searchForMedicationRequestsWithLocation(patientRef, subjectRef, null, null, null, null, null, null, null,
-		    null, null, new HashSet<>(), new HashSet<>(), null);
+		    null, null, null, new HashSet<>(), new HashSet<>(), null);
 
 		verify(fhirMedicationRequestService).searchForMedicationRequests(any(BahmniMedicationRequestSearchParams.class));
 	}
@@ -101,7 +101,7 @@ public class BahmniMedicationRequestFhirR4ProviderTest {
 		    .thenReturn(null);
 
 		provider.searchForMedicationRequestsWithLocation(null, subjectRef, null, null, null, null, null, null, null, null,
-		    null, new HashSet<>(), new HashSet<>(), null);
+		    null, null, new HashSet<>(), new HashSet<>(), null);
 
 		verify(fhirMedicationRequestService).searchForMedicationRequests(any(BahmniMedicationRequestSearchParams.class));
 	}
@@ -117,7 +117,7 @@ public class BahmniMedicationRequestFhirR4ProviderTest {
 		    .thenReturn(null);
 
 		provider.searchForMedicationRequestsWithLocation(null, null, null, null, null, null, null, null, null, locationRef,
-		    null, new HashSet<>(), new HashSet<>(), sort);
+		    null, null, new HashSet<>(), new HashSet<>(), sort);
 
 		verify(fhirMedicationRequestService).searchForMedicationRequests(any(BahmniMedicationRequestSearchParams.class));
 	}
@@ -142,7 +142,7 @@ public class BahmniMedicationRequestFhirR4ProviderTest {
 		    .thenReturn(null);
 
 		provider.searchForMedicationRequestsWithLocation(patientRef, null, encounterRef, code, null, null, status, null,
-		    null, locationRef, null, new HashSet<>(), new HashSet<>(), null);
+		    null, locationRef, null, null, new HashSet<>(), new HashSet<>(), null);
 
 		verify(fhirMedicationRequestService).searchForMedicationRequests(any(BahmniMedicationRequestSearchParams.class));
 	}
@@ -157,7 +157,7 @@ public class BahmniMedicationRequestFhirR4ProviderTest {
 		    .thenReturn(null);
 
 		provider.searchForMedicationRequestsWithLocation(null, subjectRef, null, null, null, null, null, null, null, null,
-		    null, new HashSet<>(), new HashSet<>(), null);
+		    null, null, new HashSet<>(), new HashSet<>(), null);
 
 		verify(fhirMedicationRequestService).searchForMedicationRequests(any(BahmniMedicationRequestSearchParams.class));
 	}
@@ -172,7 +172,7 @@ public class BahmniMedicationRequestFhirR4ProviderTest {
 		    .thenReturn(null);
 
 		provider.searchForMedicationRequestsWithLocation(null, null, null, null, requesterRef, null, null, null, null, null,
-		    null, new HashSet<>(), new HashSet<>(), null);
+		    null, null, new HashSet<>(), new HashSet<>(), null);
 
 		verify(fhirMedicationRequestService).searchForMedicationRequests(any(BahmniMedicationRequestSearchParams.class));
 	}
@@ -188,7 +188,7 @@ public class BahmniMedicationRequestFhirR4ProviderTest {
 		    .thenReturn(null);
 
 		provider.searchForMedicationRequestsWithLocation(null, null, null, null, null, null, null, status, fulfillerStatus, null,
-		    null, new HashSet<>(), new HashSet<>(), null);
+		    null, null, new HashSet<>(), new HashSet<>(), null);
 
 		verify(fhirMedicationRequestService).searchForMedicationRequests(any(BahmniMedicationRequestSearchParams.class));
 	}
@@ -204,7 +204,7 @@ public class BahmniMedicationRequestFhirR4ProviderTest {
 		    .thenReturn(null);
 
 		provider.searchForMedicationRequestsWithLocation(null, null, null, null, null, null, null, null, null, multiLocationRef,
-		    null, new HashSet<>(), new HashSet<>(), null);
+		    null, null, new HashSet<>(), new HashSet<>(), null);
 
 		verify(fhirMedicationRequestService).searchForMedicationRequests(any(BahmniMedicationRequestSearchParams.class));
 	}
