@@ -134,7 +134,7 @@ public class OpenmrsAppContextTest {
 	public void shouldParseTheShippedDispositionRules() {
 		when(adminService.getGlobalProperty(OpenmrsAppContext.PROP_ADT_ORDER_TYPE_NAME)).thenReturn("ADT Order");
 		when(adminService.getGlobalProperty(OpenmrsAppContext.PROP_ADT_DISPOSITION_RULES)).thenReturn(
-		    "{\"ADMIT\":{\"duplicateChecked\":true,\"closedBy\":[\"DISCHARGE\"],\"fulfilledByEncounterTypes\":[\"ADMISSION\"]},\"DISCHARGE\":{\"duplicateChecked\":true,\"closedBy\":[\"ADMIT\",\"UNDO_DISCHARGE\"],\"fulfilledByEncounterTypes\":[\"DISCHARGE\"]},\"UNDO_DISCHARGE\":{\"duplicateChecked\":true,\"closedBy\":[\"DISCHARGE\"],\"fulfilledByEncounterTypes\":[\"DISCHARGE\"],\"fulfilledByVoiding\":true},\"TRANSFER\":{}}");
+		    "{\"ADMIT\":{\"duplicateChecked\":true,\"closedBy\":[\"DISCHARGE\"],\"fulfilledByEncounterTypes\":[\"ADMISSION\"]},\"DISCHARGE\":{\"duplicateChecked\":true,\"closedBy\":[\"ADMIT\",\"UNDO_DISCHARGE\"],\"fulfilledByEncounterTypes\":[\"DISCHARGE\"]},\"UNDO_DISCHARGE\":{\"duplicateChecked\":true,\"closedBy\":[\"DISCHARGE\"],\"fulfilledByEncounterTypes\":[\"DISCHARGE\"],\"fulfilledByVoiding\":true},\"TRANSFER\":{\"duplicateChecked\":true,\"closedBy\":[\"DISCHARGE\"],\"fulfilledByEncounterTypes\":[\"TRANSFER\"]}}");
 		
 		when(encounterService.getEncounterType(org.mockito.ArgumentMatchers.anyString())).thenReturn(new EncounterType());
 		
@@ -149,8 +149,9 @@ public class OpenmrsAppContextTest {
 		assertThat(config.getRule("DISCHARGE").getClosedBy(),
 		    equalTo(new HashSet<>(Arrays.asList("ADMIT", "UNDO_DISCHARGE"))));
 		assertThat(config.getRule("DISCHARGE").getFulfilledByEncounterTypes(), equalTo(Collections.singleton("DISCHARGE")));
-		assertFalse(config.getRule("TRANSFER").isDuplicateChecked());
-		assertTrue(config.getRule("TRANSFER").getClosedBy().isEmpty());
+		assertTrue(config.getRule("TRANSFER").isDuplicateChecked());
+		assertThat(config.getRule("TRANSFER").getClosedBy(), equalTo(Collections.singleton("DISCHARGE")));
+		assertThat(config.getRule("TRANSFER").getFulfilledByEncounterTypes(), equalTo(Collections.singleton("TRANSFER")));
 		assertThat(config.getRule("UNKNOWN"), nullValue());
 	}
 	

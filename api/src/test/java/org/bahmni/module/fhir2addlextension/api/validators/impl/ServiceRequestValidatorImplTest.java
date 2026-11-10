@@ -103,7 +103,7 @@ public class ServiceRequestValidatorImplTest {
 		DispositionConfig.Rule undoRule = rule(true, "DISCHARGE", "DISCHARGE");
 		undoRule.setFulfilledByVoiding(true);
 		rules.put("UNDO_DISCHARGE", undoRule);
-		rules.put("TRANSFER", new DispositionConfig.Rule());
+		rules.put("TRANSFER", rule(true, "DISCHARGE", "TRANSFER"));
 		when(appContext.getDispositionConfig()).thenReturn(new DispositionConfig("ADT Order", rules));
 		DispositionOrderTypeResolverImpl realResolver = new DispositionOrderTypeResolverImpl();
 		org.springframework.test.util.ReflectionTestUtils.setField(realResolver, "appContext", appContext);
@@ -450,7 +450,7 @@ public class ServiceRequestValidatorImplTest {
 	}
 	
 	@Test
-	public void shouldAllowTransferOrderWhenAnActiveTransferOrderAlreadyExistsForTheVisit() {
+	public void shouldRejectTransferOrderWhenAnActiveTransferOrderAlreadyExistsForTheVisit() {
 		Concept transferConcept = conceptWithEmrapiMapping("TRANSFER");
 		orderType.setName("ADT Order");
 		CodeableConcept transferCodeableConcept = new CodeableConcept();
@@ -465,7 +465,36 @@ public class ServiceRequestValidatorImplTest {
 
 		when(conceptTranslator.toOpenmrsType(transferCodeableConcept)).thenReturn(transferConcept);
 		when(orderService.getOrderTypeByConcept(transferConcept)).thenReturn(orderType);
+		Encounter newEncounter = new Encounter();
+		newEncounter.setVisit(visit);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(newEncounter);
 
+		InvalidRequestException exception = assertThrows(InvalidRequestException.class,
+		    () -> validator.validate(serviceRequest));
+		assertEquals("An active Transfer order already exists for this visit", exception.getMessage());
+	}
+	
+	@Test
+	public void shouldAllowTransferOrderWhenThePreviousTransferOrderWasFulfilledByALaterTransferEncounter() {
+		Concept transferConcept = conceptWithEmrapiMapping("TRANSFER");
+		orderType.setName("ADT Order");
+		CodeableConcept transferCodeableConcept = new CodeableConcept();
+		transferCodeableConcept.addCoding(new Coding().setCode("transfer-uuid"));
+		serviceRequest.setCode(transferCodeableConcept);
+		serviceRequest.setEncounter(new Reference("Encounter/encounter-uuid"));
+		
+		Visit visit = new Visit();
+		Order previousTransfer = admitOrder(orderType, transferConcept, new Date(System.currentTimeMillis() - 100000));
+		Encounter orderEncounter = encounterWithOrders(visit, previousTransfer);
+		Encounter transferEncounter = encounterOfType("TRANSFER", new Date());
+		visit.setEncounters(new HashSet<>(java.util.Arrays.asList(orderEncounter, transferEncounter)));
+		
+		Encounter newEncounter = new Encounter();
+		newEncounter.setVisit(visit);
+		when(conceptTranslator.toOpenmrsType(transferCodeableConcept)).thenReturn(transferConcept);
+		when(orderService.getOrderTypeByConcept(transferConcept)).thenReturn(orderType);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(newEncounter);
+		
 		validator.validate(serviceRequest);
 	}
 	
