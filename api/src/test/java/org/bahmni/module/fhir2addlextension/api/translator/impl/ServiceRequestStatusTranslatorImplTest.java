@@ -27,6 +27,24 @@ public class ServiceRequestStatusTranslatorImplTest {
 		Assert.assertEquals(ServiceRequest.ServiceRequestStatus.ENTEREDINERROR, requestStatus);
 	}
 	
+	/**
+	 * A cancelled (discontinued) order: fulfiller status is set to exception and the order is
+	 * stopped, so the service request is revoked.
+	 */
+	@Test
+	public void shouldValidateCancelledOrderWithExceptionFulfillerStatusAsRevoked() throws NoSuchFieldException,
+	        IllegalAccessException {
+		Order order = new Order();
+		order.setUrgency(Order.Urgency.STAT);
+		order.setAction(Order.Action.NEW);
+		order.setDateActivated(minusDays(new Date(), 2));
+		order.setFulfillerStatus(Order.FulfillerStatus.EXCEPTION);
+		TestUtils.setPropertyOnObject(order, "dateStopped", new Date());
+		ServiceRequestStatusTranslatorImpl serviceRequestStatusTranslator = new ServiceRequestStatusTranslatorImpl();
+		Assert.assertEquals(ServiceRequest.ServiceRequestStatus.REVOKED,
+		    serviceRequestStatusTranslator.toFhirResource(order));
+	}
+	
 	//*********************** Service Status when order fulfiller status is available *******************
 	
 	/**

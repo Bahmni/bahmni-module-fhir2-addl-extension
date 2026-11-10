@@ -15,6 +15,7 @@ import org.bahmni.module.fhir2addlextension.api.translator.ServiceRequestStatusT
 import org.bahmni.module.fhir2addlextension.api.validators.ServiceRequestValidator;
 import org.hl7.fhir.r4.model.*;
 import org.openmrs.Concept;
+import org.openmrs.DrugOrder;
 import org.openmrs.Encounter;
 import org.openmrs.Order;
 import org.openmrs.OrderAttribute;
@@ -32,6 +33,7 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import org.openmrs.api.context.Context;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -210,6 +212,10 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 			order.setPreviousOrder(previousOrder);
 		}
 		
+		if (ServiceRequest.ServiceRequestStatus.REVOKED.equals(resource.getStatus()) && resource.hasReplaces()) {
+			translateStopServiceRequest(order, resource);
+		}
+		
 		// Handle extensions to attributes
 		if (resource.hasExtension()) {
 			Map<String, List<Extension>> attributeExtensions = resource.getExtension().stream()
@@ -229,6 +235,49 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 		}
 		
 		return order;
+	}
+	
+	private void translateStopServiceRequest(Order order, ServiceRequest resource) {
+		if (resource.getReplaces().size() > 1) {
+			throw new InvalidRequestException("Multiple replaces reference is not allowed");
+		}
+		Order priorOrder = bahmniOrderReferenceTranslator.toOpenmrsType(resource.getReplaces().get(0));
+		if (priorOrder == null) {
+			throw new InvalidRequestException("Unable to find the order referenced by replaces");
+		}
+		if (priorOrder instanceof DrugOrder) {
+			throw new InvalidRequestException("Drug orders cannot be stopped through ServiceRequest");
+		}
+		
+		order.setAction(Order.Action.DISCONTINUE);
+		order.setPreviousOrder(priorOrder);
+		// core validation requires a discontinuation to match the order it discontinues
+		order.setConcept(priorOrder.getConcept());
+		order.setOrderType(priorOrder.getOrderType());
+		order.setCareSetting(priorOrder.getCareSetting());
+		if (order.getOrderer() == null) {
+			order.setOrderer(priorOrder.getOrderer());
+		}
+		translateCancellationReason(order, resource);
+
+		// stop date sent by the client may fall before the encounter datetime and fail validation
+		order.setDateActivated(new Date());
+	}
+	
+	private void translateCancellationReason(Order order, ServiceRequest resource) {
+		CodeableConcept reason = resource.getReasonCodeFirstRep();
+		if (reason.hasCoding()) {
+			Concept reasonConcept = conceptTranslator.toOpenmrsType(reason);
+			if (reasonConcept != null) {
+				order.setOrderReason(reasonConcept);
+				return;
+			}
+		}
+		if (reason.hasText() && !reason.getText().trim().isEmpty()) {
+			order.setOrderReasonNonCoded(reason.getText());
+			return;
+		}
+		throw new InvalidRequestException("A cancellation reason is required to revoke a ServiceRequest");
 	}
 	
 	private Reference createOrderReferenceInternal(Order order) {
