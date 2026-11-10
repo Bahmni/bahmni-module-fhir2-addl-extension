@@ -93,15 +93,21 @@ public class OpenmrsAppContext implements AppContext {
 	public DispositionConfig getDispositionConfig() {
 		String orderTypeName = requiredGlobalProperty(PROP_ADT_ORDER_TYPE_NAME);
 		String rulesJson = requiredGlobalProperty(PROP_ADT_DISPOSITION_RULES);
+		Map<String, DispositionConfig.Rule> rules;
 		try {
-			Map<String, DispositionConfig.Rule> rules = OBJECT_MAPPER.readValue(rulesJson,
-			    new TypeReference<Map<String, DispositionConfig.Rule>>() {});
-			return new DispositionConfig(orderTypeName, Collections.unmodifiableMap(rules));
+			rules = OBJECT_MAPPER.readValue(rulesJson, new TypeReference<Map<String, DispositionConfig.Rule>>() {});
 		}
 		catch (Exception e) {
 			throw new IllegalStateException("Global property '" + PROP_ADT_DISPOSITION_RULES
 			        + "' does not contain valid disposition rules JSON", e);
 		}
+		rules.forEach((code, rule) -> rule.getFulfilledByEncounterTypes().forEach(name -> {
+			if (encounterService.getEncounterType(name) == null) {
+				throw new IllegalStateException("Global property '" + PROP_ADT_DISPOSITION_RULES + "' rule '" + code
+				        + "' refers to encounter type '" + name + "' which does not exist");
+			}
+		}));
+		return new DispositionConfig(orderTypeName, Collections.unmodifiableMap(rules));
 	}
 	
 	private String requiredGlobalProperty(String property) {

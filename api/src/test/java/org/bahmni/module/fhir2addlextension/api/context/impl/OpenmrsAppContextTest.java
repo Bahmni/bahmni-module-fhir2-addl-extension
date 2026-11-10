@@ -5,6 +5,7 @@ import org.bahmni.module.fhir2addlextension.api.model.TelecomAttributeTypeMappin
 import org.hl7.fhir.r4.model.ContactPoint;
 import org.junit.Assert;
 import org.junit.Test;
+import org.openmrs.EncounterType;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -133,10 +134,15 @@ public class OpenmrsAppContextTest {
 	public void shouldParseTheShippedDispositionRules() {
 		when(adminService.getGlobalProperty(OpenmrsAppContext.PROP_ADT_ORDER_TYPE_NAME)).thenReturn("ADT Order");
 		when(adminService.getGlobalProperty(OpenmrsAppContext.PROP_ADT_DISPOSITION_RULES)).thenReturn(
-		    "{\"ADMIT\":{\"duplicateChecked\":true,\"closedBy\":[\"DISCHARGE\"],\"fulfilledByEncounterTypes\":[\"ADMISSION\",\"DISCHARGE\"]},\"DISCHARGE\":{\"duplicateChecked\":true,\"closedBy\":[\"ADMIT\",\"UNDO_DISCHARGE\"],\"fulfilledByEncounterTypes\":[\"DISCHARGE\"]},\"UNDO_DISCHARGE\":{\"duplicateChecked\":true,\"closedBy\":[\"DISCHARGE\"],\"fulfilledByEncounterTypes\":[\"ADMISSION\",\"DISCHARGE\"]},\"TRANSFER\":{}}");
+		    "{\"ADMIT\":{\"duplicateChecked\":true,\"closedBy\":[\"DISCHARGE\"],\"fulfilledByEncounterTypes\":[\"ADMISSION\"]},\"DISCHARGE\":{\"duplicateChecked\":true,\"closedBy\":[\"ADMIT\",\"UNDO_DISCHARGE\"],\"fulfilledByEncounterTypes\":[\"DISCHARGE\"]},\"UNDO_DISCHARGE\":{\"duplicateChecked\":true,\"closedBy\":[\"DISCHARGE\"],\"fulfilledByEncounterTypes\":[\"DISCHARGE\"],\"fulfilledByVoiding\":true},\"TRANSFER\":{}}");
+		
+		when(encounterService.getEncounterType(org.mockito.ArgumentMatchers.anyString())).thenReturn(new EncounterType());
 		
 		DispositionConfig config = new OpenmrsAppContext(adminService, encounterService).getDispositionConfig();
 		
+		assertTrue(config.getRule("UNDO_DISCHARGE").isFulfilledByVoiding());
+		assertFalse(config.getRule("ADMIT").isFulfilledByVoiding());
+		assertThat(config.getRule("ADMIT").getFulfilledByEncounterTypes(), equalTo(Collections.singleton("ADMISSION")));
 		assertThat(config.getAdtOrderTypeName(), equalTo("ADT Order"));
 		assertTrue(config.getRule("ADMIT").isDuplicateChecked());
 		assertThat(config.getRule("ADMIT").getClosedBy(), equalTo(Collections.singleton("DISCHARGE")));
@@ -154,12 +160,25 @@ public class OpenmrsAppContextTest {
 		when(adminService.getGlobalProperty(OpenmrsAppContext.PROP_ADT_DISPOSITION_RULES)).thenReturn(
 		    "{\"ADMIT\":{\"duplicateChecked\":true,\"closedBy\":[\"LEAVE\"],\"fulfilledByEncounterTypes\":[\"IN\"]}}");
 		
+		when(encounterService.getEncounterType("IN")).thenReturn(new EncounterType());
+		
 		DispositionConfig config = new OpenmrsAppContext(adminService, encounterService).getDispositionConfig();
 		
 		assertThat(config.getAdtOrderTypeName(), equalTo("Bed Order"));
 		assertThat(config.getRule("ADMIT").getClosedBy(), equalTo(Collections.singleton("LEAVE")));
 		assertThat(config.getRule("ADMIT").getFulfilledByEncounterTypes(), equalTo(Collections.singleton("IN")));
 		assertThat(config.getRule("DISCHARGE"), nullValue());
+	}
+	
+	@Test
+	public void shouldFailWhenARuleRefersToAnEncounterTypeThatDoesNotExist() {
+		when(adminService.getGlobalProperty(OpenmrsAppContext.PROP_ADT_ORDER_TYPE_NAME)).thenReturn("ADT Order");
+		when(adminService.getGlobalProperty(OpenmrsAppContext.PROP_ADT_DISPOSITION_RULES)).thenReturn(
+		    "{\"ADMIT\":{\"fulfilledByEncounterTypes\":[\"NOPE\"]}}");
+		
+		IllegalStateException e = assertThrows(IllegalStateException.class,
+		    () -> new OpenmrsAppContext(adminService, encounterService).getDispositionConfig());
+		assertTrue(e.getMessage().contains("NOPE"));
 	}
 	
 	@Test

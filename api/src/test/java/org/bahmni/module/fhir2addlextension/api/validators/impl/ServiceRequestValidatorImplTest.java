@@ -91,11 +91,14 @@ public class ServiceRequestValidatorImplTest {
 		ServiceRequestValidatorImpl validatorImpl = new ServiceRequestValidatorImpl();
 		validatorImpl.setConceptTranslator(conceptTranslator);
 		validatorImpl.setOrderService(orderService);
-		validatorImpl.setVisitService(visitService);
-		validatorImpl.setEncounterService(encounterService);
+		org.bahmni.module.fhir2addlextension.api.service.impl.DispositionOrderLifecycleServiceImpl lifecycle = new org.bahmni.module.fhir2addlextension.api.service.impl.DispositionOrderLifecycleServiceImpl();
+		org.springframework.test.util.ReflectionTestUtils.setField(lifecycle, "visitService", visitService);
+		org.springframework.test.util.ReflectionTestUtils.setField(lifecycle, "encounterService", encounterService);
+		org.springframework.test.util.ReflectionTestUtils.setField(lifecycle, "dispositionOrderTypeResolver", dispositionOrderTypeResolver);
+		validatorImpl.setDispositionOrderLifecycleService(lifecycle);
 		validatorImpl.setDispositionOrderTypeResolver(dispositionOrderTypeResolver);
 		Map<String, DispositionConfig.Rule> rules = new HashMap<>();
-		rules.put("ADMIT", rule(true, "DISCHARGE", "ADMISSION", "DISCHARGE"));
+		rules.put("ADMIT", rule(true, "DISCHARGE", "ADMISSION"));
 		rules.put("DISCHARGE", rule(true, "ADMIT,UNDO_DISCHARGE", "DISCHARGE"));
 		DispositionConfig.Rule undoRule = rule(true, "DISCHARGE", "DISCHARGE");
 		undoRule.setFulfilledByVoiding(true);

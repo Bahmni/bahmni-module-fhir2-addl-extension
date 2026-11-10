@@ -134,7 +134,7 @@
 	</globalProperty>
 	<globalProperty>
 		<property>fhir2Extension.adtDispositionRules</property>
-		<defaultValue>{"ADMIT":{"duplicateChecked":true,"closedBy":["DISCHARGE"],"fulfilledByEncounterTypes":["ADMISSION","DISCHARGE"]},"DISCHARGE":{"duplicateChecked":true,"closedBy":["ADMIT","UNDO_DISCHARGE"],"fulfilledByEncounterTypes":["DISCHARGE"]},"UNDO_DISCHARGE":{"duplicateChecked":true,"closedBy":["DISCHARGE"],"fulfilledByEncounterTypes":["DISCHARGE"],"fulfilledByVoiding":true},"TRANSFER":{}}</defaultValue>
+		<defaultValue>{"ADMIT":{"duplicateChecked":true,"closedBy":["DISCHARGE"],"fulfilledByEncounterTypes":["ADMISSION"]},"DISCHARGE":{"duplicateChecked":true,"closedBy":["ADMIT","UNDO_DISCHARGE"],"fulfilledByEncounterTypes":["DISCHARGE"]},"UNDO_DISCHARGE":{"duplicateChecked":true,"closedBy":["DISCHARGE"],"fulfilledByEncounterTypes":["DISCHARGE"],"fulfilledByVoiding":true},"TRANSFER":{}}</defaultValue>
 		<description>
 			JSON map keyed by the org.openmrs.module.emrapi reference-term code of a disposition concept.
 			Which concepts are dispositions and their display names come from the emrapi "Disposition"
