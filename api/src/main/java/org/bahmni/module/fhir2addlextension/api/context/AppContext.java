@@ -21,6 +21,8 @@ public interface AppContext {
 	
 	EncounterRole getLabEncounterRole();
 	
+	Map<String, String> getPractitionerAttributeIdentifierSystemMap();
+
 	List<TelecomAttributeTypeMapping> getTelecomAttributeTypeMappings();
 	
 	DispositionConfig getDispositionConfig();

@@ -38,6 +38,8 @@ public class OpenmrsAppContext implements AppContext {
 	
 	public static final String LAB_RESULTS_ENCOUNTER_ROLE = "Supporting services";
 	
+	public static final String PROP_PRACTITIONER_ATTRIBUTE_IDENTIFIER_SYSTEM_MAP = "fhir2Extension.practitionerAttributeIdentifierSystemMap";
+
 	public static final String PROP_ORDER_TYPE_TO_CATEGORY_MAP = "fhir2Extension.orderTypeToCategoryMap";
 	
 	public static final String PROP_ADT_ORDER_TYPE_NAME = "fhir2Extension.adtOrderTypeName";
@@ -82,6 +84,13 @@ public class OpenmrsAppContext implements AppContext {
 	}
 	
 	@Override
+	public Map<String, String> getPractitionerAttributeIdentifierSystemMap() {
+		String propertyValue = administrationService
+		        .getGlobalProperty(PROP_PRACTITIONER_ATTRIBUTE_IDENTIFIER_SYSTEM_MAP, "");
+		return parseStringToMap(propertyValue);
+	}
+
+	@Override
 	@Cacheable(value = "fhir2extensionOrderTypeToCategoryMap")
 	public Map<String, String> getOrderTypeToCategoryMap() {
 		String propertyValue = administrationService.getGlobalProperty(PROP_ORDER_TYPE_TO_CATEGORY_MAP, "");
@@ -118,12 +127,13 @@ public class OpenmrsAppContext implements AppContext {
 		return value;
 	}
 	
+	@Override
 	@Cacheable(value = "fhir2addlextensionTelecomAttributeTypeMappings")
 	public List<TelecomAttributeTypeMapping> getTelecomAttributeTypeMappings() {
 		String propertyValue = administrationService.getGlobalProperty(PROP_TELECOM_ATTRIBUTE_TYPE_MAP, "");
 		return Collections.unmodifiableList(parseTelecomAttributeTypeMappings(propertyValue));
 	}
-	
+
 	/**
 	 * Splits a global property value into trimmed, non-blank <code>;</code>-separated entries.
 	 * Shared scaffolding for {@link #parseTelecomAttributeTypeMappings} and

@@ -19,7 +19,7 @@ public class PrivilegeConstants {
 	
 	public static final String DELETE_IMAGING_STUDY = "Delete Imaging Study";
 	
-	public static final String GET_APPOINTMENTS = "Get Appointments";
+	public static final String VIEW_APPOINTMENTS = "View Appointments";
 	
 	// Episodes (Bahmni-specific, not in org.openmrs.util.PrivilegeConstants)
 	public static final String GET_EPISODES = "Get Episodes";
@@ -59,4 +59,6 @@ public class PrivilegeConstants {
 	public static final String EDIT_DIAGNOSTIC_REPORT = "Edit Diagnostic Report";
 	
 	public static final String DELETE_DIAGNOSTIC_REPORT = "Delete Diagnostic Report";
+	
+	public static final String GET_PATIENTS = "Get Patients";
 }

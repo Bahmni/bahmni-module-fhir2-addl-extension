@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-@RestControllerAdvice
+@RestControllerAdvice(basePackages = "org.bahmni.module.fhir2addlextension")
 public class ApiExceptionHandler {
 	
 	@Value("${bahmni.api.maskExceptionMessage:false}")
