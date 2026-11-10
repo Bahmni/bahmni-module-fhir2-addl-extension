@@ -29,5 +29,7 @@ public class DispositionConfig {
 		private Set<String> closedBy = new HashSet<>();
 		
 		private Set<String> fulfilledByEncounterTypes = new HashSet<>();
+		
+		private boolean fulfilledByVoiding;
 	}
 }

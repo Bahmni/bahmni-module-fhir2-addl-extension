@@ -22,6 +22,7 @@ import org.openmrs.module.fhir2.api.translators.EncounterReferenceTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -79,8 +80,9 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 	}
 	
 	/**
-	 * Non-voided encounters of the visit, plus the patient's visit-less encounters that fall within
-	 * the visit's time window (clients that omit Encounter.partOf save with no visit).
+	 * Encounters of the visit (voided ones included, as voiding is how Undo Discharge is
+	 * fulfilled), plus the patient's visit-less encounters that fall within the visit's time window
+	 * (clients that omit Encounter.partOf save with no visit).
 	 */
 	private List<Encounter> collectVisitEncounters(Visit visit, Encounter requestEncounter) {
 		Set<Encounter> result = new HashSet<>();
@@ -92,7 +94,7 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 			Date windowEnd = visit.getStopDatetime() != null ? visit.getStopDatetime() : new Date();
 			List<Encounter> patientEncounters = encounterService.getEncounters(new EncounterSearchCriteriaBuilder()
 				        .setPatient(patient).setFromDate(visit.getStartDatetime()).setToDate(windowEnd)
-				        .setIncludeVoided(false).createEncounterSearchCriteria());
+				        .setIncludeVoided(true).createEncounterSearchCriteria());
 			if (patientEncounters != null) {
 				patientEncounters.stream().filter(e -> e.getVisit() == null && e.getEncounterDatetime() != null)
 				        .filter(e -> !e.getEncounterDatetime().before(visit.getStartDatetime())
@@ -100,7 +102,7 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 				        .forEach(result::add);
 			}
 		}
-		return result.stream().filter(e -> !e.getVoided()).collect(Collectors.toList());
+		return new ArrayList<>(result);
 	}
 	
 	private void rejectIfActiveOrderExists(ServiceRequest serviceRequest, DispositionInfo disposition) {
@@ -119,7 +121,7 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 		}
 		final List<Encounter> visitEncounters = collectVisitEncounters(visit, encounter);
 		List<Order> adtOrders = visitEncounters.stream()
-		        .flatMap(e -> e.getOrders().stream()).filter(order -> !order.getVoided())
+		        .filter(e -> !e.getVoided()).flatMap(e -> e.getOrders().stream()).filter(order -> !order.getVoided())
 		        .filter(order -> order.getAction() != Order.Action.DISCONTINUE && !order.isDiscontinuedRightNow() && !order.isExpired())
 		        .filter(order -> order.getOrderType() != null && adtOrderTypeName.equals(order.getOrderType().getName()))
 		        .collect(Collectors.toList());
@@ -136,20 +138,36 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 	
 	/**
 	 * An ADT Order is superseded once a later order of a closing kind is placed in the same visit
-	 * (Discharge closes Admit; Admit or Undo Discharge closes Discharge). Other kinds, such as
-	 * Transfer, do not close it. An order at the same instant counts as later.
+	 * (Discharge closes Admit; Admit or Undo Discharge closes Discharge). A closing order that has
+	 * itself been superseded no longer closes anything, so Admit, Discharge, Undo Discharge leaves
+	 * the Admit open again. Other kinds, such as Transfer, do not close it. An order at the same
+	 * instant counts as later.
 	 */
 	private boolean isSuperseded(List<Order> adtOrders, Order order, DispositionInfo disposition) {
+		return isSuperseded(adtOrders, order, disposition, new HashSet<>());
+	}
+	
+	private boolean isSuperseded(List<Order> adtOrders, Order order, DispositionInfo disposition, Set<String> inProgress) {
 		Set<String> closingCodes = disposition.getRule().getClosedBy();
 		if (closingCodes == null || closingCodes.isEmpty()) {
 			return false;
 		}
 		Date orderDate = order.getDateActivated() != null ? order.getDateActivated() : order.getDateCreated();
-		return adtOrders.stream().filter(other -> !other.getUuid().equals(order.getUuid())).anyMatch(other -> {
-			Date otherDate = other.getDateActivated() != null ? other.getDateActivated() : other.getDateCreated();
-			return otherDate != null && orderDate != null && !otherDate.before(orderDate)
-			        && closingCodes.contains(codeOf(other));
-		});
+		inProgress.add(order.getUuid());
+		try {
+			return adtOrders.stream().filter(other -> !inProgress.contains(other.getUuid())).anyMatch(other -> {
+				Date otherDate = other.getDateActivated() != null ? other.getDateActivated() : other.getDateCreated();
+				if (otherDate == null || orderDate == null || otherDate.before(orderDate)
+				        || !closingCodes.contains(codeOf(other))) {
+					return false;
+				}
+				DispositionInfo otherInfo = dispositionOrderTypeResolver.getDisposition(other.getConcept());
+				return otherInfo.getRule() == null || !isSuperseded(adtOrders, other, otherInfo, inProgress);
+			});
+		}
+		finally {
+			inProgress.remove(order.getUuid());
+		}
 	}
 	
 	/**
@@ -167,9 +185,13 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 		if (orderDate == null) {
 			return false;
 		}
-		return visitEncounters.stream()
+		boolean byVoiding = disposition.getRule().isFulfilledByVoiding();
+		return visitEncounters.stream().filter(e -> byVoiding == Boolean.TRUE.equals(e.getVoided()))
 		        .filter(e -> e.getEncounterType() != null && fulfillingEncounterTypes.contains(e.getEncounterType().getName()))
-		        .anyMatch(e -> e.getEncounterDatetime() != null && e.getEncounterDatetime().after(orderDate));
+		        .anyMatch(e -> {
+			        Date happened = byVoiding ? e.getDateVoided() : e.getEncounterDatetime();
+			        return happened != null && happened.after(orderDate);
+		        });
 	}
 	
 	private String codeOf(Order order) {

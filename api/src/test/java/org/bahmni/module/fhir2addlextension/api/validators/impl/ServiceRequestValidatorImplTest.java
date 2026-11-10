@@ -97,7 +97,9 @@ public class ServiceRequestValidatorImplTest {
 		Map<String, DispositionConfig.Rule> rules = new HashMap<>();
 		rules.put("ADMIT", rule(true, "DISCHARGE", "ADMISSION", "DISCHARGE"));
 		rules.put("DISCHARGE", rule(true, "ADMIT,UNDO_DISCHARGE", "DISCHARGE"));
-		rules.put("UNDO_DISCHARGE", rule(true, "DISCHARGE", "ADMISSION", "DISCHARGE"));
+		DispositionConfig.Rule undoRule = rule(true, "DISCHARGE", "DISCHARGE");
+		undoRule.setFulfilledByVoiding(true);
+		rules.put("UNDO_DISCHARGE", undoRule);
 		rules.put("TRANSFER", new DispositionConfig.Rule());
 		when(appContext.getDispositionConfig()).thenReturn(new DispositionConfig("ADT Order", rules));
 		DispositionOrderTypeResolverImpl realResolver = new DispositionOrderTypeResolverImpl();
@@ -571,6 +573,61 @@ public class ServiceRequestValidatorImplTest {
 		when(encounterService.getEncounters(org.mockito.ArgumentMatchers.any(org.openmrs.parameter.EncounterSearchCriteria.class))).thenReturn(java.util.Collections.singletonList(visitLess));
 		
 		validator.validate(serviceRequest);
+	}
+	
+	private Date hoursAgo(int hours) {
+		return new Date(System.currentTimeMillis() - hours * 3600_000L);
+	}
+	
+	@Test
+	public void shouldRejectAdmitOrderAfterAnUndoDischargeReopenedTheAdmission() {
+		validateAdmitAgainstAndExpectRejection(admitOrder(orderType, conceptWithEmrapiMapping("ADMIT"), hoursAgo(3)),
+		    admitOrder(orderType, conceptWithEmrapiMapping("DISCHARGE"), hoursAgo(2)),
+		    admitOrder(orderType, conceptWithEmrapiMapping("UNDO_DISCHARGE"), hoursAgo(1)));
+	}
+	
+	@Test
+	public void shouldAllowAdmitOrderAfterADischargeThatWasNotUndone() {
+		validateAdmitAgainst(admitOrder(orderType, conceptWithEmrapiMapping("ADMIT"), hoursAgo(3)),
+		    admitOrder(orderType, conceptWithEmrapiMapping("DISCHARGE"), hoursAgo(2)));
+	}
+	
+	private void validateAdmitAgainstAndExpectRejection(Order... existingOrders) {
+		assertThrows(InvalidRequestException.class, () -> validateAdmitAgainst(existingOrders));
+	}
+	
+	private void validateUndoDischargeAgainst(Encounter... extraEncounters) {
+		Concept undoConcept = conceptWithEmrapiMapping("UNDO_DISCHARGE");
+		orderType.setName("ADT Order");
+		CodeableConcept code = new CodeableConcept();
+		code.addCoding(new Coding().setCode("undo-uuid"));
+		serviceRequest.setCode(code);
+		serviceRequest.setEncounter(new Reference("Encounter/encounter-uuid"));
+		Visit visit = new Visit();
+		Encounter orderEncounter = encounterWithOrders(visit, admitOrder(orderType, undoConcept, hoursAgo(2)));
+		java.util.Set<Encounter> encounters = new HashSet<>(Collections.singletonList(orderEncounter));
+		encounters.addAll(Arrays.asList(extraEncounters));
+		visit.setEncounters(encounters);
+		Encounter newEncounter = new Encounter();
+		newEncounter.setVisit(visit);
+		when(conceptTranslator.toOpenmrsType(code)).thenReturn(undoConcept);
+		when(orderService.getOrderTypeByConcept(undoConcept)).thenReturn(orderType);
+		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(newEncounter);
+		validator.validate(serviceRequest);
+	}
+	
+	@Test
+	public void shouldTreatUndoDischargeAsFulfilledOnceTheDischargeEncounterIsVoided() {
+		Encounter voidedDischarge = encounterOfType("DISCHARGE", hoursAgo(5));
+		voidedDischarge.setVoided(true);
+		voidedDischarge.setDateVoided(hoursAgo(1));
+		validateUndoDischargeAgainst(voidedDischarge);
+	}
+	
+	@Test
+	public void shouldKeepUndoDischargeActiveWhileTheDischargeEncounterIsNotVoided() {
+		Encounter discharge = encounterOfType("DISCHARGE", hoursAgo(5));
+		assertThrows(InvalidRequestException.class, () -> validateUndoDischargeAgainst(discharge));
 	}
 	
 	private Encounter encounterWithPatient(org.openmrs.Patient patient) {
