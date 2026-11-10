@@ -551,7 +551,7 @@ public class ServiceRequestValidatorImplTest {
 		org.openmrs.Patient patient = new org.openmrs.Patient();
 		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(encounterWithPatient(patient));
 		when(visitService.getActiveVisitsByPatient(patient)).thenReturn(java.util.Collections.singletonList(visit));
-		when(encounterService.getEncountersByPatient(patient)).thenReturn(java.util.Collections.singletonList(visitLess));
+		when(encounterService.getEncounters(org.mockito.ArgumentMatchers.any(org.openmrs.parameter.EncounterSearchCriteria.class))).thenReturn(java.util.Collections.singletonList(visitLess));
 		
 		assertThrows(InvalidRequestException.class, () -> validator.validate(serviceRequest));
 	}
@@ -568,7 +568,7 @@ public class ServiceRequestValidatorImplTest {
 		org.openmrs.Patient patient = new org.openmrs.Patient();
 		when(encounterReferenceTranslator.toOpenmrsType(serviceRequest.getEncounter())).thenReturn(encounterWithPatient(patient));
 		when(visitService.getActiveVisitsByPatient(patient)).thenReturn(java.util.Collections.singletonList(visit));
-		when(encounterService.getEncountersByPatient(patient)).thenReturn(java.util.Collections.singletonList(visitLess));
+		when(encounterService.getEncounters(org.mockito.ArgumentMatchers.any(org.openmrs.parameter.EncounterSearchCriteria.class))).thenReturn(java.util.Collections.singletonList(visitLess));
 		
 		validator.validate(serviceRequest);
 	}

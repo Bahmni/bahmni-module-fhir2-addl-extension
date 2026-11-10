@@ -16,6 +16,7 @@ import org.openmrs.Patient;
 import org.openmrs.api.EncounterService;
 import org.openmrs.api.OrderService;
 import org.openmrs.api.VisitService;
+import org.openmrs.parameter.EncounterSearchCriteriaBuilder;
 import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
 import org.openmrs.module.fhir2.api.translators.EncounterReferenceTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -89,7 +90,9 @@ public class ServiceRequestValidatorImpl implements ServiceRequestValidator {
 		Patient patient = requestEncounter.getPatient() != null ? requestEncounter.getPatient() : visit.getPatient();
 		if (patient != null && visit.getStartDatetime() != null) {
 			Date windowEnd = visit.getStopDatetime() != null ? visit.getStopDatetime() : new Date();
-			List<Encounter> patientEncounters = encounterService.getEncountersByPatient(patient);
+			List<Encounter> patientEncounters = encounterService.getEncounters(new EncounterSearchCriteriaBuilder()
+				        .setPatient(patient).setFromDate(visit.getStartDatetime()).setToDate(windowEnd)
+				        .setIncludeVoided(false).createEncounterSearchCriteria());
 			if (patientEncounters != null) {
 				patientEncounters.stream().filter(e -> e.getVisit() == null && e.getEncounterDatetime() != null)
 				        .filter(e -> !e.getEncounterDatetime().before(visit.getStartDatetime())
