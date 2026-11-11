@@ -75,7 +75,7 @@ public class OpenmrsAppContextTest {
 		Assert.assertEquals("http://example.org", map.get("identifier"));
 		Assert.assertEquals("http://other.org", map.get("reg"));
 	}
-
+	
 	@Test
 	public void shouldParseMultipleTelecomAttributeTypeMappings() {
 		when(adminService.getGlobalProperty(OpenmrsAppContext.PROP_TELECOM_ATTRIBUTE_TYPE_MAP, "")).thenReturn(
