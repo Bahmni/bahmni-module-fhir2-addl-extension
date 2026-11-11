@@ -1,7 +1,10 @@
 package org.bahmni.module.fhir2addlextension.api.context.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2addlextension.api.context.AppContext;
+import org.bahmni.module.fhir2addlextension.api.model.DispositionConfig;
 import org.bahmni.module.fhir2addlextension.api.model.TelecomAttributeTypeMapping;
 import org.hl7.fhir.r4.model.ContactPoint;
 import org.openmrs.EncounterRole;
@@ -36,8 +39,14 @@ public class OpenmrsAppContext implements AppContext {
 	public static final String LAB_RESULTS_ENCOUNTER_ROLE = "Supporting services";
 	
 	public static final String PROP_PRACTITIONER_ATTRIBUTE_IDENTIFIER_SYSTEM_MAP = "fhir2Extension.practitionerAttributeIdentifierSystemMap";
-
+	
 	public static final String PROP_ORDER_TYPE_TO_CATEGORY_MAP = "fhir2Extension.orderTypeToCategoryMap";
+	
+	public static final String PROP_ADT_ORDER_TYPE_NAME = "fhir2Extension.adtOrderTypeName";
+	
+	public static final String PROP_ADT_DISPOSITION_RULES = "fhir2Extension.adtDispositionRules";
+	
+	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 	
 	@Autowired
 	public OpenmrsAppContext(@Qualifier("adminService") AdministrationService administrationService,
@@ -80,21 +89,51 @@ public class OpenmrsAppContext implements AppContext {
 		        .getGlobalProperty(PROP_PRACTITIONER_ATTRIBUTE_IDENTIFIER_SYSTEM_MAP, "");
 		return parseStringToMap(propertyValue);
 	}
-
+	
 	@Override
 	@Cacheable(value = "fhir2extensionOrderTypeToCategoryMap")
 	public Map<String, String> getOrderTypeToCategoryMap() {
 		String propertyValue = administrationService.getGlobalProperty(PROP_ORDER_TYPE_TO_CATEGORY_MAP, "");
 		return parseStringToMap(propertyValue);
 	}
-
+	
+	@Override
+	@Cacheable(value = "fhir2addlextensionDispositionConfig")
+	public DispositionConfig getDispositionConfig() {
+		String orderTypeName = requiredGlobalProperty(PROP_ADT_ORDER_TYPE_NAME);
+		String rulesJson = requiredGlobalProperty(PROP_ADT_DISPOSITION_RULES);
+		Map<String, DispositionConfig.Rule> rules;
+		try {
+			rules = OBJECT_MAPPER.readValue(rulesJson, new TypeReference<Map<String, DispositionConfig.Rule>>() {});
+		}
+		catch (Exception e) {
+			throw new IllegalStateException("Global property '" + PROP_ADT_DISPOSITION_RULES
+			        + "' does not contain valid disposition rules JSON", e);
+		}
+		rules.forEach((code, rule) -> rule.getFulfilledByEncounterTypes().forEach(name -> {
+			if (encounterService.getEncounterType(name) == null) {
+				throw new IllegalStateException("Global property '" + PROP_ADT_DISPOSITION_RULES + "' rule '" + code
+				        + "' refers to encounter type '" + name + "' which does not exist");
+			}
+		}));
+		return new DispositionConfig(orderTypeName, Collections.unmodifiableMap(rules));
+	}
+	
+	private String requiredGlobalProperty(String property) {
+		String value = administrationService.getGlobalProperty(property);
+		if (value == null || value.trim().isEmpty()) {
+			throw new IllegalStateException("Global property '" + property + "' is not configured");
+		}
+		return value;
+	}
+	
 	@Override
 	@Cacheable(value = "fhir2addlextensionTelecomAttributeTypeMappings")
 	public List<TelecomAttributeTypeMapping> getTelecomAttributeTypeMappings() {
 		String propertyValue = administrationService.getGlobalProperty(PROP_TELECOM_ATTRIBUTE_TYPE_MAP, "");
 		return Collections.unmodifiableList(parseTelecomAttributeTypeMappings(propertyValue));
 	}
-
+	
 	/**
 	 * Splits a global property value into trimmed, non-blank <code>;</code>-separated entries.
 	 * Shared scaffolding for {@link #parseTelecomAttributeTypeMappings} and

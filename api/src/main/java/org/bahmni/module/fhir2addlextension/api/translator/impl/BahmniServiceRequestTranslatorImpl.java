@@ -5,6 +5,7 @@ import lombok.AccessLevel;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
+import org.bahmni.module.fhir2addlextension.api.service.DispositionOrderTypeResolver;
 import org.bahmni.module.fhir2addlextension.api.service.ServiceRequestLocationReferenceResolver;
 import org.bahmni.module.fhir2addlextension.api.translator.BahmniOrderReferenceTranslator;
 import org.bahmni.module.fhir2addlextension.api.translator.OrderTypeTranslator;
@@ -19,6 +20,7 @@ import org.openmrs.DrugOrder;
 import org.openmrs.Encounter;
 import org.openmrs.Order;
 import org.openmrs.OrderAttribute;
+import org.openmrs.OrderType;
 import org.openmrs.Provider;
 import org.openmrs.CareSetting;
 import org.openmrs.User;
@@ -91,6 +93,9 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 	
 	@Autowired
 	private PractitionerReferenceTranslator<User> userPractitionerReferenceTranslator;
+	
+	@Autowired
+	private DispositionOrderTypeResolver dispositionOrderTypeResolver;
 	
 	@Override
 	public ServiceRequest toFhirResource(@Nonnull Order order) {
@@ -188,7 +193,11 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 		//Set Constants
 		order.setAction(Order.Action.NEW);
 		order.setCareSetting(orderService.getCareSettingByName(CareSetting.CareSettingType.OUTPATIENT.toString()));
-		order.setOrderType(orderService.getOrderTypeByConcept(conceptBeingOrdered));
+		OrderType orderType = orderService.getOrderTypeByConcept(conceptBeingOrdered);
+		if (orderType == null) {
+			orderType = dispositionOrderTypeResolver.resolve(conceptBeingOrdered);
+		}
+		order.setOrderType(orderType);
 		
 		order.setConcept(conceptBeingOrdered);
 		order.setPatient(patientReferenceTranslator.toOpenmrsType(resource.getSubject()));
@@ -196,14 +205,34 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 		order.setOrderer(providerReferenceTranslator.toOpenmrsType(resource.getRequester()));
 		order.setUrgency(serviceRequestPriorityTranslator.toOpenmrsType(resource.getPriority()));
 		
+		applyAdtSchedule(order, orderType, resource);
+		applyNote(order, resource);
+		applyPreviousOrder(order, resource);
+		applyAttributeExtensions(order, resource);
+		
+		return order;
+	}
+	
+	private void applyAdtSchedule(Order order, OrderType orderType, ServiceRequest resource) {
+		boolean isAdtOrder = orderType != null
+		        && dispositionOrderTypeResolver.getAdtOrderTypeName().equals(orderType.getName());
+		if (isAdtOrder && resource.hasOccurrenceDateTimeType() && resource.getOccurrenceDateTimeType().hasValue()) {
+			order.setScheduledDate(resource.getOccurrenceDateTimeType().getValue());
+			order.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
+		}
+	}
+	
+	private void applyNote(Order order, ServiceRequest resource) {
 		if (resource.hasNote() && !resource.getNote().isEmpty()) {
 			Annotation firstNote = resource.getNote().get(0);
 			if (firstNote.hasText()) {
 				order.setCommentToFulfiller(firstNote.getText());
 			}
 		}
-		
-		// TODO: Handle cases for revise and renew orders
+	}
+	
+	// TODO: Handle cases for revise and renew orders
+	private void applyPreviousOrder(Order order, ServiceRequest resource) {
 		if (resource.hasBasedOn() && !resource.getBasedOn().isEmpty()) {
 			List<Reference> basedOnReferences = resource.getBasedOn();
 			if (basedOnReferences.size() > 1)
@@ -215,26 +244,19 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 		if (ServiceRequest.ServiceRequestStatus.REVOKED.equals(resource.getStatus()) && resource.hasReplaces()) {
 			translateStopServiceRequest(order, resource);
 		}
-		
-		// Handle extensions to attributes
-		if (resource.hasExtension()) {
-			Map<String, List<Extension>> attributeExtensions = resource.getExtension().stream()
-					.collect(Collectors.groupingBy(Extension::getUrl));
-			List<OrderAttribute> allAttributesFromExt = new ArrayList<>();
-			
-			for (String extUrl : attributeExtensions.keySet()) {
-				Optional<ServiceRequestAttributeTranslator> attributeTranslator = extensionTranslator.getAttributeTranslator(extUrl);
-				if (!attributeTranslator.isPresent()) {
-					continue;
-				}
-				allAttributesFromExt.addAll(attributeTranslator.get().toOpenmrsType(extUrl, attributeExtensions.get(extUrl)));
-			}
-			
-			// Add all attributes to the order
-			allAttributesFromExt.forEach(order::addAttribute);
+	}
+	
+	private void applyAttributeExtensions(Order order, ServiceRequest resource) {
+		if (!resource.hasExtension()) {
+			return;
 		}
-		
-		return order;
+		Map<String, List<Extension>> attributeExtensions = resource.getExtension().stream()
+		        .collect(Collectors.groupingBy(Extension::getUrl));
+		for (Map.Entry<String, List<Extension>> entry : attributeExtensions.entrySet()) {
+			extensionTranslator.getAttributeTranslator(entry.getKey())
+			        .ifPresent(translator -> translator.toOpenmrsType(entry.getKey(), entry.getValue())
+			                .forEach(order::addAttribute));
+		}
 	}
 	
 	private void translateStopServiceRequest(Order order, ServiceRequest resource) {
@@ -259,7 +281,7 @@ public class BahmniServiceRequestTranslatorImpl implements ServiceRequestTransla
 			order.setOrderer(priorOrder.getOrderer());
 		}
 		translateCancellationReason(order, resource);
-
+		
 		// stop date sent by the client may fall before the encounter datetime and fail validation
 		order.setDateActivated(new Date());
 	}
