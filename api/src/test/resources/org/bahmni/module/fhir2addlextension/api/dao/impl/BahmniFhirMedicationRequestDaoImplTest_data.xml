@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dataset>
+    <fhir_concept_source fhir_concept_source_id="9001" name="Test terminology" url="urn:test:sstrm" concept_source_id="1" creator="1" date_created="2005-01-01 00:00:00.0" retired="0" uuid="fcs-9001-0000-0000-0000-000000000001"/>
+    <fhir_concept_source fhir_concept_source_id="9002" name="SNOMED CT" url="http://snomed.info/sct" concept_source_id="2" creator="1" date_created="2005-01-01 00:00:00.0" retired="0" uuid="fcs-9002-0000-0000-0000-000000000002"/>
+
+    <!-- drug concept 88 (aspirin) -> SSTRM:WGT234 ; drug concept 792 (triomune) -> SNOMED:7345693 ; concept 3 has no mapping -->
+    <concept_reference_map concept_map_id="9101" concept_id="88" concept_reference_term_id="1" concept_map_type_id="2" creator="1" date_created="2004-08-12 00:00:00.0" uuid="crm-9101-0000-0000-0000-000000000001"/>
+    <concept_reference_map concept_map_id="9102" concept_id="792" concept_reference_term_id="4" concept_map_type_id="2" creator="1" date_created="2004-08-12 00:00:00.0" uuid="crm-9102-0000-0000-0000-000000000002"/>
+</dataset>

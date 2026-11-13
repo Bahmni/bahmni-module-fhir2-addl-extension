@@ -30,7 +30,7 @@ public class BahmniFhirTaskDaoImpl extends FhirTaskDaoImpl implements BahmniFhir
 		SearchParameterMap paramsCopy = new SearchParameterMap();
 		theParams.getParameters().forEach(entry -> {
 			if (!FhirConstants.FOR_REFERENCE_SEARCH_HANDLER.equals(entry.getKey())) {
-				entry.getValue().forEach(param -> paramsCopy.addParameter(entry.getKey(), param.getParam()));
+				entry.getValue().forEach(param -> paramsCopy.addParameter(entry.getKey(), param.getPropertyName(), param.getParam()));
 			}
 		});
 

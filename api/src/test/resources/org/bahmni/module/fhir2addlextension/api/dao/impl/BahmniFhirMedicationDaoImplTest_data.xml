@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dataset>
+    <drug drug_id="9301" concept_id="5497" name="Paracetamol 500mg" combination="false" strength="500mg" creator="1" date_created="2005-02-24 00:00:00.0" retired="false" uuid="drug-9301-0000-0000-0000-000000000001"/>
+    <drug drug_id="9302" concept_id="5497" name="Paracetamol 650mg" combination="false" strength="650mg" creator="1" date_created="2005-02-24 00:00:00.0" retired="false" uuid="drug-9302-0000-0000-0000-000000000002"/>
+    <drug drug_id="9303" concept_id="5497" name="Paracetamol Retired" combination="false" creator="1" date_created="2005-02-24 00:00:00.0" retired="true" uuid="drug-9303-0000-0000-0000-000000000003"/>
+    <drug drug_id="9304" concept_id="5089" name="Ibuprofen 200mg" combination="false" strength="200mg" creator="1" date_created="2005-02-24 00:00:00.0" retired="false" uuid="drug-9304-0000-0000-0000-000000000004"/>
+</dataset>

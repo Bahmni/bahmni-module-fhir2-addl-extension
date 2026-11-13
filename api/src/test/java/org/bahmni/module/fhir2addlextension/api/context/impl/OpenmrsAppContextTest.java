@@ -132,6 +132,34 @@ public class OpenmrsAppContextTest {
 	}
 	
 	@Test
+	public void shouldDelegateGetEncounterTypeToEncounterService() {
+		EncounterType type = new EncounterType();
+		when(encounterService.getEncounterType("Consultation")).thenReturn(type);
+		
+		Assert.assertSame(type, new OpenmrsAppContext(adminService, encounterService).getEncounterType("Consultation"));
+	}
+	
+	@Test
+	public void shouldReturnLabEncounterRoleByNameWhenPresent() {
+		org.openmrs.EncounterRole role = new org.openmrs.EncounterRole();
+		when(encounterService.getEncounterRoleByName(OpenmrsAppContext.LAB_RESULTS_ENCOUNTER_ROLE)).thenReturn(role);
+		
+		Assert.assertSame(role, new OpenmrsAppContext(adminService, encounterService).getLabEncounterRole());
+		org.mockito.Mockito.verify(encounterService, org.mockito.Mockito.never()).getEncounterRoleByUuid(
+		    org.mockito.ArgumentMatchers.anyString());
+	}
+	
+	@Test
+	public void shouldFallBackToUnknownEncounterRoleWhenLabRoleMissing() {
+		org.openmrs.EncounterRole unknown = new org.openmrs.EncounterRole();
+		when(encounterService.getEncounterRoleByName(OpenmrsAppContext.LAB_RESULTS_ENCOUNTER_ROLE)).thenReturn(null);
+		when(encounterService.getEncounterRoleByUuid(org.openmrs.EncounterRole.UNKNOWN_ENCOUNTER_ROLE_UUID)).thenReturn(
+		    unknown);
+		
+		Assert.assertSame(unknown, new OpenmrsAppContext(adminService, encounterService).getLabEncounterRole());
+	}
+	
+	@Test
 	public void shouldGetOrderTypeToCategoryMap() {
 		when(adminService.getGlobalProperty(OpenmrsAppContext.PROP_ORDER_TYPE_TO_CATEGORY_MAP, "")).thenReturn(
 		    "Lab Order:laboratory; Imaging Order : imaging");

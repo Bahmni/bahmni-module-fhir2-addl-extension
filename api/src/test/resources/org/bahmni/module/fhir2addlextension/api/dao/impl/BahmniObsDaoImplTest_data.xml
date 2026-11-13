@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dataset>
+    <!-- obs 9201/9202 are results for standard orders 6/7 (patient 2), 9203 has no order, 9204 is a voided result for order 6 -->
+    <obs obs_id="9201" person_id="2" concept_id="5089" obs_datetime="2024-01-10 00:00:00.0" value_numeric="70" order_id="6" status="FINAL" creator="1" date_created="2024-01-10 00:00:00.0" voided="false" uuid="obs-9201-0000-0000-0000-000000000001"/>
+    <obs obs_id="9202" person_id="2" concept_id="5089" obs_datetime="2024-01-11 00:00:00.0" value_numeric="71" order_id="7" status="FINAL" creator="1" date_created="2024-01-11 00:00:00.0" voided="false" uuid="obs-9202-0000-0000-0000-000000000002"/>
+    <obs obs_id="9203" person_id="2" concept_id="5089" obs_datetime="2024-01-12 00:00:00.0" value_numeric="72" status="FINAL" creator="1" date_created="2024-01-12 00:00:00.0" voided="false" uuid="obs-9203-0000-0000-0000-000000000003"/>
+    <obs obs_id="9204" person_id="2" concept_id="5089" obs_datetime="2024-01-13 00:00:00.0" value_numeric="73" order_id="6" status="FINAL" creator="1" date_created="2024-01-13 00:00:00.0" voided="true" voided_by="1" date_voided="2024-01-14 00:00:00.0" void_reason="mistake" uuid="obs-9204-0000-0000-0000-000000000004"/>
+    <!-- obs group parent (no value), used to test updateObsMember -->
+    <obs obs_id="9205" person_id="2" concept_id="5089" obs_datetime="2024-01-15 00:00:00.0" status="FINAL" creator="1" date_created="2024-01-15 00:00:00.0" voided="false" uuid="obs-9205-0000-0000-0000-000000000005"/>
+</dataset>
