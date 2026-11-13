@@ -61,19 +61,20 @@ public class BahmniFhirRelatedPersonDaoImpl extends BaseFhirDao<Relationship> im
 	}
 	
 	private <U> Predicate buildPatientRestriction(OpenmrsFhirCriteriaContext<Relationship, U> ctx, String uuid) {
+		String PERSON_ID_KEY = "personId";
 		CriteriaBuilder cb = ctx.getCriteriaBuilder();
 		Root<Relationship> root = ctx.getRoot();
 		
 		Subquery<Integer> subqueryA = ctx.getCriteriaQuery().subquery(Integer.class);
 		Root<Person> personRootA = subqueryA.from(Person.class);
-		subqueryA.select(personRootA.<Integer> get("personId")).where(cb.equal(personRootA.get("uuid"), uuid));
+		subqueryA.select(personRootA.<Integer> get(PERSON_ID_KEY)).where(cb.equal(personRootA.get("uuid"), uuid));
 		
 		Subquery<Integer> subqueryB = ctx.getCriteriaQuery().subquery(Integer.class);
 		Root<Person> personRootB = subqueryB.from(Person.class);
-		subqueryB.select(personRootB.<Integer> get("personId")).where(cb.equal(personRootB.get("uuid"), uuid));
+		subqueryB.select(personRootB.<Integer> get(PERSON_ID_KEY)).where(cb.equal(personRootB.get("uuid"), uuid));
 		
-		Predicate personAMatch = root.get("personA").get("personId").in(subqueryA);
-		Predicate personBMatch = root.get("personB").get("personId").in(subqueryB);
+		Predicate personAMatch = root.get("personA").get(PERSON_ID_KEY).in(subqueryA);
+		Predicate personBMatch = root.get("personB").get(PERSON_ID_KEY).in(subqueryB);
 		return cb.or(personAMatch, personBMatch);
 	}
 }

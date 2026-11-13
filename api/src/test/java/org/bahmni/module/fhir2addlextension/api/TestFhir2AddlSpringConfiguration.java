@@ -6,15 +6,6 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.ImportResource;
 
-/**
- * Loads the OpenMRS service context plus every module's moduleApplicationContext.xml (fhir2 + this
- * module) and registers this module's hibernate mappings (normally done through config.xml
- * mappingFiles) so DAOs can be exercised against a real in-memory H2 database.
- */
-/**
- * DAO beans live outside the org.openmrs package scanned by applicationContext-service.xml, so they
- * are scanned explicitly here (the runtime scans the module package declared in config.xml).
- */
 @Configuration
 @ComponentScan("org.bahmni.module.fhir2addlextension.api")
 @ImportResource({ "classpath:applicationContext-service.xml", "classpath*:moduleApplicationContext.xml" })

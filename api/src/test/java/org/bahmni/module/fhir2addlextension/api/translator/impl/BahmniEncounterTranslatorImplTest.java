@@ -93,7 +93,6 @@ public class BahmniEncounterTranslatorImplTest {
 				return encounterLocationTranslator;
 			}
 		};
-		//translator = new BahmniEncounterTranslatorImpl();
 		
 		translator.setBahmniEncounterValidator(bahmniEncounterValidator);
 		existingEncounter = new org.openmrs.Encounter();

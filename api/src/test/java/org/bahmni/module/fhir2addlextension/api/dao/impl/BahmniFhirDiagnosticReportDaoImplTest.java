@@ -53,8 +53,6 @@ public class BahmniFhirDiagnosticReportDaoImplTest extends BaseFhir2AddlContextS
 	
 	private static final String DR_3 = "dgr-9003-0000-0000-0000-000000000003";
 	
-	private static final String DR_4_VOIDED = "dgr-9004-0000-0000-0000-000000000004";
-	
 	private static final String PATIENT_2 = "da7f524f-27ce-4bb2-86d6-6d1d05312bd5";
 	
 	private static final String PATIENT_7 = "5946f880-b197-400b-9caa-a3c661d23041";
