@@ -54,6 +54,13 @@
 		    <appointments.version>2.1.0</appointments.version>
 			<openmrsAtomfeedVersion>2.6.2</openmrsAtomfeedVersion>
 			<atomfeed.version>1.10.1</atomfeed.version>
+			<!-- Surefire reads this property; jacoco prepare-agent prepends its -javaagent to it -->
+			<argLine>
+				--add-opens java.base/java.lang=ALL-UNNAMED
+				--add-opens java.base/java.lang.reflect=ALL-UNNAMED
+				--add-opens java.base/java.util=ALL-UNNAMED
+				--add-opens java.base/java.io=ALL-UNNAMED
+			</argLine>
     </properties>
 
 	<repositories>
@@ -307,12 +314,11 @@
 						<excludes>
 							<exclude>**/BaseIntegrationTest.java</exclude>
 						</excludes>
-						<argLine>
-							--add-opens java.base/java.lang=ALL-UNNAMED
-							--add-opens java.base/java.lang.reflect=ALL-UNNAMED
-							--add-opens java.base/java.util=ALL-UNNAMED
-							--add-opens java.base/java.io=ALL-UNNAMED
-						</argLine>
+						<classpathDependencyExcludes>
+							<!-- mockito-1.x PowerMock plugin inherited from the OpenMRS parent pom; its MockMaker
+							     fails to load against the mockito version used here -->
+							<classpathDependencyExclude>org.powermock:powermock-api-mockito</classpathDependencyExclude>
+						</classpathDependencyExcludes>
 					</configuration>
 				</plugin>
 			</plugins>
