@@ -1,5 +1,6 @@
 package org.bahmni.module.fhir2addlextension.api.context;
 
+import org.bahmni.module.fhir2addlextension.api.model.DispositionConfig;
 import org.bahmni.module.fhir2addlextension.api.model.TelecomAttributeTypeMapping;
 import org.openmrs.EncounterRole;
 import org.openmrs.EncounterType;
@@ -21,6 +22,8 @@ public interface AppContext {
 	EncounterRole getLabEncounterRole();
 	
 	Map<String, String> getPractitionerAttributeIdentifierSystemMap();
-
+	
 	List<TelecomAttributeTypeMapping> getTelecomAttributeTypeMappings();
+	
+	DispositionConfig getDispositionConfig();
 }
