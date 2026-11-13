@@ -1,23 +1,22 @@
 package org.bahmni.module.fhir2addlextension.api.dao.impl;
 
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
+import ca.uhn.fhir.rest.param.TokenAndListParam;
 import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
 import org.bahmni.module.fhir2addlextension.api.dao.FhirConceptCodeSystemQuery;
-import org.hibernate.Criteria;
-import org.hibernate.criterion.Criterion;
 import org.openmrs.DrugOrder;
 import org.openmrs.api.OrderService;
 import org.openmrs.module.fhir2.api.dao.impl.FhirMedicationRequestDaoImpl;
+import org.openmrs.module.fhir2.api.dao.internals.OpenmrsFhirCriteriaContext;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
-import java.util.List;
+import javax.persistence.criteria.Join;
+import java.util.Collections;
 import java.util.Optional;
-
-import static org.hibernate.criterion.Restrictions.eq;
 
 @Component
 @Primary
@@ -31,33 +30,65 @@ public class BahmniFhirMedicationRequestDaoImpl extends FhirMedicationRequestDao
 		return (DrugOrder) orderService.saveOrder(newEntry, null);
 	}
 	
+	/**
+	 * Overrides the parent's handleCodedConcept to preserve system-only search behaviour (e.g.
+	 * {@code ?code=http://system|}). When a token has a system but an empty code, the search uses
+	 * {@code handleQueryForSystem} with an empty code list, which matches all concepts in that
+	 * system — equivalent to the old {@code generateSystemQueryForEmptyCodes} hook.
+	 */
 	@Override
-	protected Criterion generateSystemQuery(String system, List<String> codes, String conceptReferenceTermAlias) {
-		if (isConceptReferenceCodeEmpty(codes)) {
-			return generateSystemQueryForEmptyCodes(system, conceptReferenceTermAlias);
+	protected <U> Optional<javax.persistence.criteria.Predicate> handleCodedConcept(
+	        OpenmrsFhirCriteriaContext<DrugOrder, U> ctx, TokenAndListParam code) {
+		if (code == null) {
+			return Optional.empty();
 		}
-		return super.generateSystemQuery(system, codes, conceptReferenceTermAlias);
+
+		boolean hasSystemOnlyParam = code.getValuesAsQueryTokens().stream()
+		        .flatMap(or -> or.getValuesAsQueryTokens().stream())
+		        .anyMatch(token -> isConceptReferenceCodeEmpty(Collections.singletonList(token.getValue()))
+		                && token.getSystem() != null && !token.getSystem().isEmpty());
+
+		if (!hasSystemOnlyParam) {
+			return super.handleCodedConcept(ctx, code);
+		}
+
+		Join<?, ?> cJoin = ctx.getJoin("c").orElseGet(() -> ctx.addJoin("concept", "c"));
+		Join<?, ?> cmJoin = ctx.getJoin("cm").orElseGet(() -> ctx.addJoin(cJoin, "conceptMappings", "cm"));
+		ctx.getJoin("crt").orElseGet(() -> ctx.addJoin(cmJoin, "conceptReferenceTerm", "crt"));
+
+		return handleAndListParam(ctx.getCriteriaBuilder(), code, token -> {
+			String system = token.getSystem();
+			if (system == null || system.isEmpty()) {
+				return Optional.empty();
+			}
+			if (isConceptReferenceCodeEmpty(Collections.singletonList(token.getValue()))) {
+				return getSearchQueryHelper().handleQueryForSystem(ctx, system, Collections.emptyList(), "crt");
+			}
+			return getSearchQueryHelper().handleQueryForSystem(ctx, system,
+			    Collections.singletonList(token.getValue()), "crt");
+		});
 	}
 	
 	@Override
-	protected void setupSearchParams(Criteria criteria, SearchParameterMap theParams) {
-		super.setupSearchParams(criteria, theParams);
+	protected <U> void setupSearchParams(OpenmrsFhirCriteriaContext<DrugOrder, U> ctx, SearchParameterMap theParams) {
+		super.setupSearchParams(ctx, theParams);
 		theParams.getParameters().forEach(entry -> {
 			if (BahmniFhirConstants.ORDER_LOCATION_SEARCH_HANDLER.equals(entry.getKey())) {
 				entry.getValue().forEach(
-				    param -> handleLocationReference(criteria, (ReferenceAndListParam) param.getParam()));
+				    param -> handleLocationReference(ctx, (ReferenceAndListParam) param.getParam()));
 			}
 		});
 	}
 	
-	private void handleLocationReference(Criteria criteria, ReferenceAndListParam locationReference) {
-		if (locationReference == null)
+	private <U> void handleLocationReference(OpenmrsFhirCriteriaContext<DrugOrder, U> ctx,
+	        ReferenceAndListParam locationReference) {
+		if (locationReference == null) {
 			return;
-		if (lacksAlias(criteria, "e"))
-			criteria.createAlias("encounter", "e");
-		if (lacksAlias(criteria, "l"))
-			criteria.createAlias("e.location", "l");
-
-		handleAndListParam(locationReference, token -> Optional.of(eq("l.uuid", token.getValue()))).ifPresent(criteria::add);
+		}
+		Join<?, ?> eJoin = ctx.getJoin("e").orElseGet(() -> ctx.addJoin("encounter", "e"));
+		Join<?, ?> lJoin = ctx.getJoin("l").orElseGet(() -> ctx.addJoin(eJoin, "location", "l"));
+		handleAndListParam(ctx.getCriteriaBuilder(), locationReference,
+		    token -> Optional.of(ctx.getCriteriaBuilder().equal(lJoin.get("uuid"), token.getValue())))
+		        .ifPresent(ctx::addPredicate);
 	}
 }

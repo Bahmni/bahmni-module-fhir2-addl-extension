@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dataset>
+    <!-- Patient 6: visits V1 (oldest) < V2 < V3 (newest). Encounters E1 in V1, E2 in V2, E3+E4 in V3.
+         Patient 8: one visit with no encounters. -->
+    <visit visit_id="9101" patient_id="6" visit_type_id="1" date_started="2020-01-01 00:00:00.0" creator="1" date_created="2020-01-01 00:00:00.0" voided="0" uuid="vis-9101-0000-0000-0000-000000000001"/>
+    <visit visit_id="9102" patient_id="6" visit_type_id="1" date_started="2020-02-01 00:00:00.0" creator="1" date_created="2020-02-01 00:00:00.0" voided="0" uuid="vis-9102-0000-0000-0000-000000000002"/>
+    <visit visit_id="9103" patient_id="6" visit_type_id="1" date_started="2020-03-01 00:00:00.0" creator="1" date_created="2020-03-01 00:00:00.0" voided="0" uuid="vis-9103-0000-0000-0000-000000000003"/>
+    <visit visit_id="9201" patient_id="8" visit_type_id="1" date_started="2020-01-01 00:00:00.0" creator="1" date_created="2020-01-01 00:00:00.0" voided="0" uuid="vis-9201-0000-0000-0000-000000000004"/>
+
+    <encounter encounter_id="9101" encounter_type="1" patient_id="6" location_id="1" visit_id="9101" encounter_datetime="2020-01-01 00:00:00.0" creator="1" date_created="2020-01-01 00:00:00.0" voided="false" uuid="enc-9101-0000-0000-0000-000000000001"/>
+    <encounter encounter_id="9102" encounter_type="1" patient_id="6" location_id="1" visit_id="9102" encounter_datetime="2020-02-01 00:00:00.0" creator="1" date_created="2020-02-01 00:00:00.0" voided="false" uuid="enc-9102-0000-0000-0000-000000000002"/>
+    <encounter encounter_id="9103" encounter_type="1" patient_id="6" location_id="1" visit_id="9103" encounter_datetime="2020-03-01 00:00:00.0" creator="1" date_created="2020-03-01 00:00:00.0" voided="false" uuid="enc-9103-0000-0000-0000-000000000003"/>
+    <encounter encounter_id="9104" encounter_type="1" patient_id="6" location_id="1" visit_id="9103" encounter_datetime="2020-03-01 01:00:00.0" creator="1" date_created="2020-03-01 01:00:00.0" voided="false" uuid="enc-9104-0000-0000-0000-000000000004"/>
+</dataset>

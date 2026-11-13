@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dataset>
+    <patient_appointment patient_appointment_id="9001" uuid="appt-9001-0000-0000-0000-000000000001" patient_id="2" status="Scheduled" start_date_time="2024-01-10 09:00:00.0" end_date_time="2024-01-10 09:30:00.0" creator="1" date_created="2024-01-01 00:00:00.0" voided="false"/>
+    <patient_appointment patient_appointment_id="9002" uuid="appt-9002-0000-0000-0000-000000000002" patient_id="2" status="Completed" start_date_time="2024-02-10 09:00:00.0" end_date_time="2024-02-10 09:30:00.0" creator="1" date_created="2024-01-01 00:00:00.0" voided="false"/>
+    <patient_appointment patient_appointment_id="9003" uuid="appt-9003-0000-0000-0000-000000000003" patient_id="6" status="Cancelled" start_date_time="2024-03-10 09:00:00.0" end_date_time="2024-03-10 09:30:00.0" creator="1" date_created="2024-01-01 00:00:00.0" voided="false"/>
+    <patient_appointment patient_appointment_id="9004" uuid="appt-9004-0000-0000-0000-000000000004" patient_id="6" status="Missed" start_date_time="2024-04-10 09:00:00.0" end_date_time="2024-04-10 09:30:00.0" creator="1" date_created="2024-01-01 00:00:00.0" voided="false"/>
+    <patient_appointment patient_appointment_id="9005" uuid="appt-9005-0000-0000-0000-000000000005" patient_id="7" status="CheckedIn" start_date_time="2024-05-10 09:00:00.0" end_date_time="2024-05-10 09:30:00.0" creator="1" date_created="2024-01-01 00:00:00.0" voided="false"/>
+    <patient_appointment patient_appointment_id="9006" uuid="appt-9006-0000-0000-0000-000000000006" patient_id="7" status="WaitList" start_date_time="2024-06-10 09:00:00.0" end_date_time="2024-06-10 09:30:00.0" creator="1" date_created="2024-01-01 00:00:00.0" voided="false"/>
+    <patient_appointment patient_appointment_id="9007" uuid="appt-9007-0000-0000-0000-000000000007" patient_id="8" status="Requested" start_date_time="2024-07-10 09:00:00.0" end_date_time="2024-07-10 09:30:00.0" creator="1" date_created="2024-01-01 00:00:00.0" voided="false"/>
+    <!-- voided appointment of patient 2 -->
+    <patient_appointment patient_appointment_id="9008" uuid="appt-9008-0000-0000-0000-000000000008" patient_id="2" status="Scheduled" start_date_time="2024-08-10 09:00:00.0" end_date_time="2024-08-10 09:30:00.0" creator="1" date_created="2024-01-01 00:00:00.0" voided="true" voided_by="1" date_voided="2024-01-02 00:00:00.0" void_reason="mistake"/>
+</dataset>

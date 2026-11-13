@@ -22,6 +22,7 @@ import org.openmrs.api.db.ContextDAO;
 import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
 import org.openmrs.module.fhir2.api.translators.EncounterReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.ObservationReferenceTranslator;
+import org.openmrs.module.fhir2.api.translators.OrderReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PatientReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 import org.openmrs.module.fhir2.api.translators.impl.DiagnosticReportTranslatorImpl;
@@ -64,6 +65,9 @@ public class BahmniFhirDiagnosticReportTranslatorTest {
 	@Mock
 	private PractitionerReferenceTranslator<Provider> providerReferenceTranslator;
 	
+	@Mock
+	private OrderReferenceTranslator orderReferenceTranslator;
+	
 	@Before
 	public void setup() throws NoSuchFieldException, IllegalAccessException {
 		//when(userContext.getAuthenticatedUser()).thenReturn(user);
@@ -76,6 +80,7 @@ public class BahmniFhirDiagnosticReportTranslatorTest {
 		TestUtils.setPropertyOnObject(openmrsTranslator, "conceptTranslator", conceptTranslator);
 		TestUtils.setPropertyOnObject(openmrsTranslator, "encounterReferenceTranslator", encounterReferenceTranslator);
 		TestUtils.setPropertyOnObject(openmrsTranslator, "patientReferenceTranslator", patientReferenceTranslator);
+		TestUtils.setPropertyOnObject(openmrsTranslator, "orderReferenceTranslator", orderReferenceTranslator);
 		
 		translator = new BahmniFhirDiagnosticReportTranslatorImpl(openmrsTranslator, serviceRequestReferenceTranslator,
 		        providerReferenceTranslator);
@@ -96,6 +101,10 @@ public class BahmniFhirDiagnosticReportTranslatorTest {
                     return reference.getReference().equals("ServiceRequest/0137d86f-e27b-4f3b-a701-5f3ca9a6756f");
                 })))
                 .thenReturn(testOrder);
+		when(orderReferenceTranslator.toOpenmrsType(
+		        ArgumentMatchers.argThat(reference -> reference.getReference()
+		                .equals("ServiceRequest/0137d86f-e27b-4f3b-a701-5f3ca9a6756f"))))
+		        .thenReturn(testOrder);
 		Provider performer = new Provider();
 		performer.setUuid("444a609f-263f-11ee-8e08-02d2d2293862");
 		when(providerReferenceTranslator.toOpenmrsType(
@@ -120,6 +129,10 @@ public class BahmniFhirDiagnosticReportTranslatorTest {
                     return reference.getReference().equals("ServiceRequest/0137d86f-e27b-4f3b-a701-5f3ca9a6756f");
                 })))
                 .thenReturn(testOrder);
+		when(orderReferenceTranslator.toOpenmrsType(
+		        ArgumentMatchers.argThat(reference -> reference.getReference()
+		                .equals("ServiceRequest/0137d86f-e27b-4f3b-a701-5f3ca9a6756f"))))
+		        .thenReturn(testOrder);
 
         Obs exampleObs = new Obs();
         exampleObs.setUuid("eb61fbd8-156b-4f19-a445-cbd13ded268a");

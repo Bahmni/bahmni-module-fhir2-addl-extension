@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dataset>
+    <order_attribute_type order_attribute_type_id="9401" name="Active Attr" description="active" datatype="org.openmrs.customdatatype.datatype.FreeTextDatatype" min_occurs="0" creator="1" date_created="2024-01-01 00:00:00.0" retired="false" uuid="oat-9401-0000-0000-0000-000000000001"/>
+    <order_attribute_type order_attribute_type_id="9402" name="Retired Attr" description="retired" datatype="org.openmrs.customdatatype.datatype.FreeTextDatatype" min_occurs="0" creator="1" date_created="2024-01-01 00:00:00.0" retired="true" retired_by="1" date_retired="2024-02-01 00:00:00.0" retire_reason="obsolete" uuid="oat-9402-0000-0000-0000-000000000002"/>
+    <order_group_attribute_type order_group_attribute_type_id="9411" name="Active Group Attr" description="active" datatype="org.openmrs.customdatatype.datatype.FreeTextDatatype" min_occurs="0" creator="1" date_created="2024-01-01 00:00:00.0" retired="false" uuid="ogat-9411-0000-0000-0000-000000000001"/>
+    <order_group_attribute_type order_group_attribute_type_id="9412" name="Retired Group Attr" description="retired" datatype="org.openmrs.customdatatype.datatype.FreeTextDatatype" min_occurs="0" creator="1" date_created="2024-01-01 00:00:00.0" retired="true" retired_by="1" date_retired="2024-02-01 00:00:00.0" retire_reason="obsolete" uuid="ogat-9412-0000-0000-0000-000000000002"/>
+</dataset>
