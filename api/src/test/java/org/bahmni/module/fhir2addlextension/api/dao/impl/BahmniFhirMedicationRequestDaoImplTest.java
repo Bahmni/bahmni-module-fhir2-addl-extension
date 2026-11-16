@@ -17,7 +17,6 @@ import ca.uhn.fhir.rest.param.TokenParam;
 import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
 import org.bahmni.module.fhir2addlextension.api.BaseFhir2AddlContextSensitiveTest;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.openmrs.DrugOrder;
 import org.openmrs.FreeTextDosingInstructions;
@@ -114,8 +113,6 @@ public class BahmniFhirMedicationRequestDaoImplTest extends BaseFhir2AddlContext
 	// ---- coded search: system-only tokens (Bahmni override) ----
 	
 	@Test
-	@Ignore("BUG: system-only search (?code=system|) returns nothing - fhir2 handleQueryForSystem with an empty code list "
-	        + "renders 'crt.code in ()', which matches no rows on H2 and is invalid SQL on MySQL")
 	public void search_bySystemOnlyToken_matchesEveryOrderWhoseConceptHasAMappingInThatSystem() {
 		assertThat(uuids(codeSearch(code(SSTRM, ""))), containsInAnyOrder(ORD_1, ORD_111, ORD_4, ORD_444));
 		assertThat(uuids(codeSearch(code(SNOMED, ""))), containsInAnyOrder(ORD_2, ORD_222, ORD_3));

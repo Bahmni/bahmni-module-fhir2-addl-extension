@@ -10,6 +10,9 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
 
 import ca.uhn.fhir.rest.param.StringParam;
+import ca.uhn.fhir.rest.param.TokenAndListParam;
+import ca.uhn.fhir.rest.param.TokenOrListParam;
+import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.bahmni.module.fhir2addlextension.api.BaseFhir2AddlContextSensitiveTest;
 import org.junit.Before;
@@ -142,5 +145,34 @@ public class BahmniFhirMedicationDaoImplTest extends BaseFhir2AddlContextSensiti
 	@Test
 	public void count_byBlankNameValue_isRejected() {
 		assertThrows(InvalidRequestException.class, () -> dao.getSearchResultsCount(nameSearch("")));
+	}
+	
+	private static SearchParameterMap codeSearch(String system, String code) {
+		return new SearchParameterMap().addParameter(FhirConstants.CODED_SEARCH_HANDLER,
+		    new TokenAndListParam().addAnd(new TokenOrListParam().add(new TokenParam(system, code))));
+	}
+	
+	@Test
+	public void search_bySystemOnlyToken_matchesEveryDrugWhoseConceptHasAMappingInThatSystem() {
+		assertThat(uuids(codeSearch("urn:test:sstrm", "")), containsInAnyOrder(PARACETAMOL_500, PARACETAMOL_650, IBUPROFEN));
+		assertThat(uuids(codeSearch("http://snomed.info/sct", "")),
+		    containsInAnyOrder(PARACETAMOL_500, PARACETAMOL_650, IBUPROFEN));
+	}
+	
+	@Test
+	public void search_bySystemOnlyTokenForUnmappedSystem_returnsNothing() {
+		assertThat(uuids(codeSearch("urn:unknown:system", "")), empty());
+	}
+	
+	@Test
+	public void search_bySystemAndCode_matchesOnlyDrugsWithThatMapping() {
+		assertThat(uuids(codeSearch("urn:test:sstrm", "WGT234")), containsInAnyOrder(IBUPROFEN));
+		assertThat(uuids(codeSearch("urn:test:sstrm", "CD41003")), containsInAnyOrder(PARACETAMOL_500, PARACETAMOL_650));
+		assertThat(uuids(codeSearch("http://snomed.info/sct", "WGT234")), empty());
+	}
+	
+	@Test
+	public void count_bySystemOnlyToken_countsMatchingDrugs() {
+		assertThat(dao.getSearchResultsCount(codeSearch("http://snomed.info/sct", "")), equalTo(3));
 	}
 }
