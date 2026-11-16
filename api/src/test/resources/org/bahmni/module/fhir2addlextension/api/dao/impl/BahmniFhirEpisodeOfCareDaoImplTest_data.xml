@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dataset>
+    <!-- patient 2: one active episode with encounter 6 and visits 1,2 -->
+    <episode episode_id="9001" uuid="eoc-9001-0000-0000-0000-000000000001" patient_id="2" status="ACTIVE" creator="1" date_created="2024-01-01 00:00:00.0" voided="false"/>
+    <!-- patient 7: finished episode with encounters 3,4,5 and visit 8 -->
+    <episode episode_id="9002" uuid="eoc-9002-0000-0000-0000-000000000002" patient_id="7" status="FINISHED" creator="1" date_created="2024-02-01 00:00:00.0" voided="false"/>
+    <!-- patient 7: a second episode without any encounters or visits -->
+    <episode episode_id="9003" uuid="eoc-9003-0000-0000-0000-000000000003" patient_id="7" status="PLANNED" creator="1" date_created="2024-03-01 00:00:00.0" voided="false"/>
+    <!-- patient 6: voided episode -->
+    <episode episode_id="9004" uuid="eoc-9004-0000-0000-0000-000000000004" patient_id="6" status="ACTIVE" creator="1" date_created="2024-04-01 00:00:00.0" voided="true" voided_by="1" date_voided="2024-04-02 00:00:00.0" void_reason="entered in error"/>
+
+    <episode_encounter episode_id="9001" encounter_id="6"/>
+    <episode_encounter episode_id="9002" encounter_id="3"/>
+    <episode_encounter episode_id="9002" encounter_id="4"/>
+    <episode_encounter episode_id="9002" encounter_id="5"/>
+
+    <episode_visit episode_id="9001" visit_id="1"/>
+    <episode_visit episode_id="9001" visit_id="2"/>
+    <episode_visit episode_id="9002" visit_id="8"/>
+</dataset>

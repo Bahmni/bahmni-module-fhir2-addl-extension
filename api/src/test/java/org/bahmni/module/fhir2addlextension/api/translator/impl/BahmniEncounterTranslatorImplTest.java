@@ -61,13 +61,39 @@ public class BahmniEncounterTranslatorImplTest {
 	
 	@Before
 	public void setup() {
-		translator = new BahmniEncounterTranslatorImpl();
-		translator.setParticipantTranslator(participantTranslator);
-		translator.setEncounterLocationTranslator(encounterLocationTranslator);
-		translator.setPatientReferenceTranslator(patientReferenceTranslator);
-		translator.setVisitReferenceTranlator(visitReferenceTranslator);
-		translator.setEncounterTypeTranslator(encounterTypeTranslator);
-		translator.setEncounterPeriodTranslator(encounterPeriodTranslator);
+		translator = new BahmniEncounterTranslatorImpl() {
+			
+			@Override
+			protected EncounterParticipantTranslator getParticipantTranslator() {
+				return participantTranslator;
+			}
+			
+			@Override
+			protected EncounterPeriodTranslator<org.openmrs.Encounter> getEncounterPeriodTranslator() {
+				return encounterPeriodTranslator;
+			}
+			
+			@Override
+			protected EncounterTypeTranslator<EncounterType> getEncounterTypeTranslator() {
+				return encounterTypeTranslator;
+			}
+			
+			@Override
+			protected EncounterReferenceTranslator<Visit> getVisitReferenceTranlator() {
+				return visitReferenceTranslator;
+			}
+			
+			@Override
+			protected PatientReferenceTranslator getPatientReferenceTranslator() {
+				return patientReferenceTranslator;
+			}
+			
+			@Override
+			protected EncounterLocationTranslator getEncounterLocationTranslator() {
+				return encounterLocationTranslator;
+			}
+		};
+		
 		translator.setBahmniEncounterValidator(bahmniEncounterValidator);
 		existingEncounter = new org.openmrs.Encounter();
 		existingEncounter.setUuid("existing-encounter-uuid");
@@ -223,4 +249,59 @@ public class BahmniEncounterTranslatorImplTest {
         assertSame(existingEncounterProvider, resultProvider);
         assertSame(existingProvider, resultProvider.getProvider());
     }
+	
+	@Test
+	public void shouldSetUuidFromFhirIdAndPopulateAllMappedFields() {
+		Patient patient = new Patient();
+		Location location = new Location();
+		Visit visit = new Visit();
+		EncounterType type = new EncounterType();
+		when(patientReferenceTranslator.toOpenmrsType(any())).thenReturn(patient);
+		when(encounterLocationTranslator.toOpenmrsType(any())).thenReturn(location);
+		when(visitReferenceTranslator.toOpenmrsType(any())).thenReturn(visit);
+		when(encounterTypeTranslator.toOpenmrsType(any())).thenReturn(type);
+		
+		org.openmrs.Encounter result = translator.toOpenmrsType(existingEncounter, fhirEncounter);
+		
+		assertEquals("fhir-encounter-id", result.getUuid());
+		assertSame(patient, result.getPatient());
+		assertSame(location, result.getLocation());
+		assertSame(visit, result.getVisit());
+		assertSame(type, result.getEncounterType());
+		verify(bahmniEncounterValidator).validate(existingEncounter, fhirEncounter);
+		verify(encounterPeriodTranslator).toOpenmrsType(existingEncounter, fhirEncounter.getPeriod());
+	}
+	
+	@Test
+	public void shouldKeepExistingUuidWhenFhirEncounterHasNoId() {
+		fhirEncounter.setId((String) null);
+		
+		org.openmrs.Encounter result = translator.toOpenmrsType(existingEncounter, fhirEncounter);
+		
+		assertEquals("existing-encounter-uuid", result.getUuid());
+	}
+	
+	@Test
+	public void shouldKeepExistingEncounterTypeWhenTranslatedTypeIsNull() {
+		EncounterType original = new EncounterType();
+		existingEncounter.setEncounterType(original);
+		when(encounterTypeTranslator.toOpenmrsType(any())).thenReturn(null);
+		
+		org.openmrs.Encounter result = translator.toOpenmrsType(existingEncounter, fhirEncounter);
+		
+		assertSame(original, result.getEncounterType());
+	}
+	
+	@Test
+	public void shouldNotAddDuplicateProviderTwiceAndShouldAddProvidersWhenExistingSetIsEmpty() {
+		existingEncounter.setEncounterProviders(new LinkedHashSet<>());
+		Encounter.EncounterParticipantComponent participant = new Encounter.EncounterParticipantComponent();
+		fhirEncounter.addParticipant(participant);
+		when(participantTranslator.toOpenmrsType(any(), any())).thenReturn(newEncounterProvider);
+		
+		org.openmrs.Encounter result = translator.toOpenmrsType(existingEncounter, fhirEncounter);
+		
+		assertEquals(1, result.getEncounterProviders().size());
+		assertSame(existingEncounter, result.getEncounterProviders().iterator().next().getEncounter());
+	}
 }

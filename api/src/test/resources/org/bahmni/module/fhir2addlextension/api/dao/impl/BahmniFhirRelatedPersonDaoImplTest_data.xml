@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dataset>
+    <!-- Standard dataset already has: rel 1 (person_a=502, person_b=2) and rel 2 (person_a=502, person_b=7) -->
+    <!-- person 501 (A) -> person 6 (B) -->
+    <relationship relationship_id="9101" uuid="rel-9101-0000-0000-0000-000000000001" person_a="501" relationship="2" person_b="6" creator="1" date_created="2024-01-01 00:00:00.0" voided="false"/>
+    <!-- person 7 (A) -> person 8 (B): person 7 is on the A side here, but on the B side of standard rel 2 -->
+    <relationship relationship_id="9102" uuid="rel-9102-0000-0000-0000-000000000002" person_a="7" relationship="2" person_b="8" creator="1" date_created="2024-01-02 00:00:00.0" voided="false"/>
+    <!-- voided relationship of person 6 (A) -> person 9 (B) -->
+    <relationship relationship_id="9103" uuid="rel-9103-0000-0000-0000-000000000003" person_a="6" relationship="2" person_b="9" creator="1" date_created="2024-01-03 00:00:00.0" voided="true" voided_by="1" date_voided="2024-01-04 00:00:00.0" void_reason="wrong person"/>
+</dataset>

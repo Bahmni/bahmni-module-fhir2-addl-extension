@@ -1,597 +1,469 @@
 package org.bahmni.module.fhir2addlextension.api.dao.impl;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThrows;
+
+import ca.uhn.fhir.rest.param.DateRangeParam;
+import ca.uhn.fhir.rest.param.ReferenceAndListParam;
+import ca.uhn.fhir.rest.param.ReferenceOrListParam;
+import ca.uhn.fhir.rest.param.ReferenceParam;
+import ca.uhn.fhir.rest.param.TokenAndListParam;
+import ca.uhn.fhir.rest.param.TokenOrListParam;
+import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import org.bahmni.module.fhir2addlextension.api.BahmniFhirConstants;
-import org.bahmni.module.fhir2addlextension.api.context.AppContext;
-import org.hibernate.Criteria;
-import org.hibernate.Session;
-import org.hibernate.SessionFactory;
-import org.hibernate.criterion.Criterion;
+import org.bahmni.module.fhir2addlextension.api.BaseFhir2AddlContextSensitiveTest;
+import org.bahmni.module.fhir2addlextension.api.context.impl.OpenmrsAppContext;
+import org.bahmni.module.fhir2addlextension.api.dao.BahmniFhirServiceRequestDao;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-import org.openmrs.Encounter;
+import org.openmrs.DrugOrder;
+import org.openmrs.GlobalProperty;
 import org.openmrs.Order;
 import org.openmrs.OrderType;
-import org.openmrs.Visit;
-import org.openmrs.api.OrderService;
-import org.openmrs.module.fhir2.api.dao.impl.BaseFhirDao;
+import org.openmrs.TestOrder;
+import org.openmrs.api.AdministrationService;
+import org.openmrs.api.context.Context;
+import org.openmrs.module.fhir2.FhirConstants;
+import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
+import org.springframework.beans.factory.annotation.Autowired;
 
-import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.Date;
 import java.util.List;
-import java.util.Map;
+import java.util.stream.Collectors;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-
-@RunWith(MockitoJUnitRunner.class)
-public class BahmniFhirServiceRequestDaoImplTest {
+public class BahmniFhirServiceRequestDaoImplTest extends BaseFhir2AddlContextSensitiveTest {
 	
-	private static final String ORDER_UUID = "order-uuid-123";
+	private static final String DATASET = "org/bahmni/module/fhir2addlextension/api/dao/impl/BahmniFhirServiceRequestDaoImplTest_data.xml";
 	
-	@Mock
-	private OrderService orderService;
+	// orders defined in this test's dataset
+	private static final String SR1 = "sr-9001-0000-0000-0000-000000000001"; // lab, patient 7, enc 4 (loc 1), concept 5089
 	
-	@Mock
-	private AppContext appContext;
+	private static final String SR2 = "sr-9002-0000-0000-0000-000000000002"; // lab, patient 2, enc 6 (loc 2), concept 5497, provider 9002
 	
-	@Mock
-	private SessionFactory sessionFactory;
+	private static final String SR3 = "sr-9003-0000-0000-0000-000000000003"; // x-ray, patient 7, enc 5 (loc 2), concept 5089, revises SR1
 	
-	@Mock
-	private Session session;
+	private static final String SR4_VOIDED = "sr-9004-0000-0000-0000-000000000004";
 	
-	@InjectMocks
-	private BahmniFhirServiceRequestDaoImpl serviceRequestDao;
+	private static final String SR5 = "sr-9005-0000-0000-0000-000000000005"; // scheduled lab, patient 2, enc 6
+	
+	// non-drug orders of the standard OpenMRS test dataset (type 2 "Test order", patient 2, encounter 6, concept 5497)
+	private static final String STD_6 = "1c96f25c-4949-4f72-9931-d808fbc226de";
+	
+	private static final String STD_7 = "2c96f25c-4949-4f72-9931-d808fbc226df";
+	
+	private static final String STD_8_VOIDED = "3c96f25c-4949-4f72-9931-d808fbc226dg";
+	
+	private static final String STD_9 = "4c96f25c-4949-4f72-9931-d808fbc226dh";
+	
+	private static final String DRUG_ORDER = "921de0a3-05c4-444a-be03-e01b4c4b9142";
+	
+	private static final String PATIENT_2 = "da7f524f-27ce-4bb2-86d6-6d1d05312bd5";
+	
+	private static final String PATIENT_7 = "5946f880-b197-400b-9caa-a3c661d23041";
+	
+	private static final String ENCOUNTER_4 = "eec646cb-c847-45a7-98bc-91c8c4f70add";
+	
+	private static final String ENCOUNTER_6 = "y403fafb-e5e4-42d0-9d11-4f52e89d123r";
+	
+	private static final String LOCATION_1 = "8d6c993e-c2cc-11de-8d13-0010c6dffd0f";
+	
+	private static final String LOCATION_2 = "9356400c-a5a2-4532-8f2b-2361b3446eb8";
+	
+	private static final String PROVIDER_1 = "c2299800-cca9-11e0-9572-0800200c9a66";
+	
+	private static final String PROVIDER_2 = "prov-9002-0000-0000-0000-000000000002";
+	
+	private static final String LAB_TYPE_UUID = "87f82f50-ac05-11e3-a5e2-0800200c9a66";
+	
+	private static final String XRAY_TYPE_UUID = "4db73380-ac06-11e3-a5e2-0800200c9a66";
+	
+	private static final String TEST_ORDER_TYPE_UUID = "52a447d3-a64a-11e3-9aeb-50e549534c5e";
+	
+	private static final String CODE_SYSTEM = "urn:test:sstrm";
+	
+	private static final String SNOMED_SYSTEM = "http://snomed.info/sct";
+	
+	@Autowired
+	private BahmniFhirServiceRequestDao<Order> dao;
+	
+	@Autowired
+	private AdministrationService administrationService;
 	
 	@Before
-	public void setup() throws Exception {
-		Field orderServiceField = BahmniFhirServiceRequestDaoImpl.class.getDeclaredField("orderService");
-		orderServiceField.setAccessible(true);
-		orderServiceField.set(serviceRequestDao, orderService);
+	public void loadDataset() throws Exception {
+		executeDataSet(DATASET);
+	}
+	
+	private List<String> uuids(SearchParameterMap params) {
+		return dao.getSearchResults(params).stream().map(Order::getUuid).collect(Collectors.toList());
+	}
+	
+	private static ReferenceAndListParam ref(String... values) {
+		ReferenceOrListParam or = new ReferenceOrListParam();
+		Arrays.stream(values).forEach(v -> or.add(new ReferenceParam(v)));
+		return new ReferenceAndListParam().addAnd(or);
+	}
+	
+	private static TokenAndListParam token(String system, String code) {
+		return new TokenAndListParam().addAnd(new TokenOrListParam().add(new TokenParam(system, code)));
+	}
+	
+	private static SearchParameterMap param(String handler, Object value) {
+		return new SearchParameterMap().addParameter(handler, value);
+	}
+	
+	// ---- baseline / drug-order exclusion / paging ----
+	
+	@Test
+	public void search_withNoParameters_returnsAllNonDrugOrdersAndNeverDrugOrders() {
+		List<String> result = uuids(new SearchParameterMap());
 		
-		Field appContextField = BahmniFhirServiceRequestDaoImpl.class.getDeclaredField("appContext");
-		appContextField.setAccessible(true);
-		appContextField.set(serviceRequestDao, appContext);
-		
-		Field sessionFactoryField = BaseFhirDao.class.getDeclaredField("sessionFactory");
-		sessionFactoryField.setAccessible(true);
-		sessionFactoryField.set(serviceRequestDao, sessionFactory);
+		assertThat(result, containsInAnyOrder(SR1, SR2, SR3, SR5, STD_6, STD_7, STD_9));
+		assertThat(result, not(hasItem(DRUG_ORDER)));
 	}
 	
 	@Test
-	public void hasDistinctResults_shouldReturnFalse() {
-		assertThat(serviceRequestDao.hasDistinctResults(), is(false));
+	public void search_neverReturnsVoidedOrders() {
+		List<String> result = uuids(new SearchParameterMap());
+		
+		assertThat(result, not(hasItem(SR4_VOIDED)));
+		assertThat(result, not(hasItem(STD_8_VOIDED)));
 	}
 	
 	@Test
-	public void createOrUpdate_shouldThrowExceptionForDrugOrder() {
-		Order order = new Order();
-		OrderType drugOrderType = new OrderType();
-		drugOrderType.setUuid(OrderType.DRUG_ORDER_TYPE_UUID);
-		order.setOrderType(drugOrderType);
+	public void searchCount_matchesTheNumberOfFilteredResults() {
+		SearchParameterMap params = param(FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER, ref(PATIENT_7));
+		
+		assertThat(dao.getSearchResultsCount(params), equalTo(2));
+	}
+	
+	@Test
+	public void search_withPagingWindow_returnsOnlyRequestedNumberOfRows() {
+		SearchParameterMap params = new SearchParameterMap();
+		params.setFromIndex(0);
+		params.setToIndex(2);
+		
+		assertThat(dao.getSearchResults(params), hasSize(2));
+	}
+	
+	// ---- patient / encounter ----
+	
+	@Test
+	public void search_byPatient_returnsOnlyThatPatientsNonDrugOrders() {
+		assertThat(uuids(param(FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER, ref(PATIENT_7))),
+		    containsInAnyOrder(SR1, SR3));
+		assertThat(uuids(param(FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER, ref(PATIENT_2))),
+		    containsInAnyOrder(SR2, SR5, STD_6, STD_7, STD_9));
+	}
+	
+	@Test
+	public void search_byUnknownPatient_returnsNothing() {
+		assertThat(uuids(param(FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER, ref("no-such-patient"))), empty());
+	}
+	
+	@Test
+	public void search_byEncounter_returnsOrdersOfThatEncounterOnly() {
+		assertThat(uuids(param(FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER, ref(ENCOUNTER_4))), containsInAnyOrder(SR1));
+	}
+	
+	@Test
+	public void search_byEncounterAndPatientOfAnotherEncounter_isAnAndAndReturnsNothing() {
+		SearchParameterMap params = param(FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER, ref(ENCOUNTER_6)).addParameter(
+		    FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER, ref(PATIENT_7));
+		
+		assertThat(uuids(params), empty());
+	}
+	
+	// ---- code ----
+	
+	@Test
+	public void search_byCodeOfConceptMapping_matchesOnlyOrdersWithThatConcept() {
+		assertThat(uuids(param(FhirConstants.CODED_SEARCH_HANDLER, token(CODE_SYSTEM, "WGT234"))),
+		    containsInAnyOrder(SR1, SR3));
+		assertThat(uuids(param(FhirConstants.CODED_SEARCH_HANDLER, token(SNOMED_SYSTEM, "7345693"))),
+		    containsInAnyOrder(SR2, SR5, STD_6, STD_7, STD_9));
+	}
+	
+	@Test
+	public void search_byCodeWithSystemThatDoesNotOwnTheCode_returnsNothing() {
+		assertThat(uuids(param(FhirConstants.CODED_SEARCH_HANDLER, token(SNOMED_SYSTEM, "WGT234"))), empty());
+	}
+	
+	@Test
+	public void search_byConceptUuid_matchesOrdersWithThatConcept() {
+		assertThat(uuids(param(FhirConstants.CODED_SEARCH_HANDLER, token(null, "c607c80f-1ea9-4da3-bb88-6276ce8868dd"))),
+		    containsInAnyOrder(SR1, SR3));
+	}
+	
+	@Test
+	public void search_byCodeAndPatientWithoutSuchOrder_returnsNothing() {
+		SearchParameterMap params = param(FhirConstants.CODED_SEARCH_HANDLER, token(CODE_SYSTEM, "WGT234")).addParameter(
+		    FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER, ref(PATIENT_2));
+		
+		assertThat(uuids(params), empty());
+	}
+	
+	// ---- participant (orderer) ----
+	
+	@Test
+	public void search_byParticipant_returnsOrdersPlacedByThatProviderOnly() {
+		List<String> result = uuids(param(FhirConstants.PARTICIPANT_REFERENCE_SEARCH_HANDLER, ref(PROVIDER_2)));
+		
+		assertThat(result, containsInAnyOrder(SR2));
+	}
+	
+	@Test
+	public void search_byParticipantOtherThanOrderer_excludesThoseOrders() {
+		List<String> result = uuids(param(FhirConstants.PARTICIPANT_REFERENCE_SEARCH_HANDLER, ref(PROVIDER_1)));
+		
+		assertThat(result, hasItem(SR1));
+		assertThat(result, not(hasItem(SR2)));
+	}
+	
+	// ---- date range ----
+	
+	private static SearchParameterMap dateRange(String lower, String upper) {
+		DateRangeParam range = new DateRangeParam();
+		if (lower != null) {
+			range.setLowerBound(lower);
+		}
+		if (upper != null) {
+			range.setUpperBound(upper);
+		}
+		return param(FhirConstants.DATE_RANGE_SEARCH_HANDLER, range);
+	}
+	
+	@Test
+	public void search_dateRangeLowerBoundOnly_matchesOrdersActivatedOrScheduledOnOrAfterBound() {
+		assertThat(uuids(dateRange("2024-02-15", null)), containsInAnyOrder(SR2, SR5));
+	}
+	
+	@Test
+	public void search_dateRangeLowerBoundOnly_matchesOrdersByScheduledDateEvenWhenActivatedEarlier() {
+		// SR5 activated 2024-05-01 but scheduled 2024-06-01: only the scheduled date is >= 2024-05-15
+		assertThat(uuids(dateRange("2024-05-15", null)), containsInAnyOrder(SR5));
+	}
+	
+	@Test
+	public void search_dateRangeUpperBoundOnly_matchesOrdersStoppedOrExpiringOnOrBeforeBound() {
+		List<String> result = uuids(dateRange(null, "2024-02-15"));
+		
+		// SR1 auto-expires 2024-01-20, SR3 stopped 2024-02-10
+		assertThat(result, hasItem(SR1));
+		assertThat(result, hasItem(SR3));
+		assertThat(result, not(hasItem(SR5)));
+		assertThat(result, not(hasItem(SR2)));
+	}
+	
+	@Test
+	public void search_dateRangeUpperBound_usesStopDateNotActivationDate() {
+		// SR3 was activated 2024-02-01 (before the bound) but only stopped 2024-02-10 (after it)
+		List<String> result = uuids(dateRange(null, "2024-02-05"));
+		
+		assertThat(result, hasItem(SR1));
+		assertThat(result, not(hasItem(SR3)));
+	}
+	
+	@Test
+	public void search_dateRangeWithBothBounds_requiresStartAfterLowerAndEndBeforeUpper() {
+		assertThat(uuids(dateRange("2024-04-01", "2024-12-31")), containsInAnyOrder(SR5));
+		assertThat(uuids(dateRange("2024-01-25", "2024-02-28")), containsInAnyOrder(SR3));
+	}
+	
+	@Test
+	public void search_dateRangeInTheFuture_returnsNothing() {
+		assertThat(uuids(dateRange("2030-01-01", "2030-12-31")), empty());
+	}
+	
+	@Test
+	public void search_emptyDateRange_isIgnoredAndReturnsEverything() {
+		assertThat(uuids(param(FhirConstants.DATE_RANGE_SEARCH_HANDLER, new DateRangeParam())),
+		    containsInAnyOrder(SR1, SR2, SR3, SR5, STD_6, STD_7, STD_9));
+	}
+	
+	// ---- category ----
+	
+	@Test
+	public void search_byCategoryMappedInGlobalProperty_resolvesToOrderTypeByName() {
+		administrationService.saveGlobalProperty(new GlobalProperty(OpenmrsAppContext.PROP_ORDER_TYPE_TO_CATEGORY_MAP,
+		        "Lab test:laboratory;X-Ray:imaging"));
+		
+		assertThat(uuids(param(FhirConstants.CATEGORY_SEARCH_HANDLER, ref("imaging"))), containsInAnyOrder(SR3));
+		assertThat(uuids(param(FhirConstants.CATEGORY_SEARCH_HANDLER, ref("laboratory"))), containsInAnyOrder(SR1, SR2, SR5));
+	}
+	
+	@Test
+	public void search_byCategoryWithoutMapping_treatsValueAsOrderTypeUuid() {
+		assertThat(uuids(param(FhirConstants.CATEGORY_SEARCH_HANDLER, ref(XRAY_TYPE_UUID))), containsInAnyOrder(SR3));
+	}
+	
+	@Test
+	public void search_byCategoryMappedToUnknownOrderTypeName_fallsBackToRawValueAndMatchesNothing() {
+		administrationService.saveGlobalProperty(new GlobalProperty(OpenmrsAppContext.PROP_ORDER_TYPE_TO_CATEGORY_MAP,
+		        "No Such Type:ghost"));
+		
+		assertThat(uuids(param(FhirConstants.CATEGORY_SEARCH_HANDLER, ref("ghost"))), empty());
+	}
+	
+	@Test
+	public void search_byCategoryOrList_matchesEitherOrderType() {
+		assertThat(uuids(param(FhirConstants.CATEGORY_SEARCH_HANDLER, ref(XRAY_TYPE_UUID, LAB_TYPE_UUID))),
+		    containsInAnyOrder(SR1, SR2, SR3, SR5));
+	}
+	
+	@Test
+	public void search_byDrugOrderTypeCategory_stillNeverReturnsDrugOrders() {
+		assertThat(uuids(param(FhirConstants.CATEGORY_SEARCH_HANDLER, ref(OrderType.DRUG_ORDER_TYPE_UUID))), empty());
+	}
+	
+	// ---- basedOn (previousOrder) ----
+	
+	@Test
+	public void search_byBasedOn_returnsOrdersThatReviseThePreviousOrder() {
+		assertThat(uuids(param(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, ref(SR1))), containsInAnyOrder(SR3));
+	}
+	
+	@Test
+	public void search_byBasedOnOnOrderWithNoRevisions_returnsNothing() {
+		assertThat(uuids(param(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, ref(SR2))), empty());
+	}
+	
+	// ---- location (via the order's encounter) ----
+	
+	@Test
+	public void search_byLocation_returnsOrdersWhoseEncounterIsAtThatLocation() {
+		assertThat(uuids(param(BahmniFhirConstants.ORDER_LOCATION_SEARCH_HANDLER, ref(LOCATION_1))), containsInAnyOrder(SR1));
+		assertThat(uuids(param(BahmniFhirConstants.ORDER_LOCATION_SEARCH_HANDLER, ref(LOCATION_2))),
+		    containsInAnyOrder(SR2, SR3, SR5, STD_6, STD_7, STD_9));
+	}
+	
+	@Test
+	public void search_byLocationAndEncounterAtAnotherLocation_intersectsAndReturnsNothing() {
+		SearchParameterMap params = param(BahmniFhirConstants.ORDER_LOCATION_SEARCH_HANDLER, ref(LOCATION_2)).addParameter(
+		    FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER, ref(ENCOUNTER_4));
+		
+		assertThat(uuids(params), empty());
+	}
+	
+	@Test
+	public void search_withNullValuedCodeCategoryBasedOnLocationAndDateParameters_ignoresThemAndReturnsEverything() {
+		List<String> unfiltered = uuids(new SearchParameterMap());
+		
+		for (String handler : Arrays.asList(FhirConstants.CODED_SEARCH_HANDLER, FhirConstants.CATEGORY_SEARCH_HANDLER,
+		    FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, BahmniFhirConstants.ORDER_LOCATION_SEARCH_HANDLER,
+		    FhirConstants.DATE_RANGE_SEARCH_HANDLER)) {
+			assertThat(handler, uuids(param(handler, null)), containsInAnyOrder(unfiltered.toArray()));
+		}
+	}
+	
+	// ---- common parameters ----
+	
+	@Test
+	public void search_byIdCommonParameter_returnsThatOrderOnly() {
+		SearchParameterMap params = new SearchParameterMap().addParameter(FhirConstants.COMMON_SEARCH_HANDLER,
+		    FhirConstants.ID_PROPERTY, new TokenAndListParam().addAnd(new TokenParam(SR3)));
+		
+		assertThat(uuids(params), containsInAnyOrder(SR3));
+	}
+	
+	// ---- get ----
+	
+	@Test
+	public void get_byUuid_returnsServiceRequestOrder() {
+		Order order = dao.get(SR1);
+		
+		assertThat(order, notNullValue());
+		assertThat(order.getUuid(), equalTo(SR1));
+	}
+	
+	@Test
+	public void get_byUuidOfDrugOrder_returnsNull() {
+		assertThat(dao.get(DRUG_ORDER), nullValue());
+	}
+	
+	@Test
+	public void get_byUnknownUuid_returnsNull() {
+		assertThat(dao.get("does-not-exist"), nullValue());
+	}
+	
+	@Test
+	public void get_byUuidCollection_skipsDrugOrdersVoidedOrdersAndUnknownUuids() {
+		List<Order> orders = dao.get(Arrays.asList(SR1, SR3, SR4_VOIDED, DRUG_ORDER, "unknown"));
 
-		assertThrows(InvalidRequestException.class, () -> {
-			serviceRequestDao.createOrUpdate(order);
-		});
+		assertThat(orders.stream().map(Order::getUuid).collect(Collectors.toList()), containsInAnyOrder(SR1, SR3));
 	}
 	
 	@Test
-	public void createOrUpdate_shouldSaveOrderForNonDrugOrder() {
-		Order order = new Order();
-		OrderType labOrderType = new OrderType();
-		labOrderType.setUuid("lab-order-uuid");
-		order.setOrderType(labOrderType);
-		
-		Order savedOrder = new Order();
-		savedOrder.setUuid(ORDER_UUID);
-		org.mockito.Mockito.when(orderService.saveOrder(order, null)).thenReturn(savedOrder);
-		
-		Order result = serviceRequestDao.createOrUpdate(order);
-		
-		assertThat(result, notNullValue());
+	public void get_byEmptyOrNullUuidCollection_returnsEmptyList() {
+		assertThat(dao.get(Collections.<String> emptyList()), empty());
+		assertThat(dao.get((Collection<String>) null), empty());
 	}
 	
+	// ---- createOrUpdate ----
+	
 	@Test
-	public void createOrUpdate_shouldRejectDrugOrderType() {
-		Order order = new Order();
-		OrderType drugOrderType = new OrderType();
-		drugOrderType.setUuid(OrderType.DRUG_ORDER_TYPE_UUID);
-		order.setOrderType(drugOrderType);
+	public void createOrUpdate_withDrugOrderType_isRejected() {
+		DrugOrder drugOrder = new DrugOrder();
+		drugOrder.setOrderType(Context.getOrderService().getOrderTypeByUuid(OrderType.DRUG_ORDER_TYPE_UUID));
 
-		InvalidRequestException exception = assertThrows(InvalidRequestException.class, () -> {
-			serviceRequestDao.createOrUpdate(order);
-		});
+		InvalidRequestException ex = assertThrows(InvalidRequestException.class, () -> dao.createOrUpdate(drugOrder));
 
-		assertThat(exception.getMessage(), notNullValue());
+		assertThat(ex.getMessage(), is("Drug Orders cannot be submitted through ServiceRequest "));
+	}
+	
+	private TestOrder newTestOrder() {
+		TestOrder order = new TestOrder();
+		order.setPatient(Context.getPatientService().getPatientByUuid(PATIENT_2));
+		order.setConcept(Context.getConceptService().getConcept(5497));
+		order.setEncounter(Context.getEncounterService().getEncounterByUuid(ENCOUNTER_6));
+		order.setOrderer(Context.getProviderService().getProvider(1));
+		order.setCareSetting(Context.getOrderService().getCareSetting(1));
+		order.setOrderType(Context.getOrderService().getOrderTypeByUuid(TEST_ORDER_TYPE_UUID));
+		order.setUrgency(Order.Urgency.ROUTINE);
+		order.setAction(Order.Action.NEW);
+		order.setDateActivated(new Date(System.currentTimeMillis() - 24L * 3600 * 1000));
+		return order;
 	}
 	
 	@Test
-	public void setupSearchParams_shouldHandleEncounterReference() {
-		Criteria criteria = mock(Criteria.class);
-		ca.uhn.fhir.rest.param.ReferenceAndListParam encounterRef = new ca.uhn.fhir.rest.param.ReferenceAndListParam()
-		        .addAnd(new ca.uhn.fhir.rest.param.ReferenceOrListParam().add(new ca.uhn.fhir.rest.param.ReferenceParam(
-		                "Encounter", "enc-123")));
+	public void createOrUpdate_withTestOrder_persistsAndMakesOrderRetrievableAndSearchable() {
+		Order saved = dao.createOrUpdate(newTestOrder());
+		Context.flushSession();
 		
-		org.openmrs.module.fhir2.api.search.param.SearchParameterMap params = new org.openmrs.module.fhir2.api.search.param.SearchParameterMap();
-		params.addParameter("encounter", encounterRef);
-		
-		serviceRequestDao.setupSearchParams(criteria, params);
-		
-		assertThat(params, notNullValue());
+		assertThat(saved.getOrderId(), notNullValue());
+		assertThat(dao.get(saved.getUuid()).getOrderId(), equalTo(saved.getOrderId()));
+		assertThat(uuids(param(FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER, ref(ENCOUNTER_6))),
+		    hasItem(saved.getUuid()));
 	}
 	
 	@Test
-	public void setupSearchParams_shouldHandlePatientReference() {
-		Criteria criteria = mock(Criteria.class);
-		ca.uhn.fhir.rest.param.ReferenceAndListParam patientRef = new ca.uhn.fhir.rest.param.ReferenceAndListParam()
-		        .addAnd(new ca.uhn.fhir.rest.param.ReferenceOrListParam().add(new ca.uhn.fhir.rest.param.ReferenceParam(
-		                "Patient", "pat-123")));
-		
-		org.openmrs.module.fhir2.api.search.param.SearchParameterMap params = new org.openmrs.module.fhir2.api.search.param.SearchParameterMap();
-		params.addParameter("subject", patientRef);
-		
-		serviceRequestDao.setupSearchParams(criteria, params);
-		
-		assertThat(params, notNullValue());
-	}
-	
-	@Test
-	public void setupSearchParams_shouldHandleCodeParameter() {
-		Criteria criteria = mock(Criteria.class);
-		ca.uhn.fhir.rest.param.TokenAndListParam code = new ca.uhn.fhir.rest.param.TokenAndListParam()
-		        .addAnd(new ca.uhn.fhir.rest.param.TokenOrListParam().add("order-code"));
-		
-		org.openmrs.module.fhir2.api.search.param.SearchParameterMap params = new org.openmrs.module.fhir2.api.search.param.SearchParameterMap();
-		params.addParameter("code", code);
-		
-		serviceRequestDao.setupSearchParams(criteria, params);
-		
-		assertThat(params, notNullValue());
-	}
-	
-	@Test
-	public void setupSearchParams_shouldHandleLocationReference() {
-		Criteria criteria = mock(Criteria.class);
-		ca.uhn.fhir.rest.param.ReferenceAndListParam locationRef = new ca.uhn.fhir.rest.param.ReferenceAndListParam()
-		        .addAnd(new ca.uhn.fhir.rest.param.ReferenceOrListParam().add(new ca.uhn.fhir.rest.param.ReferenceParam(
-		                "Location", "loc-123")));
-		
-		org.openmrs.module.fhir2.api.search.param.SearchParameterMap params = new org.openmrs.module.fhir2.api.search.param.SearchParameterMap();
-		params.addParameter("order-location", locationRef);
-		
-		serviceRequestDao.setupSearchParams(criteria, params);
-		
-		assertThat(params, notNullValue());
-	}
-	
-	@Test
-	public void setupSearchParams_shouldHandleCategoryReference() {
-		Criteria criteria = mock(Criteria.class);
-		ca.uhn.fhir.rest.param.ReferenceAndListParam categoryRef = new ca.uhn.fhir.rest.param.ReferenceAndListParam()
-		        .addAnd(new ca.uhn.fhir.rest.param.ReferenceOrListParam().add(new ca.uhn.fhir.rest.param.ReferenceParam(
-		                "OrderType", "lab")));
-		
-		org.openmrs.module.fhir2.api.search.param.SearchParameterMap params = new org.openmrs.module.fhir2.api.search.param.SearchParameterMap();
-		params.addParameter("category", categoryRef);
-		
-		serviceRequestDao.setupSearchParams(criteria, params);
-		
-		assertThat(params, notNullValue());
-	}
-	
-	@Test
-	public void setupSearchParams_shouldHandleBasedOnReference() {
-		Criteria criteria = mock(Criteria.class);
-		ca.uhn.fhir.rest.param.ReferenceAndListParam basedOnRef = new ca.uhn.fhir.rest.param.ReferenceAndListParam()
-		        .addAnd(new ca.uhn.fhir.rest.param.ReferenceOrListParam().add(new ca.uhn.fhir.rest.param.ReferenceParam(
-		                "Order", "prev-order")));
-		
-		org.openmrs.module.fhir2.api.search.param.SearchParameterMap params = new org.openmrs.module.fhir2.api.search.param.SearchParameterMap();
-		params.addParameter("based-on", basedOnRef);
-		
-		serviceRequestDao.setupSearchParams(criteria, params);
-		
-		assertThat(params, notNullValue());
-	}
-	
-	@Test
-	public void setupSearchParams_shouldHandleCodedConceptParameter() {
-		Criteria criteria = mock(Criteria.class);
-		ca.uhn.fhir.rest.param.TokenAndListParam code = new ca.uhn.fhir.rest.param.TokenAndListParam()
-		        .addAnd(new ca.uhn.fhir.rest.param.TokenOrListParam().add("lab-code"));
-		
-		org.openmrs.module.fhir2.api.search.param.SearchParameterMap params = new org.openmrs.module.fhir2.api.search.param.SearchParameterMap();
-		params.addParameter("code", code);
-		
-		serviceRequestDao.setupSearchParams(criteria, params);
-		
-		assertThat(params, notNullValue());
-	}
-	
-	@Test
-	public void setupSearchParams_shouldHandleParticipantReference() {
-		Criteria criteria = mock(Criteria.class);
-		ca.uhn.fhir.rest.param.ReferenceAndListParam participantRef = new ca.uhn.fhir.rest.param.ReferenceAndListParam()
-		        .addAnd(new ca.uhn.fhir.rest.param.ReferenceOrListParam().add(new ca.uhn.fhir.rest.param.ReferenceParam(
-		                "Practitioner", "provider-123")));
-		
-		org.openmrs.module.fhir2.api.search.param.SearchParameterMap params = new org.openmrs.module.fhir2.api.search.param.SearchParameterMap();
-		params.addParameter("participant", participantRef);
-		
-		serviceRequestDao.setupSearchParams(criteria, params);
-		
-		assertThat(params, notNullValue());
-	}
-	
-	@Test
-	public void setupSearchParams_shouldHandleMultipleParametersInSingleQuery() {
-		Criteria criteria = mock(Criteria.class);
-		
-		ca.uhn.fhir.rest.param.ReferenceAndListParam patientRef = new ca.uhn.fhir.rest.param.ReferenceAndListParam()
-		        .addAnd(new ca.uhn.fhir.rest.param.ReferenceOrListParam().add(new ca.uhn.fhir.rest.param.ReferenceParam(
-		                "Patient", "pat-123")));
-		ca.uhn.fhir.rest.param.TokenAndListParam code = new ca.uhn.fhir.rest.param.TokenAndListParam()
-		        .addAnd(new ca.uhn.fhir.rest.param.TokenOrListParam().add("order-code"));
-		ca.uhn.fhir.rest.param.ReferenceAndListParam locationRef = new ca.uhn.fhir.rest.param.ReferenceAndListParam()
-		        .addAnd(new ca.uhn.fhir.rest.param.ReferenceOrListParam().add(new ca.uhn.fhir.rest.param.ReferenceParam(
-		                "Location", "loc-123")));
-		
-		org.openmrs.module.fhir2.api.search.param.SearchParameterMap params = new org.openmrs.module.fhir2.api.search.param.SearchParameterMap();
-		params.addParameter("subject", patientRef);
-		params.addParameter("code", code);
-		params.addParameter("order-location", locationRef);
-		
-		serviceRequestDao.setupSearchParams(criteria, params);
-		
-		assertThat(params, notNullValue());
-	}
-	
-	@Test
-	public void setupSearchParams_shouldIgnoreNullCodeParameter() {
-		Criteria criteria = mock(Criteria.class);
-		org.openmrs.module.fhir2.api.search.param.SearchParameterMap params = new org.openmrs.module.fhir2.api.search.param.SearchParameterMap();
-		params.addParameter("code", null);
-		
-		serviceRequestDao.setupSearchParams(criteria, params);
-		
-		assertThat(params, notNullValue());
-	}
-	
-	@Test
-	public void setupSearchParams_shouldIgnoreNullDateRange() {
-		Criteria criteria = mock(Criteria.class);
-		org.openmrs.module.fhir2.api.search.param.SearchParameterMap params = new org.openmrs.module.fhir2.api.search.param.SearchParameterMap();
-		params.addParameter(org.openmrs.module.fhir2.FhirConstants.DATE_RANGE_SEARCH_HANDLER, null);
-		
-		serviceRequestDao.setupSearchParams(criteria, params);
-		
-		assertThat(params, notNullValue());
-	}
-	
-	@Test
-	public void setupSearchParams_shouldIgnoreNullCategoryReference() {
-		Criteria criteria = mock(Criteria.class);
-		org.openmrs.module.fhir2.api.search.param.SearchParameterMap params = new org.openmrs.module.fhir2.api.search.param.SearchParameterMap();
-		params.addParameter(org.openmrs.module.fhir2.FhirConstants.CATEGORY_SEARCH_HANDLER, null);
-		
-		serviceRequestDao.setupSearchParams(criteria, params);
-		
-		assertThat(params, notNullValue());
-	}
-	
-	@Test
-	public void setupSearchParams_shouldIgnoreNullBasedOnReference() {
-		Criteria criteria = mock(Criteria.class);
-		org.openmrs.module.fhir2.api.search.param.SearchParameterMap params = new org.openmrs.module.fhir2.api.search.param.SearchParameterMap();
-		params.addParameter(org.openmrs.module.fhir2.FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, null);
-		
-		serviceRequestDao.setupSearchParams(criteria, params);
-		
-		assertThat(params, notNullValue());
-	}
-	
-	@Test
-	public void setupSearchParams_shouldIgnoreNullLocationReference() {
-		Criteria criteria = mock(Criteria.class);
-		org.openmrs.module.fhir2.api.search.param.SearchParameterMap params = new org.openmrs.module.fhir2.api.search.param.SearchParameterMap();
-		params.addParameter(BahmniFhirConstants.ORDER_LOCATION_SEARCH_HANDLER, null);
-		
-		serviceRequestDao.setupSearchParams(criteria, params);
-		
-		assertThat(params, notNullValue());
-	}
-	
-	@Test
-	public void get_shouldReturnOrderForNonDrugOrder() {
-		org.mockito.Mockito.when(sessionFactory.getCurrentSession()).thenReturn(session);
-		javax.persistence.criteria.CriteriaBuilder cb = mock(javax.persistence.criteria.CriteriaBuilder.class);
-		org.mockito.Mockito.when(session.getCriteriaBuilder()).thenReturn(cb);
-		javax.persistence.criteria.CriteriaQuery<Order> cq = mock(javax.persistence.criteria.CriteriaQuery.class);
-		org.mockito.Mockito.when(cb.createQuery(Order.class)).thenReturn(cq);
-		javax.persistence.criteria.Root<Order> root = mock(javax.persistence.criteria.Root.class);
-		org.mockito.Mockito.when(cq.from(Order.class)).thenReturn(root);
-		org.mockito.Mockito.when(cq.select(root)).thenReturn(cq);
-		org.mockito.Mockito.when(root.join("orderType")).thenReturn(mock(javax.persistence.criteria.Join.class));
-		org.hibernate.query.Query<Order> query = mock(org.hibernate.query.Query.class);
-		org.mockito.Mockito.when(session.createQuery(cq)).thenReturn(query);
-		Order order = new Order();
-		order.setUuid(ORDER_UUID);
-		org.mockito.Mockito.when(query.uniqueResult()).thenReturn(order);
-		
-		Order result = serviceRequestDao.get(ORDER_UUID);
-		
-		assertThat(result, notNullValue());
-		assertThat(result.getUuid(), is(ORDER_UUID));
-	}
-	
-	@Test
-	public void get_shouldReturnNullWhenOrderNotFound() {
-		org.mockito.Mockito.when(sessionFactory.getCurrentSession()).thenReturn(session);
-		javax.persistence.criteria.CriteriaBuilder cb = mock(javax.persistence.criteria.CriteriaBuilder.class);
-		org.mockito.Mockito.when(session.getCriteriaBuilder()).thenReturn(cb);
-		javax.persistence.criteria.CriteriaQuery<Order> cq = mock(javax.persistence.criteria.CriteriaQuery.class);
-		org.mockito.Mockito.when(cb.createQuery(Order.class)).thenReturn(cq);
-		javax.persistence.criteria.Root<Order> root = mock(javax.persistence.criteria.Root.class);
-		org.mockito.Mockito.when(cq.from(Order.class)).thenReturn(root);
-		org.mockito.Mockito.when(cq.select(root)).thenReturn(cq);
-		org.mockito.Mockito.when(root.join("orderType")).thenReturn(mock(javax.persistence.criteria.Join.class));
-		org.hibernate.query.Query<Order> query = mock(org.hibernate.query.Query.class);
-		org.mockito.Mockito.when(session.createQuery(cq)).thenReturn(query);
-		org.mockito.Mockito.when(query.uniqueResult()).thenReturn(null);
-		
-		assertThat(serviceRequestDao.get(ORDER_UUID), nullValue());
-	}
-	
-	@Test
-	public void get_shouldQueryByUuidAndExcludeDrugOrderType() {
-		org.mockito.Mockito.when(sessionFactory.getCurrentSession()).thenReturn(session);
-		javax.persistence.criteria.CriteriaBuilder cb = mock(javax.persistence.criteria.CriteriaBuilder.class);
-		org.mockito.Mockito.when(session.getCriteriaBuilder()).thenReturn(cb);
-		javax.persistence.criteria.CriteriaQuery<Order> cq = mock(javax.persistence.criteria.CriteriaQuery.class);
-		org.mockito.Mockito.when(cb.createQuery(Order.class)).thenReturn(cq);
-		javax.persistence.criteria.Root<Order> root = mock(javax.persistence.criteria.Root.class);
-		org.mockito.Mockito.when(cq.from(Order.class)).thenReturn(root);
-		org.mockito.Mockito.when(cq.select(root)).thenReturn(cq);
-		org.mockito.Mockito.when(root.join("orderType")).thenReturn(mock(javax.persistence.criteria.Join.class));
-		org.hibernate.query.Query<Order> query = mock(org.hibernate.query.Query.class);
-		org.mockito.Mockito.when(session.createQuery(cq)).thenReturn(query);
-		org.mockito.Mockito.when(query.uniqueResult()).thenReturn(new Order());
-		
-		serviceRequestDao.get(ORDER_UUID);
-		
-		verify(cq).where(any(), any());
-	}
-	
-	@Test
-	public void get_shouldReturnOrdersForUuids() {
-		org.mockito.Mockito.when(sessionFactory.getCurrentSession()).thenReturn(session);
-		Criteria criteria = mock(Criteria.class);
-		org.mockito.Mockito.when(session.createCriteria(Order.class)).thenReturn(criteria);
-		Order order = new Order();
-		order.setUuid(ORDER_UUID);
-		org.mockito.Mockito.when(criteria.list()).thenReturn(Collections.singletonList(order));
-		
-		List<Order> results = serviceRequestDao.get(Collections.singletonList(ORDER_UUID));
-		
-		assertThat(results, hasSize(1));
-		assertThat(results.get(0).getUuid(), is(ORDER_UUID));
-	}
-	
-	@Test
-	public void get_shouldReturnEmptyListWhenNoOrdersFound() {
-		org.mockito.Mockito.when(sessionFactory.getCurrentSession()).thenReturn(session);
-		Criteria criteria = mock(Criteria.class);
-		org.mockito.Mockito.when(session.createCriteria(Order.class)).thenReturn(criteria);
-		org.mockito.Mockito.when(criteria.list()).thenReturn(Collections.emptyList());
-		
-		assertThat(serviceRequestDao.get(Collections.singletonList(ORDER_UUID)), hasSize(0));
-	}
-	
-	@Test
-	public void get_shouldExcludeDrugOrdersFromCollectionLookup() {
-		org.mockito.Mockito.when(sessionFactory.getCurrentSession()).thenReturn(session);
-		Criteria criteria = mock(Criteria.class);
-		org.mockito.Mockito.when(session.createCriteria(Order.class)).thenReturn(criteria);
-		org.mockito.Mockito.when(criteria.list()).thenReturn(Collections.singletonList(new Order()));
-		
-		serviceRequestDao.get(Collections.singletonList(ORDER_UUID));
-		
-		ArgumentCaptor<Criterion> captor = ArgumentCaptor.forClass(Criterion.class);
-		verify(criteria, times(3)).add(captor.capture());
-		assertThat(captor.getAllValues().stream().anyMatch(c -> c.toString().contains("ot.uuid")), is(true));
-	}
-	
-	@Test
-	public void getEncounterReferencesByNumberOfVisit_shouldReturnEncounterReferencesForRecentVisits() {
-		org.mockito.Mockito.when(sessionFactory.getCurrentSession()).thenReturn(session);
-		Criteria visitCriteria = mock(Criteria.class);
-		org.mockito.Mockito.when(session.createCriteria(Visit.class, "v")).thenReturn(visitCriteria);
-		org.mockito.Mockito.when(visitCriteria.list()).thenReturn(Arrays.asList(10, 9, 8));
-		Criteria encounterCriteria = mock(Criteria.class);
-		org.mockito.Mockito.when(session.createCriteria(Encounter.class, "e")).thenReturn(encounterCriteria);
-		org.mockito.Mockito.when(encounterCriteria.createAlias("e.visit", "v")).thenReturn(encounterCriteria);
-		org.mockito.Mockito.when(encounterCriteria.add(any(org.hibernate.criterion.Criterion.class))).thenReturn(
-		    encounterCriteria);
-		org.mockito.Mockito.when(encounterCriteria.setProjection(any(org.hibernate.criterion.Projection.class))).thenReturn(
-		    encounterCriteria);
-		org.mockito.Mockito.when(encounterCriteria.list()).thenReturn(Arrays.asList("enc-1", "enc-2"));
-		
-		ca.uhn.fhir.rest.param.ReferenceAndListParam result = serviceRequestDao.getEncounterReferencesByNumberOfVisit(
-		    new ca.uhn.fhir.rest.param.NumberParam(2), new ca.uhn.fhir.rest.param.ReferenceParam("Patient", "pat-123"));
-		
-		assertThat(result, notNullValue());
-		List<ca.uhn.fhir.rest.param.ReferenceOrListParam> andList = result.getValuesAsQueryTokens();
-		assertThat(andList, hasSize(1));
-		assertThat(andList.get(0).getValuesAsQueryTokens(), hasSize(2));
-		verify(visitCriteria).addOrder(any(org.hibernate.criterion.Order.class));
-		verify(visitCriteria).setMaxResults(2);
-	}
-	
-	@Test
-	public void getEncounterReferencesByNumberOfVisit_shouldReturnNullWhenNoEncountersFound() {
-		org.mockito.Mockito.when(sessionFactory.getCurrentSession()).thenReturn(session);
-		Criteria visitCriteria = mock(Criteria.class);
-		org.mockito.Mockito.when(session.createCriteria(Visit.class, "v")).thenReturn(visitCriteria);
-		org.mockito.Mockito.when(visitCriteria.list()).thenReturn(Arrays.asList(10, 9));
-		Criteria encounterCriteria = mock(Criteria.class);
-		org.mockito.Mockito.when(session.createCriteria(Encounter.class, "e")).thenReturn(encounterCriteria);
-		org.mockito.Mockito.when(encounterCriteria.createAlias("e.visit", "v")).thenReturn(encounterCriteria);
-		org.mockito.Mockito.when(encounterCriteria.add(any(org.hibernate.criterion.Criterion.class))).thenReturn(
-		    encounterCriteria);
-		org.mockito.Mockito.when(encounterCriteria.setProjection(any(org.hibernate.criterion.Projection.class))).thenReturn(
-		    encounterCriteria);
-		org.mockito.Mockito.when(encounterCriteria.list()).thenReturn(Collections.emptyList());
-		
-		ca.uhn.fhir.rest.param.ReferenceAndListParam result = serviceRequestDao.getEncounterReferencesByNumberOfVisit(
-		    new ca.uhn.fhir.rest.param.NumberParam(2), new ca.uhn.fhir.rest.param.ReferenceParam("Patient", "pat-123"));
-		
-		assertThat(result, nullValue());
-	}
-	
-	@Test
-	public void setupSearchParams_shouldAddPatientRestriction() {
-		Criteria criteria = mock(Criteria.class);
-		ca.uhn.fhir.rest.param.ReferenceAndListParam patientRef = new ca.uhn.fhir.rest.param.ReferenceAndListParam()
-		        .addAnd(new ca.uhn.fhir.rest.param.ReferenceOrListParam().add(new ca.uhn.fhir.rest.param.ReferenceParam(
-		                "Patient", "pat-123")));
-		org.openmrs.module.fhir2.api.search.param.SearchParameterMap params = new org.openmrs.module.fhir2.api.search.param.SearchParameterMap();
-		params.addParameter(org.openmrs.module.fhir2.FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER, patientRef);
-		
-		serviceRequestDao.setupSearchParams(criteria, params);
-		
-		verify(criteria).createAlias("patient", "p");
-		verify(criteria, times(2)).add(any(Criterion.class));
-	}
-	
-	@Test
-	public void setupSearchParams_shouldAddEncounterRestriction() {
-		Criteria criteria = mock(Criteria.class);
-		ca.uhn.fhir.rest.param.ReferenceAndListParam encounterRef = new ca.uhn.fhir.rest.param.ReferenceAndListParam()
-		        .addAnd(new ca.uhn.fhir.rest.param.ReferenceOrListParam().add(new ca.uhn.fhir.rest.param.ReferenceParam(
-		                "Encounter", "enc-123")));
-		org.openmrs.module.fhir2.api.search.param.SearchParameterMap params = new org.openmrs.module.fhir2.api.search.param.SearchParameterMap();
-		params.addParameter(org.openmrs.module.fhir2.FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER, encounterRef);
-		
-		serviceRequestDao.setupSearchParams(criteria, params);
-		
-		verify(criteria, times(2)).add(any(Criterion.class));
-	}
-	
-	@Test
-	public void setupSearchParams_shouldAddBasedOnRestriction() {
-		Criteria criteria = mock(Criteria.class);
-		ca.uhn.fhir.rest.param.ReferenceAndListParam basedOnRef = new ca.uhn.fhir.rest.param.ReferenceAndListParam()
-		        .addAnd(new ca.uhn.fhir.rest.param.ReferenceOrListParam().add(new ca.uhn.fhir.rest.param.ReferenceParam(
-		                "Order", "prev-order")));
-		org.openmrs.module.fhir2.api.search.param.SearchParameterMap params = new org.openmrs.module.fhir2.api.search.param.SearchParameterMap();
-		params.addParameter(org.openmrs.module.fhir2.FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, basedOnRef);
-		
-		serviceRequestDao.setupSearchParams(criteria, params);
-		
-		ArgumentCaptor<Criterion> captor = ArgumentCaptor.forClass(Criterion.class);
-		verify(criteria, times(2)).add(captor.capture());
-		assertThat(captor.getAllValues().stream().anyMatch(c -> c.toString().contains("po.uuid")), is(true));
-	}
-	
-	@Test
-	public void setupSearchParams_shouldAddLocationRestriction() {
-		Criteria criteria = mock(Criteria.class);
-		ca.uhn.fhir.rest.param.ReferenceAndListParam locationRef = new ca.uhn.fhir.rest.param.ReferenceAndListParam()
-		        .addAnd(new ca.uhn.fhir.rest.param.ReferenceOrListParam().add(new ca.uhn.fhir.rest.param.ReferenceParam(
-		                "Location", "loc-123")));
-		org.openmrs.module.fhir2.api.search.param.SearchParameterMap params = new org.openmrs.module.fhir2.api.search.param.SearchParameterMap();
-		params.addParameter(BahmniFhirConstants.ORDER_LOCATION_SEARCH_HANDLER, locationRef);
-		
-		serviceRequestDao.setupSearchParams(criteria, params);
-		
-		ArgumentCaptor<Criterion> captor = ArgumentCaptor.forClass(Criterion.class);
-		verify(criteria, times(2)).add(captor.capture());
-		assertThat(captor.getAllValues().stream().anyMatch(c -> c.toString().contains("l.uuid")), is(true));
-	}
-	
-	@Test
-	public void setupSearchParams_shouldAddParticipantRestriction() {
-		Criteria criteria = mock(Criteria.class);
-		ca.uhn.fhir.rest.param.ReferenceAndListParam participantRef = new ca.uhn.fhir.rest.param.ReferenceAndListParam()
-		        .addAnd(new ca.uhn.fhir.rest.param.ReferenceOrListParam().add(new ca.uhn.fhir.rest.param.ReferenceParam(
-		                "Practitioner", "provider-123")));
-		org.openmrs.module.fhir2.api.search.param.SearchParameterMap params = new org.openmrs.module.fhir2.api.search.param.SearchParameterMap();
-		params.addParameter(org.openmrs.module.fhir2.FhirConstants.PARTICIPANT_REFERENCE_SEARCH_HANDLER, participantRef);
-		
-		serviceRequestDao.setupSearchParams(criteria, params);
-		
-		verify(criteria, times(2)).add(any(Criterion.class));
-	}
-	
-	@Test
-	public void setupSearchParams_shouldHandleDateRangeWithBounds() {
-		Criteria criteria = mock(Criteria.class);
-		ca.uhn.fhir.rest.param.DateRangeParam dateRange = new ca.uhn.fhir.rest.param.DateRangeParam(
-		        new ca.uhn.fhir.rest.param.DateParam("ge2020-01-01"), new ca.uhn.fhir.rest.param.DateParam("le2020-12-31"));
-		org.openmrs.module.fhir2.api.search.param.SearchParameterMap params = new org.openmrs.module.fhir2.api.search.param.SearchParameterMap();
-		params.addParameter(org.openmrs.module.fhir2.FhirConstants.DATE_RANGE_SEARCH_HANDLER, dateRange);
-		
-		serviceRequestDao.setupSearchParams(criteria, params);
-		
-		ArgumentCaptor<Criterion> captor = ArgumentCaptor.forClass(Criterion.class);
-		verify(criteria, times(2)).add(captor.capture());
-		assertThat(captor.getAllValues().stream().anyMatch(c -> c.toString().contains("scheduledDate")), is(true));
-	}
-	
-	@Test
-	public void setupSearchParams_shouldResolveCategoryToOrderTypeUuid() {
-		Criteria criteria = mock(Criteria.class);
-		Map<String, String> categoryMap = new HashMap<>();
-		categoryMap.put("Lab Order", "lab");
-		org.mockito.Mockito.when(appContext.getOrderTypeToCategoryMap()).thenReturn(categoryMap);
-		OrderType labOrderType = new OrderType();
-		labOrderType.setUuid("lab-order-type-uuid");
-		org.mockito.Mockito.when(orderService.getOrderTypeByName("Lab Order")).thenReturn(labOrderType);
-		ca.uhn.fhir.rest.param.ReferenceAndListParam categoryRef = new ca.uhn.fhir.rest.param.ReferenceAndListParam()
-		        .addAnd(new ca.uhn.fhir.rest.param.ReferenceOrListParam().add(new ca.uhn.fhir.rest.param.ReferenceParam(
-		                "OrderType", "lab")));
-		org.openmrs.module.fhir2.api.search.param.SearchParameterMap params = new org.openmrs.module.fhir2.api.search.param.SearchParameterMap();
-		params.addParameter(org.openmrs.module.fhir2.FhirConstants.CATEGORY_SEARCH_HANDLER, categoryRef);
-		
-serviceRequestDao.setupSearchParams(criteria, params);
-		
-		verify(appContext).getOrderTypeToCategoryMap();
-		verify(orderService).getOrderTypeByName("Lab Order");
-		verify(criteria, times(2)).add(any(Criterion.class));
-	}
-	
-	@Test
-	public void setupSearchParams_shouldFallbackToCategoryValueWhenOrderTypeMappingMissing() {
-		Criteria criteria = mock(Criteria.class);
-		org.mockito.Mockito.when(appContext.getOrderTypeToCategoryMap()).thenReturn(Collections.emptyMap());
-		ca.uhn.fhir.rest.param.ReferenceAndListParam categoryRef = new ca.uhn.fhir.rest.param.ReferenceAndListParam()
-		        .addAnd(new ca.uhn.fhir.rest.param.ReferenceOrListParam().add(new ca.uhn.fhir.rest.param.ReferenceParam(
-		                "OrderType", "lab")));
-		org.openmrs.module.fhir2.api.search.param.SearchParameterMap params = new org.openmrs.module.fhir2.api.search.param.SearchParameterMap();
-		params.addParameter(org.openmrs.module.fhir2.FhirConstants.CATEGORY_SEARCH_HANDLER, categoryRef);
-		
-		serviceRequestDao.setupSearchParams(criteria, params);
-		
-		verify(appContext).getOrderTypeToCategoryMap();
-		verify(orderService, never()).getOrderTypeByName(any());
-		verify(criteria, times(2)).add(any(Criterion.class));
+	public void createOrUpdate_withDiscontinueOrder_stopsThePreviousOrderAndLinksBackToIt() {
+		Order original = dao.createOrUpdate(newTestOrder());
+		Context.flushSession();
+		
+		TestOrder revoke = newTestOrder();
+		revoke.setAction(Order.Action.DISCONTINUE);
+		revoke.setPreviousOrder(original);
+		revoke.setDateActivated(new Date());
+		Order saved = dao.createOrUpdate(revoke);
+		Context.flushSession();
+		
+		assertThat(saved.getAction(), equalTo(Order.Action.DISCONTINUE));
+		assertThat(dao.get(original.getUuid()).getDateStopped(), notNullValue());
+		assertThat(uuids(param(FhirConstants.BASED_ON_REFERENCE_SEARCH_HANDLER, ref(original.getUuid()))),
+		    containsInAnyOrder(saved.getUuid()));
 	}
 }

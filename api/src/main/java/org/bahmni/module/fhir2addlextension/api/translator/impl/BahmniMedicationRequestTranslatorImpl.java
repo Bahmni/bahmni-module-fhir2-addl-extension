@@ -18,7 +18,6 @@ import org.openmrs.CareSetting;
 import org.openmrs.DrugOrder;
 import org.openmrs.Order;
 import org.openmrs.api.OrderService;
-import org.openmrs.module.fhir2.api.translators.ConceptTranslator;
 import org.openmrs.module.fhir2.api.translators.impl.MedicationRequestTranslatorImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
@@ -34,12 +33,8 @@ import java.util.Date;
 public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTranslatorImpl {
 	
 	@Autowired
-	@Setter(value = AccessLevel.PACKAGE)
+	@Setter(value = AccessLevel.PROTECTED)
 	private OrderService orderService;
-	
-	@Autowired
-	@Setter(value = AccessLevel.PACKAGE)
-	private ConceptTranslator conceptTranslator;
 	
 	@Override
 	public MedicationRequest toFhirResource(@Nonnull DrugOrder drugOrder) {
@@ -108,7 +103,7 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 			}
 			CodeableConcept statusReason = new CodeableConcept();
 			if (discontinuationOrder.getOrderReason() != null) {
-				CodeableConcept coded = conceptTranslator.toFhirResource(discontinuationOrder.getOrderReason());
+				CodeableConcept coded = getConceptTranslator().toFhirResource(discontinuationOrder.getOrderReason());
 				if (coded != null) {
 					statusReason.setCoding(coded.getCoding());
 				}
@@ -145,7 +140,7 @@ public class BahmniMedicationRequestTranslatorImpl extends MedicationRequestTran
 		if (medicationRequest.hasStatusReason()) {
 			CodeableConcept statusReason = medicationRequest.getStatusReason();
 			if (statusReason.hasCoding()) {
-				Concept reasonConcept = conceptTranslator.toOpenmrsType(statusReason);
+				Concept reasonConcept = getConceptTranslator().toOpenmrsType(statusReason);
 				if (reasonConcept != null) {
 					drugOrder.setOrderReason(reasonConcept);
 				}

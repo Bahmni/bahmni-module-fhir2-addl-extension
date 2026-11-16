@@ -2,7 +2,7 @@ package org.bahmni.module.fhir2addlextension.api.translator.impl;
 
 import org.bahmni.module.fhir2addlextension.api.translator.ServiceRequestStatusTranslator;
 import org.bahmni.module.fhir2addlextension.api.utils.ModuleUtils;
-import org.checkerframework.checker.nullness.qual.NonNull;
+import javax.annotation.Nonnull;
 import org.hl7.fhir.r4.model.ServiceRequest;
 import org.openmrs.Order;
 import org.springframework.stereotype.Component;
@@ -14,7 +14,7 @@ import java.util.Date;
 public class ServiceRequestStatusTranslatorImpl implements ServiceRequestStatusTranslator {
 	
 	@Override
-	public ServiceRequest.ServiceRequestStatus toFhirResource(@NonNull Order data) {
+	public ServiceRequest.ServiceRequestStatus toFhirResource(@Nonnull Order data) {
 		return determineServiceRequestStatus(data);
 	}
 	

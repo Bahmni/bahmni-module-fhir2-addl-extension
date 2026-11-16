@@ -528,7 +528,7 @@ BahmniServiceRequestSearchParams searchParams = new BahmniServiceRequestSearchPa
 		assertEquals(occurrence, actualMap.getParameters(DATE_RANGE_SEARCH_HANDLER).get(0).getParam());
 		
 		// For common search handler parameters, we need to check both the property and value
-		List<PropParam<?>> commonParams = actualMap.getParameters(COMMON_SEARCH_HANDLER);
+		List<? extends PropParam<?>> commonParams = actualMap.getParameters(COMMON_SEARCH_HANDLER);
 		
 		for (PropParam entry : commonParams) {
 			if (entry.getPropertyName().equals(ID_PROPERTY)) {

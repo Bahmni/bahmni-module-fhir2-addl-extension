@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dataset>
+    <fhir_concept_source fhir_concept_source_id="9001" name="Test terminology" url="urn:test:sstrm" concept_source_id="1" creator="1" date_created="2005-01-01 00:00:00.0" retired="0" uuid="fcs-9001-0000-0000-0000-000000000001"/>
+    <fhir_concept_source fhir_concept_source_id="9002" name="SNOMED CT" url="http://snomed.info/sct" concept_source_id="2" creator="1" date_created="2005-01-01 00:00:00.0" retired="0" uuid="fcs-9002-0000-0000-0000-000000000002"/>
+
+    <provider provider_id="9002" person_id="2" identifier="SR-PROV-2" creator="1" date_created="2005-01-01 00:00:00.0" retired="false" uuid="prov-9002-0000-0000-0000-000000000002"/>
+
+    <!-- SR1: lab test, patient 7, encounter 4 (location 1), concept 5089 (WGT234 / 2332523), 2024-01-10 .. expires 2024-01-20 -->
+    <orders order_id="9001" order_type_id="7" order_number="SR-1" urgency="ROUTINE" order_action="NEW" concept_id="5089" orderer="1" date_activated="2024-01-10 00:00:00.0" auto_expire_date="2024-01-20 00:00:00.0" creator="1" date_created="2024-01-10 00:00:00.0" voided="false" patient_id="7" uuid="sr-9001-0000-0000-0000-000000000001" care_setting="1" encounter_id="4"/>
+    <test_order order_id="9001"/>
+    <!-- SR2: lab test, patient 2, encounter 6 (location 2), concept 5497 (CD41003 / 7345693), activated 2024-03-01, no end date -->
+    <orders order_id="9002" order_type_id="7" order_number="SR-2" urgency="ROUTINE" order_action="NEW" concept_id="5497" orderer="9002" date_activated="2024-03-01 00:00:00.0" creator="1" date_created="2024-03-01 00:00:00.0" voided="false" patient_id="2" uuid="sr-9002-0000-0000-0000-000000000002" care_setting="1" encounter_id="6"/>
+    <test_order order_id="9002"/>
+    <!-- SR3: x-ray, patient 7, encounter 5 (location 2), concept 5089, revises SR1, activated 2024-02-01, stopped 2024-02-10 -->
+    <orders order_id="9003" order_type_id="12" order_number="SR-3" urgency="ROUTINE" order_action="REVISE" previous_order_id="9001" concept_id="5089" orderer="1" date_activated="2024-02-01 00:00:00.0" date_stopped="2024-02-10 00:00:00.0" creator="1" date_created="2024-02-01 00:00:00.0" voided="false" patient_id="7" uuid="sr-9003-0000-0000-0000-000000000003" care_setting="1" encounter_id="5"/>
+    <test_order order_id="9003"/>
+    <!-- SR4: voided lab test, patient 7, encounter 4 -->
+    <orders order_id="9004" order_type_id="7" order_number="SR-4" urgency="ROUTINE" order_action="NEW" concept_id="5089" orderer="1" date_activated="2024-01-15 00:00:00.0" creator="1" date_created="2024-01-15 00:00:00.0" voided="true" voided_by="1" date_voided="2024-01-16 00:00:00.0" void_reason="mistake" patient_id="7" uuid="sr-9004-0000-0000-0000-000000000004" care_setting="1" encounter_id="4"/>
+    <test_order order_id="9004"/>
+    <!-- SR5: scheduled lab test, patient 2, encounter 6, scheduled 2024-06-01, activated 2024-05-01, expires 2024-06-30 -->
+    <orders order_id="9005" order_type_id="7" order_number="SR-5" urgency="ON_SCHEDULED_DATE" scheduled_date="2024-06-01 00:00:00.0" order_action="NEW" concept_id="5497" orderer="1" date_activated="2024-05-01 00:00:00.0" auto_expire_date="2024-06-30 00:00:00.0" creator="1" date_created="2024-05-01 00:00:00.0" voided="false" patient_id="2" uuid="sr-9005-0000-0000-0000-000000000005" care_setting="1" encounter_id="6"/>
+    <test_order order_id="9005"/>
+</dataset>

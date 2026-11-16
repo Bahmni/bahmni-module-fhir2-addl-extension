@@ -611,7 +611,7 @@ public class BahmniFhirDiagnosticReportBundleServiceTest {
 		
 		String bundleUuid = "report-bundle-123";
 		FhirDiagnosticReportExt existingReportEntity = new FhirDiagnosticReportExt();
-		existingReportEntity.setStatusExt(FhirDiagnosticReportExt.DiagnosticReportStatusExt.CANCELLED);
+		existingReportEntity.setStatus(org.openmrs.module.fhir2.model.FhirDiagnosticReport.DiagnosticReportStatus.CANCELLED);
 		existingReportEntity.setUuid(bundleUuid);
 		when(bahmniFhirDiagnosticReportDao.get(bundleUuid)).thenReturn(existingReportEntity);
 		String patchBody = loadPatchJson("patch-diagnostic-bundle-add-observation.json");
