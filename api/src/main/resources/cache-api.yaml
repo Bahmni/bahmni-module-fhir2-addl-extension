@@ -15,3 +15,5 @@ caches:
         configuration: "entity"
     fhir2addlextensionTelecomAttributeTypeMappings:
         configuration: "entity"
+    fhir2addlextensionDispositionConfig:
+        configuration: "entity"
