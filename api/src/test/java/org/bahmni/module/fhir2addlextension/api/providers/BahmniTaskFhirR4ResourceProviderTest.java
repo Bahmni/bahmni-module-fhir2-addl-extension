@@ -1,5 +1,7 @@
 package org.bahmni.module.fhir2addlextension.api.providers;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -7,10 +9,12 @@ import static org.mockito.Mockito.when;
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.rest.api.SortSpec;
 import ca.uhn.fhir.rest.param.DateRangeParam;
+import ca.uhn.fhir.rest.param.TokenAndListParam;
 import org.bahmni.module.fhir2addlextension.api.search.param.BahmniTaskSearchParams;
 import org.bahmni.module.fhir2addlextension.api.service.BahmniFhirTaskService;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -31,7 +35,7 @@ public class BahmniTaskFhirR4ResourceProviderTest {
 		when(bahmniFhirTaskService.searchForTasks(any(BahmniTaskSearchParams.class)))
 		    .thenReturn(null);
 
-		provider.searchTasks(null, null, null, null, null, null, null, null, null, new HashSet<>(),
+		provider.searchTasks(null, null, null, null, null, null, null, null, null, null, new HashSet<>(),
 		    null);
 
 		verify(bahmniFhirTaskService).searchForTasks(any(BahmniTaskSearchParams.class));
@@ -44,7 +48,7 @@ public class BahmniTaskFhirR4ResourceProviderTest {
 
 		HashSet<Include> emptyIncludes = new HashSet<>();
 
-		provider.searchTasks(null, null, null, null, null, null, null, null, null, emptyIncludes,
+		provider.searchTasks(null, null, null, null, null, null, null, null, null,null, emptyIncludes,
 		    null);
 
 		verify(bahmniFhirTaskService).searchForTasks(any(BahmniTaskSearchParams.class));
@@ -59,7 +63,7 @@ public class BahmniTaskFhirR4ResourceProviderTest {
 		HashSet<Include> includes = new HashSet<>();
 		SortSpec sort = new SortSpec("name");
 
-		provider.searchTasks(null, null, null, null, null, null, null, null, lastUpdated, includes,
+		provider.searchTasks(null, null, null, null, null, null, null, null, null,lastUpdated, includes,
 		    sort);
 
 		verify(bahmniFhirTaskService).searchForTasks(any(BahmniTaskSearchParams.class));
@@ -76,7 +80,7 @@ public class BahmniTaskFhirR4ResourceProviderTest {
 		when(bahmniFhirTaskService.searchForTasks(any(BahmniTaskSearchParams.class)))
 		    .thenReturn(null);
 
-		provider.searchTasks(basedOnRef, null, null, null, status, null, null, null, null, new HashSet<>(),
+		provider.searchTasks(basedOnRef, null, null, null, null, status, null, null, null, null, new HashSet<>(),
 		    null);
 
 		verify(bahmniFhirTaskService).searchForTasks(any(BahmniTaskSearchParams.class));
@@ -99,7 +103,7 @@ public class BahmniTaskFhirR4ResourceProviderTest {
 		when(bahmniFhirTaskService.searchForTasks(any(BahmniTaskSearchParams.class)))
 		    .thenReturn(null);
 
-		provider.searchTasks(basedOnRef, ownerRef, forRef, null, status, null, null, null, null, new HashSet<>(),
+		provider.searchTasks(basedOnRef, ownerRef, forRef, null, null, status, null, null, null, null, new HashSet<>(),
 		    null);
 
 		verify(bahmniFhirTaskService).searchForTasks(any(BahmniTaskSearchParams.class));
@@ -115,7 +119,7 @@ public class BahmniTaskFhirR4ResourceProviderTest {
 		when(bahmniFhirTaskService.searchForTasks(any(BahmniTaskSearchParams.class)))
 		    .thenReturn(null);
 
-		provider.searchTasks(null, multiOwner, null, null, null, null, null, null, null, new HashSet<>(), null);
+		provider.searchTasks(null, multiOwner, null, null, null,null, null, null, null, null, new HashSet<>(), null);
 
 		verify(bahmniFhirTaskService).searchForTasks(any(BahmniTaskSearchParams.class));
 	}
@@ -129,7 +133,7 @@ public class BahmniTaskFhirR4ResourceProviderTest {
 		when(bahmniFhirTaskService.searchForTasks(any(BahmniTaskSearchParams.class)))
 		    .thenReturn(null);
 
-		provider.searchTasks(null, null, null, focusRef, null, null, null, null, null, new HashSet<>(), null);
+		provider.searchTasks(null, null, null, focusRef, null, null, null, null, null, null, new HashSet<>(), null);
 
 		verify(bahmniFhirTaskService).searchForTasks(any(BahmniTaskSearchParams.class));
 	}
@@ -146,8 +150,22 @@ public class BahmniTaskFhirR4ResourceProviderTest {
 		when(bahmniFhirTaskService.searchForTasks(any(BahmniTaskSearchParams.class)))
 		    .thenReturn(null);
 
-		provider.searchTasks(null, null, null, null, null, encounterRef, name, null, null, new HashSet<>(), null);
+		provider.searchTasks(null, null, null, null, null, null, encounterRef, name, null, null, new HashSet<>(), null);
 
 		verify(bahmniFhirTaskService).searchForTasks(any(BahmniTaskSearchParams.class));
+	}
+
+	@Test
+	public void searchTasks_shouldPassTaskCodeToSearchService() {
+		when(bahmniFhirTaskService.searchForTasks(any(BahmniTaskSearchParams.class)))
+				.thenReturn(null);
+		TokenAndListParam taskCode = new TokenAndListParam();
+		ArgumentCaptor<BahmniTaskSearchParams> paramsCaptor = ArgumentCaptor.forClass(BahmniTaskSearchParams.class);
+
+		provider.searchTasks(null, null, null, null, null, taskCode, null, null, null, null, new HashSet<>(),
+				null);
+
+		verify(bahmniFhirTaskService).searchForTasks(paramsCaptor.capture());
+		assertThat(paramsCaptor.getValue().getTaskCode(), sameInstance(taskCode));
 	}
 }
