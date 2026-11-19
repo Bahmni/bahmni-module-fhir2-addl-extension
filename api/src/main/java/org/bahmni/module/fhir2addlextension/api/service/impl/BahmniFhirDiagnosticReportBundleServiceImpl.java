@@ -165,7 +165,9 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		if (diagnosticReportExt.getUuid() == null) {
 			diagnosticReportExt.setUuid(FhirUtils.newUuid());
 		}
-		return getTranslator().toFhirResource(getDao().createOrUpdate(diagnosticReportExt));
+		FhirDiagnosticReportExt savedReport = getDao().createOrUpdate(diagnosticReportExt);
+		updateFulfillerStatus(basedOnOrders, report.getStatus());
+		return getTranslator().toFhirResource(savedReport);
 	}
 	
 	/**
@@ -442,8 +444,9 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		patchedReport.setId(existingReport.getId());
 		diagnosticReportValidator.validate(patchedReport);
 		FhirDiagnosticReportExt diagnosticReportExt = diagnosticReportTranslator.toOpenmrsType(patchedReport);
-		
-		return getTranslator().toFhirResource(getDao().createOrUpdate(diagnosticReportExt));
+		FhirDiagnosticReportExt savedReport = getDao().createOrUpdate(diagnosticReportExt);
+		updateFulfillerStatus(basedOnOrders, patchedReport.getStatus());
+		return getTranslator().toFhirResource(savedReport);
 	}
 	
 	private void removeTemporaryArrayElements(List<String> tempUuidList, DiagnosticReport patchedReport) {
@@ -612,7 +615,9 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		
 		diagnosticReportValidator.validate(newReport);
 		FhirDiagnosticReportExt updatedEntity = diagnosticReportTranslator.toOpenmrsType(existingEntity, newReport);
-		return getTranslator().toFhirResource(getDao().createOrUpdate(updatedEntity));
+		FhirDiagnosticReportExt savedReport = getDao().createOrUpdate(updatedEntity);
+		updateFulfillerStatus(basedOnOrders, newReport.getStatus());
+		return getTranslator().toFhirResource(savedReport);
 	}
 	
 	private void purgeExistingBasedOn(FhirDiagnosticReportExt existingEntity) {
@@ -639,6 +644,12 @@ public class BahmniFhirDiagnosticReportBundleServiceImpl extends BaseFhirService
 		// records may be retained for audit/history purposes with a voided flag, rather than hard deleted.
 		// This is a design decision to be made.
 		existingEntity.getPresentedForms().clear();
+	}
+	
+	private void updateFulfillerStatus(List<Order> orders, DiagnosticReport.DiagnosticReportStatus status) {
+		if (DiagnosticReport.DiagnosticReportStatus.FINAL.equals(status)) {
+			orders.forEach(order -> order.setFulfillerStatus(Order.FulfillerStatus.COMPLETED));
+		}
 	}
 	
 	@Override
